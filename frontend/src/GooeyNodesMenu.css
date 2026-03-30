@@ -235,6 +235,26 @@
   flex-direction: column;
 }
 
+.ms-back-btn {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: #a0a0a0;
+  cursor: pointer;
+  padding: 8px 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  transition: color 0.2s;
+}
+
+.ms-back-btn:hover {
+  color: #fff;
+}
+
+.ms-back-btn svg {
+  margin-right: 6px;
+}
+
 /* Categories Mode (Search / Pill Menu Selected) */
 .ms-category-title {
   font-size: 13px;
