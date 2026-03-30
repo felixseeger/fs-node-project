@@ -26,8 +26,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  /* SVG Filter for Gooey liquid stretching */
-  filter: url('#goo');
 }
 
 .ms-menu-toggle {
@@ -45,6 +43,27 @@
   left: 7.5px;
   transition: top .5s ease;
   z-index: 1;
+}
+
+/* The liquid expanding background matching reference */
+.bg-change {
+  position: absolute;
+  top: -15px;
+  left: -15px;
+  width: 1px;
+  height: 1px;
+  border-radius: 100% 0% 0% 0%;
+  background: var(--gooey-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all .25s ease;
+  z-index: -2;
+}
+
+.ms-menu-toggle:checked ~ .bg-change {
+  width: 3000px;
+  height: 3000px;
+  transition: all .5s ease;
 }
 
 /* ── The Triangles for Liquid Transition ── */

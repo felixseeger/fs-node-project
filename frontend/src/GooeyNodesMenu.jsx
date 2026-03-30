@@ -74,6 +74,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
             checked={isOpen}
             onChange={handleToggle}
           />
+          <div className="bg-change"></div>
           
           {categories.map((cat, index) => (
             <li key={cat.id} className={`gooey-li gooey-li-${index + 1}`}>
