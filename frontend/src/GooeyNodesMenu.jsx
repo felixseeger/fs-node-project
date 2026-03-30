@@ -231,7 +231,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
                           }
                         }}
                         onClick={() => {
-                          if (!item.hasSubmenu) {
+                          if (item.type) {
                             onAddNode(item.type, {});
                             setIsOpen(false);
                             setActiveSubMenu(null);
@@ -264,7 +264,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
       <div className={`ms-flyout-panel ${activeSubMenu && isOpen && !searchQuery && !activeCategory ? 'active' : ''}`}>
         {activeSubMenu && (
           <>
-            <div className="ms-category-title">{activeSubMenu} Nodes</div>
+            <div className="ms-category-title">{activeSubMenu === 'LLMs' ? 'Models' : `${activeSubMenu} Models`}</div>
             <div className="ms-node-list">
               {subMenuNodes.map(item => (
                 <button
