@@ -57,7 +57,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
     if (!activeCategory) return [];
     
     if (activeCategory === 'Search') {
-      if (!searchQuery) return allNodes;
+      if (!searchQuery) return []; // Return empty array if no search query
       const lowerQuery = searchQuery.toLowerCase();
       return allNodes.filter(n => 
         n.label.toLowerCase().includes(lowerQuery) || 
@@ -140,7 +140,11 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
               </button>
             ))
           ) : (
-            <div className="ms-no-results">No nodes found.</div>
+            <div className="ms-no-results">
+              {activeCategory === 'Search' && !searchQuery 
+                ? 'Type to search nodes...' 
+                : 'No nodes found.'}
+            </div>
           )}
         </div>
       </div>
