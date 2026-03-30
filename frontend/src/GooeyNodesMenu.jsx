@@ -1,13 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import './GooeyNodesMenu.css';
 import ProfileModal from './ProfileModal';
+import AssetModal from './AssetModal';
 
 // SVG Icons for categories
 const Icons = {
   Plus: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>,
   Close: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
   Folder: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>,
+  FolderPlus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>,
   Flash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>,
+  Hash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>,
   Help: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>,
   HelpBook: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>,
   Bug: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect x="4" y="8" width="16" height="12" rx="2"></rect><path d="M9 14h6"></path><path d="M12 11v6"></path></svg>,
@@ -23,6 +26,7 @@ const Icons = {
 const CATEGORIES = [
   { id: 'Uploads', icon: Icons.Folder, title: 'Uploaded Files' },
   { id: 'Workflows', icon: Icons.Flash, title: 'Workflows' },
+  { id: 'Assets', icon: Icons.Hash, title: 'Assets' },
 ];
 
 const QUICK_ADD_SECTIONS = [
@@ -68,6 +72,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showHelpMenu, setShowHelpMenu] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showAssetModal, setShowAssetModal] = useState(false);
 
   const handleCategoryClick = (category) => {
     if (activeCategory === category && isOpen) {
@@ -227,7 +232,32 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
         </div>
 
         <div className="ms-overlay-scroll-area">
-          {searchQuery || activeCategory ? (
+          {activeCategory === 'Assets' && !searchQuery ? (
+            <div className="ms-assets-browser">
+              <div className="ms-assets-tabs">
+                <button className="ms-asset-tab active">Library</button>
+                <button className="ms-asset-tab">Unsplash</button>
+              </div>
+              <div className="ms-assets-section">
+                <div className="ms-assets-title">Folders <span>0</span></div>
+                <div className="ms-assets-grid">
+                  <button className="ms-asset-card">
+                    <span className="ms-asset-icon">{Icons.FolderPlus}</span>
+                    <span className="ms-asset-label">Create Folder</span>
+                  </button>
+                </div>
+              </div>
+              <div className="ms-assets-section">
+                <div className="ms-assets-title">Unorganized <span>0</span></div>
+                <div className="ms-assets-grid">
+                  <button className="ms-asset-card" onClick={() => { setIsOpen(false); setShowAssetModal(true); }}>
+                    <span className="ms-asset-icon" style={{ width: 24, height: 24, padding: 6 }}>{Icons.Plus}</span>
+                    <span className="ms-asset-label">Upload Asset</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : searchQuery || activeCategory ? (
             <div className="ms-node-list">
               {activeCategory && !searchQuery && <div className="ms-category-title">{activeCategory}</div>}
               {filteredNodes.length > 0 ? (
@@ -365,6 +395,8 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
       </div>
       {/* Profile Modal */}
       <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
+      {/* Asset Modal */}
+      <AssetModal isOpen={showAssetModal} onClose={() => setShowAssetModal(false)} onUpload={onAddNode} />
     </div>
   );
 }

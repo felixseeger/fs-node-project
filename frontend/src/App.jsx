@@ -13,6 +13,7 @@ import '@xyflow/react/dist/style.css';
 import InputNode from './nodes/InputNode';
 import TextNode from './nodes/TextNode';
 import ImageNode from './nodes/ImageNode';
+import AssetNode from './nodes/AssetNode';
 import ImageAnalyzerNode from './nodes/ImageAnalyzerNode';
 import GeneratorNode from './nodes/GeneratorNode';
 import CreativeUpScaleNode from './nodes/CreativeUpScaleNode';
@@ -56,6 +57,9 @@ import VoiceoverNode from './nodes/VoiceoverNode';
 import ResponseNode from './nodes/ResponseNode';
 import AdaptedPromptNode from './nodes/AdaptedPromptNode';
 import WorkflowsPage from './WorkflowsPage';
+import ProfilePage from './ProfilePage';
+import WorkflowSettingsPage from './WorkflowSettingsPage';
+import AuthPage from './AuthPage';
 import TopBar from './TopBar';
 import EditorTopBar from './EditorTopBar';
 import GooeyNodesMenu from './GooeyNodesMenu';
@@ -70,6 +74,7 @@ const NODE_MENU = [
     items: [
       { type: 'textNode', label: 'Text', defaults: { label: 'Text', text: '' } },
       { type: 'imageNode', label: 'Image', defaults: { label: 'Image', images: [] } },
+      { type: 'assetNode', label: 'Asset', defaults: { label: 'Asset', images: [] } },
     ],
   },
   {
@@ -502,6 +507,7 @@ export default function App() {
   const [workflows, setWorkflows] = useState([]);
   const [activeWorkflowId, setActiveWorkflowId] = useState(null);
   const [editorMode, setEditorMode] = useState('node-editor');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const activeWorkflowName = workflows.find((w) => w.id === activeWorkflowId)?.name || 'Untitled';
 
@@ -519,6 +525,7 @@ export default function App() {
       inputNode: InputNode,
       textNode: TextNode,
       imageNode: ImageNode,
+      assetNode: AssetNode,
       imageAnalyzer: ImageAnalyzerNode,
       generator: GeneratorNode,
       creativeUpscale: CreativeUpScaleNode,
@@ -1158,15 +1165,44 @@ export default function App() {
     []
   );
 
+  // Auth guard — show login/signup if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <AuthPage onLogin={() => setIsAuthenticated(true)} />
+    );
+  }
+
   if (currentPage === 'home') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
-        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} />
+        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={() => setIsAuthenticated(false)} />
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <WorkflowsPage
             onCreateWorkflow={handleCreateWorkflow}
             workflows={workflows}
           />
+        </div>
+      </div>
+    );
+  }
+
+  if (currentPage === 'profile') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
+        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={() => setIsAuthenticated(false)} />
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <ProfilePage />
+        </div>
+      </div>
+    );
+  }
+
+  if (currentPage === 'workflow-settings') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
+        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={() => setIsAuthenticated(false)} />
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <WorkflowSettingsPage />
         </div>
       </div>
     );
@@ -1180,6 +1216,7 @@ export default function App() {
         workflowName={activeWorkflowName}
         editorMode={editorMode}
         onEditorModeChange={setEditorMode}
+        onLogout={() => setIsAuthenticated(false)}
       />
       <EditorTopBar
         onSave={() => {
