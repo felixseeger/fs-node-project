@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import './GooeyNodesMenu.css';
+import ProfileModal from './ProfileModal';
 
 // SVG Icons for categories
 const Icons = {
@@ -66,6 +67,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
   const [activeSubMenu, setActiveSubMenu] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showHelpMenu, setShowHelpMenu] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const handleCategoryClick = (category) => {
     if (activeCategory === category && isOpen) {
@@ -201,7 +203,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
           </li>
           
           <li className="ms-li ms-avatar ms-li-last">
-            <a href="#" onClick={(e) => e.preventDefault()} data-tooltip="User Profile">
+            <a href="#" onClick={(e) => { e.preventDefault(); setShowProfileModal(true); setIsOpen(false); setShowHelpMenu(false); }} data-tooltip="User Profile">
               <img src="/ref/gen-ai.jpg" alt="User Profile" />
             </a>
           </li>
@@ -361,6 +363,8 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
           <div className="ms-help-date" style={{ marginTop: 4 }}>Last updated Mar 31, 2026</div>
         </div>
       </div>
+      {/* Profile Modal */}
+      <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
     </div>
   );
 }
