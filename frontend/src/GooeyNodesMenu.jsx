@@ -84,6 +84,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
             checked={isOpen}
             onChange={handleToggle}
           />
+          <div className="ms-pill-bg"></div>
           
           {CATEGORIES.map((cat, idx) => {
             const index = idx + 1;
