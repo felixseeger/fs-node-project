@@ -125,7 +125,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
           
           <li className="ms-main">
             <label htmlFor="ms-menu-toggle" title="Add Nodes">
-              <span>{Icons.Plus}</span>
+              <span><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></span>
             </label>
           </li>
 
