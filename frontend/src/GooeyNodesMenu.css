@@ -31,29 +31,6 @@
   display: none;
 }
 
-/* ── Liquid Ripple Background ── */
-.bg-change {
-  position: absolute;
-  top: 37px;
-  left: 37px;
-  width: 1px;
-  height: 1px;
-  border-radius: 50%;
-  background: var(--ms-glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: all 0.25s ease;
-  z-index: -1;
-  pointer-events: none;
-}
-
-.ms-menu-toggle:checked ~ .bg-change {
-  width: 2500px;
-  height: 2500px;
-  transform: translate(-50%, -50%);
-  transition: all 0.5s ease;
-}
-
 /* ── Menu Main Button ── */
 .ms-main {
   position: relative;

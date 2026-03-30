@@ -31,8 +31,12 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleToggle = () => {
-    setIsOpen(!isOpen);
-    if (isOpen) {
+    const nextOpen = !isOpen;
+    setIsOpen(nextOpen);
+    if (nextOpen) {
+      setActiveCategory('Search');
+      setSearchQuery('');
+    } else {
       setActiveCategory(null);
       setSearchQuery('');
     }
@@ -80,7 +84,6 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
             checked={isOpen}
             onChange={handleToggle}
           />
-          <div className="bg-change"></div>
           
           {CATEGORIES.map((cat, idx) => {
             const index = idx + 1;
