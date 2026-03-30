@@ -37,16 +37,13 @@
   top: 0;
   left: 0;
   width: 75px;
-  height: 75px;
+  height: 700px;
   background: var(--ms-glass-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 40px;
-  transition: height 0.5s ease, opacity 0.5s ease;
   z-index: 0;
   border: 1px solid rgba(255,255,255,0.05);
-  opacity: 0;
-  pointer-events: none;
 }
 
 .ms-divider {
@@ -54,7 +51,8 @@
   justify-content: center;
   align-items: center;
   width: 75px;
-  transition: top 0.5s ease, opacity 0.5s ease;
+  position: absolute;
+  top: 590px;
 }
 
 .ms-divider-line {
@@ -64,18 +62,14 @@
 }
 
 .ms-avatar {
-  transition: top 0.5s ease, opacity 0.5s ease;
+  position: absolute;
+  top: 615px;
 }
 
 .ms-avatar a {
   border-radius: 50%;
   overflow: hidden;
   padding: 0;
-}
-
-.ms-menu-toggle:checked ~ .ms-pill-bg {
-  height: 700px; /* Covers main button (75px) + 8 items + divider + avatar ~ 700px */
-  opacity: 1;
 }
 
 /* ── Menu Main Button ── */
@@ -113,7 +107,6 @@
   width: 75px;
   display: flex;
   justify-content: center;
-  transition: top 0.5s ease;
   z-index: 1;
 }
 
@@ -147,14 +140,14 @@
 }
 
 /* ── Item Positioning ── */
-.ms-menu-toggle:checked ~ .ms-li1 { top: 75px; transition-delay: 0.05s; }
-.ms-menu-toggle:checked ~ .ms-li2 { top: 140px; transition-delay: 0.1s; }
-.ms-menu-toggle:checked ~ .ms-li3 { top: 205px; transition-delay: 0.15s; }
-.ms-menu-toggle:checked ~ .ms-li4 { top: 270px; transition-delay: 0.2s; }
-.ms-menu-toggle:checked ~ .ms-li5 { top: 335px; transition-delay: 0.25s; }
-.ms-menu-toggle:checked ~ .ms-li6 { top: 400px; transition-delay: 0.3s; }
-.ms-menu-toggle:checked ~ .ms-li7 { top: 465px; transition-delay: 0.35s; }
-.ms-menu-toggle:checked ~ .ms-li8 { top: 530px; transition-delay: 0.4s; }
+.ms-li1 { top: 75px; }
+.ms-li2 { top: 140px; }
+.ms-li3 { top: 205px; }
+.ms-li4 { top: 270px; }
+.ms-li5 { top: 335px; }
+.ms-li6 { top: 400px; }
+.ms-li7 { top: 465px; }
+.ms-li8 { top: 530px; }
 
 /* ── Liquid Connection Logic (The Stretch) ── */
 /* Removed as per the reference image design */
@@ -179,16 +172,13 @@
   opacity: 1;
 }
 
-/* ── Submenu Panel ── */
-.ms-submenu {
+/* ── Overlay Panel (navbar_nodes.jpg match) ── */
+.ms-overlay-panel {
   margin-left: 20px;
-  background: var(--ms-glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #1e1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  padding: 16px;
-  width: 260px;
+  width: 320px;
   color: #fff;
   opacity: 0;
   transform: translateX(-20px);
@@ -196,44 +186,58 @@
   transition: all 0.3s ease;
   align-self: flex-start;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   max-height: calc(100vh - 100px);
-  overflow-y: auto;
   z-index: 1500;
 }
 
-.ms-submenu.active {
+.ms-overlay-panel.active {
   opacity: 1;
   transform: translateX(0);
   pointer-events: auto;
 }
 
-.ms-submenu-header {
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  padding-bottom: 8px;
-  margin-bottom: 12px;
+.ms-search-container {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
-.ms-submenu-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #e0e0e0;
+.ms-search-icon {
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
 }
 
-.ms-search-input {
+.ms-search-input-overlay {
   width: 100%;
-  background: rgba(0,0,0,0.2);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 6px;
-  padding: 8px 10px;
-  color: white;
-  font-size: 12px;
-  margin-top: 8px;
+  background: transparent;
+  border: none;
+  color: #a0a0a0;
+  font-size: 14px;
   outline: none;
 }
 
-.ms-search-input:focus {
-  border-color: #3b82f6;
+.ms-search-input-overlay:focus {
+  color: #fff;
+}
+
+.ms-overlay-scroll-area {
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Categories Mode (Search / Pill Menu Selected) */
+.ms-category-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e0e0e0;
+  margin-bottom: 12px;
 }
 
 .ms-node-list {
@@ -246,9 +250,9 @@
   width: 100%;
   padding: 8px 12px;
   margin-bottom: 6px;
-  font-size: 12px;
+  font-size: 13px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid transparent;
   border-radius: 6px;
   color: #e0e0e0;
   cursor: pointer;
@@ -257,12 +261,90 @@
 }
 
 .ms-node-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .ms-no-results {
-  font-size: 11px;
+  font-size: 12px;
   color: #888;
   font-style: italic;
   padding: 10px 0;
+}
+
+/* Quick Add Mode */
+.ms-qa-section {
+  margin-bottom: 24px;
+}
+
+.ms-qa-section:last-child {
+  margin-bottom: 0;
+}
+
+.ms-qa-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #a0a0a0;
+  margin-bottom: 8px;
+}
+
+.ms-qa-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.ms-qa-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+  color: #fff;
+}
+
+.ms-qa-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ms-qa-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.ms-qa-icon svg {
+  color: #e0e0e0;
+}
+
+.ms-qa-text {
+  flex-grow: 1;
+}
+
+.ms-qa-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.ms-qa-desc {
+  font-size: 12px;
+  color: #888;
+}
+
+.ms-qa-shortcut {
+  font-size: 12px;
+  color: #888;
+  font-family: monospace;
+  margin-left: 12px;
 }
