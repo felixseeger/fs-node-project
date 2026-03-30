@@ -50,3 +50,47 @@ html, body, #root {
   outline: 2px solid #3b82f6;
   outline-offset: 1px;
 }
+
+/* ── Glitch Logo Effect ── */
+@-webkit-keyframes wiggle {
+    0% { -webkit-transform: skewX(7deg); transform: skewX(7deg); } 
+    10% { -webkit-transform: skewX(-8deg); transform: skewX(-8deg); }
+    20% { -webkit-transform: skewX(2deg); transform: skewX(2deg); }
+    30% { -webkit-transform: skewX(-4deg); transform: skewX(-4deg); }
+    40% { -webkit-transform: skewX(2deg); transform: skewX(2deg); }
+    50% { -webkit-transform: skewX(-2deg); transform: skewX(-2deg); }
+    60% { -webkit-transform: skewX(3deg); transform: skewX(3deg); }
+    70% { -webkit-transform: skewX(-2deg); transform: skewX(-2deg); }
+    80% { -webkit-transform: skewX(1deg); transform: skewX(1deg); }
+    90% { -webkit-transform: skewX(5deg); transform: skewX(5deg); }
+    100% { -webkit-transform: skewX(5deg); transform: skewX(5deg); }
+}
+
+@keyframes wiggle {
+    0% { transform: skewX(7deg); } 
+    10% { transform: skewX(-8deg); }
+    20% { transform: skewX(2deg); }
+    30% { transform: skewX(-4deg); }
+    40% { transform: skewX(2deg); }
+    50% { transform: skewX(-2deg); }
+    60% { transform: skewX(3deg); }
+    70% { transform: skewX(-2deg); }
+    80% { transform: skewX(1deg); }
+    90% { transform: skewX(5deg); }
+    100% { transform: skewX(5deg); }
+}
+
+.glitch-logo {
+  cursor: pointer;
+  filter: drop-shadow(1px 1px 0px rgba(255, 0, 68, 0.79)) 
+          drop-shadow(-1px -1px 0px rgba(0, 24, 255, 0.79)) 
+          drop-shadow(-1px 0px 0px rgba(255, 210, 0, 1));
+}
+
+.glitch-logo:hover {
+  animation: wiggle .4s 4;
+  -webkit-animation: wiggle .4s 4;
+  filter: drop-shadow(-3px 1px 0px rgba(255, 0, 68, 0.5)) 
+          drop-shadow(-2px -8px 0px rgba(0, 24, 255, 0.5)) 
+          drop-shadow(-4px 8px 0px rgba(255, 3, 0, 0.5));
+}

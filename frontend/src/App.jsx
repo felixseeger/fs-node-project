@@ -58,6 +58,7 @@ import AdaptedPromptNode from './nodes/AdaptedPromptNode';
 import WorkflowsPage from './WorkflowsPage';
 import TopBar from './TopBar';
 import EditorTopBar from './EditorTopBar';
+import GooeyNodesMenu from './GooeyNodesMenu';
 import { isValidConnection, getHandleColor, getHandleDataType } from './utils/handleTypes';
 
 let nodeIdCounter = 0;
@@ -1225,52 +1226,11 @@ export default function App() {
         }}
       />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', background: '#1a1a1a' }}>
-        {/* Sidebar */}
-        <div
-          style={{
-            width: 200,
-            background: '#222',
-            borderRight: '1px solid #3a3a3a',
-            padding: 12,
-            overflowY: 'auto',
-            flexShrink: 0,
-          }}
-        >
-          <h2 style={{ fontSize: 14, color: '#e0e0e0', margin: '0 0 12px' }}>Add Nodes</h2>
-          {NODE_MENU.map((section) => (
-            <div key={section.section} style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 1 }}>
-                {section.section}
-              </div>
-              {section.items.map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => addNode(item.type, item.defaults)}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    padding: '6px 8px',
-                    marginBottom: 4,
-                    fontSize: 11,
-                    background: '#2a2a2a',
-                    border: '1px solid #3a3a3a',
-                    borderRadius: 4,
-                    color: '#e0e0e0',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#4a4a4a')}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#3a3a3a')}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-
         {/* Canvas */}
         <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }}>
+          {/* New Gooey Nodes Menu */}
+          <GooeyNodesMenu nodeMenu={NODE_MENU} onAddNode={addNode} />
+
           {/* Global Generate Button — bottom right */}
           <button
             onClick={handleRunWorkflow}

@@ -1,28 +1,33 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
-import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { removeBackground } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
+import {
+  SectionHeader,
+  LinkedBadges,
+  ConnectedOrLocal,
+  OutputHandle,
+  OutputPreview,
+  useNodeConnections,
+  surface,
+  border,
+  text,
+  font,
+  sp,
+  radius,
+} from './shared';
+
+const ACCENT = '#06b6d4';
 
 export default function RemoveBackgroundNode({ id, data, selected }) {
   const [isLoading, setIsLoading] = useState(false);
+  const { update, conn, resolve } = useNodeConnections(id, data);
 
-  const update = useCallback(
-    (patch) => data.onUpdate?.(id, patch),
-    [id, data]
-  );
-
-  const getConnInfo = useCallback((handleId) => {
-    return data.getConnectionInfo?.(id, handleId) || null;
-  }, [id, data]);
-
-  const imageConnection = getConnInfo('image-in');
-  const hasImageConnection = data.hasConnection?.(id, 'image-in');
+  const image = conn('image-in');
 
   const handleRemove = useCallback(async () => {
-    let images = data.resolveInput?.(id, 'image-in');
-    if (!images?.length && data.localImage) images = [data.localImage];
+    const images = resolve.image('image-in', data.localImage);
     if (!images?.length) return;
 
     setIsLoading(true);
@@ -62,7 +67,7 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
     } finally {
       setIsLoading(false);
     }
-  }, [id, data, update]);
+  }, [id, data, update, resolve]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -71,49 +76,6 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
       handleRemove();
     }
   }, [data.triggerGenerate, handleRemove]);
-
-  // ── Helpers ──
-
-  const sectionHeader = (label, handleId, handleType, color, extra) => (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      marginBottom: 6, marginTop: 10,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Handle type={handleType} position={handleType === 'target' ? Position.Left : Position.Right}
-          id={handleId} style={{
-            width: 10, height: 10, borderRadius: '50%', background: color, border: 'none',
-            position: 'relative', left: handleType === 'target' ? -12 : 'auto',
-            right: handleType === 'source' ? -12 : 'auto', transform: 'none',
-          }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>{label}</span>
-      </div>
-      {extra && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>{extra}</div>}
-    </div>
-  );
-
-  const linkedBadges = (onUnlinkHandle) => (
-    <>
-      <span style={{ fontSize: 9, color: '#3b82f6', padding: '2px 6px', background: 'rgba(59,130,246,0.1)', borderRadius: 4 }}>linked</span>
-      <button onClick={() => data.onUnlink?.(id, onUnlinkHandle)} style={{
-        fontSize: 9, color: '#ef4444', padding: '2px 6px', background: 'rgba(239,68,68,0.15)', borderRadius: 4,
-        border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer',
-      }}>unlink</button>
-    </>
-  );
-
-  const connectionInfoBox = (connInfo) => (
-    <div style={{
-      background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)',
-      borderRadius: 6, padding: '6px 10px', marginBottom: 4,
-      display: 'flex', alignItems: 'center', gap: 6,
-    }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: '#93b4f5' }}>
-        {connInfo ? `Linked from ${connInfo.nodeLabel} → ${connInfo.handle}` : 'Linked from upstream node'}
-      </span>
-    </div>
-  );
 
   // Checkerboard background to show transparency
   const checkerboardStyle = {
@@ -128,63 +90,57 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
     backgroundColor: '#111',
   };
 
-  // ── Render ──
-
   return (
-    <NodeShell label={data.label || 'Remove Background'} dotColor="#06b6d4" selected={selected}>
+    <NodeShell label={data.label || 'Remove Background'} dotColor={ACCENT} selected={selected}>
 
-      {/* ── Image Output Handle (top, aligned with image-in) ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-        marginBottom: 4,
-      }}>
-        <span style={{ fontSize: 10, color: '#999', marginRight: 4 }}>image</span>
-        <Handle type="source" position={Position.Right} id="output" style={{
-          width: 10, height: 10, borderRadius: '50%',
-          background: getHandleColor('output'), border: 'none',
-          position: 'relative', right: -12, transform: 'none',
-        }} />
-      </div>
+      {/* Image Output Handle (top) */}
+      <OutputHandle />
 
-      {/* ── 1. Image ── */}
-      {sectionHeader('Image', 'image-in', 'target', getHandleColor('image-in'),
-        hasImageConnection ? linkedBadges('image-in') : null
-      )}
-      {hasImageConnection ? connectionInfoBox(imageConnection) : (
+      {/* 1. Image */}
+      <SectionHeader
+        label="Image"
+        handleId="image-in"
+        handleType="target"
+        color={getHandleColor('image-in')}
+        extra={image.connected ? (
+          <LinkedBadges nodeId={id} handleId="image-in" onUnlink={data.onUnlink} />
+        ) : null}
+      />
+      <ConnectedOrLocal connected={image.connected} connInfo={image.info}>
         <ImageUploadBox
           image={data.localImage || data.inputImagePreview || null}
           onImageChange={(img) => update({ localImage: img })}
           placeholder="Click or drag to upload image"
         />
-      )}
+      </ConnectedOrLocal>
 
-      {/* ── 2. Info badge ── */}
+      {/* 2. Info badge */}
       <div style={{
         background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.2)',
-        borderRadius: 8, padding: '8px 12px', marginTop: 10,
-        display: 'flex', alignItems: 'center', gap: 8,
+        borderRadius: radius.lg, padding: `${sp[3]}px ${sp[5]}px`, marginTop: sp[4],
+        display: 'flex', alignItems: 'center', gap: sp[3],
       }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="#06b6d4" strokeWidth="1.5" fill="none" />
-          <path d="M12 8v4M12 16h.01" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="12" cy="12" r="10" stroke={ACCENT} strokeWidth="1.5" fill="none" />
+          <path d="M12 8v4M12 16h.01" stroke={ACCENT} strokeWidth="2" strokeLinecap="round" />
         </svg>
-        <span style={{ fontSize: 10, color: '#67e8f9', lineHeight: 1.4 }}>
+        <span style={{ ...font.caption, color: '#67e8f9', lineHeight: 1.4 }}>
           Synchronous — results return instantly, no polling needed
         </span>
       </div>
 
-      {/* ── 3. Output ── */}
+      {/* 3. Output */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 6, marginTop: 10,
+        marginBottom: sp[2], marginTop: sp[4],
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: sp[2] }}>
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ec4899', flexShrink: 0 }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>Cutout Output</span>
+          <span style={font.label}>Cutout Output</span>
         </div>
       </div>
       <div style={{
-        borderRadius: 6, border: '1px solid #3a3a3a',
+        borderRadius: radius.md, border: `1px solid ${border.subtle}`,
         minHeight: 80, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
@@ -192,47 +148,44 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
       }}>
         {isLoading ? (
           <div style={{
-            width: 28, height: 28, border: '3px solid #3a3a3a',
-            borderTop: '3px solid #06b6d4', borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
+            width: 28, height: 28, border: `3px solid ${border.subtle}`,
+            borderTop: `3px solid ${ACCENT}`, borderRadius: '50%',
+            animation: 'node-spin 1s linear infinite',
             background: '#111',
           }} />
         ) : data.outputImage ? (
-          <img src={data.outputImage} alt="cutout" style={{ width: '100%', display: 'block', borderRadius: 6 }} />
+          <img src={data.outputImage} alt="cutout" style={{ width: '100%', display: 'block', borderRadius: radius.md }} />
         ) : data.outputError ? (
-          <span style={{ fontSize: 10, color: '#ef4444', padding: 12, textAlign: 'center', background: '#111' }}>
+          <span style={{ ...font.caption, color: text.error, padding: sp[5], textAlign: 'center', background: '#111' }}>
             {data.outputError}
           </span>
         ) : (
-          <span style={{ fontSize: 11, color: '#555', padding: 16, textAlign: 'center', background: '#111' }}>
+          <span style={{ ...font.sm, color: text.muted, padding: sp[6], textAlign: 'center', background: '#111' }}>
             Transparent PNG cutout will appear here
           </span>
         )}
       </div>
 
-      {/* ── Download links (if available) ── */}
+      {/* Download links (if available) */}
       {data.outputHighRes && !isLoading && (
-        <div style={{
-          display: 'flex', gap: 6, marginTop: 6,
-        }}>
+        <div style={{ display: 'flex', gap: sp[2], marginTop: sp[2] }}>
           {data.outputHighRes && (
             <a href={data.outputHighRes} target="_blank" rel="noopener noreferrer" style={{
-              fontSize: 9, color: '#06b6d4', textDecoration: 'none',
-              padding: '3px 8px', background: 'rgba(6,182,212,0.1)',
-              border: '1px solid rgba(6,182,212,0.25)', borderRadius: 4,
+              ...font.micro, color: ACCENT, textDecoration: 'none',
+              padding: `${sp[1]}px ${sp[3]}px`, background: 'rgba(6,182,212,0.1)',
+              border: '1px solid rgba(6,182,212,0.25)', borderRadius: radius.sm,
             }}>High Res ↓</a>
           )}
           {data.outputPreview && (
             <a href={data.outputPreview} target="_blank" rel="noopener noreferrer" style={{
-              fontSize: 9, color: '#06b6d4', textDecoration: 'none',
-              padding: '3px 8px', background: 'rgba(6,182,212,0.1)',
-              border: '1px solid rgba(6,182,212,0.25)', borderRadius: 4,
+              ...font.micro, color: ACCENT, textDecoration: 'none',
+              padding: `${sp[1]}px ${sp[3]}px`, background: 'rgba(6,182,212,0.1)',
+              border: '1px solid rgba(6,182,212,0.25)', borderRadius: radius.sm,
             }}>Preview ↓</a>
           )}
         </div>
       )}
 
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
     </NodeShell>
   );
 }

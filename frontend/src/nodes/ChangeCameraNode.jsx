@@ -1,9 +1,17 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
-import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { changeCamera, pollChangeCameraStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
+import {
+  SectionHeader, LinkedBadges, ConnectedOrLocal,
+  OutputHandle, OutputPreview,
+  Slider, SettingsPanel, TextInput,
+  useNodeConnections, stripBase64Prefix,
+  CATEGORY_COLORS, surface, border, text, sp, radius, font,
+} from './shared';
+
+const ACCENT = '#f59e0b'; // amber for camera
 
 const HORIZONTAL_PRESETS = [
   { label: 'Front', value: 0 },
@@ -15,44 +23,38 @@ const HORIZONTAL_PRESETS = [
 const VERTICAL_PRESETS = [
   { label: 'Look Up', value: -30 },
   { label: 'Eye Level', value: 0 },
-  { label: '45°', value: 45 },
+  { label: '45\u00b0', value: 45 },
   { label: "Bird's Eye", value: 90 },
+];
+
+const COMPASS_LABELS = [
+  { deg: 0, label: 'F' },
+  { deg: 90, label: 'R' },
+  { deg: 180, label: 'B' },
+  { deg: 270, label: 'L' },
 ];
 
 export default function ChangeCameraNode({ id, data, selected }) {
   const [isLoading, setIsLoading] = useState(false);
+  const { update, conn, resolve } = useNodeConnections(id, data);
 
   const localHorizontal = data.localHorizontalAngle ?? 0;
   const localVertical = data.localVerticalAngle ?? 0;
   const localZoom = data.localZoom ?? 5;
   const localSeed = data.localSeed ?? '';
 
-  const update = useCallback(
-    (patch) => data.onUpdate?.(id, patch),
-    [id, data]
-  );
-
-  const getConnInfo = useCallback((handleId) => {
-    return data.getConnectionInfo?.(id, handleId) || null;
-  }, [id, data]);
-
-  const imageConnection = getConnInfo('image-in');
-  const hasImageConnection = data.hasConnection?.(id, 'image-in');
+  const imageConn = conn('image-in');
 
   const handleTransform = useCallback(async () => {
-    let images = data.resolveInput?.(id, 'image-in');
-    if (!images?.length && data.localImage) images = [data.localImage];
+    const images = resolve.image('image-in', data.localImage);
     if (!images?.length) return;
 
     setIsLoading(true);
     update({ outputImage: null, isLoading: true });
 
     try {
-      let imageBase64 = images[0];
-      if (imageBase64.startsWith('data:')) imageBase64 = imageBase64.split(',')[1];
-
       const params = {
-        image: imageBase64,
+        image: stripBase64Prefix(images[0]),
         horizontal_angle: localHorizontal,
         vertical_angle: localVertical,
         zoom: localZoom,
@@ -72,19 +74,9 @@ export default function ChangeCameraNode({ id, data, selected }) {
       if (result.data?.task_id) {
         const status = await pollChangeCameraStatus(result.data.task_id);
         const generated = status.data?.generated || [];
-        update({
-          outputImage: generated[0] || null,
-          outputImages: generated,
-          isLoading: false,
-          outputError: null,
-        });
+        update({ outputImage: generated[0] || null, outputImages: generated, isLoading: false, outputError: null });
       } else if (result.data?.generated?.length) {
-        update({
-          outputImage: result.data.generated[0],
-          outputImages: result.data.generated,
-          isLoading: false,
-          outputError: null,
-        });
+        update({ outputImage: result.data.generated[0], outputImages: result.data.generated, isLoading: false, outputError: null });
       } else {
         update({ isLoading: false });
       }
@@ -94,7 +86,7 @@ export default function ChangeCameraNode({ id, data, selected }) {
     } finally {
       setIsLoading(false);
     }
-  }, [id, data, update, localHorizontal, localVertical, localZoom, localSeed]);
+  }, [id, data, update, resolve, localHorizontal, localVertical, localZoom, localSeed]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -104,305 +96,177 @@ export default function ChangeCameraNode({ id, data, selected }) {
     }
   }, [data.triggerGenerate, handleTransform]);
 
-  // ── Helpers ──
-
-  const sectionHeader = (label, handleId, handleType, color, extra) => (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      marginBottom: 6, marginTop: 10,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Handle type={handleType} position={handleType === 'target' ? Position.Left : Position.Right}
-          id={handleId} style={{
-            width: 10, height: 10, borderRadius: '50%', background: color, border: 'none',
-            position: 'relative', left: handleType === 'target' ? -12 : 'auto',
-            right: handleType === 'source' ? -12 : 'auto', transform: 'none',
-          }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>{label}</span>
-      </div>
-      {extra && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>{extra}</div>}
+  // ── Preset button row ──
+  const presetRow = (presets, currentValue, dataKey) => (
+    <div style={{ display: 'flex', gap: sp[1], marginTop: sp[1] }}>
+      {presets.map((p) => (
+        <button
+          key={p.label}
+          onClick={() => update({ [dataKey]: p.value })}
+          aria-pressed={currentValue === p.value}
+          style={{
+            flex: 1, padding: '3px 0', fontSize: 9,
+            fontWeight: currentValue === p.value ? 600 : 400,
+            borderRadius: radius.pill, border: 'none', cursor: 'pointer',
+            background: currentValue === p.value ? `${ACCENT}26` : surface.deep,
+            color: currentValue === p.value ? ACCENT : text.muted,
+            transition: 'all 0.12s',
+          }}
+        >
+          {p.label}
+        </button>
+      ))}
     </div>
   );
-
-  const linkedBadges = (onUnlinkHandle) => (
-    <>
-      <span style={{ fontSize: 9, color: '#3b82f6', padding: '2px 6px', background: 'rgba(59,130,246,0.1)', borderRadius: 4 }}>linked</span>
-      <button onClick={() => data.onUnlink?.(id, onUnlinkHandle)} style={{
-        fontSize: 9, color: '#ef4444', padding: '2px 6px', background: 'rgba(239,68,68,0.15)', borderRadius: 4,
-        border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer',
-      }}>unlink</button>
-    </>
-  );
-
-  const connectionInfoBox = (connInfo) => (
-    <div style={{
-      background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)',
-      borderRadius: 6, padding: '6px 10px', marginBottom: 4,
-      display: 'flex', alignItems: 'center', gap: 6,
-    }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: '#93b4f5' }}>
-        {connInfo ? `Linked from ${connInfo.nodeLabel} → ${connInfo.handle}` : 'Linked from upstream node'}
-      </span>
-    </div>
-  );
-
-  const ACCENT = '#f59e0b'; // amber for camera
-
-  // Compass-like visual for horizontal angle
-  const compassAngle = localHorizontal;
-  const compassLabels = [
-    { deg: 0, label: 'F' },
-    { deg: 90, label: 'R' },
-    { deg: 180, label: 'B' },
-    { deg: 270, label: 'L' },
-  ];
 
   // ── Render ──
 
   return (
     <NodeShell label={data.label || 'Change Camera'} dotColor={ACCENT} selected={selected}>
 
-      {/* ── Image Output Handle (top) ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-        marginBottom: 4,
-      }}>
-        <span style={{ fontSize: 10, color: '#999', marginRight: 4 }}>image</span>
-        <Handle type="source" position={Position.Right} id="output" style={{
-          width: 10, height: 10, borderRadius: '50%',
-          background: getHandleColor('output'), border: 'none',
-          position: 'relative', right: -12, transform: 'none',
-        }} />
-      </div>
+      <OutputHandle />
 
-      {/* ── 1. Image ── */}
-      {sectionHeader('Image', 'image-in', 'target', getHandleColor('image-in'),
-        hasImageConnection ? linkedBadges('image-in') : null
-      )}
-      {hasImageConnection ? connectionInfoBox(imageConnection) : (
+      {/* 1. Image */}
+      <SectionHeader
+        label="Image" handleId="image-in" handleType="target"
+        color={getHandleColor('image-in')}
+        extra={imageConn.connected ? <LinkedBadges nodeId={id} handleId="image-in" onUnlink={data.onUnlink} /> : null}
+      />
+      <ConnectedOrLocal connected={imageConn.connected} connInfo={imageConn.info}>
         <ImageUploadBox
           image={data.localImage || data.inputImagePreview || null}
           onImageChange={(img) => update({ localImage: img })}
           placeholder="Click or drag to upload image"
         />
-      )}
+      </ConnectedOrLocal>
 
-      {/* ── 2. Camera Controls ── */}
-      <div style={{
-        background: '#1a1a1a', borderRadius: 8, border: '1px solid #3a3a3a',
-        padding: 12, marginTop: 10,
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: '#e0e0e0', marginBottom: 10, textAlign: 'center' }}>
-          Camera Controls
-        </div>
+      {/* 2. Camera Controls */}
+      <SettingsPanel title="Camera Controls">
 
         {/* Compass visual */}
-        <div style={{
-          display: 'flex', justifyContent: 'center', marginBottom: 12,
-        }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: sp[5] }}>
           <div style={{
             width: 100, height: 100, borderRadius: '50%',
-            border: '2px solid #3a3a3a', position: 'relative',
-            background: '#111',
+            border: `2px solid ${border.subtle}`, position: 'relative',
+            background: surface.deep,
           }}>
-            {/* Compass labels */}
-            {compassLabels.map((cl) => {
+            {COMPASS_LABELS.map((cl) => {
               const rad = (cl.deg - 90) * (Math.PI / 180);
               const cx = 50 + 38 * Math.cos(rad);
               const cy = 50 + 38 * Math.sin(rad);
+              const isNear = Math.abs(localHorizontal - cl.deg) < 23 || Math.abs(localHorizontal - cl.deg) > 337;
               return (
                 <span key={cl.label} style={{
-                  position: 'absolute',
-                  left: cx - 6, top: cy - 6,
-                  width: 12, height: 12,
-                  fontSize: 8, fontWeight: 600,
-                  color: Math.abs(compassAngle - cl.deg) < 23 || Math.abs(compassAngle - cl.deg) > 337 ? ACCENT : '#666',
+                  position: 'absolute', left: cx - 6, top: cy - 6,
+                  width: 12, height: 12, fontSize: 8, fontWeight: 600,
+                  color: isNear ? ACCENT : text.muted,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>{cl.label}</span>
               );
             })}
-            {/* Direction indicator */}
             {(() => {
-              const rad = (compassAngle - 90) * (Math.PI / 180);
-              const ix = 50 + 26 * Math.cos(rad);
-              const iy = 50 + 26 * Math.sin(rad);
+              const rad = (localHorizontal - 90) * (Math.PI / 180);
               return (
                 <div style={{
                   position: 'absolute',
-                  left: ix - 5, top: iy - 5,
-                  width: 10, height: 10,
-                  borderRadius: '50%',
-                  background: ACCENT,
-                  boxShadow: `0 0 6px ${ACCENT}`,
+                  left: 50 + 26 * Math.cos(rad) - 5,
+                  top: 50 + 26 * Math.sin(rad) - 5,
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: ACCENT, boxShadow: `0 0 6px ${ACCENT}`,
                 }} />
               );
             })()}
-            {/* Center dot */}
             <div style={{
               position: 'absolute', left: 46, top: 46,
-              width: 8, height: 8, borderRadius: '50%',
-              background: '#555',
+              width: 8, height: 8, borderRadius: '50%', background: text.muted,
             }} />
-            {/* Angle label */}
             <div style={{
               position: 'absolute', bottom: -18, left: 0, right: 0,
               textAlign: 'center', fontSize: 10, color: ACCENT, fontWeight: 600,
-            }}>{localHorizontal}°</div>
+            }}>{localHorizontal}\u00b0</div>
           </div>
         </div>
 
         {/* Horizontal Angle */}
-        <div style={{ marginBottom: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 11, color: '#999' }}>Horizontal Rotation</span>
-            <span style={{ fontSize: 11, color: '#e0e0e0', fontWeight: 600 }}>{localHorizontal}°</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 9, color: '#555', minWidth: 14, textAlign: 'right' }}>0</span>
-            <input type="range" min={0} max={360} value={localHorizontal}
-              onChange={(e) => update({ localHorizontalAngle: Number(e.target.value) })}
-              style={{ flex: 1, accentColor: ACCENT }} />
-            <span style={{ fontSize: 9, color: '#555', minWidth: 18 }}>360</span>
-          </div>
-          <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-            {HORIZONTAL_PRESETS.map((p) => (
-              <button key={p.label} onClick={() => update({ localHorizontalAngle: p.value })} style={{
-                flex: 1, padding: '3px 0', fontSize: 9, fontWeight: localHorizontal === p.value ? 600 : 400,
-                borderRadius: 10, border: 'none', cursor: 'pointer',
-                background: localHorizontal === p.value ? `rgba(245,158,11,0.15)` : '#0e0e0e',
-                color: localHorizontal === p.value ? ACCENT : '#666',
-              }}>{p.label}</button>
-            ))}
-          </div>
-        </div>
+        <Slider
+          label="Horizontal Rotation" value={localHorizontal}
+          onChange={(v) => update({ localHorizontalAngle: v })}
+          min={0} max={360} unit="\u00b0" accentColor={ACCENT}
+        />
+        {presetRow(HORIZONTAL_PRESETS, localHorizontal, 'localHorizontalAngle')}
+
+        <div style={{ height: sp[3] }} />
 
         {/* Vertical Angle */}
-        <div style={{ marginBottom: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 11, color: '#999' }}>Vertical Tilt</span>
-            <span style={{ fontSize: 11, color: '#e0e0e0', fontWeight: 600 }}>{localVertical}°</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 9, color: '#555', minWidth: 18, textAlign: 'right' }}>-30</span>
-            <input type="range" min={-30} max={90} value={localVertical}
-              onChange={(e) => update({ localVerticalAngle: Number(e.target.value) })}
-              style={{ flex: 1, accentColor: ACCENT }} />
-            <span style={{ fontSize: 9, color: '#555', minWidth: 14 }}>90</span>
-          </div>
-          <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-            {VERTICAL_PRESETS.map((p) => (
-              <button key={p.label} onClick={() => update({ localVerticalAngle: p.value })} style={{
-                flex: 1, padding: '3px 0', fontSize: 9, fontWeight: localVertical === p.value ? 600 : 400,
-                borderRadius: 10, border: 'none', cursor: 'pointer',
-                background: localVertical === p.value ? `rgba(245,158,11,0.15)` : '#0e0e0e',
-                color: localVertical === p.value ? ACCENT : '#666',
-              }}>{p.label}</button>
-            ))}
-          </div>
-        </div>
+        <Slider
+          label="Vertical Tilt" value={localVertical}
+          onChange={(v) => update({ localVerticalAngle: v })}
+          min={-30} max={90} unit="\u00b0" accentColor={ACCENT}
+        />
+        {presetRow(VERTICAL_PRESETS, localVertical, 'localVerticalAngle')}
+
+        <div style={{ height: sp[3] }} />
 
         {/* Zoom */}
-        <div style={{ marginBottom: 4 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 11, color: '#999' }}>Zoom</span>
-            <span style={{ fontSize: 11, color: '#e0e0e0', fontWeight: 600 }}>{localZoom}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 9, color: '#555', minWidth: 14, textAlign: 'right' }}>0</span>
-            <input type="range" min={0} max={10} value={localZoom}
-              onChange={(e) => update({ localZoom: Number(e.target.value) })}
-              style={{ flex: 1, accentColor: ACCENT }} />
-            <span style={{ fontSize: 9, color: '#555', minWidth: 14 }}>10</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2, padding: '0 22px' }}>
-            <span style={{ fontSize: 8, color: '#555' }}>Wide</span>
-            <span style={{ fontSize: 8, color: '#555' }}>Medium</span>
-            <span style={{ fontSize: 8, color: '#555' }}>Close-up</span>
-          </div>
+        <Slider
+          label="Zoom" value={localZoom}
+          onChange={(v) => update({ localZoom: v })}
+          min={0} max={10} accentColor={ACCENT}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2, padding: '0 22px' }}>
+          <span style={{ fontSize: 8, color: text.muted }}>Wide</span>
+          <span style={{ fontSize: 8, color: text.muted }}>Medium</span>
+          <span style={{ fontSize: 8, color: text.muted }}>Close-up</span>
         </div>
 
         {/* Camera summary */}
-        <div style={{
-          display: 'flex', gap: 6, marginTop: 10,
-        }}>
-          <div style={{
-            flex: 1, padding: '6px 8px', background: '#111', borderRadius: 6, textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 8, color: '#666', marginBottom: 2 }}>H-Angle</div>
-            <div style={{ fontSize: 11, color: ACCENT, fontWeight: 600 }}>{localHorizontal}°</div>
-          </div>
-          <div style={{
-            flex: 1, padding: '6px 8px', background: '#111', borderRadius: 6, textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 8, color: '#666', marginBottom: 2 }}>V-Tilt</div>
-            <div style={{ fontSize: 11, color: ACCENT, fontWeight: 600 }}>{localVertical}°</div>
-          </div>
-          <div style={{
-            flex: 1, padding: '6px 8px', background: '#111', borderRadius: 6, textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 8, color: '#666', marginBottom: 2 }}>Zoom</div>
-            <div style={{ fontSize: 11, color: ACCENT, fontWeight: 600 }}>{localZoom}</div>
-          </div>
+        <div style={{ display: 'flex', gap: sp[2], marginTop: sp[4] }}>
+          {[
+            { label: 'H-Angle', val: `${localHorizontal}\u00b0` },
+            { label: 'V-Tilt', val: `${localVertical}\u00b0` },
+            { label: 'Zoom', val: localZoom },
+          ].map((s) => (
+            <div key={s.label} style={{
+              flex: 1, padding: `${sp[2]}px ${sp[3]}px`,
+              background: surface.deep, borderRadius: radius.md, textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 8, color: text.muted, marginBottom: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: ACCENT, fontWeight: 600 }}>{s.val}</div>
+            </div>
+          ))}
         </div>
-      </div>
+      </SettingsPanel>
 
-      {/* ── 3. Seed ── */}
-      <div style={{ marginTop: 10, marginBottom: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#999' }}>Seed (optional)</span>
+      {/* 3. Seed */}
+      <div style={{ marginTop: sp[4], marginBottom: sp[2] }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: sp[1] }}>
+          <span style={font.sublabel}>Seed (optional)</span>
           {localSeed !== '' && (
-            <button onClick={() => update({ localSeed: '' })} style={{
-              fontSize: 9, color: '#999', background: 'transparent', border: 'none', cursor: 'pointer',
-            }}>clear</button>
+            <button
+              onClick={() => update({ localSeed: '' })}
+              aria-label="Clear seed"
+              style={{ fontSize: 9, color: text.secondary, background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >clear</button>
           )}
         </div>
-        <input
-          type="number"
-          min={1}
-          max={2147483647}
+        <TextInput
           value={localSeed}
-          onChange={(e) => update({ localSeed: e.target.value })}
-          placeholder="Random if empty (1–2147483647)"
-          style={{
-            width: '100%', background: '#1a1a1a', border: '1px solid #3a3a3a',
-            borderRadius: 6, color: '#e0e0e0', fontSize: 12, padding: '8px 10px',
-            outline: 'none', boxSizing: 'border-box',
-          }}
+          onChange={(v) => update({ localSeed: v })}
+          placeholder="Random if empty (1-2147483647)"
+          type="number"
         />
       </div>
 
-      {/* ── 4. Output ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 6, marginTop: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ec4899', flexShrink: 0 }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>Transformed Output</span>
-        </div>
-      </div>
-      <div style={{
-        background: '#1a1a1a', borderRadius: 6, border: '1px solid #3a3a3a',
-        minHeight: 80, position: 'relative',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-      }}>
-        {isLoading ? (
-          <div style={{
-            width: 28, height: 28, border: '3px solid #3a3a3a',
-            borderTop: `3px solid ${ACCENT}`, borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }} />
-        ) : data.outputImage ? (
-          <img src={data.outputImage} alt="transformed" style={{ width: '100%', display: 'block', borderRadius: 6 }} />
-        ) : data.outputError ? (
-          <span style={{ fontSize: 10, color: '#ef4444', padding: 12, textAlign: 'center' }}>{data.outputError}</span>
-        ) : (
-          <span style={{ fontSize: 11, color: '#555', padding: 16, textAlign: 'center' }}>Transformed image will appear here</span>
-        )}
-      </div>
+      {/* 4. Output */}
+      <OutputPreview
+        isLoading={isLoading}
+        output={data.outputImage}
+        error={data.outputError}
+        accentColor={ACCENT}
+        label="Transformed Output"
+        emptyText="Transformed image will appear here"
+      />
 
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
     </NodeShell>
   );
 }
