@@ -1,14 +1,21 @@
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
 
 const GENERATED_HANDLES = new Set(['image', 'output']);
 
 export default function ResponseNode({ id, data, selected }) {
+  const { disconnectNode } = useNodeConnections(id, data);
   const fields = data.responseFields || [];
 
   return (
-    <NodeShell label={data.label || 'Response · Output'} dotColor="#8b5cf6" selected={selected}>
+    <NodeShell
+      label={data.label || 'Response · Output'}
+      dotColor="#8b5cf6"
+      selected={selected}
+      onDisconnect={disconnectNode}
+    >
       {/* Input handle */}
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
         <Handle

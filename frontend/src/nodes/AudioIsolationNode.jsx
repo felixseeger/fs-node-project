@@ -1,11 +1,13 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
 import { audioIsolationGenerate, pollAudioIsolationStatus } from '../utils/api';
 import ImprovePromptButton from './ImprovePromptButton';
 
 export default function AudioIsolationNode({ id, data, selected }) {
+  const { update, disconnectNode } = useNodeConnections(id, data);
   const [isLoading, setIsLoading] = useState(false);
 
   const localInputType = data.localInputType || 'audio'; // 'audio' or 'video'
@@ -16,11 +18,6 @@ export default function AudioIsolationNode({ id, data, selected }) {
   const localY1 = data.localY1 || 0;
   const localX2 = data.localX2 || 0;
   const localY2 = data.localY2 || 0;
-
-  const update = useCallback(
-    (patch) => data.onUpdate?.(id, patch),
-    [id, data]
-  );
 
   const getConnInfo = useCallback((handleId) => {
     return data.getConnectionInfo?.(id, handleId) || null;
@@ -200,7 +197,12 @@ export default function AudioIsolationNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'SAM Audio Isolation'} dotColor={ACCENT} selected={selected}>
+    <NodeShell
+      label={data.label || 'SAM Audio Isolation'}
+      dotColor={ACCENT}
+      selected={selected}
+      onDisconnect={disconnectNode}
+    >
 
       {/* ── Audio Output Handle (top) ── */}
       <div style={{

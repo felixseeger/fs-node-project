@@ -1,0 +1,643 @@
+import { useState, useEffect, useRef } from 'react';
+
+const prefersReducedMotion =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ── Animated field ────────────────────────────────────────── */
+function AuthField({ label, type = 'text', placeholder, value, onChange, autoFocus }) {
+  const [focused, setFocused] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const isPw = type === 'password';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <label style={{ fontSize: 12, fontWeight: 600, color: '#888', letterSpacing: '0.03em' }}>
+        {label}
+      </label>
+      <div style={{ position: 'relative' }}>
+        <input
+          type={isPw && !showPw ? 'password' : 'text'}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          autoFocus={autoFocus}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={{
+            width: '100%',
+            background: 'rgba(255,255,255,0.03)',
+            border: `1px solid ${focused ? 'rgba(59,130,246,0.5)' : 'rgba(255,255,255,0.08)'}`,
+            borderRadius: 12,
+            padding: '12px 16px',
+            paddingRight: isPw ? 44 : 16,
+            fontSize: 14,
+            color: '#e0e0e0',
+            outline: 'none',
+            fontFamily: 'Inter, system-ui, sans-serif',
+            transition: prefersReducedMotion ? 'none' : 'border-color 0.3s ease-out, background 0.3s ease-out',
+            background: focused ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.03)',
+            boxSizing: 'border-box',
+          }}
+        />
+        {isPw && (
+          <button
+            type="button"
+            onClick={() => setShowPw(!showPw)}
+            style={{
+              position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 13, color: '#666',
+              transition: prefersReducedMotion ? 'none' : 'color 0.2s ease-out',
+              padding: 4,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#aaa'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#666'; }}
+          >
+            {showPw ? 'Hide' : 'Show'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Primary button ────────────────────────────────────────── */
+function AuthButton({ label, onClick, loading, variant = 'primary' }) {
+  const [hovered, setHovered] = useState(false);
+  const isPrimary = variant === 'primary';
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: '100%',
+        padding: '13px 20px',
+        fontSize: 14,
+        fontWeight: 700,
+        border: isPrimary ? 'none' : '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 12,
+        cursor: loading ? 'wait' : 'pointer',
+        background: isPrimary
+          ? hovered && !loading ? '#2563eb' : '#3b82f6'
+          : hovered ? 'rgba(255,255,255,0.06)' : 'transparent',
+        color: isPrimary ? '#fff' : '#ccc',
+        transition: prefersReducedMotion ? 'none' : 'all 0.25s ease-out',
+        boxShadow: isPrimary ? '0 4px 20px rgba(59,130,246,0.3)' : 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        opacity: loading ? 0.8 : 1,
+      }}
+    >
+      {loading && (
+        <span style={{
+          width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)',
+          borderTop: '2px solid #fff', borderRadius: '50%',
+          animation: 'authSpin 0.8s linear infinite',
+          display: 'inline-block',
+        }} />
+      )}
+      {label}
+    </button>
+  );
+}
+
+/* ── Social button ─────────────────────────────────────────── */
+function SocialButton({ label, icon, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        flex: 1,
+        padding: '11px 16px',
+        fontSize: 13,
+        fontWeight: 600,
+        background: hovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 12,
+        color: '#ccc',
+        cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        transition: prefersReducedMotion ? 'none' : 'all 0.25s ease-out',
+      }}
+    >
+      <span style={{ fontSize: 16 }}>{icon}</span>
+      {label}
+    </button>
+  );
+}
+
+/* ── Divider ───────────────────────────────────────────────── */
+function Divider({ text }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '4px 0' }}>
+      <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+      <span style={{ fontSize: 11, color: '#555', fontWeight: 500, whiteSpace: 'nowrap' }}>{text}</span>
+      <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+    </div>
+  );
+}
+
+/* ── Link button ───────────────────────────────────────────── */
+function TextLink({ children, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: 'none', border: 'none', padding: 0,
+        fontSize: 13, fontWeight: 600,
+        color: hovered ? '#60a5fa' : '#3b82f6',
+        cursor: 'pointer',
+        transition: prefersReducedMotion ? 'none' : 'color 0.2s ease-out',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ── Checkbox ──────────────────────────────────────────────── */
+function Checkbox({ label, checked, onChange }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <label
+      style={{
+        display: 'flex', alignItems: 'flex-start', gap: 10,
+        cursor: 'pointer', fontSize: 13, color: '#888', lineHeight: 1.4,
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div
+        onClick={(e) => { e.preventDefault(); onChange(!checked); }}
+        style={{
+          width: 18, height: 18, borderRadius: 5, flexShrink: 0, marginTop: 1,
+          background: checked ? '#3b82f6' : hovered ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+          border: `1px solid ${checked ? '#3b82f6' : 'rgba(255,255,255,0.12)'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: prefersReducedMotion ? 'none' : 'all 0.2s ease-out',
+        }}
+      >
+        {checked && (
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M2 5L4 7L8 3" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </div>
+      <span>{label}</span>
+    </label>
+  );
+}
+
+/* ── Auth card shell ───────────────────────────────────────── */
+function AuthCard({ children }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 30);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div style={{
+      width: 420, maxWidth: '92vw',
+      background: 'rgba(18,18,18,0.75)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      border: '1px solid rgba(255,255,255,0.07)',
+      borderRadius: 20,
+      padding: '40px 36px 36px',
+      position: 'relative',
+      overflow: 'hidden',
+      willChange: 'transform, opacity',
+      transition: prefersReducedMotion
+        ? 'none'
+        : 'transform 0.6s cubic-bezier(.22,1,.36,1), opacity 0.6s cubic-bezier(.22,1,.36,1)',
+      transform: mounted ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.97)',
+      opacity: mounted ? 1 : 0,
+      boxShadow: '0 32px 64px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03)',
+    }}>
+      {/* Top glow line */}
+      <div style={{
+        position: 'absolute', top: 0, left: '15%', right: '15%', height: 1,
+        background: 'linear-gradient(90deg, transparent, rgba(59,130,246,0.2), transparent)',
+        pointerEvents: 'none',
+      }} />
+      {children}
+    </div>
+  );
+}
+
+/* ── Logo mark ─────────────────────────────────────────────── */
+function LogoMark() {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'center', marginBottom: 32,
+    }}>
+      <img
+        src="/logo-light.svg"
+        alt="Logo"
+        style={{ height: 32, width: 'auto', opacity: 0.9 }}
+      />
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOGIN SCREEN
+   ═══════════════════════════════════════════════════════════════ */
+function LoginScreen({ onNavigate, onLogin }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError('');
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter your email and password.');
+      return;
+    }
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      onLogin();
+    }, 1200);
+  };
+
+  return (
+    <AuthCard>
+      <LogoMark />
+
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0f0', textAlign: 'center', margin: '0 0 4px' }}>
+        Welcome back
+      </h2>
+      <p style={{ fontSize: 14, color: '#777', textAlign: 'center', margin: '0 0 28px' }}>
+        Sign in to your account to continue
+      </p>
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <AuthField
+          label="Email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoFocus
+        />
+        <AuthField
+          label="Password"
+          type="password"
+          placeholder="Your password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        {error && (
+          <div style={{
+            padding: '10px 14px', fontSize: 13, color: '#f87171',
+            background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)',
+            borderRadius: 10,
+          }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={() => onNavigate('forgot')}
+            style={{
+              background: 'none', border: 'none', padding: 0,
+              fontSize: 12, color: '#888', cursor: 'pointer',
+              transition: prefersReducedMotion ? 'none' : 'color 0.2s ease-out',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#3b82f6'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#888'; }}
+          >
+            Forgot password?
+          </button>
+        </div>
+
+        <AuthButton label="Sign In" loading={loading} onClick={handleSubmit} />
+      </form>
+
+      <Divider text="or continue with" />
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <SocialButton label="Google" icon="G" onClick={() => { setLoading(true); setTimeout(() => { setLoading(false); onLogin(); }, 1200); }} />
+        <SocialButton label="GitHub" icon="&#9741;" onClick={() => { setLoading(true); setTimeout(() => { setLoading(false); onLogin(); }, 1200); }} />
+      </div>
+
+      <p style={{ fontSize: 13, color: '#777', textAlign: 'center', margin: '24px 0 0' }}>
+        Don't have an account?{' '}
+        <TextLink onClick={() => onNavigate('signup')}>Sign up</TextLink>
+      </p>
+    </AuthCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SIGNUP SCREEN
+   ═══════════════════════════════════════════════════════════════ */
+function SignupScreen({ onNavigate, onLogin }) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [agreed, setAgreed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError('');
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError('Please fill in all fields.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (password !== confirm) {
+      setError('Passwords do not match.');
+      return;
+    }
+    if (!agreed) {
+      setError('Please agree to the Terms of Service.');
+      return;
+    }
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      onLogin();
+    }, 1200);
+  };
+
+  return (
+    <AuthCard>
+      <LogoMark />
+
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0f0', textAlign: 'center', margin: '0 0 4px' }}>
+        Create your account
+      </h2>
+      <p style={{ fontSize: 14, color: '#777', textAlign: 'center', margin: '0 0 28px' }}>
+        Start building AI workflows in minutes
+      </p>
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <AuthField
+          label="Full Name"
+          placeholder="Jane Doe"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+        <AuthField
+          label="Email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <AuthField
+          label="Password"
+          type="password"
+          placeholder="Min. 8 characters"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <AuthField
+          label="Confirm Password"
+          type="password"
+          placeholder="Re-enter password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+        />
+
+        {error && (
+          <div style={{
+            padding: '10px 14px', fontSize: 13, color: '#f87171',
+            background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)',
+            borderRadius: 10,
+          }}>
+            {error}
+          </div>
+        )}
+
+        <Checkbox
+          label="I agree to the Terms of Service and Privacy Policy"
+          checked={agreed}
+          onChange={setAgreed}
+        />
+
+        <AuthButton label="Create Account" loading={loading} onClick={handleSubmit} />
+      </form>
+
+      <Divider text="or sign up with" />
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <SocialButton label="Google" icon="G" onClick={() => { setLoading(true); setTimeout(() => { setLoading(false); onLogin(); }, 1200); }} />
+        <SocialButton label="GitHub" icon="&#9741;" onClick={() => { setLoading(true); setTimeout(() => { setLoading(false); onLogin(); }, 1200); }} />
+      </div>
+
+      <p style={{ fontSize: 13, color: '#777', textAlign: 'center', margin: '24px 0 0' }}>
+        Already have an account?{' '}
+        <TextLink onClick={() => onNavigate('login')}>Sign in</TextLink>
+      </p>
+    </AuthCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FORGOT PASSWORD SCREEN
+   ═══════════════════════════════════════════════════════════════ */
+function ForgotScreen({ onNavigate }) {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError('');
+    if (!email.trim()) {
+      setError('Please enter your email address.');
+      return;
+    }
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setSent(true);
+    }, 1200);
+  };
+
+  if (sent) {
+    return (
+      <AuthCard>
+        <LogoMark />
+
+        <div style={{
+          display: 'flex', justifyContent: 'center', marginBottom: 20,
+        }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 16,
+            background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 26,
+          }}>
+            ✓
+          </div>
+        </div>
+
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0f0', textAlign: 'center', margin: '0 0 4px' }}>
+          Check your email
+        </h2>
+        <p style={{ fontSize: 14, color: '#777', textAlign: 'center', margin: '0 0 28px', lineHeight: 1.5 }}>
+          We've sent a password reset link to<br />
+          <span style={{ color: '#e0e0e0', fontWeight: 600 }}>{email}</span>
+        </p>
+
+        <AuthButton label="Back to Sign In" variant="ghost" onClick={() => onNavigate('login')} />
+
+        <p style={{ fontSize: 12, color: '#555', textAlign: 'center', margin: '20px 0 0' }}>
+          Didn't receive the email? Check your spam folder or{' '}
+          <button
+            onClick={() => setSent(false)}
+            style={{
+              background: 'none', border: 'none', padding: 0,
+              fontSize: 12, color: '#3b82f6', cursor: 'pointer', fontWeight: 600,
+            }}
+          >
+            try again
+          </button>
+        </p>
+      </AuthCard>
+    );
+  }
+
+  return (
+    <AuthCard>
+      <LogoMark />
+
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0f0', textAlign: 'center', margin: '0 0 4px' }}>
+        Reset your password
+      </h2>
+      <p style={{ fontSize: 14, color: '#777', textAlign: 'center', margin: '0 0 28px', lineHeight: 1.5 }}>
+        Enter your email and we'll send you a reset link
+      </p>
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <AuthField
+          label="Email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoFocus
+        />
+
+        {error && (
+          <div style={{
+            padding: '10px 14px', fontSize: 13, color: '#f87171',
+            background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)',
+            borderRadius: 10,
+          }}>
+            {error}
+          </div>
+        )}
+
+        <AuthButton label="Send Reset Link" loading={loading} onClick={handleSubmit} />
+      </form>
+
+      <p style={{ fontSize: 13, color: '#777', textAlign: 'center', margin: '24px 0 0' }}>
+        <TextLink onClick={() => onNavigate('login')}>← Back to Sign In</TextLink>
+      </p>
+    </AuthCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN AUTH PAGE — routes between screens
+   ═══════════════════════════════════════════════════════════════ */
+export default function AuthPage({ onLogin }) {
+  const [screen, setScreen] = useState('login');
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: '#0a0a0a',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      {/* Deep background */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(59,130,246,0.04) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Floating ambient blobs */}
+      <div style={{
+        position: 'absolute', top: '10%', left: '15%', width: 300, height: 300,
+        background: 'radial-gradient(circle, rgba(167,139,250,0.04) 0%, transparent 70%)',
+        borderRadius: '50%', pointerEvents: 'none',
+        animation: prefersReducedMotion ? 'none' : 'authBlob1 16s ease-in-out infinite alternate',
+      }} />
+      <div style={{
+        position: 'absolute', bottom: '15%', right: '10%', width: 260, height: 260,
+        background: 'radial-gradient(circle, rgba(34,197,94,0.03) 0%, transparent 70%)',
+        borderRadius: '50%', pointerEvents: 'none',
+        animation: prefersReducedMotion ? 'none' : 'authBlob2 20s ease-in-out infinite alternate-reverse',
+      }} />
+      <div style={{
+        position: 'absolute', top: '60%', left: '5%', width: 200, height: 200,
+        background: 'radial-gradient(circle, rgba(249,115,22,0.03) 0%, transparent 70%)',
+        borderRadius: '50%', pointerEvents: 'none',
+        animation: prefersReducedMotion ? 'none' : 'authBlob3 14s ease-in-out infinite alternate',
+      }} />
+
+      <style>{`
+        @keyframes authBlob1 {
+          0% { transform: translate(0, 0) scale(1); }
+          100% { transform: translate(40px, -30px) scale(1.1); }
+        }
+        @keyframes authBlob2 {
+          0% { transform: translate(0, 0) scale(1); }
+          100% { transform: translate(-30px, 20px) scale(1.05); }
+        }
+        @keyframes authBlob3 {
+          0% { transform: translate(0, 0) scale(1); }
+          100% { transform: translate(20px, -40px) scale(1.08); }
+        }
+        @keyframes authSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      {/* Screen router */}
+      {screen === 'login' && (
+        <LoginScreen onNavigate={setScreen} onLogin={onLogin} />
+      )}
+      {screen === 'signup' && (
+        <SignupScreen onNavigate={setScreen} onLogin={onLogin} />
+      )}
+      {screen === 'forgot' && (
+        <ForgotScreen onNavigate={setScreen} />
+      )}
+
+      {/* Bottom branding */}
+      <div style={{
+        position: 'absolute', bottom: 24,
+        fontSize: 11, color: '#333', textAlign: 'center',
+        width: '100%', pointerEvents: 'none',
+      }}>
+        Powered by Kora AI &middot; All rights reserved
+      </div>
+    </div>
+  );
+}

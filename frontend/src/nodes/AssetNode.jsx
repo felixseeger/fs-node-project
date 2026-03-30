@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import useNodeConnections from './useNodeConnections';
 import { sp, CATEGORY_COLORS, font } from './nodeTokens';
 
 const Icons = {
@@ -9,6 +10,7 @@ const Icons = {
 };
 
 export default function AssetNode({ id, data, selected }) {
+  const { disconnectNode } = useNodeConnections(id, data);
   const fileInputRef = useRef(null);
   const images = data.images || [];
 
@@ -37,7 +39,12 @@ export default function AssetNode({ id, data, selected }) {
   };
 
   return (
-    <NodeShell label={data.label || 'Asset'} dotColor={CATEGORY_COLORS.input} selected={selected}>
+    <NodeShell
+      label={data.label || 'Asset'}
+      dotColor={CATEGORY_COLORS.input}
+      selected={selected}
+      onDisconnect={disconnectNode}
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: sp[4] }}>
         <input
           type="file"

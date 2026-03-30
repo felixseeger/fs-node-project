@@ -1,10 +1,12 @@
 import { useCallback, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
 import { uploadImages } from '../utils/api';
 
 export default function ImageNode({ id, data, selected }) {
+  const { disconnectNode } = useNodeConnections(id, data);
   const fileRef = useRef();
   const images = data.images || [];
 
@@ -27,7 +29,12 @@ export default function ImageNode({ id, data, selected }) {
   );
 
   return (
-    <NodeShell label={data.label || 'Image'} dotColor="#ec4899" selected={selected}>
+    <NodeShell
+      label={data.label || 'Image'}
+      dotColor="#ec4899"
+      selected={selected}
+      onDisconnect={disconnectNode}
+    >
       <div style={{ display: 'flex', alignItems: 'flex-start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 60 }}>
           <Handle

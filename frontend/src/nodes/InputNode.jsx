@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
 import { uploadImages } from '../utils/api';
 
@@ -17,6 +18,7 @@ const ASPECT_OPTIONS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
 const RESOLUTION_OPTIONS = ['1K', '2K', '4K'];
 
 export default function InputNode({ id, data, selected }) {
+  const { disconnectNode } = useNodeConnections(id, data);
   const fileRef = useRef();
   const fields = data.initialFields || ['prompt'];
   const values = data.fieldValues || {};
@@ -65,7 +67,12 @@ export default function InputNode({ id, data, selected }) {
   });
 
   return (
-    <NodeShell label={data.label || 'Request - Inputs'} dotColor="#3b82f6" selected={selected}>
+    <NodeShell
+      label={data.label || 'Request - Inputs'}
+      dotColor="#3b82f6"
+      selected={selected}
+      onDisconnect={disconnectNode}
+    >
       {resolvedFields.map(({ type, handleId }) => {
         const cfg = FIELD_CONFIG[type] || FIELD_CONFIG.text;
         return (

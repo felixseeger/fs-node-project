@@ -56,6 +56,7 @@ import AudioIsolationNode from './nodes/AudioIsolationNode';
 import VoiceoverNode from './nodes/VoiceoverNode';
 import ResponseNode from './nodes/ResponseNode';
 import AdaptedPromptNode from './nodes/AdaptedPromptNode';
+import LayerEditorNode from './nodes/LayerEditorNode';
 import WorkflowsPage from './WorkflowsPage';
 import ProfilePage from './ProfilePage';
 import WorkflowSettingsPage from './WorkflowSettingsPage';
@@ -479,6 +480,16 @@ const NODE_MENU = [
       },
     ],
   },
+  {
+    section: 'Utilities',
+    items: [
+      {
+        type: 'layerEditor',
+        label: 'Layer Editor',
+        defaults: { label: 'Layer Editor' },
+      },
+    ],
+  }
 ];
 
 const defaultNodes = [
@@ -568,6 +579,7 @@ export default function App() {
       voiceover: VoiceoverNode,
       response: ResponseNode,
       adaptedPrompt: AdaptedPromptNode,
+      layerEditor: LayerEditorNode,
     }),
     []
   );
@@ -787,6 +799,11 @@ export default function App() {
             eds.filter(
               (e) => !(e.target === targetNodeId && e.targetHandle === targetHandle)
             )
+          );
+        },
+        onDisconnectNode: (nodeId) => {
+          setEdges((eds) =>
+            eds.filter((e) => e.source !== nodeId && e.target !== nodeId)
           );
         },
       },

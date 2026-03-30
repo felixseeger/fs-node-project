@@ -1,9 +1,11 @@
 import { useCallback } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
 
 export default function TextNode({ id, data, selected }) {
+  const { disconnectNode } = useNodeConnections(id, data);
   const onChange = useCallback(
     (e) => {
       data.onUpdate?.(id, { text: e.target.value });
@@ -12,7 +14,12 @@ export default function TextNode({ id, data, selected }) {
   );
 
   return (
-    <NodeShell label={data.label || 'Text'} dotColor="#f97316" selected={selected}>
+    <NodeShell
+      label={data.label || 'Text'}
+      dotColor="#f97316"
+      selected={selected}
+      onDisconnect={disconnectNode}
+    >
       <div style={{ display: 'flex', alignItems: 'stretch' }}>
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <Handle

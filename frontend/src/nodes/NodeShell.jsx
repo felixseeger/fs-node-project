@@ -9,7 +9,7 @@ import { surface, border, sp, radius, font } from './nodeTokens';
  *  - selected: Whether the node is currently selected
  *  - children: Node body content
  */
-export default function NodeShell({ label, dotColor, selected, children }) {
+export default function NodeShell({ label, dotColor, selected, children, onDisconnect }) {
   const accentAlpha = dotColor ? `${dotColor}14` : 'transparent'; // 8% opacity hex
 
   return (
@@ -42,26 +42,65 @@ export default function NodeShell({ label, dotColor, selected, children }) {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: sp[2],
+          justifyContent: 'space-between',
           padding: `${sp[3]}px ${sp[5]}px`,
           borderBottom: `1px solid ${border.subtle}`,
           background: `linear-gradient(90deg, ${accentAlpha}, transparent)`,
           borderRadius: `${radius.lg - 1}px ${radius.lg - 1}px 0 0`,
         }}
       >
-        {dotColor && (
-          <span
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: dotColor,
-              flexShrink: 0,
-              boxShadow: `0 0 6px ${dotColor}40`,
+        <div style={{ display: 'flex', alignItems: 'center', gap: sp[2] }}>
+          {dotColor && (
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: dotColor,
+                flexShrink: 0,
+                boxShadow: `0 0 6px ${dotColor}40`,
+              }}
+            />
+          )}
+          <span style={{ ...font.lg, fontWeight: 600, color: '#e0e0e0' }}>{label}</span>
+        </div>
+
+        {onDisconnect && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDisconnect();
             }}
-          />
+            title="Disconnect all connections"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#666',
+              cursor: 'pointer',
+              fontSize: 14,
+              padding: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 4,
+              transition: 'all 0.1s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#ef4444';
+              e.currentTarget.style.background = 'rgba(239,68,68,0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#666';
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18.84 9.42l-1.42 1.42a4 4 0 1 1-5.66-5.66l1.42-1.42"></path>
+              <path d="M5.16 14.58l1.42-1.42a4 4 0 0 1 5.66 5.66l-1.42 1.42"></path>
+              <line x1="8" y1="16" x2="16" y2="8"></line>
+            </svg>
+          </button>
         )}
-        <span style={{ ...font.lg, fontWeight: 600, color: '#e0e0e0' }}>{label}</span>
       </div>
 
       {/* Body */}

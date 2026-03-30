@@ -3,6 +3,7 @@ import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
 import { generateImage, generateKora, pollStatus } from '../utils/api';
 
@@ -12,6 +13,7 @@ const KORA_RESOLUTIONS = ['HD', '2K'];
 const NANO_RESOLUTIONS = ['1K', '2K', '4K'];
 
 export default function GeneratorNode({ id, data, selected }) {
+  const { update, disconnectNode } = useNodeConnections(id, data);
   const [isLoading, setIsLoading] = useState(false);
 
   const isKora = data.generatorType === 'kora';
@@ -23,11 +25,6 @@ export default function GeneratorNode({ id, data, selected }) {
   const localAspect = data.localAspectRatio || aspects[0];
   const localResolution = data.localResolution || resolutions[0];
   const localNumImages = data.localNumImages || 1;
-
-  const update = useCallback(
-    (patch) => data.onUpdate?.(id, patch),
-    [id, data]
-  );
 
   // Find the source node info for a given handle
   const getConnInfo = useCallback((handleId) => {
@@ -213,6 +210,7 @@ export default function GeneratorNode({ id, data, selected }) {
       label={data.label || (isKora ? 'Kora Reality' : 'Nano Banana 2 Edit')}
       dotColor={isKora ? '#8b5cf6' : '#ec4899'}
       selected={selected}
+      onDisconnect={disconnectNode}
     >
 
       {/* ── Image Output Handle (top, aligned with image-in) ── */}

@@ -30,13 +30,24 @@ export default function useNodeConnections(id, data) {
     [id, data]
   );
 
+  const disconnect = useCallback(
+    (handleId) => data.onUnlink?.(id, handleId),
+    [id, data]
+  );
+
+  const disconnectNode = useCallback(
+    () => data.onDisconnectNode?.(id),
+    [id, data]
+  );
+
   // Convenience: get connection state for a handle
   const conn = useCallback(
     (handleId) => ({
       connected: hasConnection(handleId),
       info: getConnInfo(handleId),
+      disconnect: () => disconnect(handleId),
     }),
-    [hasConnection, getConnInfo]
+    [hasConnection, getConnInfo, disconnect]
   );
 
   // Convenience resolvers for common types
@@ -55,5 +66,5 @@ export default function useNodeConnections(id, data) {
     raw: (handleId) => resolveInput(handleId),
   }), [resolveInput]);
 
-  return { update, conn, resolve, hasConnection, getConnInfo, resolveInput };
+  return { update, conn, resolve, hasConnection, getConnInfo, resolveInput, disconnect, disconnectNode };
 }

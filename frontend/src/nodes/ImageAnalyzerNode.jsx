@@ -1,19 +1,16 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
 import { analyzeImage, uploadImages } from '../utils/api';
 
 export default function ImageAnalyzerNode({ id, data, selected }) {
+  const { update, disconnectNode } = useNodeConnections(id, data);
   const [expandSystem, setExpandSystem] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileRef = useRef();
   const localImages = data.localImages || [];
-
-  const update = useCallback(
-    (patch) => data.onUpdate?.(id, patch),
-    [id, data]
-  );
 
   const handleImageUpload = useCallback(
     async (files) => {
@@ -116,7 +113,12 @@ export default function ImageAnalyzerNode({ id, data, selected }) {
   const emptySlots = Math.max(0, maxSlots - localImages.length);
 
   return (
-    <NodeShell label={data.label || 'Claude Sonnet Vision'} dotColor="#f97316" selected={selected}>
+    <NodeShell
+      label={data.label || 'Claude Sonnet Vision'}
+      dotColor="#f97316"
+      selected={selected}
+      onDisconnect={disconnectNode}
+    >
 
       {/* ── Image Output ── */}
       <div style={{

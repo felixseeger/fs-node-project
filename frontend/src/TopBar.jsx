@@ -1,7 +1,29 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
-export default function TopBar({ currentPage, onNavigate, workflowName, editorMode, onEditorModeChange }) {
+export default function TopBar({ currentPage, onNavigate, workflowName, editorMode, onEditorModeChange, onLogout }) {
   const [hovered, setHovered] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const menuItems = [
+    { id: 'home', label: 'Workflows', icon: '&#9776;' },
+    { id: 'editor', label: 'New Workflow', icon: '&#43;' },
+    { id: 'divider' },
+    { id: 'workflow-settings', label: 'Workflow Settings', icon: '&#9881;' },
+    { id: 'profile', label: 'Profile', icon: '&#9786;' },
+    { id: 'divider' },
+    { id: 'logout', label: 'Sign Out', icon: '&#10140;' },
+  ];
 
   return (
     <div
@@ -18,12 +40,116 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
     >
       {/* Left — Logo + Breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-        {/* Logo */}
-        <img
-          src="/logo-light.svg"
-          alt="Logo"
-          style={{ height: 28, width: 'auto' }}
-        />
+        {/* Logo with Dropdown */}
+        <div ref={menuRef} style={{ position: 'relative' }}>
+          <button
+            onClick={() => setMenuOpen((prev) => !prev)}
+            onMouseEnter={() => setHovered('logo')}
+            onMouseLeave={() => setHovered(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: '4px 8px',
+              borderRadius: 6,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'background 0.15s',
+              ...(hovered === 'logo' || menuOpen ? { background: '#1a1a1a' } : {}),
+            }}
+          >
+            <img
+              src="/logo-light.svg"
+              alt="Logo"
+              style={{ height: 28, width: 'auto' }}
+            />
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 10 10"
+              fill="none"
+              style={{
+                transition: 'transform 0.2s',
+                transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+              }}
+            >
+              <path d="M2 4L5 7L8 4" stroke="#888" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+
+          {/* Dropdown Menu */}
+          {menuOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                marginTop: 6,
+                background: '#1a1a1a',
+                border: '1px solid #2a2a2a',
+                borderRadius: 10,
+                padding: 4,
+                minWidth: 180,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                zIndex: 100,
+              }}
+            >
+              {menuItems.map((item) =>
+                item.id === 'divider' ? (
+                  <div
+                    key="divider"
+                    style={{
+                      height: 1,
+                      background: '#2a2a2a',
+                      margin: '4px 8px',
+                    }}
+                  />
+                ) : (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      if (item.id === 'logout') {
+                        onLogout?.();
+                      } else if (item.id === 'editor') {
+                        onNavigate('home');
+                      } else {
+                        onNavigate(item.id);
+                      }
+                      setMenuOpen(false);
+                    }}
+                    onMouseEnter={() => setHovered(`menu-${item.id}`)}
+                    onMouseLeave={() => setHovered(null)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: hovered === `menu-${item.id}` ? '#252525' : 'transparent',
+                      border: 'none',
+                      borderRadius: 7,
+                      color: item.id === 'logout'
+                        ? (hovered === `menu-${item.id}` ? '#f87171' : '#888')
+                        : currentPage === item.id ? '#e0e0e0' : '#999',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span
+                      style={{ fontSize: 14, width: 18, textAlign: 'center', opacity: 0.7 }}
+                      dangerouslySetInnerHTML={{ __html: item.icon }}
+                    />
+                    {item.label}
+                  </button>
+                )
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Breadcrumb separator + Workflows link (always shown) */}
         <span style={{ color: '#444', margin: '0 12px', fontSize: 14, userSelect: 'none' }}>/</span>
