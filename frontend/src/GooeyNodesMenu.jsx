@@ -64,48 +64,37 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
 
   return (
     <div className="gooey-menu-wrapper">
-      <div className="ms-nav-container">
-        <ul className="ms-nav">
+      <div className="gooey-nav-container">
+
+        <ul className="gooey-nav">
           <input 
             type="checkbox" 
-            id="ms-menu" 
+            id="gooey-menu-toggle" 
             className="ms-menu-toggle" 
             checked={isOpen}
             onChange={handleToggle}
           />
           <div className="bg-change"></div>
           
-          {categories.slice().reverse().map((cat, reverseIndex) => {
-            const index = categories.length - 1 - reverseIndex;
-            const isFirst = index === 0;
-            const isLast = index === categories.length - 1;
-            
-            return (
-              <li 
-                key={cat.id} 
-                className={`ms-li ms-li${index + 1} ${isLast ? 'ms-li-last' : ''} ${isFirst ? 'ms-li-first' : ''}`}
-                style={{ zIndex: 90 - index }}
+          {categories.map((cat, index) => (
+            <li key={cat.id} className={`gooey-li gooey-li-${index + 1}`}>
+              <a 
+                href="#" 
+                onClick={(e) => { e.preventDefault(); handleCategoryClick(cat.id); }}
+                data-tooltip={cat.title}
+                style={{ 
+                  background: activeCategory === cat.id ? 'rgba(255,255,255,0.2)' : '' 
+                }}
               >
-                <a 
-                  href="#" 
-                  onClick={(e) => { e.preventDefault(); handleCategoryClick(cat.id); }}
-                  data-tooltip={cat.title}
-                  style={{ 
-                    background: activeCategory === cat.id ? '#485773' : '' 
-                  }}
-                >
-                  <span>{cat.icon}</span>
-                </a>
-              </li>
-            );
-          })}
+                {cat.icon}
+              </a>
+            </li>
+          ))}
 
-          <li className="ms-main">
-            <a href="#" onClick={(e) => e.preventDefault()}>
-              <label className="ms-menu-toggle-lbl" htmlFor="ms-menu" title="Add Nodes">
-                <span>{Icons.Plus}</span>
-              </label>
-            </a>
+          <li className="gooey-main">
+            <label htmlFor="gooey-menu-toggle" title="Add Nodes">
+              {Icons.Plus}
+            </label>
           </li>
         </ul>
       </div>
