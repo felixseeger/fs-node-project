@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import './GooeyNodesMenu.css';
 
-// SVG Icons
+// SVG Icons for categories
 const Icons = {
   Plus: <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>,
   Search: <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>,
@@ -13,6 +13,17 @@ const Icons = {
   AudioGen: <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>,
   Misc: <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
 };
+
+const CATEGORIES = [
+  { id: 'Search', icon: Icons.Search, title: 'Search Nodes' },
+  { id: 'LLMs', icon: Icons.LLMs, title: 'LLMs' },
+  { id: 'Image Generation', icon: Icons.ImageGen, title: 'Image Generation' },
+  { id: 'Image Editing', icon: Icons.ImageEdit, title: 'Image Editing' },
+  { id: 'Video Generation', icon: Icons.VideoGen, title: 'Video Generation' },
+  { id: 'Video Editing', icon: Icons.VideoEdit, title: 'Video Editing' },
+  { id: 'Audio Generation', icon: Icons.AudioGen, title: 'Audio Generation' },
+  { id: 'Misc', icon: Icons.Misc, title: 'Inputs & Utilities' },
+];
 
 export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,110 +43,103 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
     setSearchQuery('');
   };
 
-  // Flatten all nodes for search
-  const allNodes = nodeMenu.reduce((acc, section) => {
-    return [...acc, ...section.items.map(item => ({ ...item, section: section.section }))];
-  }, []);
+  const allNodes = useMemo(() => {
+    return nodeMenu.reduce((acc, section) => {
+      return [...acc, ...section.items.map(item => ({ ...item, section: section.section }))];
+    }, []);
+  }, [nodeMenu]);
 
-  const getFilteredNodes = () => {
+  const filteredNodes = useMemo(() => {
+    if (!activeCategory) return [];
+    
     if (activeCategory === 'Search') {
       if (!searchQuery) return allNodes;
-      return allNodes.filter(n => n.label.toLowerCase().includes(searchQuery.toLowerCase()) || n.type.toLowerCase().includes(searchQuery.toLowerCase()));
+      const lowerQuery = searchQuery.toLowerCase();
+      return allNodes.filter(n => 
+        n.label.toLowerCase().includes(lowerQuery) || 
+        n.type.toLowerCase().includes(lowerQuery)
+      );
     }
+    
     if (activeCategory === 'Misc') {
        return allNodes.filter(n => n.section === 'Inputs' || n.section === 'Utilities');
     }
+    
     const section = nodeMenu.find(s => s.section === activeCategory);
     return section ? section.items : [];
-  };
-
-  const filteredNodes = getFilteredNodes();
-
-  const categories = [
-    { id: 'Search', icon: Icons.Search, title: 'Search Nodes' },
-    { id: 'LLMs', icon: Icons.LLMs, title: 'LLMs' },
-    { id: 'Image Generation', icon: Icons.ImageGen, title: 'Image Generation' },
-    { id: 'Image Editing', icon: Icons.ImageEdit, title: 'Image Editing' },
-    { id: 'Video Generation', icon: Icons.VideoGen, title: 'Video Generation' },
-    { id: 'Video Editing', icon: Icons.VideoEdit, title: 'Video Editing' },
-    { id: 'Audio Generation', icon: Icons.AudioGen, title: 'Audio Generation' },
-    { id: 'Misc', icon: Icons.Misc, title: 'Inputs & Utilities' },
-  ];
+  }, [activeCategory, searchQuery, allNodes, nodeMenu]);
 
   return (
-    <div className="gooey-menu-wrapper">
-      <div className="gooey-nav-container">
-
-        <ul className="gooey-nav">
+    <div className="ms-menu-wrapper">
+      <div className="ms-nav-container">
+        <ul className="ms-nav">
           <input 
             type="checkbox" 
-            id="gooey-menu-toggle" 
+            id="ms-menu-toggle" 
             className="ms-menu-toggle" 
             checked={isOpen}
             onChange={handleToggle}
           />
           <div className="bg-change"></div>
           
-          {categories.map((cat, index) => (
-            <li key={cat.id} className={`gooey-li gooey-li-${index + 1}`}>
-              <a 
-                href="#" 
-                onClick={(e) => { e.preventDefault(); handleCategoryClick(cat.id); }}
-                data-tooltip={cat.title}
-                style={{ 
-                  background: activeCategory === cat.id ? 'rgba(255,255,255,0.2)' : '' 
-                }}
-              >
-                {cat.icon}
-              </a>
-            </li>
-          ))}
+          {CATEGORIES.map((cat, idx) => {
+            const index = idx + 1;
+            return (
+              <li key={cat.id} className={`ms-li ms-li${index} ${index === CATEGORIES.length ? 'ms-li-last' : ''}`}>
+                <a 
+                  href="#" 
+                  onClick={(e) => { e.preventDefault(); handleCategoryClick(cat.id); }}
+                  data-tooltip={cat.title}
+                  className={activeCategory === cat.id ? 'active' : ''}
+                >
+                  <span>{cat.icon}</span>
+                </a>
+              </li>
+            );
+          })}
 
-          <li className="gooey-main">
-            <label htmlFor="gooey-menu-toggle" title="Add Nodes">
-              {Icons.Plus}
+          <li className="ms-main">
+            <label htmlFor="ms-menu-toggle" title="Add Nodes">
+              <span>{Icons.Plus}</span>
             </label>
           </li>
         </ul>
       </div>
 
       {/* Submenu Panel */}
-      <div className={`gooey-submenu ${activeCategory ? 'active' : ''}`}>
-        {activeCategory && (
-          <>
-            <div className="gooey-submenu-title">{activeCategory}</div>
-            
-            {activeCategory === 'Search' && (
-              <input 
-                autoFocus
-                type="text" 
-                className="gooey-search-input" 
-                placeholder="Search nodes..." 
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-            )}
+      <div className={`ms-submenu ${activeCategory ? 'active' : ''}`}>
+        <div className="ms-submenu-header">
+          <div className="ms-submenu-title">{activeCategory}</div>
+          {activeCategory === 'Search' && (
+            <input 
+              autoFocus
+              type="text" 
+              className="ms-search-input" 
+              placeholder="Search nodes..." 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          )}
+        </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {filteredNodes.length > 0 ? (
-                filteredNodes.map(item => (
-                  <button
-                    key={item.label}
-                    className="gooey-node-btn"
-                    onClick={() => {
-                      onAddNode(item.type, item.defaults);
-                      if (activeCategory === 'Search') setSearchQuery('');
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))
-              ) : (
-                <span style={{ fontSize: 11, color: '#888', fontStyle: 'italic' }}>No nodes found.</span>
-              )}
-            </div>
-          </>
-        )}
+        <div className="ms-node-list">
+          {filteredNodes.length > 0 ? (
+            filteredNodes.map(item => (
+              <button
+                key={item.label}
+                className="ms-node-btn"
+                onClick={() => {
+                  onAddNode(item.type, item.defaults);
+                  if (activeCategory === 'Search') setSearchQuery('');
+                }}
+              >
+                {item.label}
+              </button>
+            ))
+          ) : (
+            <div className="ms-no-results">No nodes found.</div>
+          )}
+        </div>
       </div>
     </div>
   );
