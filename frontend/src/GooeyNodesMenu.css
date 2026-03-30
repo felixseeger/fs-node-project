@@ -329,8 +329,32 @@
   color: #fff;
 }
 
-.ms-qa-item:hover {
+.ms-qa-item:hover, .ms-qa-item.active-submenu {
   background: rgba(255, 255, 255, 0.05);
+}
+
+.ms-flyout-panel {
+  margin-left: 10px;
+  background: #1e1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  width: 240px;
+  padding: 16px;
+  color: #fff;
+  opacity: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  z-index: 1400;
+}
+
+.ms-flyout-panel.active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
 }
 
 .ms-qa-icon {
