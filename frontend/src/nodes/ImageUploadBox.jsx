@@ -136,7 +136,7 @@ export default function ImageUploadBox({
             <div style={{
               width: 20, height: 20, border: '2px solid #3a3a3a',
               borderTop: '2px solid #3b82f6', borderRadius: '50%',
-              animation: 'node-spin 1s linear infinite',
+              animation: 'spin 1s linear infinite',
             }} />
             <span style={{ fontSize: 10, color: '#888' }}>Uploading...</span>
           </>
@@ -171,7 +171,7 @@ export default function ImageUploadBox({
         style={{ display: 'none' }}
         onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
       />
-      {/* spinner animation defined globally in index.css as node-spin */}
+      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
     </>
   );
 }

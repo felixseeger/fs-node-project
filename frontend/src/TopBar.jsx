@@ -22,7 +22,6 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
         <img
           src="/logo-light.svg"
           alt="Logo"
-          className="glitch-logo"
           style={{ height: 28, width: 'auto' }}
         />
 

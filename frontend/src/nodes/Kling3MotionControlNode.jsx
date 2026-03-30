@@ -1,28 +1,11 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
+import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { kling3MotionGenerate, pollKling3MotionStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
-import {
-  SectionHeader,
-  LinkedBadges,
-  ConnectedOrLocal,
-  OutputHandle,
-  OutputPreview,
-  PillGroup,
-  Slider,
-  PromptInput,
-  TextInput,
-  SettingsPanel,
-  useNodeConnections,
-  CATEGORY_COLORS,
-  font,
-  sp,
-} from './shared';
-
-const ACCENT = CATEGORY_COLORS.videoGeneration;
 
 const MODELS = [
   { value: 'std', label: 'Standard' },
@@ -36,20 +19,33 @@ const ORIENTATIONS = [
 
 export default function Kling3MotionControlNode({ id, data, selected }) {
   const [isLoading, setIsLoading] = useState(false);
-  const { update, conn, resolve } = useNodeConnections(id, data);
 
   const localModel = data.localModel || 'std';
   const localOrientation = data.localOrientation || 'video';
   const localCfgScale = data.localCfgScale ?? 0.5;
 
-  const image = conn('image-in');
-  const prompt = conn('prompt-in');
-  const video = conn('video-in');
+  const update = useCallback(
+    (patch) => data.onUpdate?.(id, patch),
+    [id, data]
+  );
+
+  const getConnInfo = useCallback((handleId) => {
+    return data.getConnectionInfo?.(id, handleId) || null;
+  }, [id, data]);
+
+  const imageConnection = getConnInfo('image-in');
+  const hasImageConnection = data.hasConnection?.(id, 'image-in');
+  const promptConnection = getConnInfo('prompt-in');
+  const hasPromptConnection = data.hasConnection?.(id, 'prompt-in');
+  const videoConnection = getConnInfo('video-in');
+  const hasVideoConnection = data.hasConnection?.(id, 'video-in');
 
   const handleGenerate = useCallback(async () => {
-    const promptText = resolve.text('prompt-in', data.inputPrompt);
-    const images = resolve.image('image-in', data.localImage);
-
+    const prompt = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt || '';
+    
+    let images = data.resolveInput?.(id, 'image-in');
+    if (!images?.length && data.localImage) images = [data.localImage];
+    
     let referenceVideos = data.resolveInput?.(id, 'video-in');
     if (!referenceVideos?.length && data.localVideo) referenceVideos = [data.localVideo];
 
@@ -65,9 +61,9 @@ export default function Kling3MotionControlNode({ id, data, selected }) {
         character_orientation: localOrientation,
         cfg_scale: localCfgScale,
       };
-
-      if (promptText) {
-        params.prompt = promptText;
+      
+      if (prompt) {
+        params.prompt = prompt;
       }
 
       const result = await kling3MotionGenerate(localModel, params);
@@ -104,7 +100,7 @@ export default function Kling3MotionControlNode({ id, data, selected }) {
     } finally {
       setIsLoading(false);
     }
-  }, [id, data, update, resolve, localModel, localOrientation, localCfgScale]);
+  }, [id, data, update, localModel, localOrientation, localCfgScale]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -114,111 +110,199 @@ export default function Kling3MotionControlNode({ id, data, selected }) {
     }
   }, [data.triggerGenerate, handleGenerate]);
 
+  // ── Helpers ──
+
+  const sectionHeader = (label, handleId, handleType, color, extra) => (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      marginBottom: 6, marginTop: 10,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <Handle type={handleType} position={handleType === 'target' ? Position.Left : Position.Right}
+          id={handleId} style={{
+            width: 10, height: 10, borderRadius: '50%', background: color, border: 'none',
+            position: 'relative', left: handleType === 'target' ? -12 : 'auto',
+            right: handleType === 'source' ? -12 : 'auto', transform: 'none',
+          }} />
+        <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>{label}</span>
+      </div>
+      {extra && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>{extra}</div>}
+    </div>
+  );
+
+  const linkedBadges = (onUnlinkHandle) => (
+    <>
+      <span style={{ fontSize: 9, color: '#3b82f6', padding: '2px 6px', background: 'rgba(59,130,246,0.1)', borderRadius: 4 }}>linked</span>
+      <button onClick={() => data.onUnlink?.(id, onUnlinkHandle)} style={{
+        fontSize: 9, color: '#ef4444', padding: '2px 6px', background: 'rgba(239,68,68,0.15)', borderRadius: 4,
+        border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer',
+      }}>unlink</button>
+    </>
+  );
+
+  const connectionInfoBox = (connInfo) => (
+    <div style={{
+      background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)',
+      borderRadius: 6, padding: '6px 10px', marginBottom: 4,
+      display: 'flex', alignItems: 'center', gap: 6,
+    }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
+      <span style={{ fontSize: 11, color: '#93b4f5' }}>
+        {connInfo ? `Linked from ${connInfo.nodeLabel} → ${connInfo.handle}` : 'Linked from upstream node'}
+      </span>
+    </div>
+  );
+
+  const pill = (label, isActive, onClick, activeColor) => (
+    <button key={label} onClick={onClick} style={{
+      flex: 1, padding: '4px 0', fontSize: 11, fontWeight: isActive ? 600 : 400,
+      borderRadius: 6, cursor: 'pointer',
+      background: isActive ? (activeColor || '#14b8a6') : '#1a1a1a',
+      color: isActive ? '#fff' : '#999',
+      border: `1px solid ${isActive ? (activeColor || '#14b8a6') : '#3a3a3a'}`,
+    }}>{label}</button>
+  );
+
+  const ACCENT = '#14b8a6'; // Teal for video
+
+  // ── Render ──
+
   return (
     <NodeShell label={data.label || 'Kling 3 Motion Control'} dotColor={ACCENT} selected={selected}>
 
-      {/* Video Output Handle (top) */}
-      <OutputHandle type="video" label="video" />
-
-      {/* 1. Character Image Input (Required) */}
-      <SectionHeader
-        label="Character Image (Required)"
-        handleId="image-in"
-        handleType="target"
-        color={getHandleColor('image-in')}
-        extra={image.connected ? (
-          <LinkedBadges nodeId={id} handleId="image-in" onUnlink={data.onUnlink} />
-        ) : null}
-      />
-      <ConnectedOrLocal connected={image.connected} connInfo={image.info}>
+      {/* ── Video Output Handle (top) ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+        marginBottom: 4,
+      }}>
+        <span style={{ fontSize: 10, color: '#999', marginRight: 4 }}>video</span>
+        <Handle type="source" position={Position.Right} id="output-video" style={{
+          width: 10, height: 10, borderRadius: '50%',
+          background: getHandleColor('output-video'), border: 'none',
+          position: 'relative', right: -12, transform: 'none',
+        }} />
+      </div>
+      
+      {/* ── 1. Character Image Input (Required) ── */}
+      {sectionHeader('Character Image (Required)', 'image-in', 'target', getHandleColor('image-in'),
+        hasImageConnection ? linkedBadges('image-in') : null
+      )}
+      {hasImageConnection ? connectionInfoBox(imageConnection) : (
         <ImageUploadBox
           image={data.localImage || data.inputImagePreview || null}
           onImageChange={(img) => update({ localImage: img })}
           placeholder="Upload character image"
           minHeight={60}
         />
-      </ConnectedOrLocal>
+      )}
 
-      {/* 2. Reference Video Input (Required) */}
-      <SectionHeader
-        label="Reference Video (Required)"
-        handleId="video-in"
-        handleType="target"
-        color={getHandleColor('video-in')}
-        extra={video.connected ? (
-          <LinkedBadges nodeId={id} handleId="video-in" onUnlink={data.onUnlink} />
-        ) : null}
-      />
-      <ConnectedOrLocal connected={video.connected} connInfo={video.info}>
-        <TextInput
-          value={data.localVideo}
-          onChange={(v) => update({ localVideo: v })}
+      {/* ── 2. Reference Video Input (Required) ── */}
+      {sectionHeader('Reference Video (Required)', 'video-in', 'target', getHandleColor('video-in'),
+        hasVideoConnection ? linkedBadges('video-in') : null
+      )}
+      {hasVideoConnection ? connectionInfoBox(videoConnection) : (
+        <input type="text" value={data.localVideo || ''}
+          onChange={(e) => update({ localVideo: e.target.value })}
           placeholder="Reference Video URL..."
-        />
-      </ConnectedOrLocal>
+          style={{
+            width: '100%', background: '#1a1a1a', border: '1px solid #3a3a3a',
+            borderRadius: 6, color: '#e0e0e0', fontSize: 11, padding: '6px 8px',
+            outline: 'none', boxSizing: 'border-box',
+          }} />
+      )}
 
-      {/* 3. Prompt (Optional) */}
-      <SectionHeader
-        label="Prompt (Optional)"
-        handleId="prompt-in"
-        handleType="target"
-        color={getHandleColor('prompt-in')}
-        extra={
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <AutoPromptButton id={id} data={data} update={update} imageKey="image-in" localImageKey="localImage" />
-            <ImprovePromptButton id={id} data={data} update={update} type="video" />
-            {prompt.connected ? <LinkedBadges nodeId={id} handleId="prompt-in" onUnlink={data.onUnlink} /> : null}
-          </div>
-        }
-      />
-      <ConnectedOrLocal connected={prompt.connected} connInfo={prompt.info}>
-        <PromptInput
-          value={data.inputPrompt}
-          onChange={(v) => update({ inputPrompt: v })}
+      {/* ── 3. Prompt (Optional) ── */}
+      {sectionHeader('Prompt (Optional)', 'prompt-in', 'target', getHandleColor('prompt-in'),
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}><AutoPromptButton id={id} data={data} update={update} imageKey="image-in" localImageKey="localImage" />
+            <ImprovePromptButton id={id} data={data} update={update} type="video" />{hasPromptConnection ? linkedBadges('prompt-in') : null}</div>
+      )}
+      {hasPromptConnection ? connectionInfoBox(promptConnection) : (
+        <textarea value={data.inputPrompt || ''}
+          onChange={(e) => update({ inputPrompt: e.target.value })}
           placeholder="Guide the motion transfer..."
           rows={2}
-        />
-      </ConnectedOrLocal>
+          style={{
+            width: '100%', background: '#1a1a1a', border: '1px solid #3a3a3a',
+            borderRadius: 6, color: '#e0e0e0', fontSize: 12, padding: 8,
+            resize: 'vertical', outline: 'none', boxSizing: 'border-box',
+          }} />
+      )}
 
-      {/* 4. Settings */}
-      <SettingsPanel title="Motion Settings">
-        <PillGroup
-          label="Model Tier"
-          options={MODELS}
-          value={localModel}
-          onChange={(v) => update({ localModel: v })}
-          accentColor={ACCENT}
-        />
+      {/* ── 4. Settings ── */}
+      <div style={{
+        background: '#1a1a1a', borderRadius: 8, border: '1px solid #3a3a3a',
+        padding: 12, marginTop: 10,
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: '#e0e0e0', marginBottom: 10, textAlign: 'center' }}>
+          Motion Settings
+        </div>
 
-        <PillGroup
-          label="Orientation"
-          options={ORIENTATIONS}
-          value={localOrientation}
-          onChange={(v) => update({ localOrientation: v })}
-          accentColor={ACCENT}
-        />
+        {/* Model */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: '#999', marginBottom: 6 }}>Model Tier</div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {MODELS.map((m) => pill(m.label, localModel === m.value, () => update({ localModel: m.value }), ACCENT))}
+          </div>
+        </div>
 
-        <Slider
-          label="CFG Scale"
-          value={localCfgScale}
-          onChange={(v) => update({ localCfgScale: v })}
-          min={0}
-          max={1}
-          step={0.05}
-          accentColor={ACCENT}
-        />
-      </SettingsPanel>
+        {/* Orientation */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: '#999', marginBottom: 6 }}>Orientation</div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {ORIENTATIONS.map((o) => pill(o.label, localOrientation === o.value, () => update({ localOrientation: o.value }), ACCENT))}
+          </div>
+        </div>
 
-      {/* 5. Output */}
-      <OutputPreview
-        isLoading={isLoading}
-        output={data.outputVideo}
-        error={data.outputError}
-        type="video"
-        label="Generated Video"
-        accentColor={ACCENT}
-      />
+        {/* CFG Scale */}
+        <div style={{ marginBottom: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: 11, color: '#999' }}>CFG Scale</span>
+            <span style={{ fontSize: 11, color: '#e0e0e0', fontWeight: 600 }}>{localCfgScale}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 9, color: '#555', minWidth: 14, textAlign: 'right' }}>0</span>
+            <input type="range" min={0} max={1} step={0.05} value={localCfgScale}
+              onChange={(e) => update({ localCfgScale: Number(e.target.value) })}
+              style={{ flex: 1, accentColor: ACCENT }} />
+            <span style={{ fontSize: 9, color: '#555', minWidth: 14 }}>1</span>
+          </div>
+        </div>
+      </div>
 
+      {/* ── 5. Output ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 6, marginTop: 10,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: ACCENT, flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>Generated Video</span>
+        </div>
+      </div>
+      <div style={{
+        background: '#1a1a1a', borderRadius: 6, border: '1px solid #3a3a3a',
+        minHeight: 120, position: 'relative',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+      }}>
+        {isLoading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 28, height: 28, border: '3px solid #3a3a3a',
+              borderTop: `3px solid ${ACCENT}`, borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }} />
+            <span style={{ fontSize: 10, color: '#999' }}>Generating video...</span>
+          </div>
+        ) : data.outputVideo ? (
+          <video src={data.outputVideo} autoPlay loop muted controls style={{ width: '100%', display: 'block', borderRadius: 6 }} />
+        ) : data.outputError ? (
+          <span style={{ fontSize: 10, color: '#ef4444', padding: 12, textAlign: 'center', wordBreak: 'break-word' }}>{data.outputError}</span>
+        ) : (
+          <span style={{ fontSize: 11, color: '#555', padding: 16, textAlign: 'center' }}>Generated video will appear here</span>
+        )}
+      </div>
+
+      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
     </NodeShell>
   );
 }
