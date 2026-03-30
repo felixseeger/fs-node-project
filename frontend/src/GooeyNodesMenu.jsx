@@ -31,9 +31,9 @@ const QUICK_ADD_SECTIONS = [
     items: [
       { id: 'text', title: 'Text', desc: 'Generate and edit', shortcut: 'T', type: 'textNode', 
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="12" y2="18"></line></svg> },
-      { id: 'image', title: 'Image', desc: 'Generate, edit, and upload', shortcut: 'I', type: 'imageNode',
+      { id: 'image', title: 'Images', desc: 'Generate, edit, and analyze', hasSubmenu: 'Image',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> },
-      { id: 'video', title: 'Video', desc: 'Generate, edit, and upload', shortcut: 'V', type: 'videoNode',
+      { id: 'video', title: 'Video', desc: 'Generate, edit, and upload', hasSubmenu: 'Video',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> },
     ]
   },
@@ -67,18 +67,14 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
   const [activeSubMenu, setActiveSubMenu] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const handleToggle = () => {
-    const nextOpen = !isOpen;
-    setIsOpen(nextOpen);
-    if (!nextOpen) {
-      setActiveCategory(null);
-      setSearchQuery('');
-    }
-  };
-
   const handleCategoryClick = (category) => {
-    if (!isOpen) setIsOpen(true);
-    setActiveCategory(activeCategory === category ? null : category);
+    if (activeCategory === category && isOpen) {
+      setIsOpen(false);
+      setActiveCategory(null);
+    } else {
+      setIsOpen(true);
+      setActiveCategory(category);
+    }
     setSearchQuery('');
   };
 
@@ -114,7 +110,12 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
   const subMenuNodes = useMemo(() => {
     if (!activeSubMenu) return [];
     if (activeSubMenu === 'Image') {
-      return allNodes.filter(n => n.section === 'Image Generation' || n.section === 'Image Editing');
+      return allNodes.filter(n => 
+        n.section === 'Image Generation' || 
+        n.section === 'Image Editing' ||
+        (n.section === 'LLMs' && (n.type === 'imageAnalyzer' || n.type === 'imageToPrompt' || n.type === 'aiImageClassifier' || n.type === 'improvePrompt')) ||
+        (n.section === 'Inputs' && n.type === 'imageNode')
+      );
     }
     if (activeSubMenu === 'Video') {
       return allNodes.filter(n => n.section === 'Video Generation' || n.section === 'Video Editing');
@@ -129,20 +130,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
     <div className="ms-menu-wrapper" onMouseLeave={() => setActiveSubMenu(null)}>
       <div className="ms-nav-container">
         <ul className="ms-nav">
-          <input 
-            type="checkbox" 
-            id="ms-menu-toggle" 
-            className="ms-menu-toggle" 
-            checked={isOpen}
-            onChange={handleToggle}
-          />
           <div className="ms-pill-bg"></div>
-          
-          <li className="ms-main">
-            <label htmlFor="ms-menu-toggle" title="Add Nodes">
-              <span><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></span>
-            </label>
-          </li>
 
           {CATEGORIES.map((cat, idx) => {
             const index = idx + 1;
@@ -260,11 +248,12 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
         </div>
       </div>
 
-      {/* Flyout Submenu Panel */}
       <div className={`ms-flyout-panel ${activeSubMenu && isOpen && !searchQuery && !activeCategory ? 'active' : ''}`}>
         {activeSubMenu && (
           <>
-            <div className="ms-category-title">{activeSubMenu === 'LLMs' ? 'Models' : `${activeSubMenu} Models`}</div>
+            <div className="ms-category-title">
+              {activeSubMenu === 'LLMs' ? 'Models' : activeSubMenu === 'Image' ? 'Images' : `${activeSubMenu} Models`}
+            </div>
             <div className="ms-node-list">
               {subMenuNodes.map(item => (
                 <button

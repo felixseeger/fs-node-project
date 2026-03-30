@@ -15,7 +15,7 @@
 .ms-nav-container {
   position: relative;
   width: 75px;
-  height: 75px;
+  height: 610px;
 }
 
 .ms-nav {
@@ -27,9 +27,6 @@
   list-style: none;
 }
 
-.ms-menu-toggle {
-  display: none;
-}
 
 /* ── Pilled Background ── */
 .ms-pill-bg {
@@ -37,7 +34,7 @@
   top: 0;
   left: 0;
   width: 75px;
-  height: 700px;
+  height: 610px;
   background: var(--ms-glass-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -52,7 +49,7 @@
   align-items: center;
   width: 75px;
   position: absolute;
-  top: 590px;
+  top: 525px;
 }
 
 .ms-divider-line {
@@ -63,43 +60,13 @@
 
 .ms-avatar {
   position: absolute;
-  top: 615px;
+  top: 550px;
 }
 
 .ms-avatar a {
   border-radius: 50%;
   overflow: hidden;
   padding: 0;
-}
-
-/* ── Menu Main Button ── */
-.ms-main {
-  position: relative;
-  z-index: 100;
-  display: flex;
-  justify-content: center;
-  width: 75px;
-}
-
-.ms-main label {
-  background: #ffffff;
-  width: 50px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  cursor: pointer;
-  color: #000;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.1);
-  transition: transform 0.2s ease, background 0.2s;
-  margin-top: 12px;
-}
-
-.ms-main svg {
-  width: 24px;
-  height: 24px;
 }
 
 /* ── Menu Items ── */
@@ -143,14 +110,14 @@
 }
 
 /* ── Item Positioning ── */
-.ms-li1 { top: 75px; }
-.ms-li2 { top: 140px; }
-.ms-li3 { top: 205px; }
-.ms-li4 { top: 270px; }
-.ms-li5 { top: 335px; }
-.ms-li6 { top: 400px; }
-.ms-li7 { top: 465px; }
-.ms-li8 { top: 530px; }
+.ms-li1 { top: 10px; }
+.ms-li2 { top: 75px; }
+.ms-li3 { top: 140px; }
+.ms-li4 { top: 205px; }
+.ms-li5 { top: 270px; }
+.ms-li6 { top: 335px; }
+.ms-li7 { top: 400px; }
+.ms-li8 { top: 465px; }
 
 /* ── Liquid Connection Logic (The Stretch) ── */
 /* Removed as per the reference image design */
