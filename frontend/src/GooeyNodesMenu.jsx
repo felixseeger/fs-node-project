@@ -26,8 +26,8 @@ const CATEGORIES = [
 ];
 
 export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState(null);
+  const [isOpen, setIsOpen] = useState(true);
+  const [activeCategory, setActiveCategory] = useState('Search');
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleToggle = () => {
