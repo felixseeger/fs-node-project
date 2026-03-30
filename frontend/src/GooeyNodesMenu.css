@@ -12,75 +12,39 @@
   align-items: flex-start;
 }
 
+
 .ms-nav-container {
   position: relative;
   width: 75px;
-  height: 610px;
 }
 
 .ms-nav {
-  position: absolute;
-  top: 0;
-  left: 0;
+  position: relative;
   margin: 0;
-  padding: 0;
+  padding: 16px 0;
   list-style: none;
-}
-
-
-/* ── Pilled Background ── */
-.ms-pill-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 75px;
-  height: 610px;
   background: var(--ms-glass-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 40px;
-  z-index: 0;
+  z-index: 100;
   border: 1px solid rgba(255,255,255,0.05);
-}
-
-.ms-divider {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  width: 75px;
-  position: absolute;
-  top: 525px;
+  gap: 16px;
+  min-height: 450px;
 }
 
-.ms-divider-line {
-  width: 40px;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.ms-avatar {
-  position: absolute;
-  top: 550px;
-}
-
-.ms-avatar a {
-  border-radius: 50%;
-  overflow: hidden;
-  padding: 0;
-}
-
-/* ── Menu Items ── */
 .ms-li {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 75px;
   display: flex;
   justify-content: center;
   z-index: 1;
+  width: 100%;
 }
 
-.ms-li a {
+.ms-li a, .ms-li button {
+  position: relative;
   background: transparent;
   width: 50px;
   height: 50px;
@@ -90,8 +54,10 @@
   border-radius: 12px;
   color: #e0e0e0;
   text-decoration: none;
-  transition: background 0.2s, color 0.2s;
-  margin: 0 auto;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+  border: none;
+  cursor: pointer;
+  padding: 0;
 }
 
 .ms-li a.active {
@@ -99,9 +65,21 @@
   color: #ffffff;
 }
 
-.ms-li a:hover {
+.ms-li a:hover, .ms-li button:hover {
   background: rgba(255,255,255,0.05);
   color: #ffffff;
+}
+
+.ms-li.ms-main-toggle button {
+  background: #ffffff;
+  color: #000;
+  border-radius: 50%;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.ms-li.ms-main-toggle button:hover {
+  background: #ffffff;
+  transform: scale(1.05);
 }
 
 .ms-li svg {
@@ -109,21 +87,41 @@
   height: 24px;
 }
 
-/* ── Item Positioning ── */
-.ms-li1 { top: 10px; }
-.ms-li2 { top: 75px; }
-.ms-li3 { top: 140px; }
-.ms-li4 { top: 205px; }
-.ms-li5 { top: 270px; }
-.ms-li6 { top: 335px; }
-.ms-li7 { top: 400px; }
-.ms-li8 { top: 465px; }
+.ms-spacer {
+  flex-grow: 1;
+}
+
+.ms-divider {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+}
+
+.ms-divider-line {
+  width: 40px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ms-avatar a {
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.ms-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
 /* ── Liquid Connection Logic (The Stretch) ── */
 /* Removed as per the reference image design */
 
 /* ── Tooltips ── */
-.ms-li a[data-tooltip]::before {
+.ms-li a[data-tooltip]::before,
+.ms-li button[data-tooltip]::before {
   content: attr(data-tooltip);
   position: absolute;
   left: 70px;
@@ -138,7 +136,8 @@
   color: #fff;
   border: 1px solid rgba(255,255,255,0.1);
 }
-.ms-li a:hover::before {
+.ms-li a:hover::before,
+.ms-li button:hover::before {
   opacity: 1;
 }
 

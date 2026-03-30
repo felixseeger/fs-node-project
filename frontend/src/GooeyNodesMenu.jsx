@@ -3,26 +3,16 @@ import './GooeyNodesMenu.css';
 
 // SVG Icons for categories
 const Icons = {
-  Plus: <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>,
-  Search: <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>,
-  LLMs: <svg viewBox="0 0 24 24"><path d="M12 2c-4.97 0-9 4.03-9 9 0 4.17 2.84 7.67 6.69 8.69L12 22l2.31-2.31C18.16 18.67 21 15.17 21 11c0-4.97-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm-1-9h2v2h-2zm0 4h2v2h-2z"/></svg>,
-  ImageGen: <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>,
-  ImageEdit: <svg viewBox="0 0 24 24"><path d="M7.5 5.6L10 7 8.6 4.5 10 2 7.5 3.4 5 2l1.4 2.5L5 7zm12 9.8L17 14l1.4 2.5L17 19l2.5-1.4L22 19l-1.4-2.5L22 14zM22 2l-2.5 1.4L17 2l1.4 2.5L17 7l2.5-1.4L22 7l-1.4-2.5zm-7.63 5.29c-.39-.39-1.02-.39-1.41 0L1.29 18.96c-.39.39-.39 1.02 0 1.41l2.34 2.34c.39.39 1.02.39 1.41 0L16.7 11.05c.39-.39.39-1.02 0-1.41l-2.33-2.35zm-1.03 5.49l-2.12-2.12 2.44-2.44 2.12 2.12-2.44 2.44z"/></svg>,
-  VideoGen: <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>,
-  VideoEdit: <svg viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>,
-  AudioGen: <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>,
-  Misc: <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
+  Plus: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>,
+  Close: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
+  Folder: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>,
+  Flash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>,
+  Help: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
 };
 
 const CATEGORIES = [
-  { id: 'Search', icon: Icons.Search, title: 'Search Nodes' },
-  { id: 'LLMs', icon: Icons.LLMs, title: 'LLMs' },
-  { id: 'Image Generation', icon: Icons.ImageGen, title: 'Image Generation' },
-  { id: 'Image Editing', icon: Icons.ImageEdit, title: 'Image Editing' },
-  { id: 'Video Generation', icon: Icons.VideoGen, title: 'Video Generation' },
-  { id: 'Video Editing', icon: Icons.VideoEdit, title: 'Video Editing' },
-  { id: 'Audio Generation', icon: Icons.AudioGen, title: 'Audio Generation' },
-  { id: 'Misc', icon: Icons.Misc, title: 'Inputs & Utilities' },
+  { id: 'Uploads', icon: Icons.Folder, title: 'Uploaded Files' },
+  { id: 'Workflows', icon: Icons.Flash, title: 'Workflows' },
 ];
 
 const QUICK_ADD_SECTIONS = [
@@ -103,7 +93,17 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
        return allNodes.filter(n => n.section === 'Inputs' || n.section === 'Utilities');
     }
     
+
+    if (activeCategory === 'Uploads') {
+      return allNodes.filter(n => n.type === 'uploadNode');
+    }
+    
+    if (activeCategory === 'Workflows') {
+      return [];
+    }
+    
     const section = nodeMenu.find(s => s.section === activeCategory);
+
     return section ? section.items : [];
   }, [activeCategory, searchQuery, allNodes, nodeMenu]);
 
@@ -130,12 +130,25 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
     <div className="ms-menu-wrapper" onMouseLeave={() => setActiveSubMenu(null)}>
       <div className="ms-nav-container">
         <ul className="ms-nav">
-          <div className="ms-pill-bg"></div>
+          <li className="ms-li ms-main-toggle">
+            <button 
+              onClick={() => {
+                const nextOpen = !isOpen;
+                setIsOpen(nextOpen);
+                if (!nextOpen) {
+                  setActiveCategory(null);
+                  setSearchQuery('');
+                }
+              }}
+              data-tooltip={isOpen ? "Close Menu" : "Add Nodes"}
+            >
+              {isOpen ? Icons.Close : Icons.Plus}
+            </button>
+          </li>
 
           {CATEGORIES.map((cat, idx) => {
-            const index = idx + 1;
             return (
-              <li key={cat.id} className={`ms-li ms-li${index}`}>
+              <li key={cat.id} className="ms-li">
                 <a 
                   href="#" 
                   onClick={(e) => { e.preventDefault(); handleCategoryClick(cat.id); }}
@@ -148,13 +161,21 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
             );
           })}
 
-          <li className="ms-li ms-divider">
+          <li className="ms-spacer"></li>
+
+          <li className="ms-li ms-help">
+            <a href="#" onClick={(e) => e.preventDefault()} data-tooltip="Help">
+              <span>{Icons.Help}</span>
+            </a>
+          </li>
+
+          <li className="ms-divider">
             <div className="ms-divider-line"></div>
           </li>
           
           <li className="ms-li ms-avatar ms-li-last">
             <a href="#" onClick={(e) => e.preventDefault()} data-tooltip="User Profile">
-              <img src="/ref/gen-ai.jpg" alt="User Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+              <img src="/ref/gen-ai.jpg" alt="User Profile" />
             </a>
           </li>
         </ul>
