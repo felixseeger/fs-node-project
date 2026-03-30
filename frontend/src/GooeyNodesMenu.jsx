@@ -86,10 +86,16 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
           />
           <div className="ms-pill-bg"></div>
           
+          <li className="ms-main">
+            <label htmlFor="ms-menu-toggle" title="Add Nodes">
+              <span>{Icons.Plus}</span>
+            </label>
+          </li>
+
           {CATEGORIES.map((cat, idx) => {
             const index = idx + 1;
             return (
-              <li key={cat.id} className={`ms-li ms-li${index} ${index === CATEGORIES.length ? 'ms-li-last' : ''}`}>
+              <li key={cat.id} className={`ms-li ms-li${index}`}>
                 <a 
                   href="#" 
                   onClick={(e) => { e.preventDefault(); handleCategoryClick(cat.id); }}
@@ -102,10 +108,14 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
             );
           })}
 
-          <li className="ms-main">
-            <label htmlFor="ms-menu-toggle" title="Add Nodes">
-              <span>{Icons.Plus}</span>
-            </label>
+          <li className="ms-li ms-divider" style={{ top: isOpen ? '590px' : '0px', transitionDelay: '0.45s', opacity: isOpen ? 1 : 0, zIndex: 1 }}>
+            <div className="ms-divider-line"></div>
+          </li>
+          
+          <li className="ms-li ms-avatar ms-li-last" style={{ top: isOpen ? '615px' : '0px', transitionDelay: '0.5s', opacity: isOpen ? 1 : 0, zIndex: 1 }}>
+            <a href="#" onClick={(e) => e.preventDefault()} data-tooltip="User Profile">
+              <img src="/ref/gen-ai.jpg" alt="User Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+            </a>
           </li>
         </ul>
       </div>

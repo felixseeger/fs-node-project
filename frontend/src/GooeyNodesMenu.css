@@ -35,22 +35,46 @@
 .ms-pill-bg {
   position: absolute;
   top: 0;
-  left: 3.5px;
-  width: 68px;
+  left: 0;
+  width: 75px;
   height: 75px;
   background: var(--ms-glass-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 40px;
-  transition: all 0.5s ease;
+  transition: height 0.5s ease, opacity 0.5s ease;
   z-index: 0;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.05);
   opacity: 0;
   pointer-events: none;
 }
 
+.ms-divider {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 75px;
+  transition: top 0.5s ease, opacity 0.5s ease;
+}
+
+.ms-divider-line {
+  width: 40px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ms-avatar {
+  transition: top 0.5s ease, opacity 0.5s ease;
+}
+
+.ms-avatar a {
+  border-radius: 50%;
+  overflow: hidden;
+  padding: 0;
+}
+
 .ms-menu-toggle:checked ~ .ms-pill-bg {
-  height: 685px; /* Enough to cover all items */
+  height: 700px; /* Covers main button (75px) + 8 items + divider + avatar ~ 700px */
   opacity: 1;
 }
 
@@ -61,61 +85,60 @@
 }
 
 .ms-main label {
-  background: var(--ms-bg);
-  width: 75px;
-  height: 75px;
+  background: #ffffff;
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   cursor: pointer;
-  color: #fff;
+  color: #000;
   box-shadow: 0 5px 15px rgba(0,0,0,0.3);
   border: 1px solid rgba(255,255,255,0.1);
-  transition: transform 0.3s ease, background 0.2s;
-}
-
-.ms-menu-toggle:checked ~ .ms-main label {
-  transform: rotate(45deg);
-  background: #3a4760;
+  transition: transform 0.2s ease, background 0.2s;
+  margin: 9px auto;
 }
 
 .ms-main svg {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
 }
 
 /* ── Menu Items ── */
 .ms-li {
   position: absolute;
   top: 0;
-  left: 7.5px;
+  left: 0;
+  width: 75px;
+  display: flex;
+  justify-content: center;
   transition: top 0.5s ease;
   z-index: 1;
 }
 
 .ms-li a {
-  background: var(--ms-bg);
-  width: 60px;
-  height: 60px;
+  background: transparent;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px; /* Rounded Square */
-  color: #fff;
+  border-radius: 12px;
+  color: #e0e0e0;
   text-decoration: none;
-  box-shadow: 0 5px 10px rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.1);
-  transition: background 0.2s, box-shadow 0.3s, border-radius 0.3s;
+  transition: background 0.2s, color 0.2s;
+  margin: 0 auto;
 }
 
 .ms-li a.active {
-  background: #3b82f6;
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+  background: rgba(255,255,255,0.1);
+  color: #ffffff;
 }
 
 .ms-li a:hover {
-  background: #3a4760;
+  background: rgba(255,255,255,0.05);
+  color: #ffffff;
 }
 
 .ms-li svg {
@@ -124,98 +147,17 @@
 }
 
 /* ── Item Positioning ── */
-.ms-menu-toggle:checked ~ .ms-li1 { top: 90px; transition-delay: 0.05s; }
-.ms-menu-toggle:checked ~ .ms-li2 { top: 165px; transition-delay: 0.1s; }
-.ms-menu-toggle:checked ~ .ms-li3 { top: 240px; transition-delay: 0.15s; }
-.ms-menu-toggle:checked ~ .ms-li4 { top: 315px; transition-delay: 0.2s; }
-.ms-menu-toggle:checked ~ .ms-li5 { top: 390px; transition-delay: 0.25s; }
-.ms-menu-toggle:checked ~ .ms-li6 { top: 465px; transition-delay: 0.3s; }
-.ms-menu-toggle:checked ~ .ms-li7 { top: 540px; transition-delay: 0.35s; }
-.ms-menu-toggle:checked ~ .ms-li8 { top: 615px; transition-delay: 0.4s; }
+.ms-menu-toggle:checked ~ .ms-li1 { top: 75px; transition-delay: 0.05s; }
+.ms-menu-toggle:checked ~ .ms-li2 { top: 140px; transition-delay: 0.1s; }
+.ms-menu-toggle:checked ~ .ms-li3 { top: 205px; transition-delay: 0.15s; }
+.ms-menu-toggle:checked ~ .ms-li4 { top: 270px; transition-delay: 0.2s; }
+.ms-menu-toggle:checked ~ .ms-li5 { top: 335px; transition-delay: 0.25s; }
+.ms-menu-toggle:checked ~ .ms-li6 { top: 400px; transition-delay: 0.3s; }
+.ms-menu-toggle:checked ~ .ms-li7 { top: 465px; transition-delay: 0.35s; }
+.ms-menu-toggle:checked ~ .ms-li8 { top: 530px; transition-delay: 0.4s; }
 
 /* ── Liquid Connection Logic (The Stretch) ── */
-.ms-li:before, .ms-li:after, .ms-main:after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  margin: auto;
-  z-index: -1;
-  transition: all 0.3s ease;
-}
-
-/* Points UP to the item above */
-.ms-li:before {
-  top: -5px;
-  border-left: 20px solid transparent;
-  border-right: 20px solid transparent;
-  border-bottom: 0px solid var(--ms-bg);
-}
-
-/* Points DOWN to the item below */
-.ms-li:after {
-  bottom: -5px;
-  border-left: 20px solid transparent;
-  border-right: 20px solid transparent;
-  border-top: 0px solid var(--ms-bg);
-}
-
-/* Main button connection pointing DOWN to first item */
-.ms-main:after {
-  bottom: -5px;
-  border-left: 24px solid transparent;
-  border-right: 24px solid transparent;
-  border-top: 0px solid var(--ms-bg);
-}
-
-/* Activate connections when checked */
-.ms-menu-toggle:checked ~ .ms-li:before {
-  top: 0;
-  border-left-width: 24px;
-  border-right-width: 24px;
-  border-bottom: 25px solid var(--ms-bg);
-  animation: border-bottom-animation 0.5s ease 0.2s;
-}
-
-.ms-menu-toggle:checked ~ .ms-li:after {
-  bottom: 0;
-  border-left-width: 24px;
-  border-right-width: 24px;
-  border-top: 25px solid var(--ms-bg);
-  animation: border-top-animation 0.5s ease 0.2s;
-}
-
-.ms-menu-toggle:checked ~ .ms-main:after {
-  bottom: 0;
-  border-left-width: 28px;
-  border-right-width: 28px;
-  border-top: 45px solid var(--ms-bg);
-  animation: big-border-bottom-animation 0.5s ease 0.1s;
-}
-
-/* Last item has no downward connection */
-.ms-li-last:after {
-  display: none !important;
-}
-
-/* ── Keyframe Animations ── */
-@keyframes border-top-animation {
-  0% { bottom: 0px; }
-  50% { bottom: -13px; }
-  100% { bottom: 0px; }
-}
-
-@keyframes border-bottom-animation {
-  0% { top: 0px; }
-  50% { top: -14px; }
-  100% { top: 0px; }
-}
-
-@keyframes big-border-bottom-animation {
-  0% { bottom: 0px; }
-  50% { bottom: -30px; }
-  100% { bottom: 0px; }
-}
+/* Removed as per the reference image design */
 
 /* ── Tooltips ── */
 .ms-li a[data-tooltip]::before {
