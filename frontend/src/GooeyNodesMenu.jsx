@@ -5,6 +5,7 @@ import SearchHistoryMenu from './SearchHistoryMenu';
 
 // SVG Icons for categories
 const Icons = {
+  Search: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
   Plus: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>,
   Close: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
   Folder: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>,
@@ -27,6 +28,7 @@ const CATEGORIES = [
   { id: 'Uploads', icon: Icons.Folder, title: 'Uploaded Files' },
   { id: 'Workflows', icon: Icons.Flash, title: 'Workflows' },
   { id: 'Assets', icon: Icons.Hash, title: 'Assets' },
+  { id: 'SearchHistory', icon: Icons.Search, title: 'Search History' },
 ];
 
 const QUICK_ADD_SECTIONS = [
@@ -43,13 +45,7 @@ const QUICK_ADD_SECTIONS = [
   },
   {
     title: 'Utilities',
-    items: [
-      
-      
-            
-      { id: 'search-history', title: 'Search History', desc: 'View past generations', shortcut: 'H', type: 'searchHistory',
-        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> },
-      { id: 'comment', title: 'Comment', desc: 'Add a note to canvas', shortcut: 'C', type: 'comment',
+    items: [      { id: 'comment', title: 'Comment', desc: 'Add a note to canvas', shortcut: 'C', type: 'comment',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> },
       { id: 'layer', title: 'Layer Editor', desc: 'Combine images together', shortcut: 'L', type: 'layerEditor',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> },
@@ -180,7 +176,17 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
               <li key={cat.id} className="ms-li">
                 <a 
                   href="#" 
-                  onClick={(e) => { e.preventDefault(); handleCategoryClick(cat.id); }}
+                  onClick={(e) => { 
+                    e.preventDefault(); 
+                    if (cat.id === 'SearchHistory') {
+                      setShowHistoryModal(true);
+                      setIsOpen(false);
+                      setActiveCategory(null);
+                      setShowHelpMenu(false);
+                    } else {
+                      handleCategoryClick(cat.id); 
+                    }
+                  }}
                   data-tooltip={cat.title}
                   className={activeCategory === cat.id ? 'active' : ''}
                 >
