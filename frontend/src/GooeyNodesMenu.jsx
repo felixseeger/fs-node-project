@@ -299,6 +299,14 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
                   <button
                     key={item.label}
                     className="ms-node-btn"
+                    
+                    draggable={!!item.type}
+                    onDragStart={(e) => {
+                      if (item.type) {
+                        e.dataTransfer.setData('application/reactflow', item.type);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }
+                    }}
                     onClick={() => {
                       onAddNode(item.type, item.defaults);
                       setSearchQuery('');
@@ -332,6 +340,14 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
                             setActiveSubMenu(null);
                           }
                         }}
+                        
+                    draggable={!!item.type}
+                    onDragStart={(e) => {
+                      if (item.type) {
+                        e.dataTransfer.setData('application/reactflow', item.type);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }
+                    }}
                         onClick={() => {
                           if (item.type) {
                             onAddNode(item.type, {});
@@ -373,6 +389,14 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
                 <button
                   key={item.label}
                   className="ms-node-btn"
+                  
+                    draggable={!!item.type}
+                    onDragStart={(e) => {
+                      if (item.type) {
+                        e.dataTransfer.setData('application/reactflow', item.type);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }
+                    }}
                   onClick={() => {
                     onAddNode(item.type, item.defaults);
                     setIsOpen(false);

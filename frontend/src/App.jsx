@@ -548,6 +548,46 @@ export default function App() {
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [menu, setMenu] = useState(null);
 
+  
+  const onDragOver = useCallback((event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event) => {
+      event.preventDefault();
+
+      const type = event.dataTransfer.getData('application/reactflow');
+      if (typeof type === 'undefined' || !type) return;
+
+      const position = rfInstance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      let defaults = { label: type };
+      for (const section of NODE_MENU) {
+        const item = section.items.find(i => i.type === type);
+        if (item && item.defaults) {
+          defaults = item.defaults;
+          break;
+        }
+      }
+
+      const newNode = {
+        id: nextId(),
+        type,
+        position,
+        data: { ...defaults },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+      saveHistory();
+    },
+    [rfInstance, saveHistory, setNodes]
+  );
+  
   const onPaneContextMenu = useCallback(
     (event) => {
       event.preventDefault();
@@ -1704,7 +1744,7 @@ export default function App() {
       />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', background: '#1a1a1a' }}>
         {/* Canvas */}
-        <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }}>
+        <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }} onDrop={onDrop} onDragOver={onDragOver}>
           <GooeyNodesMenu nodeMenu={NODE_MENU} onAddNode={addNode} onOpenProfile={() => setIsProfileModalOpen(true)} />
 
           {/* Global Generate Button — bottom right */}
