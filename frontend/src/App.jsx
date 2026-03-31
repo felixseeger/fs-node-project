@@ -57,6 +57,7 @@ import VoiceoverNode from './nodes/VoiceoverNode';
 import ResponseNode from './nodes/ResponseNode';
 import AdaptedPromptNode from './nodes/AdaptedPromptNode';
 import LayerEditorNode from './nodes/LayerEditorNode';
+import CommentNode from './nodes/CommentNode';
 import WorkflowsPage from './WorkflowsPage';
 import ProfilePage from './ProfilePage';
 import WorkflowSettingsPage from './WorkflowSettingsPage';
@@ -488,6 +489,11 @@ const NODE_MENU = [
         label: 'Layer Editor',
         defaults: { label: 'Layer Editor' },
       },
+      {
+        type: 'comment',
+        label: 'Comment',
+        defaults: { label: 'Comment', text: '', isDone: false },
+      },
     ],
   }
 ];
@@ -580,6 +586,7 @@ export default function App() {
       response: ResponseNode,
       adaptedPrompt: AdaptedPromptNode,
       layerEditor: LayerEditorNode,
+      comment: CommentNode,
     }),
     []
   );
