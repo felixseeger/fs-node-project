@@ -58,7 +58,6 @@ import ResponseNode from './nodes/ResponseNode';
 import AdaptedPromptNode from './nodes/AdaptedPromptNode';
 import LayerEditorNode from './nodes/LayerEditorNode';
 import CommentNode from './nodes/CommentNode';
-import HistoryNode from './nodes/HistoryNode';
 import WorkflowsPage from './WorkflowsPage';
 import WorkspacesPage from './WorkspacesPage';
 import ProfilePage from './ProfilePage';
@@ -496,12 +495,7 @@ const NODE_MENU = [
         label: 'Comment',
         defaults: { label: 'Comment', text: '', isDone: false },
       },
-      {
-        type: 'history',
-        label: 'History Logger',
-        defaults: { label: 'History Logger', items: [] },
-      },
-    ],
+      ],
   }
 ];
 
@@ -708,8 +702,7 @@ export default function App() {
       adaptedPrompt: AdaptedPromptNode,
       layerEditor: LayerEditorNode,
       comment: CommentNode,
-      history: HistoryNode,
-    }),
+      }),
     []
   );
 

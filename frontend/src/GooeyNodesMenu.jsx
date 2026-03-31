@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import './GooeyNodesMenu.css';
 import ProfileModal from './ProfileModal';
 import AssetModal from './AssetModal';
+import SearchHistoryMenu from './SearchHistoryMenu';
 
 // SVG Icons for categories
 const Icons = {
@@ -46,8 +47,9 @@ const QUICK_ADD_SECTIONS = [
     items: [
       
       
-      { id: 'history', title: 'History Logger', desc: 'Capture outputs over time', shortcut: 'H', type: 'history',
-        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> },
+            
+      { id: 'search-history', title: 'Search History', desc: 'View past generations', shortcut: 'H', type: 'searchHistory',
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> },
       { id: 'comment', title: 'Comment', desc: 'Add a note to canvas', shortcut: 'C', type: 'comment',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> },
       { id: 'layer', title: 'Layer Editor', desc: 'Combine images together', shortcut: 'L', type: 'layerEditor',
@@ -79,6 +81,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
   const [showHelpMenu, setShowHelpMenu] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   const handleCategoryClick = (category) => {
     if (activeCategory === category && isOpen) {
@@ -403,6 +406,8 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
       <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
       {/* Asset Modal */}
       <AssetModal isOpen={showAssetModal} onClose={() => setShowAssetModal(false)} onUpload={onAddNode} />
+      {/* Search History Modal */}
+      <SearchHistoryMenu isOpen={showHistoryModal} onClose={() => setShowHistoryModal(false)} />
     </div>
   );
 }
