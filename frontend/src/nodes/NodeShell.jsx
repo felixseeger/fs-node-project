@@ -9,7 +9,7 @@ import { surface, border, sp, radius, font } from './nodeTokens';
  *  - selected: Whether the node is currently selected
  *  - children: Node body content
  */
-export default function NodeShell({ label, dotColor, selected, children, onDisconnect }) {
+export default function NodeShell({ label, dotColor, selected, children, onDisconnect, onEdit }) {
   const accentAlpha = dotColor ? `${dotColor}14` : 'transparent'; // 8% opacity hex
 
   return (
@@ -65,7 +65,44 @@ export default function NodeShell({ label, dotColor, selected, children, onDisco
           <span style={{ ...font.lg, fontWeight: 600, color: '#e0e0e0' }}>{label}</span>
         </div>
 
-        {onDisconnect && (
+        
+        <div style={{ display: 'flex', gap: 4 }}>
+          {onEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              title="Edit Element"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#666',
+                cursor: 'pointer',
+                fontSize: 14,
+                padding: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 4,
+                transition: 'all 0.1s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#fff';
+                e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#666';
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+            </button>
+          )}
+          {onDisconnect && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -101,6 +138,7 @@ export default function NodeShell({ label, dotColor, selected, children, onDisco
             </svg>
           </button>
         )}
+        </div>
       </div>
 
       {/* Body */}

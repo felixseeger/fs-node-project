@@ -1,4 +1,5 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
+import UpdateAssetModal from '../UpdateAssetModal';
 import { Handle, Position } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import useNodeConnections from './useNodeConnections';
@@ -11,6 +12,7 @@ const Icons = {
 
 export default function AssetNode({ id, data, selected }) {
   const { disconnectNode } = useNodeConnections(id, data);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const fileInputRef = useRef(null);
   const images = data.images || [];
 
@@ -39,11 +41,13 @@ export default function AssetNode({ id, data, selected }) {
   };
 
   return (
+    <>
     <NodeShell
       label={data.label || 'Asset'}
       dotColor={CATEGORY_COLORS.input}
       selected={selected}
       onDisconnect={disconnectNode}
+      onEdit={() => setIsUpdateModalOpen(true)}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: sp[4] }}>
         <input
@@ -100,5 +104,11 @@ export default function AssetNode({ id, data, selected }) {
       </div>
       <Handle type="source" position={Position.Right} style={{ top: 40 }} />
     </NodeShell>
-  );
+    <UpdateAssetModal 
+      isOpen={isUpdateModalOpen}
+      onClose={() => setIsUpdateModalOpen(false)}
+      nodeData={{ id, label: data.label || data.name, images }}
+      onUpdate={(nodeId, patch) => data.onUpdate?.(nodeId, patch)}
+    />
+  </>);
 }
