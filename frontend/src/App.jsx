@@ -59,6 +59,7 @@ import AdaptedPromptNode from './nodes/AdaptedPromptNode';
 import LayerEditorNode from './nodes/LayerEditorNode';
 import CommentNode from './nodes/CommentNode';
 import WorkflowsPage from './WorkflowsPage';
+import WorkspacesPage from './WorkspacesPage';
 import ProfilePage from './ProfilePage';
 import WorkflowSettingsPage from './WorkflowSettingsPage';
 import AuthPage from './AuthPage';
@@ -1204,6 +1205,24 @@ export default function App() {
           <WorkflowsPage
             onCreateWorkflow={handleCreateWorkflow}
             workflows={workflows}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  
+  if (currentPage === 'workspaces') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
+        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={() => setIsAuthenticated(false)} />
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <WorkspacesPage
+            onCreateWorkspace={(name) => {
+              // Stub for creating workspace
+              setCurrentPage('home');
+            }}
+            workspaces={[]}
           />
         </div>
       </div>

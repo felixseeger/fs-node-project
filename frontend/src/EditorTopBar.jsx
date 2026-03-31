@@ -1,14 +1,20 @@
 import { useState } from 'react';
 import ApiExportModal from './ApiExportModal';
+import TemplateBuilderModal from './TemplateBuilderModal';
 
 export default function EditorTopBar({ onSave, onApiExport, onExportJSON, onImportJSON }) {
   const [showApiModal, setShowApiModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
 
   return (
     <>
       <ApiExportModal
         isOpen={showApiModal}
         onClose={() => setShowApiModal(false)}
+      />
+      <TemplateBuilderModal
+        isOpen={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
       />
 
       <div
@@ -27,6 +33,35 @@ export default function EditorTopBar({ onSave, onApiExport, onExportJSON, onImpo
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* Ready status */}
           <span style={{ fontSize: 12, color: '#777', marginRight: 8 }}>Ready</span>
+
+          {/* Save as Template */}
+          <button
+            onClick={() => setShowTemplateModal(true)}
+            style={{
+              padding: '5px 14px',
+              fontSize: 12,
+              fontWeight: 600,
+              background: '#1a1a1a',
+              border: '1px solid #333',
+              borderRadius: 6,
+              color: '#22c55e',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#22c55e';
+              e.currentTarget.style.background = 'rgba(34,197,94,0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#333';
+              e.currentTarget.style.background = '#1a1a1a';
+            }}
+          >
+            Save as Template
+          </button>
 
           {/* Save */}
           <button
