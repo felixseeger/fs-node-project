@@ -480,7 +480,7 @@ export default function WorkflowsPage({ onCreateWorkflow, workflows = [] }) {
 
           <div style={{ flex: 1, maxWidth: 650, zIndex: 1, position: 'relative' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: '#1a1a1a', border: '1px solid #333', borderRadius: 999, marginBottom: 24, fontSize: 13, color: '#aaa', fontWeight: 500 }}>
-               ✨ Enhancor 2.0 is now live
+               ✨ FS 1.0 is live
             </div>
             
             <h1 style={{
