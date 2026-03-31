@@ -54,6 +54,9 @@ const QUICK_ADD_SECTIONS = [
         icon: Icons.Hash },
       { id: 'group-edit', title: 'Group Editing', desc: 'Wan-VACE Batch Editor', shortcut: 'B', type: 'groupEditing',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg> },
+      { id: 'facial-edit', title: 'Facial Editor', desc: 'PixelSmile Expression Editor', shortcut: 'F', type: 'facialEditing',
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Z"></path><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg> },
+      
       { id: 'router', title: 'Router', desc: 'One input to many outputs', shortcut: 'R', type: 'routerNode',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6l4-4-4-4"></path><path d="M18 14l4 4-4 4"></path><path d="M4 10h8v8h-8z"></path><path d="M12 10l6-6"></path><path d="M12 18l6 6"></path></svg> },
     ]

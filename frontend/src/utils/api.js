@@ -860,3 +860,16 @@ export async function groupEditGenerate(params) {
   }
   return res.json();
 }
+
+export async function facialEditGenerate(params) {
+  const res = await fetch(`${API_BASE}/api/facial-edit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Failed to process facial edit');
+  }
+  return res.json();
+}

@@ -60,6 +60,7 @@ import LayerEditorNode from './nodes/LayerEditorNode';
 import CommentNode from './nodes/CommentNode';
 import RouterNode from './nodes/RouterNode';
 import GroupEditingNode from './nodes/GroupEditingNode';
+import FacialEditingNode from './nodes/FacialEditingNode';
 import WorkflowsPage from './WorkflowsPage';
 import WorkspacesPage from './WorkspacesPage';
 import ProfileModal from './ProfileModal';
@@ -815,6 +816,7 @@ export default function App() {
           case 'a': typeToAdd = 'assetNode'; break;
           case 'b': typeToAdd = 'groupEditing'; break;
           case 'r': typeToAdd = 'routerNode'; break;
+          case 'f': typeToAdd = 'facialEditing'; break;
           case 'u': typeToAdd = 'uploadNode'; break;
           case 'h': 
             window.dispatchEvent(new CustomEvent('open-search-history'));
@@ -946,6 +948,7 @@ export default function App() {
       comment: CommentNode,
       routerNode: RouterNode,
       groupEditing: GroupEditingNode,
+      facialEditing: FacialEditingNode,
       }),
     []
   );
@@ -985,6 +988,8 @@ export default function App() {
           else results.push(routedInput);
         }
       } else if (sourceNode.type === 'layerEditor') {
+        if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
+      } else if (sourceNode.type === 'facialEditing') {
         if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
       } else if (sourceNode.type === 'groupEditing') {
         if (sh === 'images-out' && sd.outputImages) results.push(...sd.outputImages);

@@ -41,6 +41,7 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
         { keys: ['A'], label: 'Add Asset' },
         { keys: ['B'], label: 'Add Group Editor' },
         { keys: ['R'], label: 'Add Router' },
+        { keys: ['F'], label: 'Add Facial Editor' },
         { keys: ['U'], label: 'Add Upload' },
       ]
     }
