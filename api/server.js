@@ -2352,6 +2352,28 @@ app.post('/api/upload-image', upload.array('images', 15), (req, res) => {
   }
 });
 
+
+// ── Group Editing Mock Route ──
+app.post('/api/group-edit', async (req, res) => {
+  const { images, subjectPrompt, editPrompt, useVGGT, denoising } = req.body;
+  if (!images || images.length === 0) {
+    return res.status(400).json({ error: 'No images provided' });
+  }
+  
+  try {
+    // Simulated processing delay for the Wan-VACE model + VGGT extraction
+    await new Promise(r => setTimeout(r, 4000));
+    
+    // Mock: just return the input images back to the user
+    // In production, this would send the Base64 to a RunPod/Modal worker
+    // running the DiffSynth-Studio GroupEditing Python pipeline.
+    res.json({ images });
+  } catch (err) {
+    console.error('GroupEdit error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

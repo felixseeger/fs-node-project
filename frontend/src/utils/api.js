@@ -847,3 +847,16 @@ export async function uploadImages(files) {
   });
   return res.json();
 }
+
+export async function groupEditGenerate(params) {
+  const res = await fetch(`${API_BASE}/api/group-edit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Failed to process group edit');
+  }
+  return res.json();
+}

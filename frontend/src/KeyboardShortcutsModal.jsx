@@ -39,7 +39,7 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
         { keys: ['C'], label: 'Add Comment' },
         { keys: ['L'], label: 'Add Layer Editor' },
         { keys: ['A'], label: 'Add Asset' },
-        { keys: ['B'], label: 'Add Batch' },
+        { keys: ['B'], label: 'Add Group Editor' },
         { keys: ['R'], label: 'Add Router' },
         { keys: ['U'], label: 'Add Upload' },
       ]

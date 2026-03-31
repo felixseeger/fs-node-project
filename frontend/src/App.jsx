@@ -59,6 +59,7 @@ import AdaptedPromptNode from './nodes/AdaptedPromptNode';
 import LayerEditorNode from './nodes/LayerEditorNode';
 import CommentNode from './nodes/CommentNode';
 import RouterNode from './nodes/RouterNode';
+import GroupEditingNode from './nodes/GroupEditingNode';
 import WorkflowsPage from './WorkflowsPage';
 import WorkspacesPage from './WorkspacesPage';
 import ProfileModal from './ProfileModal';
@@ -812,7 +813,7 @@ export default function App() {
           case 'c': typeToAdd = 'comment'; break;
           case 'l': typeToAdd = 'layerEditor'; break;
           case 'a': typeToAdd = 'assetNode'; break;
-          case 'b': typeToAdd = 'batchNode'; break;
+          case 'b': typeToAdd = 'groupEditing'; break;
           case 'r': typeToAdd = 'routerNode'; break;
           case 'u': typeToAdd = 'uploadNode'; break;
           case 'h': 
@@ -944,6 +945,7 @@ export default function App() {
       layerEditor: LayerEditorNode,
       comment: CommentNode,
       routerNode: RouterNode,
+      groupEditing: GroupEditingNode,
       }),
     []
   );
@@ -982,6 +984,10 @@ export default function App() {
           if (Array.isArray(routedInput)) results.push(...routedInput);
           else results.push(routedInput);
         }
+      } else if (sourceNode.type === 'layerEditor') {
+        if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
+      } else if (sourceNode.type === 'groupEditing') {
+        if (sh === 'images-out' && sd.outputImages) results.push(...sd.outputImages);
       } else if (sourceNode.type === 'imageAnalyzer') {
         if (sh === 'analysis-out' && sd.analysisResult) results.push(sd.analysisResult);
         if (sh === 'image-out' && sd.localImages?.length) results.push(...sd.localImages);

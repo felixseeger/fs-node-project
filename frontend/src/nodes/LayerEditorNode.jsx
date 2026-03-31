@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { NodeResizer } from '@xyflow/react';
+import { NodeResizer, Handle, Position } from '@xyflow/react';
+import useNodeConnections from './useNodeConnections';
+import { getHandleColor } from '../utils/handleTypes';
 
 const InfoIcon = ({ style }) => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
@@ -31,7 +33,7 @@ const LinkIcon = ({ style }) => (
   </svg>
 );
 
-function LayerEditorMenu({ width, height, isLinked }) {
+function LayerEditorMenu({ width, height, isLinked, onClose, onDisconnect }) {
   const styles = {
     panelContainer: {
       position: 'absolute',
@@ -153,7 +155,10 @@ function LayerEditorMenu({ width, height, isLinked }) {
 }
 
 export default function LayerEditorNode({ id, data, selected }) {
+  const { resolve, disconnectNode } = useNodeConnections(id, data);
   const [dimensions, setDimensions] = useState({ width: 2048, height: 2048 });
+
+  const bgImage = resolve.image('image-in')?.[0];
 
   return (
     <>
@@ -179,19 +184,27 @@ export default function LayerEditorNode({ id, data, selected }) {
         overflow: 'hidden',
         position: 'relative'
       }}>
+        <Handle type="target" position={Position.Left} id="image-in" style={{ width: 14, height: 14, background: getHandleColor('image'), border: '2px solid #1a1a1a', left: -8, zIndex: 10 }} />
+        <Handle type="source" position={Position.Right} id="image-out" style={{ width: 14, height: 14, background: getHandleColor('image'), border: '2px solid #1a1a1a', right: -8, zIndex: 10 }} />
+
         <div style={{
           position: 'absolute',
           inset: 0,
-          opacity: 0.1,
+          opacity: bgImage ? 0 : 0.1,
           backgroundImage: 'linear-gradient(45deg, #808080 25%, transparent 25%), linear-gradient(-45deg, #808080 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #808080 75%), linear-gradient(-45deg, transparent 75%, #808080 75%)',
           backgroundSize: '20px 20px',
           backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
         }} />
-        <span style={{ color: '#555', fontSize: 14, fontWeight: 500, zIndex: 1 }}>Canvas {dimensions.width}x{dimensions.height}</span>
+        {bgImage && (
+          <img src={bgImage} alt="Canvas Background" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', zIndex: 0 }} />
+        )}
+        <span style={{ color: '#555', fontSize: 14, fontWeight: 500, zIndex: 1, textShadow: bgImage ? '0 1px 4px rgba(0,0,0,0.8)' : 'none' }}>
+          {bgImage ? '' : `Canvas ${dimensions.width}x${dimensions.height}`}
+        </span>
       </div>
 
       {selected && createPortal(
-        <LayerEditorMenu width={dimensions.width} height={dimensions.height} isLinked={true} />,
+        <LayerEditorMenu width={dimensions.width} height={dimensions.height} isLinked={true} onDisconnect={disconnectNode} />,
         document.body
       )}
     </>
