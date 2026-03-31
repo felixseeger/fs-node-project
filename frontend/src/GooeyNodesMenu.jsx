@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import './GooeyNodesMenu.css';
 import AssetModal from './AssetModal';
 import SearchHistoryMenu from './SearchHistoryMenu';
+import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 
 // SVG Icons for categories
 const Icons = {
@@ -76,6 +77,18 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
   const [showHelpMenu, setShowHelpMenu] = useState(false);
     const [showAssetModal, setShowAssetModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
+    React.useEffect(() => {
+    const handleOpenHistory = () => setShowHistoryModal(true);
+    const handleOpenShortcuts = () => setShowShortcutsModal(true);
+    window.addEventListener('open-search-history', handleOpenHistory);
+    window.addEventListener('open-keyboard-shortcuts', handleOpenShortcuts);
+    return () => {
+      window.removeEventListener('open-search-history', handleOpenHistory);
+      window.removeEventListener('open-keyboard-shortcuts', handleOpenShortcuts);
+    };
+  }, []);
 
   const handleCategoryClick = (category) => {
     if (activeCategory === category && isOpen) {
@@ -384,7 +397,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
             <span className="ms-help-text">Suggest a feature</span>
             <span className="ms-help-external">{Icons.ExternalLink}</span>
           </a>
-          <a href="#" className="ms-help-link">
+          <a href="#" className="ms-help-link" onClick={(e) => { e.preventDefault(); setShowShortcutsModal(true); setShowHelpMenu(false); }}>
             <span className="ms-help-icon">{Icons.Cmd}</span>
             <span className="ms-help-text">Keyboard shortcuts</span>
             <span className="ms-help-shortcut">Ctrl + .</span>
@@ -411,6 +424,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
       <AssetModal isOpen={showAssetModal} onClose={() => setShowAssetModal(false)} onUpload={onAddNode} />
       {/* Search History Modal */}
       <SearchHistoryMenu isOpen={showHistoryModal} onClose={() => setShowHistoryModal(false)} />
+      <KeyboardShortcutsModal isOpen={showShortcutsModal} onClose={() => setShowShortcutsModal(false)} />
     </div>
   );
 }

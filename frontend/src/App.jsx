@@ -759,10 +759,16 @@ export default function App() {
     onEdgesChange(changes);
   }, [onEdgesChange, saveHistory]);
 
-  // Handle keyboard shortcuts for Undo/Redo
+  // Handle keyboard shortcuts for Undo/Redo and other actions
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+      // Don't trigger if user is typing in an input or textarea
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+      if (cmdOrCtrl && e.key.toLowerCase() === 'z') {
         if (e.shiftKey) {
           e.preventDefault();
           handleRedo();
@@ -770,11 +776,90 @@ export default function App() {
           e.preventDefault();
           handleUndo();
         }
+        return;
+      }
+
+      if (cmdOrCtrl && e.key === 'd') {
+        e.preventDefault();
+        handleMenuAction('duplicate', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
+        return;
+      }
+
+      if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'x') {
+        e.preventDefault();
+        handleMenuAction('clear_contents', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
+        return;
+      }
+
+      
+      if (cmdOrCtrl && e.key === '.') {
+        e.preventDefault();
+        window.dispatchEvent(new Event('open-keyboard-shortcuts'));
+        return;
+      }
+      if (cmdOrCtrl && e.key === '1') {
+        e.preventDefault();
+        rfInstance?.fitView();
+        return;
+      }
+
+            // Single key shortcuts for node creation
+      if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key) {
+        const key = e.key.toLowerCase();
+        let typeToAdd = null;
+        switch (key) {
+          case 't': typeToAdd = 'textNode'; break;
+          case 'c': typeToAdd = 'comment'; break;
+          case 'l': typeToAdd = 'layerEditor'; break;
+          case 'a': typeToAdd = 'assetNode'; break;
+          case 'b': typeToAdd = 'batchNode'; break;
+          case 'r': typeToAdd = 'routerNode'; break;
+          case 'u': typeToAdd = 'uploadNode'; break;
+          case 'h': 
+            window.dispatchEvent(new CustomEvent('open-search-history'));
+            return;
+        }
+        
+        if (typeToAdd) {
+          e.preventDefault();
+          saveHistory();
+          
+          let x = 300;
+          let y = 300;
+          
+          if (rfInstance) {
+            // Find center of current view
+            const center = rfInstance.screenToFlowPosition({
+              x: window.innerWidth / 2,
+              y: window.innerHeight / 2,
+            });
+            x = center.x;
+            y = center.y;
+          }
+          
+          // Get default data from NODE_MENU
+          let defaults = { label: typeToAdd };
+          for (const section of NODE_MENU) {
+            const item = section.items.find(i => i.type === typeToAdd);
+            if (item && item.defaults) {
+              defaults = item.defaults;
+              break;
+            }
+          }
+          
+          const newNode = {
+            id: nextId(),
+            type: typeToAdd,
+            position: { x, y },
+            data: { ...defaults },
+          };
+          setNodes(nds => [...nds, newNode]);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleUndo, handleRedo]);
+  }, [handleUndo, handleRedo, rfInstance, setNodes, saveHistory]);
 
   const handleRenameSubmit = () => {
     if (newWorkflowName.trim() && activeWorkflowId) {
