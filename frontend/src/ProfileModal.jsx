@@ -13,6 +13,23 @@ const Icons = {
 };
 
 export default function ProfileModal({ isOpen, onClose }) {
+  const [avatar, setAvatar] = useState(null);
+  const fileInputRef = React.useRef(null);
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setAvatar(ev.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   const [activeTab, setActiveTab] = useState('Profile');
 
   if (!isOpen) return null;
@@ -63,8 +80,19 @@ export default function ProfileModal({ isOpen, onClose }) {
           {activeTab === 'Profile' && (
             <div className="pm-profile-body">
               <div className="pm-avatar-container">
-                <img src="/ref/gen-ai.jpg" alt="Profile" className="pm-avatar-img" />
-                <button className="pm-edit-btn">Edit</button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                  style={{ display: 'none' }} 
+                  accept="image/*" 
+                />
+                {avatar ? (
+                  <img src={avatar} alt="Profile" className="pm-avatar-img" />
+                ) : (
+                  <div className="pm-avatar-placeholder">FS</div>
+                )}
+                <button className="pm-edit-btn" onClick={handleAvatarClick}>Edit</button>
               </div>
 
               <div className="pm-form-row">
