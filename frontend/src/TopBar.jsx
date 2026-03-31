@@ -60,7 +60,7 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
       }}
     >
       {/* Left — Logo + Breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: currentPage === 'home' ? 40 : 0 }}>
         {/* Logo with Dropdown */}
         <div ref={menuRef} style={{ position: 'relative' }}>
           <button
@@ -179,7 +179,20 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
           )}
         </div>
 
-        {/* Breadcrumb separator + Workflows link (always shown) */}
+        
+        {currentPage === 'home' && (
+          <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
+            <a href="#" style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>How It Works</a>
+            <a href="#" style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>Nodes</a>
+            <a href="#" style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>API</a>
+            <a href="#" style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>Pricing</a>
+          </div>
+        )}
+        
+        {currentPage !== 'home' && (
+          <>
+            {/* Breadcrumb separator + Workflows link (always shown) */}
+
         <span style={{ color: '#444', margin: '0 12px', fontSize: 14, userSelect: 'none' }}>/</span>
         <button
           onClick={() => onNavigate('home')}
@@ -206,6 +219,9 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
           Workflows
         </button>
 
+        </>
+        )}
+
         {/* Workflow name (only in editor) */}
         {currentPage === 'editor' && workflowName && (
           <>
@@ -216,6 +232,29 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
           </>
         )}
       </div>
+
+      {currentPage === 'home' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <a href="#" style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>Log In</a>
+          <button 
+            style={{
+              background: '#3B3BFF',
+              color: '#fff',
+              border: 'none',
+              padding: '10px 24px',
+              fontSize: 14,
+              fontWeight: 600,
+              borderRadius: 9999,
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#4F46E5'}
+            onMouseLeave={e => e.currentTarget.style.background = '#3B3BFF'}
+          >
+            Get Started
+          </button>
+        </div>
+      )}
 
       {/* Right — Interface / Node Editor toggle (only in editor) */}
       {currentPage === 'editor' && (
