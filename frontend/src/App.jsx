@@ -714,7 +714,7 @@ export default function App() {
   );
 
   // Resolve input data from connected edges
-  const resolveInput = useCallback((nodeId, handleId) => {
+  const resolveInput = useCallback((nodeId, handleId, originalHandleId = handleId) => {
     const currentEdges = edgesRef.current;
     const currentNodes = nodesRef.current;
 
@@ -742,7 +742,7 @@ export default function App() {
       } else if (sourceNode.type === 'imageNode') {
         if (sd.images?.length) results.push(...sd.images);
       } else if (sourceNode.type === 'routerNode') {
-        const routedInput = resolveInput(sourceNode.id, 'in');
+        const routedInput = resolveInput(sourceNode.id, 'in', originalHandleId);
         if (routedInput !== null && routedInput !== undefined) {
           if (Array.isArray(routedInput)) results.push(...routedInput);
           else results.push(routedInput);
@@ -860,7 +860,7 @@ export default function App() {
       }
     }
 
-    const dataType = getHandleDataType(handleId);
+    const dataType = getHandleDataType(originalHandleId);
     if (dataType === 'image') return results;
     if (results.length === 1) return results[0];
     return results.length > 0 ? results.join('\n') : null;
@@ -1517,7 +1517,9 @@ export default function App() {
             nodeTypes={nodeTypes}
             defaultEdgeOptions={defaultEdgeOptions}
             fitView
-            panOnDrag={!isLocked}
+            panOnDrag={isLocked ? false : [1, 2]}
+            selectionOnDrag={!isLocked}
+            selectionMode="partial"
             zoomOnScroll={!isLocked}
             nodesDraggable={!isLocked}
             edgesUpdatable={!isLocked}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Position, Handle, NodeResizer } from '@xyflow/react';
+import { Position, Handle, NodeResizer, useUpdateNodeInternals } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
@@ -8,7 +8,12 @@ export default function RouterNode({ id, data, selected }) {
   const { disconnectNode, disconnect } = useNodeConnections(id, data);
   const [dimensions, setDimensions] = useState({ width: 180, height: 160 });
 
+  const updateNodeInternals = useUpdateNodeInternals();
   const outputs = data.outputs || [{ id: 'out-1', label: 'Output 1' }];
+
+  React.useEffect(() => {
+    updateNodeInternals(id);
+  }, [outputs.length, id, updateNodeInternals]);
 
   const addOutput = () => {
     const nextId = `out-${Date.now()}`;
@@ -47,7 +52,7 @@ export default function RouterNode({ id, data, selected }) {
         {/* Input Side */}
         <div style={{ 
           display: 'flex', alignItems: 'center', justifyContent: 'center', 
-          width: '24px', borderRight: '1px dashed #333',
+          width: '24px', borderRight: '1px dashed #333', overflow: 'visible',
           position: 'relative'
         }}>
           <Handle
@@ -62,7 +67,7 @@ export default function RouterNode({ id, data, selected }) {
         </div>
 
         {/* Outputs Side */}
-        <div className="nowheel nodrag" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '8px 0 8px 8px', gap: 8, overflowY: 'auto' }}>
+        <div className="nowheel nodrag" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '8px 16px 8px 8px', gap: 8, overflowY: 'visible' }}>
           {outputs.map((out) => (
             <div key={out.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1e1e1e', borderRadius: 4, padding: '4px 8px', position: 'relative' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
