@@ -544,6 +544,155 @@ export default function App() {
   const [isLocked, setIsLocked] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState('');
+  const [menu, setMenu] = useState(null);
+
+  const onPaneContextMenu = useCallback(
+    (event) => {
+      event.preventDefault();
+      
+      if (!rfInstance) return;
+
+      const selectedNodes = rfInstance.getNodes().filter(n => n.selected);
+
+      const pane = reactFlowWrapper.current.getBoundingClientRect();
+      setMenu({
+        x: event.clientX - pane.left,
+        y: event.clientY - pane.top,
+        items: [
+          { label: 'Create Element', action: 'create_element' },
+          { label: 'Autoformat', action: 'autoformat' },
+          { label: 'Grid Nodes', action: 'grid_nodes' },
+          { label: 'Stack Nodes', action: 'stack_nodes' },
+          { label: 'Align Left', action: 'align_left' },
+          { label: 'Align Center', action: 'align_center' },
+          { label: 'Align Right', action: 'align_right' },
+          { type: 'divider' },
+          { label: 'Copy', action: 'copy', shortcut: '⌘C' },
+          { label: 'Paste', action: 'paste', shortcut: '⌘V' },
+          { label: 'Duplicate', action: 'duplicate', shortcut: '⌘D' },
+          { label: 'Download', action: 'download', shortcut: '⌘⇧D' },
+          { label: 'Clear node contents', action: 'clear_contents', shortcut: '⌘⇧X' }
+        ],
+        selectedNodes: selectedNodes,
+      });
+    },
+    [rfInstance, setMenu]
+  );
+
+  const handleMenuAction = (action, data) => {
+    saveHistory();
+    const { selectedNodes } = data;
+    
+    switch (action) {
+      case 'create_element':
+        if (selectedNodes && selectedNodes.length > 0) {
+          const newAssetNode = {
+            id: nextId(),
+            type: 'assetNode',
+            position: {
+              x: selectedNodes[selectedNodes.length - 1].position.x + 300,
+              y: selectedNodes[selectedNodes.length - 1].position.y,
+            },
+            data: {
+              label: 'New Asset',
+              images: selectedNodes.reduce((acc, node) => {
+                if (node.data.outputImage) return [...acc, node.data.outputImage];
+                if (node.data.outputVideo) return [...acc, node.data.outputVideo];
+                return acc;
+              }, []),
+            },
+          };
+          setNodes((nds) => [...nds, newAssetNode]);
+        }
+        break;
+      case 'duplicate':
+        if (selectedNodes && selectedNodes.length > 0) {
+          const newNodes = selectedNodes.map(node => ({
+            ...node,
+            id: nextId(),
+            selected: true,
+            position: { x: node.position.x + 50, y: node.position.y + 50 }
+          }));
+          setNodes(nds => [...nds.map(n => ({...n, selected: false})), ...newNodes]);
+        }
+        break;
+      case 'clear_contents':
+        if (selectedNodes && selectedNodes.length > 0) {
+          setNodes(nds => nds.map(n => {
+            if (!n.selected) return n;
+            const newData = { ...n.data };
+            // Clear common content fields based on node type
+            if (newData.text !== undefined) newData.text = '';
+            if (newData.images) newData.images = [];
+            if (newData.inputPrompt) newData.inputPrompt = '';
+            if (newData.outputImage) newData.outputImage = null;
+            if (newData.outputVideo) newData.outputVideo = null;
+            return { ...n, data: newData };
+          }));
+        }
+        break;
+      case 'align_left':
+        if (selectedNodes && selectedNodes.length > 1) {
+          const minX = Math.min(...selectedNodes.map(n => n.position.x));
+          setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, x: minX } } : n));
+        }
+        break;
+      case 'align_right':
+        if (selectedNodes && selectedNodes.length > 1) {
+          const maxX = Math.max(...selectedNodes.map(n => n.position.x + (n.width || 200)));
+          setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, x: maxX - (n.width || 200) } } : n));
+        }
+        break;
+      case 'align_center':
+        if (selectedNodes && selectedNodes.length > 1) {
+          let sumX = 0;
+          selectedNodes.forEach(n => sumX += n.position.x + (n.width || 200)/2);
+          const avgX = sumX / selectedNodes.length;
+          setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, x: avgX - (n.width || 200)/2 } } : n));
+        }
+        break;
+      case 'stack_nodes':
+        if (selectedNodes && selectedNodes.length > 1) {
+          // Sort by Y position
+          const sorted = [...selectedNodes].sort((a,b) => a.position.y - b.position.y);
+          let currentY = sorted[0].position.y;
+          const x = sorted[0].position.x;
+          setNodes(nds => {
+            return nds.map(n => {
+              if (!n.selected) return n;
+              const idx = sorted.findIndex(s => s.id === n.id);
+              if (idx === 0) return n;
+              const prev = sorted[idx-1];
+              currentY += (prev.height || 300) + 20;
+              return { ...n, position: { x, y: currentY } };
+            });
+          });
+        }
+        break;
+      case 'grid_nodes':
+        if (selectedNodes && selectedNodes.length > 1) {
+          const startX = selectedNodes[0].position.x;
+          const startY = selectedNodes[0].position.y;
+          const cols = Math.ceil(Math.sqrt(selectedNodes.length));
+          let idx = 0;
+          setNodes(nds => nds.map(n => {
+            if (!n.selected) return n;
+            const r = Math.floor(idx / cols);
+            const c = idx % cols;
+            idx++;
+            return { ...n, position: { x: startX + c * 350, y: startY + r * 400 } };
+          }));
+        }
+        break;
+      case 'copy':
+      case 'paste':
+      case 'autoformat':
+      case 'download':
+        console.log(`Action ${action} not fully implemented yet.`);
+        break;
+    }
+    setMenu(null);
+  };
 
   const saveHistory = useCallback(() => {
     setHistory((prev) => {
@@ -1519,9 +1668,67 @@ export default function App() {
             elementsSelectable={!isLocked}
             deleteKeyCode={['Backspace', 'Delete']}
             style={{ background: '#1a1a1a' }}
+            onPaneContextMenu={onPaneContextMenu}
+            onPaneClick={() => setMenu(null)}
           >
+            {menu && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: menu.y,
+                  left: menu.x,
+                  backgroundColor: 'rgba(30, 30, 30, 0.75)',
+                  backdropFilter: 'blur(16px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '10px',
+                  zIndex: 1000,
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                  minWidth: 220,
+                  padding: '6px 0',
+                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                }}
+              >
+                {menu.items.map((item, index) => {
+                  if (item.type === 'divider') {
+                    return <div key={'divider-' + index} style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.15)', margin: '6px 0' }} />;
+                  }
+                  
+                  return (
+                    <div
+                      key={item.action}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMenuAction(item.action, menu);
+                        setMenu(null);
+                      }}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '6px 16px',
+                        margin: '0 6px',
+                        cursor: 'default',
+                        borderRadius: '6px',
+                        color: 'rgba(255, 255, 255, 0.95)',
+                        fontSize: '14px',
+                        fontWeight: 400,
+                        transition: 'background-color 0.1s',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <span>{item.label}</span>
+                      {item.shortcut && (
+                        <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px' }}>{item.shortcut}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             
-            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#333" />
+            <Background variant="dots" gap={20} size={1} color="#333" />
           </ReactFlow>
         </div>
       </div>
