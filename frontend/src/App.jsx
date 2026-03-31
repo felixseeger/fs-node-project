@@ -58,6 +58,7 @@ import ResponseNode from './nodes/ResponseNode';
 import AdaptedPromptNode from './nodes/AdaptedPromptNode';
 import LayerEditorNode from './nodes/LayerEditorNode';
 import CommentNode from './nodes/CommentNode';
+import RouterNode from './nodes/RouterNode';
 import WorkflowsPage from './WorkflowsPage';
 import WorkspacesPage from './WorkspacesPage';
 import ProfilePage from './ProfilePage';
@@ -491,6 +492,11 @@ const NODE_MENU = [
         defaults: { label: 'Layer Editor' },
       },
       {
+        type: 'routerNode',
+        label: 'Router',
+        defaults: { label: 'Router', outputs: [{ id: 'out-1', label: 'Output 1' }, { id: 'out-2', label: 'Output 2' }] },
+      },
+      {
         type: 'comment',
         label: 'Comment',
         defaults: { label: 'Comment', text: '', isDone: false },
@@ -702,6 +708,7 @@ export default function App() {
       adaptedPrompt: AdaptedPromptNode,
       layerEditor: LayerEditorNode,
       comment: CommentNode,
+      routerNode: RouterNode,
       }),
     []
   );
@@ -734,6 +741,12 @@ export default function App() {
         if (sd.text) results.push(sd.text);
       } else if (sourceNode.type === 'imageNode') {
         if (sd.images?.length) results.push(...sd.images);
+      } else if (sourceNode.type === 'routerNode') {
+        const routedInput = resolveInput(sourceNode.id, 'in');
+        if (routedInput !== null && routedInput !== undefined) {
+          if (Array.isArray(routedInput)) results.push(...routedInput);
+          else results.push(routedInput);
+        }
       } else if (sourceNode.type === 'imageAnalyzer') {
         if (sh === 'analysis-out' && sd.analysisResult) results.push(sd.analysisResult);
         if (sh === 'image-out' && sd.localImages?.length) results.push(...sd.localImages);
