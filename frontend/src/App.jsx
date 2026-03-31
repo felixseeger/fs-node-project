@@ -61,7 +61,7 @@ import CommentNode from './nodes/CommentNode';
 import RouterNode from './nodes/RouterNode';
 import WorkflowsPage from './WorkflowsPage';
 import WorkspacesPage from './WorkspacesPage';
-import ProfilePage from './ProfilePage';
+import ProfileModal from './ProfileModal';
 import WorkflowSettingsPage from './WorkflowSettingsPage';
 import AuthPage from './AuthPage';
 import TopBar from './TopBar';
@@ -542,6 +542,7 @@ export default function App() {
   const isHistoryAction = useRef(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState('');
 
   const saveHistory = useCallback(() => {
@@ -1328,7 +1329,7 @@ export default function App() {
   if (currentPage === 'home') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
-        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={() => setIsAuthenticated(false)} />
+        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={() => setIsAuthenticated(false)} onOpenProfile={() => setIsProfileModalOpen(true)} />
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <WorkflowsPage
             onCreateWorkflow={handleCreateWorkflow}
@@ -1343,7 +1344,7 @@ export default function App() {
   if (currentPage === 'workspaces') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
-        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={() => setIsAuthenticated(false)} />
+        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={() => setIsAuthenticated(false)} onOpenProfile={() => setIsProfileModalOpen(true)} />
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <WorkspacesPage
             onCreateWorkspace={(name) => {
@@ -1357,21 +1358,12 @@ export default function App() {
     );
   }
 
-  if (currentPage === 'profile') {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
-        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={() => setIsAuthenticated(false)} />
-        <div style={{ flex: 1, overflow: 'hidden' }}>
-          <ProfilePage />
-        </div>
-      </div>
-    );
-  }
+  
 
   if (currentPage === 'workflow-settings') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
-        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={() => setIsAuthenticated(false)} />
+        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={() => setIsAuthenticated(false)} onOpenProfile={() => setIsProfileModalOpen(true)} />
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <WorkflowSettingsPage />
         </div>
@@ -1397,6 +1389,7 @@ export default function App() {
         onDuplicate={handleDuplicateWorkspace}
         isLocked={isLocked}
         onLockView={() => setIsLocked(prev => !prev)}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
       />
       {isRenameModalOpen && (
         <div style={{
@@ -1467,7 +1460,7 @@ export default function App() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', background: '#1a1a1a' }}>
         {/* Canvas */}
         <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }}>
-          <GooeyNodesMenu nodeMenu={NODE_MENU} onAddNode={addNode} />
+          <GooeyNodesMenu nodeMenu={NODE_MENU} onAddNode={addNode} onOpenProfile={() => setIsProfileModalOpen(true)} />
 
           {/* Global Generate Button — bottom right */}
           <button
@@ -1532,6 +1525,7 @@ export default function App() {
           </ReactFlow>
         </div>
       </div>
+      <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
     </div>
   );
 }

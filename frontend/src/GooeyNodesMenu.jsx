@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import './GooeyNodesMenu.css';
-import ProfileModal from './ProfileModal';
 import AssetModal from './AssetModal';
 import SearchHistoryMenu from './SearchHistoryMenu';
 
@@ -73,14 +72,13 @@ const QUICK_ADD_SECTIONS = [
   }
 ];
 
-export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
+export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeSubMenu, setActiveSubMenu] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showHelpMenu, setShowHelpMenu] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showAssetModal, setShowAssetModal] = useState(false);
+    const [showAssetModal, setShowAssetModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   const handleCategoryClick = (category) => {
@@ -217,8 +215,8 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
           </li>
           
           <li className="ms-li ms-avatar ms-li-last">
-            <a href="#" onClick={(e) => { e.preventDefault(); setShowProfileModal(true); setIsOpen(false); setShowHelpMenu(false); }} data-tooltip="User Profile">
-              <img src="/ref/gen-ai.jpg" alt="User Profile" />
+            <a href="#" onClick={(e) => { e.preventDefault(); onOpenProfile?.(); setIsOpen(false); setShowHelpMenu(false); }} data-tooltip="User Profile">
+              <div style={{width: '100%', height: '100%', borderRadius: '50%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '18px', fontWeight: 600}}>FS</div>
             </a>
           </li>
         </ul>
@@ -403,8 +401,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode }) {
         </div>
       </div>
       {/* Profile Modal */}
-      <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
-      {/* Asset Modal */}
+            {/* Asset Modal */}
       <AssetModal isOpen={showAssetModal} onClose={() => setShowAssetModal(false)} onUpload={onAddNode} />
       {/* Search History Modal */}
       <SearchHistoryMenu isOpen={showHistoryModal} onClose={() => setShowHistoryModal(false)} />

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-export default function TopBar({ currentPage, onNavigate, workflowName, editorMode, onEditorModeChange, onLogout, onZoomIn, onZoomOut, onZoomFit, onUndo, onRedo, onRename, onDuplicate, isLocked, onLockView }) {
+export default function TopBar({ currentPage, onNavigate, workflowName, editorMode, onEditorModeChange, onLogout, onZoomIn, onZoomOut, onZoomFit, onUndo, onRedo, onRename, onDuplicate, isLocked, onLockView, onOpenProfile }) {
   const [hovered, setHovered] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -132,6 +132,7 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
                     onClick={() => {
                       if (item.id === 'logout') onLogout?.();
                       else if (item.id === 'editor') onNavigate('home');
+                      else if (item.id === 'profile') onOpenProfile?.();
                       else if (item.id === 'zoom-in') onZoomIn?.();
                       else if (item.id === 'zoom-out') onZoomOut?.();
                       else if (item.id === 'lock-view') onLockView?.();
