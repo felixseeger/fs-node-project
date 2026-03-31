@@ -16,7 +16,7 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
   }, []);
 
   const defaultMenuItems = [
-    { id: 'workspaces', label: 'Workspaces', icon: '&#9864;' },
+    { id: 'workspaces', label: 'Back home', icon: '&#9864;' },
     { id: 'home', label: 'Workflows', icon: '&#9776;' },
     { id: 'editor', label: 'New Workflow', icon: '&#43;' },
     { id: 'divider-1', type: 'divider' },
@@ -27,7 +27,7 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
   ];
 
   const editorMenuItems = [
-    { id: 'home', label: 'Back to home' },
+    { id: 'workspaces', label: 'Back home' },
     { id: 'profile', label: 'My profile' },
     { id: 'divider-1', type: 'divider' },
     { id: 'editor', label: 'New project' },
