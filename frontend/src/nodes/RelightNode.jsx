@@ -6,6 +6,8 @@ import { relightImage, pollRelightStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const STYLES = [
   { value: 'standard', label: 'Standard' },
@@ -52,7 +54,7 @@ const TRANSFER_B = [
 ];
 
 export default function RelightNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, complete, fail } = useNodeProgress();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const lightMode = data.localLightMode || 'prompt';
@@ -96,7 +98,7 @@ export default function RelightNode({ id, data, selected }) {
     if (!images?.length && data.localImage) images = [data.localImage];
     if (!images?.length) return;
 
-    setIsLoading(true);
+    start();
     update({ outputImage: null, isLoading: true });
 
     try {
@@ -150,7 +152,7 @@ export default function RelightNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail();
         return;
       }
 
@@ -163,6 +165,7 @@ export default function RelightNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else if (result.data?.generated?.length) {
         update({
           outputImage: result.data.generated[0],
@@ -170,17 +173,18 @@ export default function RelightNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else {
         update({ isLoading: false });
+        complete();
       }
     } catch (err) {
       console.error('Relight error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail();
     }
   }, [id, data, update, lightMode, localStrength, localInterpolate, localChangeBg, localStyle, localPreserveDetails,
-    localWhites, localBlacks, localBrightness, localContrast, localSaturation, localEngine, localTransferA, localTransferB, localFixedGen]);
+    localWhites, localBlacks, localBrightness, localContrast, localSaturation, localEngine, localTransferA, localTransferB, localFixedGen, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -299,7 +303,7 @@ export default function RelightNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Relight'} dotColor="#f59e0b" selected={selected}>
+    <NodeShell label={data.label || 'Relight'} dotColor="#f59e0b" selected={selected} onGenerate={handleRelight} isGenerating={isActive}>
 
       {/* ── Image Output Handle (top, aligned with image-in) ── */}
       <div style={{
@@ -471,6 +475,9 @@ export default function RelightNode({ id, data, selected }) {
         </div>
       )}
 
+      {/* ── Progress ── */}
+      <NodeProgress isActive={isActive} />
+
       {/* ── 8. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -486,7 +493,7 @@ export default function RelightNode({ id, data, selected }) {
         minHeight: 80, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{
             width: 28, height: 28, border: '3px solid #3a3a3a',
             borderTop: '3px solid #f59e0b', borderRadius: '50%',

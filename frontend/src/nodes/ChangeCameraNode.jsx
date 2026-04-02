@@ -1,9 +1,11 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { changeCamera, pollChangeCameraStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const HORIZONTAL_PRESETS = [
   { label: 'Front', value: 0 },
@@ -20,7 +22,7 @@ const VERTICAL_PRESETS = [
 ];
 
 export default function ChangeCameraNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, complete, fail } = useNodeProgress();
 
   const localHorizontal = data.localHorizontalAngle ?? 0;
   const localVertical = data.localVerticalAngle ?? 0;
@@ -44,7 +46,7 @@ export default function ChangeCameraNode({ id, data, selected }) {
     if (!images?.length && data.localImage) images = [data.localImage];
     if (!images?.length) return;
 
-    setIsLoading(true);
+    start();
     update({ outputImage: null, isLoading: true });
 
     try {
@@ -65,7 +67,7 @@ export default function ChangeCameraNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail();
         return;
       }
 
@@ -78,6 +80,7 @@ export default function ChangeCameraNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else if (result.data?.generated?.length) {
         update({
           outputImage: result.data.generated[0],
@@ -85,16 +88,17 @@ export default function ChangeCameraNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else {
         update({ isLoading: false });
+        fail();
       }
     } catch (err) {
       console.error('Change camera error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail();
     }
-  }, [id, data, update, localHorizontal, localVertical, localZoom, localSeed]);
+  }, [id, data, update, localHorizontal, localVertical, localZoom, localSeed, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -161,7 +165,13 @@ export default function ChangeCameraNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Change Camera'} dotColor={ACCENT} selected={selected}>
+    <NodeShell 
+      label={data.label || 'Change Camera'} 
+      dotColor={ACCENT} 
+      selected={selected}
+      onGenerate={handleTransform}
+      isGenerating={isActive}
+    >
 
       {/* ── Image Output Handle (top) ── */}
       <div style={{
@@ -372,6 +382,9 @@ export default function ChangeCameraNode({ id, data, selected }) {
         />
       </div>
 
+      {/* ── Progress Section ── */}
+      <NodeProgress isActive={isActive} />
+
       {/* ── 4. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -387,7 +400,7 @@ export default function ChangeCameraNode({ id, data, selected }) {
         minHeight: 80, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{
             width: 28, height: 28, border: '3px solid #3a3a3a',
             borderTop: `3px solid ${ACCENT}`, borderRadius: '50%',

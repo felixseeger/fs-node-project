@@ -1,10 +1,13 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import NodeShell from './NodeShell';
+import NodeProgress from './NodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
 import { kling3Generate, pollKling3Status } from '../utils/api';
+import { compressImageBase64 } from '../utils/imageUtils';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import useNodeProgress from '../hooks/useNodeProgress';
 import {
   SectionHeader,
   LinkedBadges,
@@ -39,8 +42,19 @@ const ASPECT_RATIOS = [
 ];
 
 export default function Kling3Node({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
   const { update, conn, resolve } = useNodeConnections(id, data);
+  
+  // Progress tracking
+  const {
+    progress,
+    status,
+    message,
+    start,
+    setProgress,
+    complete,
+    fail,
+    isActive,
+  } = useNodeProgress();
 
   const localModel = data.localModel || 'std';
   const localDuration = data.localDuration || 5;
@@ -56,13 +70,16 @@ export default function Kling3Node({ id, data, selected }) {
     const promptText = resolve.text('prompt-in', data.inputPrompt);
     if (!promptText) return;
 
-    const startImages = resolve.image('start-image-in', data.localStartImage);
-    const endImages = resolve.image('end-image-in', data.localEndImage);
+    let startImages = resolve.image('start-image-in', data.localStartImage);
+    let endImages = resolve.image('end-image-in', data.localEndImage);
 
-    setIsLoading(true);
-    update({ outputVideo: null, isLoading: true });
+    start('Submitting video generation request...');
+    update({ outputVideo: null, outputError: null });
 
     try {
+      if (startImages?.length) startImages = [await compressImageBase64(startImages[0])];
+      if (endImages?.length) endImages = [await compressImageBase64(endImages[0])];
+
       const params = {
         prompt: promptText,
         aspect_ratio: localAspectRatio,
@@ -86,38 +103,42 @@ export default function Kling3Node({ id, data, selected }) {
       const result = await kling3Generate(localModel, params);
 
       if (result.error) {
-        update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(new Error(result.error?.message || 'Generation failed'));
+        update({ outputError: result.error?.message || JSON.stringify(result.error) });
         return;
       }
 
       const taskId = result.task_id || result.data?.task_id;
       if (taskId) {
-        const status = await pollKling3Status(taskId);
+        // Poll with progress tracking
+        let lastProgress = 10;
+        const status = await pollKling3Status(taskId, 90, 2000, (attempt, maxAttempts) => {
+          lastProgress = 10 + Math.min(85, (attempt / maxAttempts) * 85);
+          setProgress(lastProgress, `Generating video... (${attempt}/${maxAttempts})`);
+        });
         const generated = status.data?.generated || [];
+        complete('Video generation complete');
         update({
           outputVideo: generated[0] || null,
           outputVideos: generated,
-          isLoading: false,
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete('Done');
         update({
           outputVideo: result.data.generated[0],
           outputVideos: result.data.generated,
-          isLoading: false,
           outputError: null,
         });
       } else {
-        update({ isLoading: false });
+        complete('No videos generated');
       }
     } catch (err) {
       console.error('Kling 3 generation error:', err);
-      update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err);
+      update({ outputError: err.message });
     }
-  }, [id, data, update, resolve, localModel, localDuration, localAspectRatio, localCfgScale, localGenerateAudio]);
+  }, [id, data, update, resolve, localModel, localDuration, localAspectRatio, localCfgScale, localGenerateAudio, start, setProgress, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -128,7 +149,13 @@ export default function Kling3Node({ id, data, selected }) {
   }, [data.triggerGenerate, handleGenerate]);
 
   return (
-    <NodeShell label={data.label || 'Kling 3 Video'} dotColor={ACCENT} selected={selected}>
+    <NodeShell 
+      label={data.label || 'Kling 3 Video'} 
+      dotColor={ACCENT} 
+      selected={selected}
+      onGenerate={handleGenerate}
+      isGenerating={isActive}
+    >
 
       {/* Video Output Handle (top) */}
       <OutputHandle type="video" label="video" />
@@ -252,8 +279,15 @@ export default function Kling3Node({ id, data, selected }) {
       </SettingsPanel>
 
       {/* 6. Output */}
+      {isActive && (
+        <NodeProgress
+          progress={progress}
+          status={status}
+          message={message}
+        />
+      )}
       <OutputPreview
-        isLoading={isLoading}
+        isLoading={isActive}
         output={data.outputVideo}
         error={data.outputError}
         type="video"

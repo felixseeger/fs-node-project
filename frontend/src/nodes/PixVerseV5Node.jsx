@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
@@ -6,6 +6,8 @@ import { pixVerseV5Generate, pollPixVerseV5Status } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const RESOLUTIONS = [
   { value: '360p', label: '360p' },
@@ -23,7 +25,7 @@ const RATIOS = [
 ];
 
 export default function PixVerseV5Node({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { progress, status, message, start, complete, fail, isActive } = useNodeProgress();
 
   const localResolution = data.localResolution || '720p';
   const localRatio = data.localRatio || '16:9';
@@ -52,7 +54,7 @@ export default function PixVerseV5Node({ id, data, selected }) {
 
     if (!images?.length) return;
 
-    setIsLoading(true);
+    start('Generating video...');
     update({ outputVideo: null, isLoading: true });
 
     try {
@@ -72,7 +74,7 @@ export default function PixVerseV5Node({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(new Error(result.error?.message || 'Generation failed'));
         return;
       }
 
@@ -86,6 +88,7 @@ export default function PixVerseV5Node({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete('Video generated successfully');
       } else if (result.data?.generated?.length) {
         update({
           outputVideo: result.data.generated[0],
@@ -93,16 +96,17 @@ export default function PixVerseV5Node({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete('Video generated successfully');
       } else {
         update({ isLoading: false });
+        fail(new Error('No video generated'));
       }
     } catch (err) {
       console.error('PixVerse V5 generation error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err);
     }
-  }, [id, data, update, localResolution, localRatio, localMotionIntensity, localSeed]);
+  }, [id, data, update, localResolution, localRatio, localMotionIntensity, localSeed, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -170,7 +174,7 @@ export default function PixVerseV5Node({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'PixVerse V5'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'PixVerse V5'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -265,6 +269,9 @@ export default function PixVerseV5Node({ id, data, selected }) {
         </div>
       </div>
 
+      {/* ── Progress ── */}
+      {isActive && <NodeProgress progress={progress} status={status} message={message} />}
+
       {/* ── 4. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -288,7 +295,7 @@ export default function PixVerseV5Node({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

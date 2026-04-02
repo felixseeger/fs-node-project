@@ -4,6 +4,8 @@ import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { upscalePrecision, pollPrecisionStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const SCALE_FACTORS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16'];
 const FLAVORS = [
@@ -13,7 +15,7 @@ const FLAVORS = [
 ];
 
 export default function PrecisionUpScaleNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, complete, fail } = useNodeProgress();
 
   const localScale = data.localScaleFactor || '4';
   const localFlavor = data.localFlavor || '';
@@ -38,7 +40,7 @@ export default function PrecisionUpScaleNode({ id, data, selected }) {
     if (!images?.length && data.localImage) images = [data.localImage];
     if (!images?.length) return;
 
-    setIsLoading(true);
+    start();
     update({ outputImage: null, isLoading: true });
 
     try {
@@ -68,7 +70,7 @@ export default function PrecisionUpScaleNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(result.error?.message || 'Upscaling failed');
         return;
       }
 
@@ -81,6 +83,7 @@ export default function PrecisionUpScaleNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else if (result.data?.generated?.length) {
         update({
           outputImage: result.data.generated[0],
@@ -88,16 +91,17 @@ export default function PrecisionUpScaleNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else {
         update({ isLoading: false });
+        fail('No output generated');
       }
     } catch (err) {
       console.error('Precision upscale error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err.message);
     }
-  }, [id, data, update, localScale, localFlavor, localSharpen, localSmartGrain, localUltraDetail]);
+  }, [id, data, update, localScale, localFlavor, localSharpen, localSmartGrain, localUltraDetail, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -225,6 +229,8 @@ export default function PrecisionUpScaleNode({ id, data, selected }) {
       label={data.label || 'Precision Upscale'}
       dotColor="#22c55e"
       selected={selected}
+      onGenerate={handleUpscale}
+      isGenerating={isActive}
     >
       {/* ── Image Output Handle (top, aligned with image-in) ── */}
       <div style={{
@@ -310,7 +316,10 @@ export default function PrecisionUpScaleNode({ id, data, selected }) {
         {slider('Ultra Detail', localUltraDetail, (v) => update({ localUltraDetail: v }), 0, 100, 30)}
       </div>
 
-      {/* ── 5. Output ── */}
+      {/* ── 5. Progress ── */}
+      <NodeProgress isActive={isActive} />
+
+      {/* ── 6. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 6, marginTop: 10,
@@ -327,7 +336,7 @@ export default function PrecisionUpScaleNode({ id, data, selected }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{
             width: 28, height: 28, border: '3px solid #3a3a3a',
             borderTop: '3px solid #22c55e', borderRadius: '50%',

@@ -1,4 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  GoogleAuthProvider, 
+  GithubAuthProvider, 
+  signInWithPopup,
+  sendPasswordResetEmail,
+  updateProfile
+} from 'firebase/auth';
+import { getFirebaseAuth } from './config/firebase';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -62,11 +72,12 @@ function AuthField({ label, type = 'text', placeholder, value, onChange, autoFoc
 }
 
 /* ── Primary button ────────────────────────────────────────── */
-function AuthButton({ label, onClick, loading, variant = 'primary' }) {
+function AuthButton({ label, onClick, loading, variant = 'primary', type = 'button' }) {
   const [hovered, setHovered] = useState(false);
   const isPrimary = variant === 'primary';
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={loading}
       onMouseEnter={() => setHovered(true)}
@@ -103,11 +114,12 @@ function AuthButton({ label, onClick, loading, variant = 'primary' }) {
 }
 
 /* ── Social button ─────────────────────────────────────────── */
-function SocialButton({ label, icon, onClick }) {
+function SocialButton({ label, icon, onClick, loading }) {
   const [hovered, setHovered] = useState(false);
   return (
     <button
       onClick={onClick}
+      disabled={loading}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -119,9 +131,10 @@ function SocialButton({ label, icon, onClick }) {
         border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 12,
         color: '#ccc',
-        cursor: 'pointer',
+        cursor: loading ? 'wait' : 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         transition: prefersReducedMotion ? 'none' : 'all 0.25s ease-out',
+        opacity: loading ? 0.7 : 1,
       }}
     >
       <span style={{ fontSize: 16 }}>{icon}</span>
@@ -250,13 +263,13 @@ function LogoMark() {
 /* ═══════════════════════════════════════════════════════════════
    LOGIN SCREEN
    ═══════════════════════════════════════════════════════════════ */
-function LoginScreen({ onNavigate, onLogin }) {
+function LoginScreen({ onNavigate, onSocialLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!email.trim() || !password.trim()) {
@@ -264,10 +277,14 @@ function LoginScreen({ onNavigate, onLogin }) {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const auth = getFirebaseAuth();
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      console.error('[Auth] Login error:', err);
+      setError(err.message.replace('Firebase: ', ''));
       setLoading(false);
-      onLogin();
-    }, 1200);
+    }
   };
 
   return (
@@ -323,14 +340,14 @@ function LoginScreen({ onNavigate, onLogin }) {
           </button>
         </div>
 
-        <AuthButton label="Sign In" loading={loading} onClick={handleSubmit} />
+        <AuthButton label="Sign In" loading={loading} type="submit" />
       </form>
 
       <Divider text="or continue with" />
 
       <div style={{ display: 'flex', gap: 10 }}>
-        <SocialButton label="Google" icon="G" onClick={() => { setLoading(true); setTimeout(() => { setLoading(false); onLogin(); }, 1200); }} />
-        <SocialButton label="GitHub" icon="&#9741;" onClick={() => { setLoading(true); setTimeout(() => { setLoading(false); onLogin(); }, 1200); }} />
+        <SocialButton label="Google" icon="G" loading={loading} onClick={() => onSocialLogin('google')} />
+        <SocialButton label="GitHub" icon="&#9741;" loading={loading} onClick={() => onSocialLogin('github')} />
       </div>
 
       <p style={{ fontSize: 13, color: '#777', textAlign: 'center', margin: '24px 0 0' }}>
@@ -344,7 +361,7 @@ function LoginScreen({ onNavigate, onLogin }) {
 /* ═══════════════════════════════════════════════════════════════
    SIGNUP SCREEN
    ═══════════════════════════════════════════════════════════════ */
-function SignupScreen({ onNavigate, onLogin }) {
+function SignupScreen({ onNavigate, onSocialLogin }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -353,7 +370,7 @@ function SignupScreen({ onNavigate, onLogin }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!name.trim() || !email.trim() || !password.trim()) {
@@ -373,10 +390,16 @@ function SignupScreen({ onNavigate, onLogin }) {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const auth = getFirebaseAuth();
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Update display name
+      await updateProfile(userCredential.user, { displayName: name });
+    } catch (err) {
+      console.error('[Auth] Signup error:', err);
+      setError(err.message.replace('Firebase: ', ''));
       setLoading(false);
-      onLogin();
-    }, 1200);
+    }
   };
 
   return (
@@ -435,14 +458,14 @@ function SignupScreen({ onNavigate, onLogin }) {
           onChange={setAgreed}
         />
 
-        <AuthButton label="Create Account" loading={loading} onClick={handleSubmit} />
+        <AuthButton label="Create Account" loading={loading} type="submit" />
       </form>
 
       <Divider text="or sign up with" />
 
       <div style={{ display: 'flex', gap: 10 }}>
-        <SocialButton label="Google" icon="G" onClick={() => { setLoading(true); setTimeout(() => { setLoading(false); onLogin(); }, 1200); }} />
-        <SocialButton label="GitHub" icon="&#9741;" onClick={() => { setLoading(true); setTimeout(() => { setLoading(false); onLogin(); }, 1200); }} />
+        <SocialButton label="Google" icon="G" loading={loading} onClick={() => onSocialLogin('google')} />
+        <SocialButton label="GitHub" icon="&#9741;" loading={loading} onClick={() => onSocialLogin('github')} />
       </div>
 
       <p style={{ fontSize: 13, color: '#777', textAlign: 'center', margin: '24px 0 0' }}>
@@ -462,7 +485,7 @@ function ForgotScreen({ onNavigate }) {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!email.trim()) {
@@ -470,10 +493,16 @@ function ForgotScreen({ onNavigate }) {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const auth = getFirebaseAuth();
+      await sendPasswordResetEmail(auth, email);
       setSent(true);
-    }, 1200);
+    } catch (err) {
+      console.error('[Auth] Reset error:', err);
+      setError(err.message.replace('Firebase: ', ''));
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (sent) {
@@ -550,7 +579,7 @@ function ForgotScreen({ onNavigate }) {
           </div>
         )}
 
-        <AuthButton label="Send Reset Link" loading={loading} onClick={handleSubmit} />
+        <AuthButton label="Send Reset Link" loading={loading} type="submit" />
       </form>
 
       <p style={{ fontSize: 13, color: '#777', textAlign: 'center', margin: '24px 0 0' }}>
@@ -563,8 +592,29 @@ function ForgotScreen({ onNavigate }) {
 /* ═══════════════════════════════════════════════════════════════
    MAIN AUTH PAGE — routes between screens
    ═══════════════════════════════════════════════════════════════ */
-export default function AuthPage({ onLogin }) {
+export default function AuthPage() {
   const [screen, setScreen] = useState('login');
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalError, setGlobalError] = useState('');
+
+  const handleSocialLogin = async (providerName) => {
+    setGlobalError('');
+    setGlobalLoading(true);
+    try {
+      const auth = getFirebaseAuth();
+      let provider;
+      if (providerName === 'google') {
+        provider = new GoogleAuthProvider();
+      } else if (providerName === 'github') {
+        provider = new GithubAuthProvider();
+      }
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      console.error(`[Auth] ${providerName} login error:`, err);
+      setGlobalError(err.message.replace('Firebase: ', ''));
+      setGlobalLoading(false);
+    }
+  };
 
   return (
     <div style={{
@@ -619,12 +669,24 @@ export default function AuthPage({ onLogin }) {
         }
       `}</style>
 
+      {/* Global Error */}
+      {globalError && (
+        <div style={{
+          position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
+          padding: '12px 20px', background: '#fee2e2', border: '1px solid #ef4444',
+          borderRadius: 8, color: '#b91c1c', fontSize: 13, zIndex: 100
+        }}>
+          {globalError}
+          <button onClick={() => setGlobalError('')} style={{ marginLeft: 12, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>✕</button>
+        </div>
+      )}
+
       {/* Screen router */}
       {screen === 'login' && (
-        <LoginScreen onNavigate={setScreen} onLogin={onLogin} />
+        <LoginScreen onNavigate={setScreen} onSocialLogin={handleSocialLogin} />
       )}
       {screen === 'signup' && (
-        <SignupScreen onNavigate={setScreen} onLogin={onLogin} />
+        <SignupScreen onNavigate={setScreen} onSocialLogin={handleSocialLogin} />
       )}
       {screen === 'forgot' && (
         <ForgotScreen onNavigate={setScreen} />

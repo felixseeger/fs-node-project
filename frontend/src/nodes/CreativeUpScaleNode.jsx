@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
@@ -6,6 +6,8 @@ import { upscaleCreative, pollUpscaleStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const SCALE_FACTORS = ['2x', '4x', '8x', '16x'];
 const OPTIMIZED_OPTIONS = [
@@ -27,7 +29,7 @@ const ENGINES = [
 ];
 
 export default function CreativeUpScaleNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, complete, fail } = useNodeProgress(id, data);
 
   const localScale = data.localScaleFactor || '2x';
   const localOptimized = data.localOptimizedFor || 'standard';
@@ -56,7 +58,7 @@ export default function CreativeUpScaleNode({ id, data, selected }) {
     if (!images?.length && data.localImage) images = [data.localImage];
     if (!images?.length) return;
 
-    setIsLoading(true);
+    start();
     update({ outputImage: null, isLoading: true });
 
     try {
@@ -96,7 +98,7 @@ export default function CreativeUpScaleNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail();
         return;
       }
 
@@ -109,6 +111,7 @@ export default function CreativeUpScaleNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else if (result.data?.generated?.length) {
         update({
           outputImage: result.data.generated[0],
@@ -116,16 +119,17 @@ export default function CreativeUpScaleNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else {
         update({ isLoading: false });
+        complete();
       }
     } catch (err) {
       console.error('Upscale error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail();
     }
-  }, [id, data, update, localScale, localOptimized, localEngine, localCreativity, localHdr, localResemblance, localFractality]);
+  }, [id, data, update, localScale, localOptimized, localEngine, localCreativity, localHdr, localResemblance, localFractality, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -253,6 +257,8 @@ export default function CreativeUpScaleNode({ id, data, selected }) {
       label={data.label || 'Creative Upscale'}
       dotColor="#8b5cf6"
       selected={selected}
+      onGenerate={handleUpscale}
+      isGenerating={isActive}
     >
       {/* ── Image Output Handle (top, aligned with image-in) ── */}
       <div style={{
@@ -351,7 +357,10 @@ export default function CreativeUpScaleNode({ id, data, selected }) {
         {slider('Fractality', localFractality, (v) => update({ localFractality: v }))}
       </div>
 
-      {/* ── 7. Output ── */}
+      {/* ── 7. Progress ── */}
+      <NodeProgress nodeId={id} />
+
+      {/* ── 8. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 6, marginTop: 10,
@@ -368,7 +377,7 @@ export default function CreativeUpScaleNode({ id, data, selected }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{
             width: 28, height: 28, border: '3px solid #3a3a3a',
             borderTop: '3px solid #8b5cf6', borderRadius: '50%',

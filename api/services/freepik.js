@@ -1,0 +1,720 @@
+/**
+ * Freepik API Service
+ * Handles all communication with Freepik AI APIs (image, video, audio generation)
+ */
+
+const FREEPIK_API_KEY = process.env.FREEPIK_API_KEY;
+
+if (!FREEPIK_API_KEY) {
+  console.error('ERROR: FREEPIK_API_KEY environment variable is not set');
+}
+
+const defaultHeaders = {
+  'Content-Type': 'application/json',
+  'x-freepik-api-key': FREEPIK_API_KEY,
+};
+
+// API Endpoints
+const ENDPOINTS = {
+  // Image Generation
+  MYSTIC: 'https://api.freepik.com/v1/ai/mystic',
+  
+  // Image Editing
+  UPSCALE_CREATIVE: 'https://api.freepik.com/v1/ai/image-upscaler',
+  UPSCALE_PRECISION: 'https://api.freepik.com/v1/ai/image-upscaler-precision-v2',
+  RELIGHT: 'https://api.freepik.com/v1/ai/image-relight',
+  STYLE_TRANSFER: 'https://api.freepik.com/v1/ai/image-style-transfer',
+  REMOVE_BACKGROUND: 'https://api.freepik.com/v1/ai/beta/remove-background',
+  REIMAGINE_FLUX: 'https://api.freepik.com/v1/ai/beta/text-to-image/reimagine-flux',
+  IMAGE_EXPAND_FLUX: 'https://api.freepik.com/v1/ai/image-expand/flux-pro',
+  IMAGE_EXPAND_SEEDREAM: 'https://api.freepik.com/v1/ai/image-expand/seedream-v4-5',
+  IMAGE_EXPAND_IDEOGRAM: 'https://api.freepik.com/v1/ai/image-expand/ideogram',
+  SKIN_ENHANCER: 'https://api.freepik.com/v1/ai/skin-enhancer',
+  IDEOGRAM_EDIT: 'https://api.freepik.com/v1/ai/ideogram-image-edit',
+  CHANGE_CAMERA: 'https://api.freepik.com/v1/ai/image-change-camera',
+  
+  // Video Generation
+  KLING_ELEMENTS_PRO: 'https://api.freepik.com/v1/ai/image-to-video/kling-elements-pro',
+  KLING_ELEMENTS_STATUS: 'https://api.freepik.com/v1/ai/image-to-video/kling-elements',
+  KLING3: 'https://api.freepik.com/v1/ai/video/kling-v3',
+  MINIMAX: 'https://api.freepik.com/v1/ai/video/minimax',
+  WAN26: 'https://api.freepik.com/v1/ai/video/wan-2-6',
+  SEEDANCE: 'https://api.freepik.com/v1/ai/video/seedance-1-5-pro',
+  LTX_VIDEO: 'https://api.freepik.com/v1/ai/video/ltx-video-2-pro',
+  RUNWAY: 'https://api.freepik.com/v1/ai/video/runway',
+  PIXVERSE: 'https://api.freepik.com/v1/ai/video/pixverse-v5',
+  OMNIHUMAN: 'https://api.freepik.com/v1/ai/video/omnihuman-1-5',
+  VFX: 'https://api.freepik.com/v1/ai/video/vfx',
+  VIDEO_UPSCALE_CREATIVE: 'https://api.freepik.com/v1/ai/video-upscale/creative',
+  VIDEO_UPSCALE_PRECISION: 'https://api.freepik.com/v1/ai/video-upscale/precision',
+  
+  // Audio Generation
+  MUSIC_GENERATION: 'https://api.freepik.com/v1/ai/music/generate',
+  SOUND_EFFECTS: 'https://api.freepik.com/v1/ai/sound-effects/generate',
+  AUDIO_ISOLATION: 'https://api.freepik.com/v1/ai/audio-isolation',
+  
+  // Other
+  TEXT_TO_ICON: 'https://api.freepik.com/v1/ai/beta/text-to-icon',
+  IMAGE_TO_PROMPT: 'https://api.freepik.com/v1/ai/beta/image-to-prompt',
+  IMPROVE_PROMPT: 'https://api.freepik.com/v1/ai/beta/prompt-improvement',
+  AI_IMAGE_CLASSIFIER: 'https://api.freepik.com/v1/ai/beta/ai-image-classifier',
+};
+
+/**
+ * Generic API request handler with error handling
+ */
+async function apiRequest(endpoint, options = {}) {
+  const url = endpoint.startsWith('http') ? endpoint : `${ENDPOINTS.MYSTIC}${endpoint}`;
+  
+  const response = await fetch(url, {
+    headers: defaultHeaders,
+    ...options,
+  });
+  
+  const data = await response.json();
+  
+  if (!response.ok) {
+    const error = new Error(data.message || `API request failed: ${response.status}`);
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+  
+  return data;
+}
+
+/**
+ * Image Generation APIs
+ */
+export async function generateImage(params) {
+  const { prompt, image_urls, aspect_ratio, resolution, num_images, model } = params;
+  
+  const resolutionMap = { '1K': '1k', '2K': '2k', '4K': '4k' };
+  const aspectMap = {
+    '1:1': 'square_1_1',
+    '16:9': 'widescreen_16_9',
+    '9:16': 'social_story_9_16',
+    '4:3': 'standard_4_3',
+    '3:4': 'portrait_3_4',
+    '3:2': 'classic_3_2',
+    '2:3': 'classic_2_3',
+  };
+  
+  const body = {
+    prompt: prompt || 'a beautiful image',
+    resolution: resolutionMap[resolution] || '2k',
+    aspect_ratio: aspectMap[aspect_ratio] || 'square_1_1',
+    num_images: num_images || 1,
+  };
+  
+  if (model) body.model = model;
+  
+  if (image_urls && image_urls.length > 0) {
+    const imgUrl = image_urls[0];
+    if (imgUrl.startsWith('data:')) {
+      body.structure_reference = imgUrl.split(',')[1];
+    } else {
+      const imgRes = await fetch(imgUrl);
+      const buf = Buffer.from(await imgRes.arrayBuffer());
+      body.structure_reference = buf.toString('base64');
+    }
+    body.structure_strength = 60;
+  }
+  
+  return apiRequest(ENDPOINTS.MYSTIC, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getTaskStatus(taskId, endpoint = ENDPOINTS.MYSTIC) {
+  return apiRequest(`${endpoint}/${taskId}`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * Image Editing APIs
+ */
+export async function upscaleCreative(params) {
+  const { image, scale_factor, optimized_for, prompt, creativity, hdr, resemblance, fractality, engine, filter_nsfw } = params;
+  
+  const body = { image };
+  if (scale_factor) body.scale_factor = scale_factor;
+  if (optimized_for) body.optimized_for = optimized_for;
+  if (prompt) body.prompt = prompt;
+  if (creativity !== undefined) body.creativity = creativity;
+  if (hdr !== undefined) body.hdr = hdr;
+  if (resemblance !== undefined) body.resemblance = resemblance;
+  if (fractality !== undefined) body.fractality = fractality;
+  if (engine) body.engine = engine;
+  if (filter_nsfw !== undefined) body.filter_nsfw = filter_nsfw;
+  
+  return apiRequest(ENDPOINTS.UPSCALE_CREATIVE, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getUpscaleCreativeStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.UPSCALE_CREATIVE}/${taskId}`, { method: 'GET' });
+}
+
+export async function upscalePrecision(params) {
+  const { image, scale_factor, sharpen, smart_grain, ultra_detail, flavor } = params;
+  
+  const body = { image };
+  if (scale_factor !== undefined) body.scale_factor = scale_factor;
+  if (sharpen !== undefined) body.sharpen = sharpen;
+  if (smart_grain !== undefined) body.smart_grain = smart_grain;
+  if (ultra_detail !== undefined) body.ultra_detail = ultra_detail;
+  if (flavor) body.flavor = flavor;
+  
+  return apiRequest(ENDPOINTS.UPSCALE_PRECISION, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getUpscalePrecisionStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.UPSCALE_PRECISION}/${taskId}`, { method: 'GET' });
+}
+
+export async function relightImage(params) {
+  const { image, prompt, transfer_light_from_reference_image, transfer_light_from_lightmap, light_transfer_strength, interpolate_from_original, change_background, style, preserve_details, advanced_settings } = params;
+  
+  const body = { image };
+  if (prompt) body.prompt = prompt;
+  if (transfer_light_from_reference_image) body.transfer_light_from_reference_image = transfer_light_from_reference_image;
+  if (transfer_light_from_lightmap) body.transfer_light_from_lightmap = transfer_light_from_lightmap;
+  if (light_transfer_strength !== undefined) body.light_transfer_strength = light_transfer_strength;
+  if (interpolate_from_original !== undefined) body.interpolate_from_original = interpolate_from_original;
+  if (change_background !== undefined) body.change_background = change_background;
+  if (style) body.style = style;
+  if (preserve_details !== undefined) body.preserve_details = preserve_details;
+  if (advanced_settings) body.advanced_settings = advanced_settings;
+  
+  return apiRequest(ENDPOINTS.RELIGHT, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getRelightStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.RELIGHT}/${taskId}`, { method: 'GET' });
+}
+
+export async function styleTransfer(params) {
+  const { image, reference_image, prompt, style_strength, structure_strength, is_portrait, portrait_style, portrait_beautifier, flavor, engine, fixed_generation } = params;
+  
+  const body = { image, reference_image };
+  if (prompt) body.prompt = prompt;
+  if (style_strength !== undefined) body.style_strength = style_strength;
+  if (structure_strength !== undefined) body.structure_strength = structure_strength;
+  if (is_portrait !== undefined) body.is_portrait = is_portrait;
+  if (portrait_style) body.portrait_style = portrait_style;
+  if (portrait_beautifier) body.portrait_beautifier = portrait_beautifier;
+  if (flavor) body.flavor = flavor;
+  if (engine) body.engine = engine;
+  if (fixed_generation !== undefined) body.fixed_generation = fixed_generation;
+  
+  return apiRequest(ENDPOINTS.STYLE_TRANSFER, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getStyleTransferStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.STYLE_TRANSFER}/${taskId}`, { method: 'GET' });
+}
+
+export async function removeBackground(image_url) {
+  const formData = new URLSearchParams();
+  formData.append('image_url', image_url);
+  
+  const response = await fetch(ENDPOINTS.REMOVE_BACKGROUND, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'x-freepik-api-key': FREEPIK_API_KEY,
+    },
+    body: formData.toString(),
+  });
+  
+  const data = await response.json();
+  if (!response.ok) throw new Error(JSON.stringify(data));
+  return data;
+}
+
+export async function reimagineFlux(params) {
+  const { image, prompt, imagination, aspect_ratio } = params;
+  
+  const body = { image };
+  if (prompt) body.prompt = prompt;
+  if (imagination) body.imagination = imagination;
+  if (aspect_ratio) body.aspect_ratio = aspect_ratio;
+  
+  return apiRequest(ENDPOINTS.REIMAGINE_FLUX, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function expandImage(provider, params) {
+  const { image, left, right, top, bottom, prompt, seed } = params;
+  
+  const endpointMap = {
+    flux: ENDPOINTS.IMAGE_EXPAND_FLUX,
+    seedream: ENDPOINTS.IMAGE_EXPAND_SEEDREAM,
+    ideogram: ENDPOINTS.IMAGE_EXPAND_IDEOGRAM,
+  };
+  
+  const endpoint = endpointMap[provider];
+  if (!endpoint) throw new Error(`Unknown provider: ${provider}`);
+  
+  const body = { image };
+  if (left !== undefined) body.left = left;
+  if (right !== undefined) body.right = right;
+  if (top !== undefined) body.top = top;
+  if (bottom !== undefined) body.bottom = bottom;
+  if (prompt) body.prompt = prompt;
+  if (seed !== undefined) body.seed = seed;
+  
+  return apiRequest(endpoint, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getExpandStatus(provider, taskId) {
+  const endpointMap = {
+    flux: ENDPOINTS.IMAGE_EXPAND_FLUX,
+    seedream: ENDPOINTS.IMAGE_EXPAND_SEEDREAM,
+    ideogram: ENDPOINTS.IMAGE_EXPAND_IDEOGRAM,
+  };
+  return apiRequest(`${endpointMap[provider]}/${taskId}`, { method: 'GET' });
+}
+
+export async function skinEnhancer(mode, params) {
+  const { image, sharpen, smart_grain, skin_detail, optimized_for } = params;
+  
+  const validModes = ['creative', 'faithful', 'flexible'];
+  if (!validModes.includes(mode)) {
+    throw new Error(`Invalid mode. Use: ${validModes.join(', ')}`);
+  }
+  
+  const body = { image };
+  if (sharpen !== undefined) body.sharpen = sharpen;
+  if (smart_grain !== undefined) body.smart_grain = smart_grain;
+  if (mode === 'faithful' && skin_detail !== undefined) body.skin_detail = skin_detail;
+  if (mode === 'flexible' && optimized_for) body.optimized_for = optimized_for;
+  
+  return apiRequest(`${ENDPOINTS.SKIN_ENHANCER}/${mode}`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getSkinEnhancerStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.SKIN_ENHANCER}/${taskId}`, { method: 'GET' });
+}
+
+export async function ideogramInpaint(params) {
+  const { image, mask, prompt, seed, rendering_speed, magic_prompt, color_palette, style_codes, style_type, style_reference_images, character_reference_images } = params;
+  
+  const body = { image, mask, prompt };
+  if (seed !== undefined) body.seed = seed;
+  if (rendering_speed) body.rendering_speed = rendering_speed;
+  if (magic_prompt) body.magic_prompt = magic_prompt;
+  if (color_palette) body.color_palette = color_palette;
+  if (style_codes?.length) body.style_codes = style_codes;
+  if (style_type) body.style_type = style_type;
+  if (style_reference_images?.length) body.style_reference_images = style_reference_images;
+  if (character_reference_images?.length) body.character_reference_images = character_reference_images;
+  
+  return apiRequest(ENDPOINTS.IDEOGRAM_EDIT, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getIdeogramInpaintStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.IDEOGRAM_EDIT}/${taskId}`, { method: 'GET' });
+}
+
+export async function changeCamera(params) {
+  const { image, horizontal_angle, vertical_angle, zoom, output_format, seed, webhook_url } = params;
+  
+  const body = { image };
+  if (horizontal_angle !== undefined) body.horizontal_angle = horizontal_angle;
+  if (vertical_angle !== undefined) body.vertical_angle = vertical_angle;
+  if (zoom !== undefined) body.zoom = zoom;
+  if (output_format) body.output_format = output_format;
+  if (seed !== undefined) body.seed = seed;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(ENDPOINTS.CHANGE_CAMERA, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getChangeCameraStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.CHANGE_CAMERA}/${taskId}`, { method: 'GET' });
+}
+
+/**
+ * Video Generation APIs
+ */
+export async function klingElementsPro(params) {
+  const { images, prompt, negative_prompt, duration, aspect_ratio, webhook_url } = params;
+  
+  const body = { images };
+  if (prompt) body.prompt = prompt;
+  if (negative_prompt) body.negative_prompt = negative_prompt;
+  if (duration !== undefined) body.duration = duration.toString();
+  if (aspect_ratio) body.aspect_ratio = aspect_ratio;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(ENDPOINTS.KLING_ELEMENTS_PRO, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getKlingElementsProStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.KLING_ELEMENTS_STATUS}/${taskId}`, { method: 'GET' });
+}
+
+export async function kling3Video(mode, params) {
+  const { image, prompt, negative_prompt, duration, aspect_ratio, cfg_scale, generate_audio, webhook_url } = params;
+  
+  const body = { image };
+  if (prompt) body.prompt = prompt;
+  if (negative_prompt) body.negative_prompt = negative_prompt;
+  if (duration !== undefined) body.duration = duration;
+  if (aspect_ratio) body.aspect_ratio = aspect_ratio;
+  if (cfg_scale !== undefined) body.cfg_scale = cfg_scale;
+  if (generate_audio !== undefined) body.generate_audio = generate_audio;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(`${ENDPOINTS.KLING3}/${mode}`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getKling3Status(taskId) {
+  return apiRequest(`${ENDPOINTS.KLING3}/${taskId}`, { method: 'GET' });
+}
+
+export async function minimaxVideo(params) {
+  const { image, prompt, camera_movement, prompt_optimizer, webhook_url } = params;
+  
+  const body = { image };
+  if (prompt) body.prompt = prompt;
+  if (camera_movement) body.camera_movement = camera_movement;
+  if (prompt_optimizer !== undefined) body.prompt_optimizer = prompt_optimizer;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(ENDPOINTS.MINIMAX, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getMinimaxStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.MINIMAX}/${taskId}`, { method: 'GET' });
+}
+
+export async function wan26Video(params) {
+  const { image, prompt, negative_prompt, resolution, duration, ratio, shot_type, prompt_expansion, seed, webhook_url } = params;
+  
+  const body = { image };
+  if (prompt) body.prompt = prompt;
+  if (negative_prompt) body.negative_prompt = negative_prompt;
+  if (resolution) body.resolution = resolution;
+  if (duration) body.duration = duration;
+  if (ratio) body.ratio = ratio;
+  if (shot_type) body.shot_type = shot_type;
+  if (prompt_expansion !== undefined) body.prompt_expansion = prompt_expansion;
+  if (seed !== undefined) body.seed = seed;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(ENDPOINTS.WAN26, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getWan26Status(taskId) {
+  return apiRequest(`${ENDPOINTS.WAN26}/${taskId}`, { method: 'GET' });
+}
+
+export async function seedanceVideo(params) {
+  const { image, prompt, resolution, duration, aspect_ratio, generate_audio, camera_fixed, seed, webhook_url } = params;
+  
+  const body = { image };
+  if (prompt) body.prompt = prompt;
+  if (resolution) body.resolution = resolution;
+  if (duration !== undefined) body.duration = duration;
+  if (aspect_ratio) body.aspect_ratio = aspect_ratio;
+  if (generate_audio !== undefined) body.generate_audio = generate_audio;
+  if (camera_fixed !== undefined) body.camera_fixed = camera_fixed;
+  if (seed !== undefined) body.seed = seed;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(ENDPOINTS.SEEDANCE, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getSeedanceStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.SEEDANCE}/${taskId}`, { method: 'GET' });
+}
+
+export async function ltxVideo(params) {
+  const { image, prompt, resolution, duration, fps, generate_audio, seed, webhook_url } = params;
+  
+  const body = { image };
+  if (prompt) body.prompt = prompt;
+  if (resolution) body.resolution = resolution;
+  if (duration !== undefined) body.duration = duration;
+  if (fps !== undefined) body.fps = fps;
+  if (generate_audio !== undefined) body.generate_audio = generate_audio;
+  if (seed !== undefined) body.seed = seed;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(ENDPOINTS.LTX_VIDEO, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getLtxStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.LTX_VIDEO}/${taskId}`, { method: 'GET' });
+}
+
+export async function runwayVideo(endpoint, params) {
+  const { image, character_image, reference_image, prompt, ratio, duration, seed, body_control, expression_intensity, webhook_url } = params;
+  
+  const body = {};
+  if (image) body.image = image;
+  if (character_image) body.character_image = character_image;
+  if (reference_image) body.reference_image = reference_image;
+  if (prompt) body.prompt = prompt;
+  if (ratio) body.ratio = ratio;
+  if (duration !== undefined) body.duration = duration;
+  if (seed !== undefined) body.seed = seed;
+  if (body_control !== undefined) body.body_control = body_control;
+  if (expression_intensity !== undefined) body.expression_intensity = expression_intensity;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(`${ENDPOINTS.RUNWAY}/${endpoint}`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getRunwayStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.RUNWAY}/${taskId}`, { method: 'GET' });
+}
+
+export async function pixverseVideo(endpoint, params) {
+  const { start_image, end_image, prompt, resolution, ratio, duration, motion_intensity, seed, webhook_url } = params;
+  
+  const body = {};
+  if (start_image) body.start_image = start_image;
+  if (end_image) body.end_image = end_image;
+  if (prompt) body.prompt = prompt;
+  if (resolution) body.resolution = resolution;
+  if (ratio) body.ratio = ratio;
+  if (duration !== undefined) body.duration = duration;
+  if (motion_intensity !== undefined) body.motion_intensity = motion_intensity;
+  if (seed !== undefined) body.seed = seed;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(`${ENDPOINTS.PIXVERSE}/${endpoint}`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getPixverseStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.PIXVERSE}/${taskId}`, { method: 'GET' });
+}
+
+export async function omnihumanVideo(params) {
+  const { image, audio_url, prompt, resolution, turbo_mode, webhook_url } = params;
+  
+  const body = { image, audio_url };
+  if (prompt) body.prompt = prompt;
+  if (resolution) body.resolution = resolution;
+  if (turbo_mode !== undefined) body.turbo_mode = turbo_mode;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(ENDPOINTS.OMNIHUMAN, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getOmnihumanStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.OMNIHUMAN}/${taskId}`, { method: 'GET' });
+}
+
+export async function vfxVideo(params) {
+  const { video_url, filter_type, fps, bloom_contrast, motion_kernel_size, motion_decay_factor, webhook_url } = params;
+  
+  const body = { video_url };
+  if (filter_type !== undefined) body.filter_type = filter_type;
+  if (fps !== undefined) body.fps = fps;
+  if (bloom_contrast !== undefined) body.bloom_contrast = bloom_contrast;
+  if (motion_kernel_size !== undefined) body.motion_kernel_size = motion_kernel_size;
+  if (motion_decay_factor !== undefined) body.motion_decay_factor = motion_decay_factor;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(ENDPOINTS.VFX, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getVfxStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.VFX}/${taskId}`, { method: 'GET' });
+}
+
+export async function videoUpscale(type, params) {
+  const { video_url, mode, resolution, flavor, creativity, sharpen, smart_grain, fps_boost, strength, webhook_url } = params;
+  
+  const endpoint = type === 'creative' ? ENDPOINTS.VIDEO_UPSCALE_CREATIVE : ENDPOINTS.VIDEO_UPSCALE_PRECISION;
+  
+  const body = { video_url };
+  if (mode) body.mode = mode;
+  if (resolution) body.resolution = resolution;
+  if (flavor) body.flavor = flavor;
+  if (creativity !== undefined) body.creativity = creativity;
+  if (sharpen !== undefined) body.sharpen = sharpen;
+  if (smart_grain !== undefined) body.smart_grain = smart_grain;
+  if (fps_boost !== undefined) body.fps_boost = fps_boost;
+  if (strength !== undefined) body.strength = strength;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(endpoint, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getVideoUpscaleStatus(type, taskId) {
+  const endpoint = type === 'creative' ? ENDPOINTS.VIDEO_UPSCALE_CREATIVE : ENDPOINTS.VIDEO_UPSCALE_PRECISION;
+  return apiRequest(`${endpoint}/${taskId}`, { method: 'GET' });
+}
+
+/**
+ * Audio Generation APIs
+ */
+export async function generateMusic(params) {
+  const { prompt, duration, webhook_url } = params;
+  
+  const body = { prompt };
+  if (duration !== undefined) body.duration = duration;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(ENDPOINTS.MUSIC_GENERATION, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getMusicStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.MUSIC_GENERATION}/${taskId}`, { method: 'GET' });
+}
+
+export async function generateSoundEffects(params) {
+  const { prompt, duration, loop, prompt_influence, webhook_url } = params;
+  
+  const body = { prompt };
+  if (duration !== undefined) body.duration = duration;
+  if (loop !== undefined) body.loop = loop;
+  if (prompt_influence !== undefined) body.prompt_influence = prompt_influence;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(ENDPOINTS.SOUND_EFFECTS, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getSoundEffectsStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.SOUND_EFFECTS}/${taskId}`, { method: 'GET' });
+}
+
+export async function audioIsolation(params) {
+  const { audio_url, video_url, x1, y1, x2, y2, reranking_candidates, predict_spans, sample_fps, webhook_url } = params;
+  
+  const body = {};
+  if (audio_url) body.audio_url = audio_url;
+  if (video_url) body.video_url = video_url;
+  if (x1 !== undefined) body.x1 = x1;
+  if (y1 !== undefined) body.y1 = y1;
+  if (x2 !== undefined) body.x2 = x2;
+  if (y2 !== undefined) body.y2 = y2;
+  if (reranking_candidates !== undefined) body.reranking_candidates = reranking_candidates;
+  if (predict_spans !== undefined) body.predict_spans = predict_spans;
+  if (sample_fps !== undefined) body.sample_fps = sample_fps;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(ENDPOINTS.AUDIO_ISOLATION, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getAudioIsolationStatus(taskId) {
+  return apiRequest(`${ENDPOINTS.AUDIO_ISOLATION}/${taskId}`, { method: 'GET' });
+}
+
+/**
+ * Utility APIs
+ */
+export async function textToIcon(params) {
+  const { prompt, style, format, num_inference_steps, guidance_scale, webhook_url } = params;
+  
+  const body = { prompt };
+  if (style) body.style = style;
+  if (format) body.format = format;
+  if (num_inference_steps !== undefined) body.num_inference_steps = num_inference_steps;
+  if (guidance_scale !== undefined) body.guidance_scale = guidance_scale;
+  if (webhook_url) body.webhook_url = webhook_url;
+  
+  return apiRequest(ENDPOINTS.TEXT_TO_ICON, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function imageToPrompt(image_url) {
+  return apiRequest(ENDPOINTS.IMAGE_TO_PROMPT, {
+    method: 'POST',
+    body: JSON.stringify({ image_url }),
+  });
+}
+
+export async function improvePrompt(prompt, type, language) {
+  return apiRequest(ENDPOINTS.IMPROVE_PROMPT, {
+    method: 'POST',
+    body: JSON.stringify({ prompt, type, language }),
+  });
+}
+
+export async function classifyImage(image_url) {
+  return apiRequest(ENDPOINTS.AI_IMAGE_CLASSIFIER, {
+    method: 'POST',
+    body: JSON.stringify({ image_url }),
+  });
+}
+
+// Export endpoints for status checks
+export { ENDPOINTS };

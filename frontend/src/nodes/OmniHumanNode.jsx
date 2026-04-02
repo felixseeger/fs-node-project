@@ -1,11 +1,13 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import NodeProgress from './NodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
 import { omniHumanGenerate, pollOmniHumanStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const RESOLUTIONS = [
   { value: '720p', label: '720p' },
@@ -13,7 +15,16 @@ const RESOLUTIONS = [
 ];
 
 export default function OmniHumanNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    progress,
+    status,
+    message,
+    start,
+    setProgress,
+    complete,
+    fail,
+    isActive,
+  } = useNodeProgress();
 
   const localResolution = data.localResolution || '1080p';
   const localTurboMode = data.localTurboMode ?? false;
@@ -45,8 +56,8 @@ export default function OmniHumanNode({ id, data, selected }) {
 
     if (!images?.length || !audioUrl) return;
 
-    setIsLoading(true);
-    update({ outputVideo: null, isLoading: true });
+    start('Submitting OmniHuman generation request...');
+    update({ outputVideo: null, outputError: null });
 
     try {
       const params = {
@@ -63,38 +74,42 @@ export default function OmniHumanNode({ id, data, selected }) {
       const result = await omniHumanGenerate(params);
 
       if (result.error) {
-        update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(new Error(result.error?.message || 'Generation failed'));
+        update({ outputError: result.error?.message || JSON.stringify(result.error) });
         return;
       }
 
       const taskId = result.task_id || result.data?.task_id;
       if (taskId) {
-        const status = await pollOmniHumanStatus(taskId);
+        // Poll with progress tracking
+        let lastProgress = 10;
+        const status = await pollOmniHumanStatus(taskId, 90, 2000, (attempt, maxAttempts) => {
+          lastProgress = 10 + Math.min(85, (attempt / maxAttempts) * 85);
+          setProgress(lastProgress, `Generating video... (${attempt}/${maxAttempts})`);
+        });
         const generated = status.data?.generated || [];
+        complete('Video generation complete');
         update({
           outputVideo: generated[0] || null,
           outputVideos: generated,
-          isLoading: false,
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete('Done');
         update({
           outputVideo: result.data.generated[0],
           outputVideos: result.data.generated,
-          isLoading: false,
           outputError: null,
         });
       } else {
-        update({ isLoading: false });
+        complete('No videos generated');
       }
     } catch (err) {
       console.error('OmniHuman generation error:', err);
-      update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err);
+      update({ outputError: err.message });
     }
-  }, [id, data, update, localResolution, localTurboMode]);
+  }, [id, data, update, localResolution, localTurboMode, start, setProgress, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -180,7 +195,13 @@ export default function OmniHumanNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'OmniHuman 1.5'} dotColor={ACCENT} selected={selected}>
+    <NodeShell
+      label={data.label || 'OmniHuman 1.5'}
+      dotColor={ACCENT}
+      selected={selected}
+      onGenerate={handleGenerate}
+      isGenerating={isActive}
+    >
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -278,12 +299,22 @@ export default function OmniHumanNode({ id, data, selected }) {
           }} />
         </div>
       </div>
+
+      {/* Progress */}
+      {isActive && (
+        <NodeProgress
+          progress={progress}
+          status={status}
+          message={message}
+        />
+      )}
+
       <div style={{
         background: '#1a1a1a', borderRadius: 6, border: '1px solid #3a3a3a',
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

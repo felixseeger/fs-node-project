@@ -1,12 +1,15 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import NodeProgress from './NodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
 import { imageToPromptGenerate, pollImageToPromptStatus } from '../utils/api';
+import { compressImageBase64 } from '../utils/imageUtils';
 import ImageUploadBox from './ImageUploadBox';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 export default function ImageToPromptNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const progress = useNodeProgress();
 
   const update = useCallback(
     (patch) => data.onUpdate?.(id, patch),
@@ -26,19 +29,20 @@ export default function ImageToPromptNode({ id, data, selected }) {
 
     if (!images?.length) return;
 
-    setIsLoading(true);
+    progress.start();
     update({ outputPrompt: null, isLoading: true });
 
     try {
+      const compressedImage = await compressImageBase64(images[0]);
       const params = {
-        image: images[0],
+        image: compressedImage,
       };
 
       const result = await imageToPromptGenerate(params);
 
       if (result.error) {
+        progress.fail();
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
         return;
       }
 
@@ -46,27 +50,29 @@ export default function ImageToPromptNode({ id, data, selected }) {
       if (taskId) {
         const status = await pollImageToPromptStatus(taskId);
         const generated = status.data?.generated || [];
+        progress.complete();
         update({
           outputPrompt: generated[0] || null,
           isLoading: false,
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        progress.complete();
         update({
           outputPrompt: result.data.generated[0],
           isLoading: false,
           outputError: null,
         });
       } else {
+        progress.complete();
         update({ isLoading: false });
       }
     } catch (err) {
       console.error('Image to prompt error:', err);
+      progress.fail();
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
     }
-  }, [id, data, update]);
+  }, [id, data, update, progress]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -124,7 +130,13 @@ export default function ImageToPromptNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Image to Prompt'} dotColor={ACCENT} selected={selected}>
+    <NodeShell
+      label={data.label || 'Image to Prompt'}
+      dotColor={ACCENT}
+      selected={selected}
+      onGenerate={handleGenerate}
+      isGenerating={progress.isActive}
+    >
 
       {/* ── Prompt Output Handle (top) ── */}
       <div style={{
@@ -152,7 +164,10 @@ export default function ImageToPromptNode({ id, data, selected }) {
         />
       )}
 
-      {/* ── 2. Output ── */}
+      {/* ── 2. Progress ── */}
+      <NodeProgress progress={progress} label="Analyzing image..." />
+
+      {/* ── 3. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 6, marginTop: 10,
@@ -167,15 +182,8 @@ export default function ImageToPromptNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 12,
       }}>
-        {isLoading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 28, height: 28, border: '3px solid #3a3a3a',
-              borderTop: `3px solid ${ACCENT}`, borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-            }} />
-            <span style={{ fontSize: 10, color: '#999' }}>Analyzing image...</span>
-          </div>
+        {progress.isActive ? (
+          <span style={{ fontSize: 11, color: '#555', textAlign: 'center' }}>Analyzing...</span>
         ) : data.outputPrompt ? (
           <div style={{ fontSize: 12, color: '#fff', whiteSpace: 'pre-wrap', wordBreak: 'break-word', width: '100%' }}>
             {data.outputPrompt}
@@ -187,7 +195,6 @@ export default function ImageToPromptNode({ id, data, selected }) {
         )}
       </div>
 
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
     </NodeShell>
   );
 }

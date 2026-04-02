@@ -6,6 +6,8 @@ import { pixVerseV5TransitionGenerate, pollPixVerseV5TransitionStatus } from '..
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const RESOLUTIONS = [
   { value: '360p', label: '360p' },
@@ -20,7 +22,7 @@ const DURATIONS = [
 ];
 
 export default function PixVerseV5TransitionNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { progress, status, message, start, complete, fail, isActive } = useNodeProgress();
 
   const localResolution = data.localResolution || '720p';
   const localDuration = data.localDuration || 5;
@@ -54,7 +56,7 @@ export default function PixVerseV5TransitionNode({ id, data, selected }) {
 
     if (!startImages?.length || !endImages?.length) return;
 
-    setIsLoading(true);
+    start('Generating video...');
     update({ outputVideo: null, isLoading: true });
 
     try {
@@ -78,20 +80,27 @@ export default function PixVerseV5TransitionNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(new Error(result.error?.message || 'Generation failed'));
         return;
       }
 
       const taskId = result.task_id || result.data?.task_id;
       if (taskId) {
-        const status = await pollPixVerseV5TransitionStatus(taskId);
-        const generated = status.data?.generated || [];
+        const pollResult = await pollPixVerseV5TransitionStatus(taskId, {
+          onProgress: (progressData) => {
+            if (progressData.progress !== undefined) {
+              update({ isLoading: true });
+            }
+          }
+        });
+        const generated = pollResult.data?.generated || [];
         update({
           outputVideo: generated[0] || null,
           outputVideos: generated,
           isLoading: false,
           outputError: null,
         });
+        complete('Video generated successfully');
       } else if (result.data?.generated?.length) {
         update({
           outputVideo: result.data.generated[0],
@@ -99,16 +108,17 @@ export default function PixVerseV5TransitionNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete('Video generated successfully');
       } else {
         update({ isLoading: false });
+        complete('Done');
       }
     } catch (err) {
       console.error('PixVerse V5 Transition error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err);
     }
-  }, [id, data, update, localResolution, localDuration, localSeed]);
+  }, [id, data, update, localResolution, localDuration, localSeed, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -176,7 +186,7 @@ export default function PixVerseV5TransitionNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'PixVerse V5 Transition'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'PixVerse V5 Transition'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -286,6 +296,11 @@ export default function PixVerseV5TransitionNode({ id, data, selected }) {
         </div>
       </div>
 
+      {/* ── Progress ── */}
+      {isActive && (
+        <NodeProgress progress={progress} status={status} message={message} />
+      )}
+
       {/* ── 6. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -309,7 +324,7 @@ export default function PixVerseV5TransitionNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

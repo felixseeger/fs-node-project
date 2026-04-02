@@ -1,11 +1,13 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import NodeProgress from './NodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
 import { runwayGen4TurboGenerate, pollRunwayGen4TurboStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const DURATIONS = [
   { value: 5, label: '5s' },
@@ -22,7 +24,7 @@ const RATIOS = [
 ];
 
 export default function RunwayGen4TurboNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { progress, status, message, start, fail, complete, pollWithProgress, isActive } = useNodeProgress();
 
   const localDuration = data.localDuration || 10;
   const localRatio = data.localRatio || '1280:720';
@@ -50,7 +52,7 @@ export default function RunwayGen4TurboNode({ id, data, selected }) {
 
     if (!images?.length) return;
 
-    setIsLoading(true);
+    start('Initializing video generation...');
     update({ outputVideo: null, isLoading: true });
 
     try {
@@ -71,15 +73,24 @@ export default function RunwayGen4TurboNode({ id, data, selected }) {
       const result = await runwayGen4TurboGenerate(params);
 
       if (result.error) {
+        fail(new Error(result.error?.message || JSON.stringify(result.error)));
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
         return;
       }
 
       const taskId = result.task_id || result.data?.task_id;
       if (taskId) {
-        const status = await pollRunwayGen4TurboStatus(taskId);
+        const status = await pollWithProgress(async () => {
+          const s = await pollRunwayGen4TurboStatus(taskId);
+          return {
+            status: s.data?.status || s.status,
+            progress: s.data?.progress,
+            message: s.data?.message || `Processing...`,
+            result: s,
+          };
+        });
         const generated = status.data?.generated || [];
+        complete('Video generated successfully');
         update({
           outputVideo: generated[0] || null,
           outputVideos: generated,
@@ -87,6 +98,7 @@ export default function RunwayGen4TurboNode({ id, data, selected }) {
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete('Video generated successfully');
         update({
           outputVideo: result.data.generated[0],
           outputVideos: result.data.generated,
@@ -94,15 +106,15 @@ export default function RunwayGen4TurboNode({ id, data, selected }) {
           outputError: null,
         });
       } else {
+        complete();
         update({ isLoading: false });
       }
     } catch (err) {
       console.error('Runway Gen4 Turbo generation error:', err);
+      fail(err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
     }
-  }, [id, data, update, localDuration, localRatio, localSeed]);
+  }, [id, data, update, localDuration, localRatio, localSeed, start, fail, complete, pollWithProgress]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -170,7 +182,7 @@ export default function RunwayGen4TurboNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Runway Gen4 Turbo'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'Runway Gen4 Turbo'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -254,7 +266,16 @@ export default function RunwayGen4TurboNode({ id, data, selected }) {
         </div>
       </div>
 
-      {/* ── 4. Output ── */}
+      {/* ── 4. Progress ── */}
+      {(isActive || status === 'completed' || status === 'failed') && (
+        <NodeProgress
+          progress={progress}
+          status={status}
+          message={message}
+        />
+      )}
+
+      {/* ── 5. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 6, marginTop: 10,
@@ -269,7 +290,7 @@ export default function RunwayGen4TurboNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

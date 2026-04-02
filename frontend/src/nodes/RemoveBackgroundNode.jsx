@@ -4,9 +4,11 @@ import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { removeBackground } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 export default function RemoveBackgroundNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, complete, fail } = useNodeProgress(id, data);
 
   const update = useCallback(
     (patch) => data.onUpdate?.(id, patch),
@@ -25,7 +27,7 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
     if (!images?.length && data.localImage) images = [data.localImage];
     if (!images?.length) return;
 
-    setIsLoading(true);
+    start();
     update({ outputImage: null, isLoading: true });
 
     try {
@@ -41,7 +43,7 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail();
         return;
       }
 
@@ -56,13 +58,13 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
         isLoading: false,
         outputError: null,
       });
+      complete();
     } catch (err) {
       console.error('Remove background error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail();
     }
-  }, [id, data, update]);
+  }, [id, data, update, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -131,7 +133,13 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Remove Background'} dotColor="#06b6d4" selected={selected}>
+    <NodeShell
+      label={data.label || 'Remove Background'}
+      dotColor="#06b6d4"
+      selected={selected}
+      onGenerate={handleRemove}
+      isGenerating={isActive}
+    >
 
       {/* ── Image Output Handle (top, aligned with image-in) ── */}
       <div style={{
@@ -173,7 +181,10 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
         </span>
       </div>
 
-      {/* ── 3. Output ── */}
+      {/* ── 3. Progress ── */}
+      <NodeProgress isActive={isActive} />
+
+      {/* ── 4. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 6, marginTop: 10,
@@ -190,7 +201,7 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
         overflow: 'hidden',
         ...checkerboardStyle,
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{
             width: 28, height: 28, border: '3px solid #3a3a3a',
             borderTop: '3px solid #06b6d4', borderRadius: '50%',
@@ -211,7 +222,7 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
       </div>
 
       {/* ── Download links (if available) ── */}
-      {data.outputHighRes && !isLoading && (
+      {data.outputHighRes && !isActive && (
         <div style={{
           display: 'flex', gap: 6, marginTop: 6,
         }}>

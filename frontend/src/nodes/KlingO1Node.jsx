@@ -6,6 +6,8 @@ import { klingO1Generate, pollKlingO1Status } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const MODELS = [
   { value: 'std', label: 'Standard' },
@@ -24,7 +26,7 @@ const DURATIONS = [
 ];
 
 export default function KlingO1Node({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, isComplete, start, fail, complete, message } = useNodeProgress();
 
   const localModel = data.localModel || 'std';
   const localDuration = data.localDuration || 5;
@@ -58,7 +60,7 @@ export default function KlingO1Node({ id, data, selected }) {
     // Kling O1 requires at least a first or last frame.
     if (!startImages?.length && !endImages?.length) return;
 
-    setIsLoading(true);
+    start();
     update({ outputVideo: null, isLoading: true });
 
     try {
@@ -83,7 +85,7 @@ export default function KlingO1Node({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail();
         return;
       }
 
@@ -97,6 +99,7 @@ export default function KlingO1Node({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else if (result.data?.generated?.length) {
         update({
           outputVideo: result.data.generated[0],
@@ -104,16 +107,17 @@ export default function KlingO1Node({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else {
         update({ isLoading: false });
+        fail();
       }
     } catch (err) {
       console.error('Kling O1 generation error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail();
     }
-  }, [id, data, update, localModel, localDuration, localAspectRatio]);
+  }, [id, data, update, localModel, localDuration, localAspectRatio, start, fail, complete]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -181,7 +185,7 @@ export default function KlingO1Node({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Kling O1'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'Kling O1'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -280,7 +284,10 @@ export default function KlingO1Node({ id, data, selected }) {
         </div>
       </div>
 
-      {/* ── 5. Output ── */}
+      {/* ── 5. Progress ── */}
+      <NodeProgress isActive={isActive} isComplete={isComplete} message={message} />
+
+      {/* ── 6. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 6, marginTop: 10,
@@ -295,7 +302,7 @@ export default function KlingO1Node({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

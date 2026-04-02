@@ -4,9 +4,13 @@ import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { musicGenerate, pollMusicStatus } from '../utils/api';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 export default function MusicGenerationNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    progress, status, message, start, setProgress, complete, fail, isActive,
+  } = useNodeProgress();
 
   const localDuration = data.localDuration || 30;
 
@@ -27,8 +31,8 @@ export default function MusicGenerationNode({ id, data, selected }) {
 
     if (!prompt) return;
 
-    setIsLoading(true);
-    update({ outputAudio: null, isLoading: true });
+    start('Submitting music request...');
+    update({ outputAudio: null, outputError: null });
 
     try {
       const params = {
@@ -39,36 +43,38 @@ export default function MusicGenerationNode({ id, data, selected }) {
       const result = await musicGenerate(params);
 
       if (result.error) {
-        update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(result.error?.message || JSON.stringify(result.error));
+        update({ outputError: result.error?.message || JSON.stringify(result.error) });
         return;
       }
 
       const taskId = result.task_id || result.data?.task_id;
       if (taskId) {
-        const status = await pollMusicStatus(taskId);
+        setProgress(20, 'Waiting for music generation...');
+        const status = await pollMusicStatus(taskId, 90, 2000, (p, msg) => {
+          setProgress(20 + p * 0.7, msg);
+        });
         const generated = status.data?.generated || [];
+        complete('Music generation complete');
         update({
           outputAudio: generated[0] || null,
-          isLoading: false,
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete('Music generation complete');
         update({
           outputAudio: result.data.generated[0],
-          isLoading: false,
           outputError: null,
         });
       } else {
-        update({ isLoading: false });
+        fail('No music generated');
       }
     } catch (err) {
       console.error('Music generation error:', err);
-      update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err);
+      update({ outputError: err.message });
     }
-  }, [id, data, update, localDuration]);
+  }, [id, data, update, localDuration, start, setProgress, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -126,7 +132,13 @@ export default function MusicGenerationNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'ElevenLabs Music'} dotColor={ACCENT} selected={selected}>
+    <NodeShell
+      label={data.label || 'ElevenLabs Music'}
+      dotColor={ACCENT}
+      selected={selected}
+      onGenerate={handleGenerate}
+      isGenerating={isActive}
+    >
 
       {/* ── Audio Output Handle (top) ── */}
       <div style={{
@@ -186,6 +198,15 @@ export default function MusicGenerationNode({ id, data, selected }) {
 
       </div>
 
+      {/* ── Progress ── */}
+      <NodeProgress
+        progress={progress}
+        status={status}
+        message={message}
+        isActive={isActive}
+        accentColor={ACCENT}
+      />
+
       {/* ── 3. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -209,7 +230,7 @@ export default function MusicGenerationNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 12,
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

@@ -3,6 +3,7 @@ import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { imageClassifierGenerate } from '../utils/api';
+import { compressImageBase64 } from '../utils/imageUtils';
 import ImageUploadBox from './ImageUploadBox';
 
 export default function AIImageClassifierNode({ id, data, selected }) {
@@ -33,8 +34,9 @@ export default function AIImageClassifierNode({ id, data, selected }) {
     update({ outputText: null, isLoading: true });
 
     try {
+      const compressedImage = await compressImageBase64(images[0]);
       const params = {
-        image: images[0],
+        image: compressedImage,
       };
 
       const result = await imageClassifierGenerate(params);

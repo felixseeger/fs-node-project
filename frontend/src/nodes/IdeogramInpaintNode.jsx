@@ -6,6 +6,8 @@ import { ideogramInpaint, pollIdeogramInpaintStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const RENDERING_SPEEDS = [
   { value: 'TURBO', label: 'Turbo', desc: 'Fastest' },
@@ -39,7 +41,7 @@ const COLOR_PALETTES = [
 ];
 
 export default function IdeogramInpaintNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, fail, complete } = useNodeProgress();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const localRenderingSpeed = data.localRenderingSpeed || 'DEFAULT';
@@ -76,7 +78,7 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
     const prompt = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt || '';
     if (!prompt) return;
 
-    setIsLoading(true);
+    start();
     update({ outputImage: null, isLoading: true });
 
     try {
@@ -98,7 +100,7 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail();
         return;
       }
 
@@ -121,13 +123,13 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
       } else {
         update({ isLoading: false });
       }
+      complete();
     } catch (err) {
       console.error('Ideogram inpaint error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail();
     }
-  }, [id, data, update, localRenderingSpeed, localMagicPrompt, localStyleType, localColorPalette, localSeed]);
+  }, [id, data, update, localRenderingSpeed, localMagicPrompt, localStyleType, localColorPalette, localSeed, start, fail, complete]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -194,7 +196,7 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Ideogram Inpaint'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'Ideogram Inpaint'} dotColor={ACCENT} selected={selected} onGenerate={handleInpaint} isGenerating={isActive}>
 
       {/* ── 1. Image ── */}
       {sectionHeader('Image', 'image-in', 'target', getHandleColor('image-in'),
@@ -338,7 +340,10 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
         </div>
       )}
 
-      {/* ── 7. Output ── */}
+      {/* ── 7. Progress ── */}
+      <NodeProgress isActive={isActive} />
+
+      {/* ── 8. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 6, marginTop: 10,
@@ -353,7 +358,7 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
         minHeight: 80, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{
             width: 28, height: 28, border: '3px solid #3a3a3a',
             borderTop: `3px solid ${ACCENT}`, borderRadius: '50%',

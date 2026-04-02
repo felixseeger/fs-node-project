@@ -4,9 +4,13 @@ import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { soundEffectsGenerate, pollSoundEffectsStatus } from '../utils/api';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 export default function SoundEffectsNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, progress, start, fail, complete } = useNodeProgress({
+    mode: 'poll',
+  });
 
   const localDuration = data.localDuration || 5;
   const localLoop = data.localLoop ?? false;
@@ -29,7 +33,7 @@ export default function SoundEffectsNode({ id, data, selected }) {
 
     if (!prompt) return;
 
-    setIsLoading(true);
+    start();
     update({ outputAudio: null, isLoading: true });
 
     try {
@@ -44,7 +48,7 @@ export default function SoundEffectsNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail();
         return;
       }
 
@@ -57,22 +61,24 @@ export default function SoundEffectsNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else if (result.data?.generated?.length) {
         update({
           outputAudio: result.data.generated[0],
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else {
         update({ isLoading: false });
+        complete();
       }
     } catch (err) {
       console.error('Sound effects error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail();
     }
-  }, [id, data, update, localDuration, localLoop, localPromptInfluence]);
+  }, [id, data, update, localDuration, localLoop, localPromptInfluence, start, fail, complete]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -148,7 +154,13 @@ export default function SoundEffectsNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'ElevenLabs Sound Effects'} dotColor={ACCENT} selected={selected}>
+    <NodeShell 
+      label={data.label || 'ElevenLabs Sound Effects'} 
+      dotColor={ACCENT} 
+      selected={selected}
+      onGenerate={handleGenerate}
+      isGenerating={isActive}
+    >
 
       {/* ── Audio Output Handle (top) ── */}
       <div style={{
@@ -224,6 +236,9 @@ export default function SoundEffectsNode({ id, data, selected }) {
         {toggle('Loop Seamlessly', localLoop, (v) => update({ localLoop: v }))}
       </div>
 
+      {/* ── Progress ── */}
+      <NodeProgress isActive={isActive} progress={progress} label="Generating sound effect..." />
+
       {/* ── 3. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -247,7 +262,7 @@ export default function SoundEffectsNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 12,
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

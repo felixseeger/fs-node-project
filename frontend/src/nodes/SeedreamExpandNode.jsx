@@ -6,6 +6,8 @@ import { seedreamExpand, pollSeedreamExpandStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const PRESETS = [
   { label: 'Widen', left: 256, right: 256, top: 0, bottom: 0 },
@@ -17,7 +19,7 @@ const PRESETS = [
 ];
 
 export default function SeedreamExpandNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, complete, fail } = useNodeProgress(id, data);
 
   const localLeft = data.localLeft ?? 0;
   const localRight = data.localRight ?? 0;
@@ -44,7 +46,7 @@ export default function SeedreamExpandNode({ id, data, selected }) {
     if (!images?.length && data.localImage) images = [data.localImage];
     if (!images?.length) return;
 
-    setIsLoading(true);
+    start();
     update({ outputImage: null, isLoading: true });
 
     try {
@@ -68,14 +70,15 @@ export default function SeedreamExpandNode({ id, data, selected }) {
       const result = await seedreamExpand(params);
 
       if (result.error) {
+        fail();
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
         return;
       }
 
       if (result.data?.task_id) {
         const status = await pollSeedreamExpandStatus(result.data.task_id);
         const generated = status.data?.generated || [];
+        complete();
         update({
           outputImage: generated[0] || null,
           outputImages: generated,
@@ -83,6 +86,7 @@ export default function SeedreamExpandNode({ id, data, selected }) {
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete();
         update({
           outputImage: result.data.generated[0],
           outputImages: result.data.generated,
@@ -94,11 +98,10 @@ export default function SeedreamExpandNode({ id, data, selected }) {
       }
     } catch (err) {
       console.error('Seedream expand error:', err);
+      fail();
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
     }
-  }, [id, data, update, localLeft, localRight, localTop, localBottom, localSeed]);
+  }, [id, data, update, localLeft, localRight, localTop, localBottom, localSeed, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -164,7 +167,7 @@ export default function SeedreamExpandNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Seedream Expand'} dotColor="#a855f7" selected={selected}>
+    <NodeShell label={data.label || 'Seedream Expand'} dotColor="#a855f7" selected={selected} onGenerate={handleExpand} isGenerating={isActive}>
 
       {/* ── Image Output Handle (top, aligned with image-in) ── */}
       <div style={{
@@ -312,7 +315,10 @@ export default function SeedreamExpandNode({ id, data, selected }) {
         />
       </div>
 
-      {/* ── 6. Output ── */}
+      {/* ── 6. Progress ── */}
+      <NodeProgress isActive={isActive} />
+
+      {/* ── 7. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 6, marginTop: 10,
@@ -327,7 +333,7 @@ export default function SeedreamExpandNode({ id, data, selected }) {
         minHeight: 80, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{
             width: 28, height: 28, border: '3px solid #3a3a3a',
             borderTop: '3px solid #a855f7', borderRadius: '50%',

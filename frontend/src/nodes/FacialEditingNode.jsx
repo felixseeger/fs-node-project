@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import NodeProgress from './NodeProgress';
 import useNodeConnections from './useNodeConnections';
+import useNodeProgress from '../hooks/useNodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
 import { facialEditGenerate } from '../utils/api';
 import { sp, font, CATEGORY_COLORS } from './nodeTokens';
@@ -17,7 +19,7 @@ const FaceIcon = ({ style }) => (
 
 export default function FacialEditingNode({ id, data, selected }) {
   const { resolve, disconnectNode, update } = useNodeConnections(id, data);
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, complete, fail } = useNodeProgress(id);
 
   const localEmotion = data.emotion || 'Happiness';
   const localIntensity = data.intensity ?? 0.8;
@@ -38,7 +40,7 @@ export default function FacialEditingNode({ id, data, selected }) {
 
   const runGeneration = async () => {
     if (!inputImage) return;
-    setIsLoading(true);
+    start();
     try {
       const res = await facialEditGenerate({
         image: inputImage,
@@ -49,11 +51,13 @@ export default function FacialEditingNode({ id, data, selected }) {
       });
       if (res.image) {
         update({ outputImage: res.image });
+        complete(res.image);
+      } else {
+        complete();
       }
     } catch (e) {
       console.error('Facial editing failed:', e);
-    } finally {
-      setIsLoading(false);
+      fail(e.message || 'Facial editing failed');
     }
   };
 
@@ -68,6 +72,8 @@ export default function FacialEditingNode({ id, data, selected }) {
       dotColor="#ec4899"
       selected={selected}
       onDisconnect={disconnectNode}
+      onGenerate={runGeneration}
+      isGenerating={isActive}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: sp[4] }}>
         
@@ -171,16 +177,19 @@ export default function FacialEditingNode({ id, data, selected }) {
         {/* Generate Button (Manual Fallback) */}
         <button
           onClick={runGeneration}
-          disabled={isLoading || !inputImage}
+          disabled={isActive || !inputImage}
           style={{
             background: '#ec4899', color: '#fff', border: 'none', padding: '8px', borderRadius: 6,
-            fontWeight: 600, fontSize: 12, cursor: isLoading || !inputImage ? 'not-allowed' : 'pointer',
-            opacity: isLoading || !inputImage ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            fontWeight: 600, fontSize: 12, cursor: isActive || !inputImage ? 'not-allowed' : 'pointer',
+            opacity: isActive || !inputImage ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             marginTop: 8
           }}
         >
-          <FaceIcon /> {isLoading ? 'Editing Expression...' : 'Edit Expression'}
+          <FaceIcon /> {isActive ? 'Editing Expression...' : 'Edit Expression'}
         </button>
+
+        {/* Progress */}
+        <NodeProgress nodeId={id} />
 
         {/* Output Preview */}
         {outputImage && (

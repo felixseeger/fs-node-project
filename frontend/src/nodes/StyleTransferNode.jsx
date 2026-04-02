@@ -6,6 +6,8 @@ import { styleTransfer, pollStyleTransferStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const FLAVORS = [
   { value: 'faithful', label: 'Faithful' },
@@ -42,7 +44,7 @@ const PORTRAIT_BEAUTIFIERS = [
 ];
 
 export default function StyleTransferNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { status, isActive, start, complete, fail } = useNodeProgress(id);
 
   const localStyleStrength = data.localStyleStrength ?? 100;
   const localStructureStrength = data.localStructureStrength ?? 50;
@@ -78,7 +80,7 @@ export default function StyleTransferNode({ id, data, selected }) {
     if (!refImages?.length && data.localRefImage) refImages = [data.localRefImage];
     if (!refImages?.length) return;
 
-    setIsLoading(true);
+    start();
     update({ outputImage: null, isLoading: true });
 
     try {
@@ -106,15 +108,16 @@ export default function StyleTransferNode({ id, data, selected }) {
       const result = await styleTransfer(params);
 
       if (result.error) {
+        fail(result.error?.message || JSON.stringify(result.error));
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
         return;
       }
 
       const taskId = result.task_id || result.data?.task_id;
       if (taskId) {
-        const status = await pollStyleTransferStatus(taskId);
-        const generated = status.data?.generated || [];
+        const pollResult = await pollStyleTransferStatus(taskId);
+        const generated = pollResult.data?.generated || [];
+        complete();
         update({
           outputImage: generated[0] || null,
           outputImages: generated,
@@ -122,6 +125,7 @@ export default function StyleTransferNode({ id, data, selected }) {
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete();
         update({
           outputImage: result.data.generated[0],
           outputImages: result.data.generated,
@@ -129,6 +133,7 @@ export default function StyleTransferNode({ id, data, selected }) {
           outputError: null,
         });
       } else if (result.generated?.length) {
+        complete();
         update({
           outputImage: result.generated[0],
           outputImages: result.generated,
@@ -136,16 +141,16 @@ export default function StyleTransferNode({ id, data, selected }) {
           outputError: null,
         });
       } else {
+        complete();
         update({ isLoading: false });
       }
     } catch (err) {
       console.error('Style transfer error:', err);
+      fail(err.message);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
     }
   }, [id, data, update, localStyleStrength, localStructureStrength, localIsPortrait,
-    localPortraitStyle, localPortraitBeautifier, localFlavor, localEngine, localFixedGen]);
+    localPortraitStyle, localPortraitBeautifier, localFlavor, localEngine, localFixedGen, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -253,7 +258,7 @@ export default function StyleTransferNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Style Transfer'} dotColor="#ec4899" selected={selected}>
+    <NodeShell label={data.label || 'Style Transfer'} dotColor="#ec4899" selected={selected} onGenerate={handleTransfer} isGenerating={isActive}>
 
       {/* ── Image Output Handle (top, aligned with image-in) ── */}
       <div style={{
@@ -366,6 +371,9 @@ export default function StyleTransferNode({ id, data, selected }) {
         )}
       </div>
 
+      {/* ── Progress ── */}
+      <NodeProgress status={status} />
+
       {/* ── 8. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -381,7 +389,7 @@ export default function StyleTransferNode({ id, data, selected }) {
         minHeight: 80, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{
             width: 28, height: 28, border: '3px solid #3a3a3a',
             borderTop: '3px solid #ec4899', borderRadius: '50%',

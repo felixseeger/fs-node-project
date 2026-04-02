@@ -17,6 +17,8 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
     {
       title: 'Nodes & Selection',
       shortcuts: [
+        { keys: ['⌘', 'A'], label: 'Select all nodes' },
+        { keys: ['Esc'], label: 'Deselect all' },
         { keys: ['⌘', 'C'], label: 'Copy selected nodes' },
         { keys: ['⌘', 'V'], label: 'Paste nodes' },
         { keys: ['⌘', 'D'], label: 'Duplicate selected nodes' },

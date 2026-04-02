@@ -4,6 +4,8 @@ import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { voiceoverGenerate, pollVoiceoverStatus } from '../utils/api';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const COMMON_VOICES = [
   { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel (American, Female)' },
@@ -18,7 +20,7 @@ const COMMON_VOICES = [
 ];
 
 export default function VoiceoverNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { start, complete, fail, isActive, progress, status, message } = useNodeProgress();
 
   const localVoiceId = data.localVoiceId || '21m00Tcm4TlvDq8ikWAM';
   const localStability = data.localStability ?? 0.5;
@@ -43,7 +45,7 @@ export default function VoiceoverNode({ id, data, selected }) {
 
     if (!prompt) return;
 
-    setIsLoading(true);
+    start('Generating voiceover...');
     update({ outputAudio: null, isLoading: true });
 
     try {
@@ -59,8 +61,8 @@ export default function VoiceoverNode({ id, data, selected }) {
       const result = await voiceoverGenerate(params);
 
       if (result.error) {
+        fail(new Error(result.error?.message || JSON.stringify(result.error)));
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
         return;
       }
 
@@ -68,27 +70,29 @@ export default function VoiceoverNode({ id, data, selected }) {
       if (taskId) {
         const status = await pollVoiceoverStatus(taskId);
         const generated = status.data?.generated || [];
+        complete('Voiceover generated');
         update({
           outputAudio: generated[0] || null,
           isLoading: false,
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete('Voiceover generated');
         update({
           outputAudio: result.data.generated[0],
           isLoading: false,
           outputError: null,
         });
       } else {
+        complete('Voiceover generated');
         update({ isLoading: false });
       }
     } catch (err) {
       console.error('Voiceover error:', err);
+      fail(err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
     }
-  }, [id, data, update, localVoiceId, localStability, localSimilarityBoost, localSpeed, localUseSpeakerBoost]);
+  }, [id, data, update, localVoiceId, localStability, localSimilarityBoost, localSpeed, localUseSpeakerBoost, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -164,7 +168,7 @@ export default function VoiceoverNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'ElevenLabs Voiceover'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'ElevenLabs Voiceover'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Audio Output Handle (top) ── */}
       <div style={{
@@ -275,6 +279,11 @@ export default function VoiceoverNode({ id, data, selected }) {
         {toggle('Speaker Boost', localUseSpeakerBoost, (v) => update({ localUseSpeakerBoost: v }))}
       </div>
 
+      {/* ── Progress ── */}
+      {isActive && (
+        <NodeProgress progress={progress} status={status} message={message} />
+      )}
+
       {/* ── 3. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -290,7 +299,7 @@ export default function VoiceoverNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 12,
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',
@@ -308,7 +317,13 @@ export default function VoiceoverNode({ id, data, selected }) {
         )}
       </div>
 
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
     </NodeShell>
   );
 }

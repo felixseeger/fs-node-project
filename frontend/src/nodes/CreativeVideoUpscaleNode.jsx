@@ -1,8 +1,10 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import NodeProgress from './NodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
 import { videoUpscaleGenerate, pollVideoUpscaleStatus } from '../utils/api';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const RESOLUTIONS = [
   { value: '1k', label: '1K' },
@@ -16,7 +18,7 @@ const FLAVORS = [
 ];
 
 export default function CreativeVideoUpscaleNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, complete, fail, progress } = useNodeProgress();
 
   const localMode = data.localMode || 'standard';
   const localResolution = data.localResolution || '2k';
@@ -44,7 +46,7 @@ export default function CreativeVideoUpscaleNode({ id, data, selected }) {
 
     if (!videos?.length) return;
 
-    setIsLoading(true);
+    start();
     update({ outputVideo: null, isLoading: true });
 
     try {
@@ -61,8 +63,8 @@ export default function CreativeVideoUpscaleNode({ id, data, selected }) {
       const result = await videoUpscaleGenerate(localMode, params);
 
       if (result.error) {
+        fail(result.error?.message || JSON.stringify(result.error));
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
         return;
       }
 
@@ -70,6 +72,7 @@ export default function CreativeVideoUpscaleNode({ id, data, selected }) {
       if (taskId) {
         const status = await pollVideoUpscaleStatus(taskId);
         const generated = status.data?.generated || [];
+        complete();
         update({
           outputVideo: generated[0] || null,
           outputVideos: generated,
@@ -77,6 +80,7 @@ export default function CreativeVideoUpscaleNode({ id, data, selected }) {
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete();
         update({
           outputVideo: result.data.generated[0],
           outputVideos: result.data.generated,
@@ -84,15 +88,15 @@ export default function CreativeVideoUpscaleNode({ id, data, selected }) {
           outputError: null,
         });
       } else {
+        complete();
         update({ isLoading: false });
       }
     } catch (err) {
       console.error('Video upscaling error:', err);
+      fail(err.message);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
     }
-  }, [id, data, update, localMode, localResolution, localFlavor, localCreativity, localSharpen, localSmartGrain, localFpsBoost]);
+  }, [id, data, update, localMode, localResolution, localFlavor, localCreativity, localSharpen, localSmartGrain, localFpsBoost, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -178,7 +182,7 @@ export default function CreativeVideoUpscaleNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Creative Video Upscaler'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'Creative Video Upscaler'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -291,6 +295,9 @@ export default function CreativeVideoUpscaleNode({ id, data, selected }) {
         {toggle('FPS Boost', localFpsBoost, (v) => update({ localFpsBoost: v }))}
       </div>
 
+      {/* ── Progress ── */}
+      <NodeProgress progress={progress} isActive={isActive} />
+
       {/* ── 3. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -306,7 +313,7 @@ export default function CreativeVideoUpscaleNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

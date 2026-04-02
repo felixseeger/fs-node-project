@@ -421,11 +421,11 @@ function NewWorkflowModal({ onClose, onSelect }) {
 export default function WorkflowsPage({ onCreateWorkflow, workflows = [] }) {
   const [showNewModal, setShowNewModal] = useState(false);
 
-  const handleModalSelect = (type) => {
+  const handleModalSelect = (type, aiPrompt, aiMode) => {
     setShowNewModal(false);
     if (type === 'scratch' || type === 'ai') {
       const name = `Workflow ${workflows.length + 1}`;
-      onCreateWorkflow(name);
+      onCreateWorkflow(name, null, { type, aiPrompt, aiMode });
     }
     // 'template' could open a template picker in the future
     if (type === 'template') {
@@ -865,6 +865,41 @@ export default function WorkflowsPage({ onCreateWorkflow, workflows = [] }) {
               </div>
               <p style={{ fontSize: 12, color: '#888', lineHeight: 1.5, margin: 0 }}>
                 Input, text, image, vision analysis, generation, and response nodes ready to use.
+              </p>
+            </div>
+
+            {/* System Test Workflow */}
+            <div
+              onClick={() => onCreateWorkflow('System Test Workflow', null, { type: 'system-test' })}
+              style={{
+                background: '#141414',
+                border: '1px solid #2a2a2a',
+                borderRadius: 14,
+                padding: 24,
+                cursor: 'pointer',
+                transition: 'border-color 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ef4444'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2a'; }}
+            >
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: 'rgba(239,68,68,0.1)',
+                border: '1px solid rgba(239,68,68,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 16,
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                  <line x1="8" y1="2" x2="8" y2="18"></line>
+                  <line x1="16" y1="6" x2="16" y2="22"></line>
+                </svg>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#e0e0e0', marginBottom: 8 }}>
+                System Test Workflow
+              </div>
+              <p style={{ fontSize: 12, color: '#888', lineHeight: 1.5, margin: 0 }}>
+                A massive workflow containing one of every available node to verify the system works.
               </p>
             </div>
 

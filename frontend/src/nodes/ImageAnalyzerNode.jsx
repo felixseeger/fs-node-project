@@ -4,6 +4,7 @@ import NodeShell from './NodeShell';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
 import { analyzeImage, uploadImages } from '../utils/api';
+import { compressImageBase64 } from '../utils/imageUtils';
 
 export default function ImageAnalyzerNode({ id, data, selected }) {
   const { update, disconnectNode } = useNodeConnections(id, data);
@@ -33,7 +34,7 @@ export default function ImageAnalyzerNode({ id, data, selected }) {
   const handleAnalyze = useCallback(async () => {
     // Gather images: local images + connected images
     const connectedImages = data.resolveInput?.(id, 'image-in') || [];
-    const allImages = [...localImages, ...(Array.isArray(connectedImages) ? connectedImages : [connectedImages].filter(Boolean))];
+    let allImages = [...localImages, ...(Array.isArray(connectedImages) ? connectedImages : [connectedImages].filter(Boolean))];
     if (allImages.length === 0) {
       data.onAnalyzeComplete?.(id);
       return;
@@ -46,6 +47,7 @@ export default function ImageAnalyzerNode({ id, data, selected }) {
     update({ analysisResult: '' });
 
     try {
+      allImages = await Promise.all(allImages.map(img => compressImageBase64(img)));
       const result = await analyzeImage({ images: allImages, prompt, systemDirections });
       if (result.error) {
         update({ analysisResult: `Error: ${result.error}` });

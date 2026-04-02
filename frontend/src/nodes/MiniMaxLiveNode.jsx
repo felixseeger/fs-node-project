@@ -6,6 +6,8 @@ import { minimaxLiveGenerate, pollMiniMaxLiveStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const CAMERA_MOVEMENTS = [
   { value: '', label: 'None' },
@@ -27,7 +29,9 @@ const CAMERA_MOVEMENTS = [
 ];
 
 export default function MiniMaxLiveNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    progress, status, message, start, setProgress, complete, fail, isActive,
+  } = useNodeProgress();
 
   const localPromptOptimizer = data.localPromptOptimizer ?? true;
   const localCameraMovement = data.localCameraMovement || '';
@@ -55,8 +59,8 @@ export default function MiniMaxLiveNode({ id, data, selected }) {
 
     if (!images?.length) return;
 
-    setIsLoading(true);
-    update({ outputVideo: null, isLoading: true });
+    start('Submitting video request...');
+    update({ outputVideo: null, outputError: null });
 
     try {
       // Append camera movement to the prompt if one is selected and not already in the prompt
@@ -74,38 +78,38 @@ export default function MiniMaxLiveNode({ id, data, selected }) {
       const result = await minimaxLiveGenerate(params);
 
       if (result.error) {
-        update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(result.error?.message || JSON.stringify(result.error));
+        update({ outputError: result.error?.message || JSON.stringify(result.error) });
         return;
       }
 
       const taskId = result.task_id || result.data?.task_id;
       if (taskId) {
+        setProgress(30, 'Processing video...');
         const status = await pollMiniMaxLiveStatus(taskId);
         const generated = status.data?.generated || [];
+        complete('Video generation complete');
         update({
           outputVideo: generated[0] || null,
           outputVideos: generated,
-          isLoading: false,
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete('Video generation complete');
         update({
           outputVideo: result.data.generated[0],
           outputVideos: result.data.generated,
-          isLoading: false,
           outputError: null,
         });
       } else {
-        update({ isLoading: false });
+        fail('No video generated');
       }
     } catch (err) {
       console.error('MiniMax Live generation error:', err);
-      update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err);
+      update({ outputError: err.message });
     }
-  }, [id, data, update, localPromptOptimizer, localCameraMovement]);
+  }, [id, data, update, localPromptOptimizer, localCameraMovement, start, setProgress, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -181,7 +185,7 @@ export default function MiniMaxLiveNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'MiniMax Video 01 Live'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'MiniMax Video 01 Live'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -251,6 +255,9 @@ export default function MiniMaxLiveNode({ id, data, selected }) {
         {toggle('Prompt Optimizer', localPromptOptimizer, (v) => update({ localPromptOptimizer: v }))}
       </div>
 
+      {/* ── Progress ── */}
+      <NodeProgress progress={progress} status={status} message={message} />
+
       {/* ── 4. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -266,7 +273,7 @@ export default function MiniMaxLiveNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

@@ -6,6 +6,8 @@ import { ltxVideo2ProGenerate, pollLtxVideo2ProStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const RESOLUTIONS = [
   { value: '1080p', label: '1080p' },
@@ -25,7 +27,7 @@ const FPS_OPTIONS = [
 ];
 
 export default function LtxVideo2ProNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { progress, status, message, start, complete, fail, isActive } = useNodeProgress();
 
   const localResolution = data.localResolution || '1080p';
   const localDuration = data.localDuration || 6;
@@ -54,7 +56,7 @@ export default function LtxVideo2ProNode({ id, data, selected }) {
     let images = data.resolveInput?.(id, 'image-in');
     if (!images?.length && data.localImage) images = [data.localImage];
 
-    setIsLoading(true);
+    start('Initializing generation...');
     update({ outputVideo: null, isLoading: true });
 
     try {
@@ -76,15 +78,20 @@ export default function LtxVideo2ProNode({ id, data, selected }) {
       const result = await ltxVideo2ProGenerate(mode, params);
 
       if (result.error) {
+        fail(new Error(result.error?.message || JSON.stringify(result.error)));
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
         return;
       }
 
       const taskId = result.task_id || result.data?.task_id;
       if (taskId) {
-        const status = await pollLtxVideo2ProStatus(mode, taskId);
-        const generated = status.data?.generated || [];
+        const pollResult = await pollLtxVideo2ProStatus(mode, taskId, (progressData) => {
+          if (progressData.progress !== undefined) {
+            start(`Processing... ${Math.round(progressData.progress)}%`);
+          }
+        });
+        const generated = pollResult.data?.generated || [];
+        complete('Video generated successfully');
         update({
           outputVideo: generated[0] || null,
           outputVideos: generated,
@@ -92,6 +99,7 @@ export default function LtxVideo2ProNode({ id, data, selected }) {
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete('Video generated successfully');
         update({
           outputVideo: result.data.generated[0],
           outputVideos: result.data.generated,
@@ -99,15 +107,15 @@ export default function LtxVideo2ProNode({ id, data, selected }) {
           outputError: null,
         });
       } else {
-        update({ isLoading: false });
+        fail(new Error('No video was generated'));
+        update({ isLoading: false, outputError: 'No video was generated' });
       }
     } catch (err) {
       console.error('LTX Video 2.0 Pro generation error:', err);
+      fail(err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
     }
-  }, [id, data, update, localResolution, localDuration, localFps, localGenerateAudio, localSeed]);
+  }, [id, data, update, localResolution, localDuration, localFps, localGenerateAudio, localSeed, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -193,7 +201,7 @@ export default function LtxVideo2ProNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'LTX Video 2.0 Pro'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'LTX Video 2.0 Pro'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -287,6 +295,11 @@ export default function LtxVideo2ProNode({ id, data, selected }) {
         </div>
       </div>
 
+      {/* ── Progress ── */}
+      {isActive && (
+        <NodeProgress progress={progress} status={status} message={message} />
+      )}
+
       {/* ── 4. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -302,7 +315,7 @@ export default function LtxVideo2ProNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

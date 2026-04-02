@@ -6,6 +6,8 @@ import { kling3OmniGenerate, pollKling3OmniStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const MODELS = [
   { value: 'std', label: 'Standard' },
@@ -25,7 +27,9 @@ const DURATIONS = [
 ];
 
 export default function Kling3OmniNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    progress, status, message, start, setProgress, complete, fail, isActive,
+  } = useNodeProgress();
 
   const localModel = data.localModel || 'std';
   const localDuration = data.localDuration || 5;
@@ -65,8 +69,8 @@ export default function Kling3OmniNode({ id, data, selected }) {
 
     if (!prompt && !referenceVideos?.length) return;
 
-    setIsLoading(true);
-    update({ outputVideo: null, isLoading: true });
+    start('Submitting video request...');
+    update({ outputVideo: null, outputError: null });
 
     try {
       const params = {
@@ -99,38 +103,58 @@ export default function Kling3OmniNode({ id, data, selected }) {
       const result = await kling3OmniGenerate(localModel, params);
 
       if (result.error) {
-        update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(result.error?.message || JSON.stringify(result.error));
+        update({ outputError: result.error?.message || JSON.stringify(result.error) });
         return;
       }
 
       const taskId = result.task_id || result.data?.task_id;
+      const isReferenceVideo = !!referenceVideos?.length;
+      
       if (taskId) {
-        const status = await pollKling3OmniStatus(taskId, !!referenceVideos?.length);
-        const generated = status.data?.generated || [];
-        update({
-          outputVideo: generated[0] || null,
-          outputVideos: generated,
-          isLoading: false,
-          outputError: null,
-        });
+        // Custom polling with progress updates
+        setProgress(20, 'Initializing video generation...');
+        const maxAttempts = 120;
+        const intervalMs = 3000;
+        
+        for (let i = 0; i < maxAttempts; i++) {
+          setProgress(20 + Math.min(75, (i / maxAttempts) * 75), `Processing video... (${i + 1}/${maxAttempts})`);
+          
+          const statusData = await pollKling3OmniStatus(taskId, isReferenceVideo, 1, intervalMs);
+          
+          if (statusData.data?.status === 'COMPLETED') {
+            const generated = statusData.data?.generated || [];
+            complete('Video generation complete');
+            update({
+              outputVideo: generated[0] || null,
+              outputVideos: generated,
+              outputError: null,
+            });
+            return;
+          }
+          
+          if (statusData.data?.status === 'FAILED') {
+            throw new Error('Kling 3 Omni generation failed');
+          }
+        }
+        
+        throw new Error('Polling timeout');
       } else if (result.data?.generated?.length) {
+        complete('Video generation complete');
         update({
           outputVideo: result.data.generated[0],
           outputVideos: result.data.generated,
-          isLoading: false,
           outputError: null,
         });
       } else {
-        update({ isLoading: false });
+        complete('Video generation complete');
       }
     } catch (err) {
       console.error('Kling 3 Omni generation error:', err);
-      update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err.message || 'Generation failed');
+      update({ outputError: err.message });
     }
-  }, [id, data, update, localModel, localDuration, localAspectRatio, localCfgScale, localGenerateAudio]);
+  }, [id, data, update, localModel, localDuration, localAspectRatio, localCfgScale, localGenerateAudio, start, setProgress, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -216,7 +240,7 @@ export default function Kling3OmniNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Kling 3 Omni'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'Kling 3 Omni'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -360,7 +384,12 @@ export default function Kling3OmniNode({ id, data, selected }) {
         {toggle('Generate Audio', localGenerateAudio, (v) => update({ localGenerateAudio: v }))}
       </div>
 
-      {/* ── 6. Output ── */}
+      {/* ── 6. Progress ── */}
+      {(isActive || status === 'failed' || status === 'completed') && (
+        <NodeProgress progress={progress} status={status} message={message} />
+      )}
+
+      {/* ── 7. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 6, marginTop: 10,
@@ -375,7 +404,7 @@ export default function Kling3OmniNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

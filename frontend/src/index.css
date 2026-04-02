@@ -28,12 +28,40 @@ html, body, #root {
   fill: #e0e0e0 !important;
 }
 
+/* ── Selection Styles ── */
+.react-flow__selection {
+  background: rgba(59, 130, 246, 0.08) !important;
+  border: 1px solid #3b82f6 !important;
+  border-radius: 4px;
+}
+
+.react-flow__nodeselection-rect {
+  background: rgba(59, 130, 246, 0.08) !important;
+  border: 1px solid #3b82f6 !important;
+  border-radius: 4px;
+}
+
 .react-flow__edge.selected .react-flow__edge-path {
+  stroke: #3b82f6 !important;
   stroke-width: 3px;
 }
 
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 3px;
+  stroke: #555 !important;
+}
+
+.react-flow__handle {
+  width: 10px !important;
+  height: 10px !important;
+  border: 2px solid #1a1a1a !important;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
 .react-flow__handle:hover {
-  transform: scale(1.3);
+  transform: scale(1.4);
+  border-width: 1px !important;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
 }
 
 /* ── Node shared animations ── */

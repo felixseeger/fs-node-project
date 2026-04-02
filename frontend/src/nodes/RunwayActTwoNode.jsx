@@ -4,6 +4,8 @@ import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { runwayActTwoGenerate, pollRunwayActTwoStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const RATIOS = [
   { value: '1280:720', label: '16:9' },
@@ -15,7 +17,7 @@ const RATIOS = [
 ];
 
 export default function RunwayActTwoNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, fail, complete } = useNodeProgress();
 
   const localRatio = data.localRatio || '1280:720';
   const localBodyControl = data.localBodyControl !== undefined ? data.localBodyControl : true;
@@ -46,7 +48,7 @@ export default function RunwayActTwoNode({ id, data, selected }) {
 
     if (!characterImages?.length || !referenceVideos?.length) return;
 
-    setIsLoading(true);
+    start();
     update({ outputVideo: null, isLoading: true });
 
     try {
@@ -77,7 +79,7 @@ export default function RunwayActTwoNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail();
         return;
       }
 
@@ -91,6 +93,7 @@ export default function RunwayActTwoNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else if (result.data?.generated?.length) {
         update({
           outputVideo: result.data.generated[0],
@@ -98,16 +101,17 @@ export default function RunwayActTwoNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else {
         update({ isLoading: false });
+        fail();
       }
     } catch (err) {
       console.error('Runway Act Two generation error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail();
     }
-  }, [id, data, update, localRatio, localBodyControl, localExpressionIntensity, localSeed]);
+  }, [id, data, update, localRatio, localBodyControl, localExpressionIntensity, localSeed, start, fail, complete]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -176,7 +180,13 @@ export default function RunwayActTwoNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Runway Act Two'} dotColor={ACCENT} selected={selected}>
+    <NodeShell
+      label={data.label || 'Runway Act Two'}
+      dotColor={ACCENT}
+      selected={selected}
+      onGenerate={handleGenerate}
+      isGenerating={isActive}
+    >
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -271,6 +281,9 @@ export default function RunwayActTwoNode({ id, data, selected }) {
         </div>
       </div>
 
+      {/* ── Progress ── */}
+      <NodeProgress nodeId={id} />
+
       {/* ── 4. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -286,7 +299,7 @@ export default function RunwayActTwoNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

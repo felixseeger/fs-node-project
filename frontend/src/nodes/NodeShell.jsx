@@ -1,15 +1,20 @@
 import { surface, border, sp, radius, font } from './nodeTokens';
+import NodeGenerateButton from './NodeGenerateButton';
 
 /**
  * Node wrapper shell with category-aware visual identity.
  *
  * Props:
- *  - label:    Node display name
- *  - dotColor: Category accent color (drives header tint + left border)
- *  - selected: Whether the node is currently selected
- *  - children: Node body content
+ *  - label:         Node display name
+ *  - dotColor:      Category accent color (drives header tint + left border)
+ *  - selected:      Whether the node is currently selected
+ *  - children:      Node body content
+ *  - onDisconnect:  Callback to disconnect all connections
+ *  - onEdit:        Callback to edit the node
+ *  - onGenerate:    Callback to generate/regenerate (shows generate button)
+ *  - isGenerating:  Whether generation is in progress
  */
-export default function NodeShell({ label, dotColor, selected, children, onDisconnect, onEdit }) {
+export default function NodeShell({ label, dotColor, selected, children, onDisconnect, onEdit, onGenerate, isGenerating }) {
   const accentAlpha = dotColor ? `${dotColor}14` : 'transparent'; // 8% opacity hex
 
   return (
@@ -18,11 +23,15 @@ export default function NodeShell({ label, dotColor, selected, children, onDisco
         background: surface.base,
         border: `1px solid ${selected ? border.active : border.subtle}`,
         borderLeft: dotColor ? `3px solid ${dotColor}` : `1px solid ${selected ? border.active : border.subtle}`,
+        boxShadow: selected 
+          ? `0 0 0 1px ${border.active}, 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 15px ${border.active}40` 
+          : '0 4px 12px rgba(0, 0, 0, 0.25)',
         borderRadius: radius.lg,
         minWidth: 240,
         maxWidth: 380,
         fontFamily: 'Inter, system-ui, sans-serif',
-        transition: 'border-color 0.12s',
+        transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+        zIndex: selected ? 10 : 1,
       }}
       onMouseEnter={(e) => {
         if (!selected) {
@@ -66,7 +75,15 @@ export default function NodeShell({ label, dotColor, selected, children, onDisco
         </div>
 
         
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {/* Generate button - appears for AI nodes */}
+          {onGenerate && (
+            <NodeGenerateButton 
+              onGenerate={onGenerate} 
+              isGenerating={isGenerating} 
+              size="sm"
+            />
+          )}
           {onEdit && (
             <button
               onClick={(e) => {

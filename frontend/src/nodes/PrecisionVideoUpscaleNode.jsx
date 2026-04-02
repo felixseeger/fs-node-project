@@ -1,6 +1,8 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
 import { precisionVideoUpscaleGenerate, pollPrecisionVideoUpscaleStatus } from '../utils/api';
 
@@ -11,7 +13,7 @@ const RESOLUTIONS = [
 ];
 
 export default function PrecisionVideoUpscaleNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, progress, message, start, complete, fail } = useNodeProgress();
 
   const localResolution = data.localResolution || '2k';
   const localStrength = data.localStrength ?? 60;
@@ -37,7 +39,7 @@ export default function PrecisionVideoUpscaleNode({ id, data, selected }) {
 
     if (!videos?.length) return;
 
-    setIsLoading(true);
+    start('Upscaling video...');
     update({ outputVideo: null, isLoading: true });
 
     try {
@@ -54,7 +56,7 @@ export default function PrecisionVideoUpscaleNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(result.error?.message || 'Generation failed');
         return;
       }
 
@@ -68,6 +70,7 @@ export default function PrecisionVideoUpscaleNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else if (result.data?.generated?.length) {
         update({
           outputVideo: result.data.generated[0],
@@ -75,16 +78,17 @@ export default function PrecisionVideoUpscaleNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else {
         update({ isLoading: false });
+        complete();
       }
     } catch (err) {
       console.error('Precision Video upscaling error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err.message);
     }
-  }, [id, data, update, localResolution, localStrength, localSharpen, localSmartGrain, localFpsBoost]);
+  }, [id, data, update, localResolution, localStrength, localSharpen, localSmartGrain, localFpsBoost, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -170,7 +174,13 @@ export default function PrecisionVideoUpscaleNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Precision Video Upscaler'} dotColor={ACCENT} selected={selected}>
+    <NodeShell
+      label={data.label || 'Precision Video Upscaler'}
+      dotColor={ACCENT}
+      selected={selected}
+      onGenerate={handleGenerate}
+      isGenerating={isActive}
+    >
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -266,6 +276,9 @@ export default function PrecisionVideoUpscaleNode({ id, data, selected }) {
         {toggle('FPS Boost', localFpsBoost, (v) => update({ localFpsBoost: v }))}
       </div>
 
+      {/* ── Progress ── */}
+      <NodeProgress isActive={isActive} progress={progress} message={message} />
+
       {/* ── 3. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -281,7 +294,7 @@ export default function PrecisionVideoUpscaleNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

@@ -3,7 +3,9 @@ import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
 import useNodeConnections from './useNodeConnections';
+import useNodeProgress from '../hooks/useNodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
 import { generateImage, generateKora, pollStatus } from '../utils/api';
 
@@ -14,7 +16,26 @@ const NANO_RESOLUTIONS = ['1K', '2K', '4K'];
 
 export default function GeneratorNode({ id, data, selected }) {
   const { update, disconnectNode } = useNodeConnections(id, data);
-  const [isLoading, setIsLoading] = useState(false);
+  
+  // Progress tracking
+  const {
+    progress,
+    status,
+    message,
+    start,
+    setProgress,
+    complete,
+    fail,
+    isActive,
+  } = useNodeProgress({
+    onProgress: (state) => {
+      update({
+        executionProgress: state.progress,
+        executionStatus: state.status,
+        executionMessage: state.message,
+      });
+    },
+  });
 
   const isKora = data.generatorType === 'kora';
   const showImageIn = !isKora;
@@ -40,8 +61,8 @@ export default function GeneratorNode({ id, data, selected }) {
     const prompt = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt || '';
     if (!prompt) return;
 
-    setIsLoading(true);
-    update({ outputImage: null, isLoading: true });
+    start('Submitting generation request...');
+    update({ outputImage: null, outputError: null });
 
     try {
       const params = { prompt };
@@ -65,39 +86,43 @@ export default function GeneratorNode({ id, data, selected }) {
       const result = await genFn(params);
 
       if (result.error) {
-        update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(new Error(result.error?.message || 'Generation failed'));
+        update({ outputError: result.error?.message || JSON.stringify(result.error) });
         return;
       }
 
       if (result.data?.task_id) {
-        const status = await pollStatus(result.data.task_id);
-        const generated = status.data?.generated || [];
+        // Poll with progress tracking
+        let lastProgress = 10;
+        const statusResult = await pollStatus(result.data.task_id, 90, 2000, (attempt, maxAttempts) => {
+          // Calculate progress based on polling attempt
+          lastProgress = 10 + Math.min(85, (attempt / maxAttempts) * 85);
+          setProgress(lastProgress, `Generating... (${attempt}/${maxAttempts})`);
+        });
+        
+        const generated = statusResult.data?.generated || [];
+        complete('Generation complete');
         update({
           outputImage: generated[0] || null,
           outputImages: generated,
-          isLoading: false,
           inputPrompt: prompt,
-          outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete('Done');
         update({
           outputImage: result.data.generated[0],
           outputImages: result.data.generated,
-          isLoading: false,
           inputPrompt: prompt,
-          outputError: null,
         });
       } else {
-        update({ isLoading: false });
+        complete('No images generated');
       }
     } catch (err) {
       console.error('Generation error:', err);
-      update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err);
+      update({ outputError: err.message });
     }
-  }, [id, data, update, isKora, showImageIn, localAspect, localResolution, localNumImages]);
+  }, [id, data, update, isKora, showImageIn, localAspect, localResolution, localNumImages, start, setProgress, complete, fail]);
 
   // Listen for external trigger from global Generate button
   const lastTrigger = useRef(null);
@@ -211,6 +236,8 @@ export default function GeneratorNode({ id, data, selected }) {
       dotColor={isKora ? '#8b5cf6' : '#ec4899'}
       selected={selected}
       onDisconnect={disconnectNode}
+      onGenerate={handleGenerate}
+      isGenerating={isActive}
     >
 
       {/* ── Image Output Handle (top, aligned with image-in) ── */}
@@ -322,6 +349,16 @@ export default function GeneratorNode({ id, data, selected }) {
           <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>Generated Output</span>
         </div>
       </div>
+      
+      {/* Progress indicator */}
+      {isActive && (
+        <NodeProgress
+          progress={progress}
+          status={status}
+          message={message}
+        />
+      )}
+      
       <div style={{
         background: '#1a1a1a', borderRadius: 6,
         border: '1px solid #3a3a3a',
@@ -329,7 +366,7 @@ export default function GeneratorNode({ id, data, selected }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{
             width: 28, height: 28, border: '3px solid #3a3a3a',
             borderTop: '3px solid #3b82f6', borderRadius: '50%',

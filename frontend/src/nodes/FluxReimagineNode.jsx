@@ -1,11 +1,13 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import NodeProgress from './NodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
 import { reimagineFlux } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const IMAGINATIONS = [
   { value: 'subtle', label: 'Subtle', desc: 'Close to original' },
@@ -28,7 +30,16 @@ const ASPECT_RATIOS = [
 ];
 
 export default function FluxReimagineNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  // Progress tracking
+  const {
+    progress,
+    status,
+    message,
+    start,
+    complete,
+    fail,
+    isActive,
+  } = useNodeProgress();
 
   const localImagination = data.localImagination || 'vivid';
   const localAspect = data.localAspect || 'original';
@@ -52,8 +63,8 @@ export default function FluxReimagineNode({ id, data, selected }) {
     if (!images?.length && data.localImage) images = [data.localImage];
     if (!images?.length) return;
 
-    setIsLoading(true);
-    update({ outputImage: null, isLoading: true });
+    start('Reimagining image...');
+    update({ outputImage: null, outputError: null });
 
     try {
       let imageBase64 = images[0];
@@ -73,26 +84,25 @@ export default function FluxReimagineNode({ id, data, selected }) {
       const result = await reimagineFlux(params);
 
       if (result.error) {
-        update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(new Error(result.error?.message || 'Reimagine failed'));
+        update({ outputError: result.error?.message || JSON.stringify(result.error) });
         return;
       }
 
       // Synchronous — results come back directly
       const generated = result.data?.generated || result.generated || [];
+      complete('Reimagine complete');
       update({
         outputImage: generated[0] || null,
         outputImages: generated,
-        isLoading: false,
         outputError: null,
       });
     } catch (err) {
       console.error('Reimagine error:', err);
-      update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err);
+      update({ outputError: err.message });
     }
-  }, [id, data, update, localImagination, localAspect]);
+  }, [id, data, update, localImagination, localAspect, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -166,7 +176,13 @@ export default function FluxReimagineNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Flux Reimagine'} dotColor="#10b981" selected={selected}>
+    <NodeShell 
+      label={data.label || 'Flux Reimagine'} 
+      dotColor="#10b981" 
+      selected={selected}
+      onGenerate={handleReimagine}
+      isGenerating={isActive}
+    >
 
       {/* ── Image Output Handle (top, aligned with image-in) ── */}
       <div style={{
@@ -269,12 +285,22 @@ export default function FluxReimagineNode({ id, data, selected }) {
           <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>Reimagined Output</span>
         </div>
       </div>
+      
+      {/* Progress indicator */}
+      {isActive && (
+        <NodeProgress
+          progress={progress}
+          status={status}
+          message={message}
+        />
+      )}
+      
       <div style={{
         background: '#1a1a1a', borderRadius: 6, border: '1px solid #3a3a3a',
         minHeight: 80, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{
             width: 28, height: 28, border: '3px solid #3a3a3a',
             borderTop: '3px solid #10b981', borderRadius: '50%',

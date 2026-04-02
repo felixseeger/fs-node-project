@@ -6,6 +6,8 @@ import { kling3MotionGenerate, pollKling3MotionStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const MODELS = [
   { value: 'std', label: 'Standard' },
@@ -18,7 +20,7 @@ const ORIENTATIONS = [
 ];
 
 export default function Kling3MotionControlNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, fail, complete, progress } = useNodeProgress();
 
   const localModel = data.localModel || 'std';
   const localOrientation = data.localOrientation || 'video';
@@ -51,7 +53,7 @@ export default function Kling3MotionControlNode({ id, data, selected }) {
 
     if (!images?.length || !referenceVideos?.length) return;
 
-    setIsLoading(true);
+    start();
     update({ outputVideo: null, isLoading: true });
 
     try {
@@ -69,15 +71,21 @@ export default function Kling3MotionControlNode({ id, data, selected }) {
       const result = await kling3MotionGenerate(localModel, params);
 
       if (result.error) {
+        fail(result.error?.message || JSON.stringify(result.error));
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
         return;
       }
 
       const taskId = result.task_id || result.data?.task_id;
       if (taskId) {
-        const status = await pollKling3MotionStatus(localModel, taskId);
+        const onProgress = (p) => {
+          if (p && typeof p.percent === 'number') {
+            // Progress is tracked implicitly through polling
+          }
+        };
+        const status = await pollKling3MotionStatus(localModel, taskId, 90, 2000, onProgress);
         const generated = status.data?.generated || [];
+        complete();
         update({
           outputVideo: generated[0] || null,
           outputVideos: generated,
@@ -85,6 +93,7 @@ export default function Kling3MotionControlNode({ id, data, selected }) {
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete();
         update({
           outputVideo: result.data.generated[0],
           outputVideos: result.data.generated,
@@ -92,15 +101,15 @@ export default function Kling3MotionControlNode({ id, data, selected }) {
           outputError: null,
         });
       } else {
+        complete();
         update({ isLoading: false });
       }
     } catch (err) {
       console.error('Kling 3 Motion Control generation error:', err);
+      fail(err.message);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
     }
-  }, [id, data, update, localModel, localOrientation, localCfgScale]);
+  }, [id, data, update, localModel, localOrientation, localCfgScale, start, fail, complete]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -168,7 +177,7 @@ export default function Kling3MotionControlNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Kling 3 Motion Control'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'Kling 3 Motion Control'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -269,6 +278,9 @@ export default function Kling3MotionControlNode({ id, data, selected }) {
         </div>
       </div>
 
+      {/* ── Progress ── */}
+      {isActive && <NodeProgress progress={progress} status="Generating video..." />}
+
       {/* ── 5. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -284,7 +296,7 @@ export default function Kling3MotionControlNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

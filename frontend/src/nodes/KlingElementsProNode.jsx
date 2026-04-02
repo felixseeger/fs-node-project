@@ -6,6 +6,8 @@ import { klingElementsProGenerate, pollKlingElementsProStatus } from '../utils/a
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const DURATIONS = [
   { value: '5', label: '5s' },
@@ -19,7 +21,7 @@ const ASPECT_RATIOS = [
 ];
 
 export default function KlingElementsProNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { progress, status, message, start, fail, complete, isActive } = useNodeProgress();
 
   const localDuration = data.localDuration || '5';
   const localAspectRatio = data.localAspectRatio || 'widescreen_16_9';
@@ -46,7 +48,7 @@ export default function KlingElementsProNode({ id, data, selected }) {
 
     if (!images?.length) return;
 
-    setIsLoading(true);
+    start('Initializing...');
     update({ outputVideo: null, isLoading: true });
 
     try {
@@ -67,15 +69,17 @@ export default function KlingElementsProNode({ id, data, selected }) {
       const result = await klingElementsProGenerate(params);
 
       if (result.error) {
-        update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        const errorMsg = result.error?.message || JSON.stringify(result.error);
+        update({ isLoading: false, outputError: errorMsg });
+        fail(new Error(errorMsg));
         return;
       }
 
       const taskId = result.task_id || result.data?.task_id;
       if (taskId) {
-        const status = await pollKlingElementsProStatus(taskId);
-        const generated = status.data?.generated || [];
+        const pollResult = await pollKlingElementsProStatus(taskId);
+        const generated = pollResult.data?.generated || [];
+        complete('Video generated');
         update({
           outputVideo: generated[0] || null,
           outputVideos: generated,
@@ -83,6 +87,7 @@ export default function KlingElementsProNode({ id, data, selected }) {
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete('Video generated');
         update({
           outputVideo: result.data.generated[0],
           outputVideos: result.data.generated,
@@ -94,11 +99,10 @@ export default function KlingElementsProNode({ id, data, selected }) {
       }
     } catch (err) {
       console.error('Kling Elements Pro generation error:', err);
+      fail(err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
     }
-  }, [id, data, update, localDuration, localAspectRatio]);
+  }, [id, data, update, localDuration, localAspectRatio, start, fail, complete]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -166,7 +170,13 @@ export default function KlingElementsProNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Kling Elements Pro'} dotColor={ACCENT} selected={selected}>
+    <NodeShell
+      label={data.label || 'Kling Elements Pro'}
+      dotColor={ACCENT}
+      selected={selected}
+      onGenerate={handleGenerate}
+      isGenerating={isActive}
+    >
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -250,7 +260,16 @@ export default function KlingElementsProNode({ id, data, selected }) {
         </div>
       </div>
 
-      {/* ── 5. Output ── */}
+      {/* ── 5. Progress ── */}
+      {isActive && (
+        <NodeProgress
+          progress={progress}
+          status={status}
+          message={message}
+        />
+      )}
+
+      {/* ── 6. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 6, marginTop: 10,
@@ -265,14 +284,14 @@ export default function KlingElementsProNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',
               borderTop: `3px solid ${ACCENT}`, borderRadius: '50%',
               animation: 'spin 1s linear infinite',
             }} />
-            <span style={{ fontSize: 10, color: '#999' }}>Generating video...</span>
+            <span style={{ fontSize: 10, color: '#999' }}>{message || 'Generating video...'}</span>
           </div>
         ) : data.outputVideo ? (
           <video src={data.outputVideo} autoPlay loop muted controls style={{ width: '100%', display: 'block', borderRadius: 6 }} />

@@ -6,6 +6,8 @@ import { ideogramExpand, pollIdeogramExpandStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const PRESETS = [
   { label: 'Widen', left: 256, right: 256, top: 0, bottom: 0 },
@@ -17,7 +19,7 @@ const PRESETS = [
 ];
 
 export default function IdeogramExpandNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, complete, fail } = useNodeProgress();
 
   const localLeft = data.localLeft ?? 0;
   const localRight = data.localRight ?? 0;
@@ -44,7 +46,7 @@ export default function IdeogramExpandNode({ id, data, selected }) {
     if (!images?.length && data.localImage) images = [data.localImage];
     if (!images?.length) return;
 
-    setIsLoading(true);
+    start();
     update({ outputImage: null, isLoading: true });
 
     try {
@@ -69,7 +71,7 @@ export default function IdeogramExpandNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail();
         return;
       }
 
@@ -92,13 +94,13 @@ export default function IdeogramExpandNode({ id, data, selected }) {
       } else {
         update({ isLoading: false });
       }
+      complete();
     } catch (err) {
       console.error('Ideogram expand error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail();
     }
-  }, [id, data, update, localLeft, localRight, localTop, localBottom, localSeed]);
+  }, [id, data, update, localLeft, localRight, localTop, localBottom, localSeed, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -166,7 +168,7 @@ export default function IdeogramExpandNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Ideogram Expand'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'Ideogram Expand'} dotColor={ACCENT} selected={selected} onGenerate={handleExpand} isGenerating={isActive}>
 
       {/* ── 1. Image ── */}
       {sectionHeader('Image', 'image-in', 'target', getHandleColor('image-in'),
@@ -301,7 +303,10 @@ export default function IdeogramExpandNode({ id, data, selected }) {
         />
       </div>
 
-      {/* ── 6. Output ── */}
+      {/* ── 6. Progress ── */}
+      <NodeProgress isActive={isActive} />
+
+      {/* ── 7. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 6, marginTop: 10,
@@ -316,7 +321,7 @@ export default function IdeogramExpandNode({ id, data, selected }) {
         minHeight: 80, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{
             width: 28, height: 28, border: '3px solid #3a3a3a',
             borderTop: `3px solid ${ACCENT}`, borderRadius: '50%',

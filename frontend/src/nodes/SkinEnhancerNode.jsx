@@ -1,9 +1,11 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
+import NodeProgress from './NodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
 import { skinEnhancer, pollSkinEnhancerStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const MODES = [
   { value: 'creative', label: 'Creative', desc: 'Artistic stylized' },
@@ -20,7 +22,7 @@ const OPTIMIZED_FOR = [
 ];
 
 export default function SkinEnhancerNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { state: progressState, start, complete, fail } = useNodeProgress('skin-enhancer');
 
   const localMode = data.localMode || 'faithful';
   const localSharpen = data.localSharpen ?? 0;
@@ -45,7 +47,7 @@ export default function SkinEnhancerNode({ id, data, selected }) {
     if (!images?.length && data.localImage) images = [data.localImage];
     if (!images?.length) return;
 
-    setIsLoading(true);
+    start();
     update({ outputImage: null, isLoading: true });
 
     try {
@@ -61,14 +63,15 @@ export default function SkinEnhancerNode({ id, data, selected }) {
       const result = await skinEnhancer(localMode, params);
 
       if (result.error) {
+        fail(result.error?.message || JSON.stringify(result.error));
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
         return;
       }
 
       if (result.data?.task_id) {
         const status = await pollSkinEnhancerStatus(result.data.task_id);
         const generated = status.data?.generated || [];
+        complete();
         update({
           outputImage: generated[0] || null,
           outputImages: generated,
@@ -76,6 +79,7 @@ export default function SkinEnhancerNode({ id, data, selected }) {
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete();
         update({
           outputImage: result.data.generated[0],
           outputImages: result.data.generated,
@@ -83,15 +87,15 @@ export default function SkinEnhancerNode({ id, data, selected }) {
           outputError: null,
         });
       } else {
+        complete();
         update({ isLoading: false });
       }
     } catch (err) {
       console.error('Skin enhancer error:', err);
+      fail(err.message);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
     }
-  }, [id, data, update, localMode, localSharpen, localSmartGrain, localSkinDetail, localOptimizedFor]);
+  }, [id, data, update, localMode, localSharpen, localSmartGrain, localSkinDetail, localOptimizedFor, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {

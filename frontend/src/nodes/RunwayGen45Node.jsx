@@ -6,6 +6,8 @@ import { runwayGen45Generate, pollRunwayGen45Status } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const DURATIONS = [
   { value: 5, label: '5s' },
@@ -22,7 +24,9 @@ const RATIOS = [
 ];
 
 export default function RunwayGen45Node({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    progress, status, message, start, setProgress, complete, fail, isActive,
+  } = useNodeProgress();
 
   const localDuration = data.localDuration || 5;
   const localRatio = data.localRatio || '1280:720';
@@ -49,8 +53,8 @@ export default function RunwayGen45Node({ id, data, selected }) {
     let images = data.resolveInput?.(id, 'image-in');
     if (!images?.length && data.localImage) images = [data.localImage];
 
-    setIsLoading(true);
-    update({ outputVideo: null, isLoading: true });
+    start('Submitting video request...');
+    update({ outputVideo: null, outputError: null });
 
     try {
       const mode = images?.length ? 'image-to-video' : 'text-to-video';
@@ -72,38 +76,38 @@ export default function RunwayGen45Node({ id, data, selected }) {
       const result = await runwayGen45Generate(mode, params);
 
       if (result.error) {
-        update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(new Error(result.error?.message || JSON.stringify(result.error)));
+        update({ outputError: result.error?.message || JSON.stringify(result.error) });
         return;
       }
 
       const taskId = result.task_id || result.data?.task_id;
       if (taskId) {
-        const status = await pollRunwayGen45Status(mode, taskId);
-        const generated = status.data?.generated || [];
+        setProgress(30, 'Processing video...');
+        const statusResult = await pollRunwayGen45Status(mode, taskId);
+        const generated = statusResult.data?.generated || [];
+        complete('Video generation complete');
         update({
           outputVideo: generated[0] || null,
           outputVideos: generated,
-          isLoading: false,
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete('Video generation complete');
         update({
           outputVideo: result.data.generated[0],
           outputVideos: result.data.generated,
-          isLoading: false,
           outputError: null,
         });
       } else {
-        update({ isLoading: false });
+        complete('Video generation complete');
       }
     } catch (err) {
       console.error('Runway Gen 4.5 generation error:', err);
-      update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err);
+      update({ outputError: err.message });
     }
-  }, [id, data, update, localDuration, localRatio, localSeed]);
+  }, [id, data, update, localDuration, localRatio, localSeed, start, setProgress, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -171,7 +175,13 @@ export default function RunwayGen45Node({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Runway Gen 4.5'} dotColor={ACCENT} selected={selected}>
+    <NodeShell
+      label={data.label || 'Runway Gen 4.5'}
+      dotColor={ACCENT}
+      selected={selected}
+      onGenerate={handleGenerate}
+      isGenerating={isActive}
+    >
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{
@@ -257,6 +267,11 @@ export default function RunwayGen45Node({ id, data, selected }) {
         )}
       </div>
 
+      {/* ── Progress Indicator ── */}
+      {isActive && (
+        <NodeProgress progress={progress} status={status} message={message} />
+      )}
+
       {/* ── 4. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -272,7 +287,7 @@ export default function RunwayGen45Node({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

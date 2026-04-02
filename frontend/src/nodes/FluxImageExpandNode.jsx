@@ -1,5 +1,7 @@
 import { useCallback } from 'react';
 import NodeShell from './NodeShell';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 import { imageExpandFluxPro, pollImageExpandStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
@@ -41,11 +43,14 @@ export default function FluxImageExpandNode({ id, data, selected }) {
   const imageConn = conn('image-in');
   const promptConn = conn('prompt-in');
 
+  const { isActive, start, complete, fail } = useNodeProgress();
+
   const handleExpand = useCallback(async () => {
     let images = resolve.image('image-in', data.localImage);
     if (!images?.length) return;
 
-    update({ outputImage: null, isLoading: true });
+    update({ outputImage: null });
+    start();
 
     try {
       const imageBase64 = stripBase64Prefix(images[0]);
@@ -61,39 +66,47 @@ export default function FluxImageExpandNode({ id, data, selected }) {
       const result = await imageExpandFluxPro(params);
 
       if (result.error) {
-        update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
+        fail(result.error?.message || JSON.stringify(result.error));
+        update({ outputError: result.error?.message || JSON.stringify(result.error) });
         return;
       }
 
       if (result.data?.task_id) {
         const status = await pollImageExpandStatus(result.data.task_id);
         const generated = status.data?.generated || [];
+        complete();
         update({
           outputImage: generated[0] || null,
           outputImages: generated,
-          isLoading: false,
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        complete();
         update({
           outputImage: result.data.generated[0],
           outputImages: result.data.generated,
-          isLoading: false,
           outputError: null,
         });
       } else {
-        update({ isLoading: false });
+        complete();
       }
     } catch (err) {
       console.error('Image expand error:', err);
-      update({ isLoading: false, outputError: err.message });
+      fail(err.message);
+      update({ outputError: err.message });
     }
-  }, [data, update, resolve, localLeft, localRight, localTop, localBottom]);
+  }, [data, update, resolve, localLeft, localRight, localTop, localBottom, start, complete, fail]);
 
-  const { isLoading } = useNodeExecution(data, handleExpand);
+  useNodeExecution(data, handleExpand);
 
   return (
-    <NodeShell label={data.label || 'Flux Image Expand'} dotColor={ACCENT} selected={selected}>
+    <NodeShell
+      label={data.label || 'Flux Image Expand'}
+      dotColor={ACCENT}
+      selected={selected}
+      onGenerate={handleExpand}
+      isGenerating={isActive}
+    >
 
       {/* ── Image Output Handle (top) ── */}
       <OutputHandle id="output" label="image" type="image" />
@@ -226,9 +239,12 @@ export default function FluxImageExpandNode({ id, data, selected }) {
         </div>
       </div>
 
-      {/* ── 5. Output ── */}
+      {/* ── 5. Progress ── */}
+      <NodeProgress isActive={isActive} />
+
+      {/* ── 6. Output ── */}
       <OutputPreview
-        isLoading={isLoading}
+        isActive={isActive}
         output={data.outputImage}
         error={data.outputError}
         accentColor="#ec4899"

@@ -5,10 +5,12 @@ import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
 import { audioIsolationGenerate, pollAudioIsolationStatus } from '../utils/api';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 export default function AudioIsolationNode({ id, data, selected }) {
   const { update, disconnectNode } = useNodeConnections(id, data);
-  const [isLoading, setIsLoading] = useState(false);
+  const progress = useNodeProgress();
 
   const localInputType = data.localInputType || 'audio'; // 'audio' or 'video'
   const localRerankingCandidates = data.localRerankingCandidates || 1;
@@ -44,7 +46,7 @@ export default function AudioIsolationNode({ id, data, selected }) {
 
     if (!mediaUrls?.length) return;
 
-    setIsLoading(true);
+    progress.start('Initializing...');
     update({ outputAudio: null, isLoading: true });
 
     try {
@@ -71,35 +73,40 @@ export default function AudioIsolationNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        progress.fail(result.error?.message || 'Failed');
         return;
       }
 
       const taskId = result.task_id || result.data?.task_id;
       if (taskId) {
-        const status = await pollAudioIsolationStatus(taskId);
+        progress.update(30, 'Processing...');
+        const status = await pollAudioIsolationStatus(taskId, (percent, message) => {
+          progress.update(30 + percent * 0.6, message);
+        });
         const generated = status.data?.generated || [];
+        progress.complete('Complete');
         update({
           outputAudio: generated[0] || null,
           isLoading: false,
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
+        progress.complete('Complete');
         update({
           outputAudio: result.data.generated[0],
           isLoading: false,
           outputError: null,
         });
       } else {
+        progress.complete('Complete');
         update({ isLoading: false });
       }
     } catch (err) {
       console.error('Audio isolation error:', err);
+      progress.fail(err.message);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
     }
-  }, [id, data, update, localInputType, localRerankingCandidates, localPredictSpans, localSampleFps, localX1, localY1, localX2, localY2]);
+  }, [id, data, update, localInputType, localRerankingCandidates, localPredictSpans, localSampleFps, localX1, localY1, localX2, localY2, progress]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -202,6 +209,8 @@ export default function AudioIsolationNode({ id, data, selected }) {
       dotColor={ACCENT}
       selected={selected}
       onDisconnect={disconnectNode}
+      onGenerate={handleGenerate}
+      isGenerating={progress.isActive}
     >
 
       {/* ── Audio Output Handle (top) ── */}
@@ -333,6 +342,15 @@ export default function AudioIsolationNode({ id, data, selected }) {
         )}
       </div>
 
+      {/* ── Progress ── */}
+      {progress.isActive && (
+        <NodeProgress
+          percent={progress.percent}
+          status={progress.status}
+          message={progress.message}
+        />
+      )}
+
       {/* ── 4. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -356,7 +374,7 @@ export default function AudioIsolationNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 12,
       }}>
-        {isLoading ? (
+        {progress.isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

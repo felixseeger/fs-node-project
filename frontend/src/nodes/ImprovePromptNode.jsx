@@ -2,6 +2,8 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
+import useNodeProgress from '../hooks/useNodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
 import { improvePromptGenerate, pollImprovePromptStatus } from '../utils/api';
 
@@ -19,7 +21,7 @@ const LANGUAGES = [
 ];
 
 export default function ImprovePromptNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, complete, fail } = useNodeProgress(id);
 
   const localType = data.localType || 'image';
   const localLanguage = data.localLanguage || 'en';
@@ -39,7 +41,7 @@ export default function ImprovePromptNode({ id, data, selected }) {
   const handleGenerate = useCallback(async () => {
     const prompt = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt || '';
 
-    setIsLoading(true);
+    start();
     update({ outputPrompt: null, isLoading: true });
 
     try {
@@ -53,7 +55,7 @@ export default function ImprovePromptNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(result.error?.message || 'Failed to improve prompt');
         return;
       }
 
@@ -66,22 +68,24 @@ export default function ImprovePromptNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else if (result.data?.generated?.length) {
         update({
           outputPrompt: result.data.generated[0],
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else {
         update({ isLoading: false });
+        complete();
       }
     } catch (err) {
       console.error('Improve prompt error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err.message);
     }
-  }, [id, data, update, localType, localLanguage]);
+  }, [id, data, update, localType, localLanguage, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -149,7 +153,7 @@ export default function ImprovePromptNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Improve Prompt'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'Improve Prompt'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Prompt Output Handle (top) ── */}
       <div style={{
@@ -206,7 +210,10 @@ export default function ImprovePromptNode({ id, data, selected }) {
         </div>
       </div>
 
-      {/* ── 3. Output ── */}
+      {/* ── 3. Progress ── */}
+      <NodeProgress nodeId={id} />
+
+      {/* ── 4. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 6, marginTop: 10,
@@ -221,7 +228,7 @@ export default function ImprovePromptNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 12,
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

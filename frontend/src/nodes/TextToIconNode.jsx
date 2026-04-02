@@ -2,8 +2,10 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import ImprovePromptButton from './ImprovePromptButton';
+import NodeProgress from './NodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
 import { textToIconGenerate, pollTextToIconStatus } from '../utils/api';
+import useNodeProgress from '../hooks/useNodeProgress';
 
 const STYLES = [
   { value: 'solid', label: 'Solid' },
@@ -19,7 +21,7 @@ const FORMATS = [
 ];
 
 export default function TextToIconNode({ id, data, selected }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isActive, start, complete, fail } = useNodeProgress(id, data);
 
   const localStyle = data.localStyle || 'solid';
   const localFormat = data.localFormat || 'png';
@@ -43,7 +45,7 @@ export default function TextToIconNode({ id, data, selected }) {
     
     if (!prompt) return;
 
-    setIsLoading(true);
+    start();
     update({ outputImage: null, isLoading: true });
 
     try {
@@ -60,7 +62,7 @@ export default function TextToIconNode({ id, data, selected }) {
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
-        setIsLoading(false);
+        fail(result.error?.message || 'Generation failed');
         return;
       }
 
@@ -74,6 +76,7 @@ export default function TextToIconNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else if (result.data?.generated?.length) {
         update({
           outputImage: result.data.generated[0],
@@ -81,16 +84,17 @@ export default function TextToIconNode({ id, data, selected }) {
           isLoading: false,
           outputError: null,
         });
+        complete();
       } else {
         update({ isLoading: false });
+        complete();
       }
     } catch (err) {
       console.error('Icon generation error:', err);
       update({ isLoading: false, outputError: err.message });
-    } finally {
-      setIsLoading(false);
+      fail(err.message);
     }
-  }, [id, data, update, localStyle, localFormat, localNumInferenceSteps, localGuidanceScale]);
+  }, [id, data, update, localStyle, localFormat, localNumInferenceSteps, localGuidanceScale, start, complete, fail]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -158,7 +162,7 @@ export default function TextToIconNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'AI Icon Generation'} dotColor={ACCENT} selected={selected}>
+    <NodeShell label={data.label || 'AI Icon Generation'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Image Output Handle (top) ── */}
       <div style={{
@@ -246,6 +250,9 @@ export default function TextToIconNode({ id, data, selected }) {
 
       </div>
 
+      {/* ── Progress ── */}
+      <NodeProgress isActive={isActive} />
+
       {/* ── 3. Output ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -269,7 +276,7 @@ export default function TextToIconNode({ id, data, selected }) {
         minHeight: 120, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {isActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 28, height: 28, border: '3px solid #3a3a3a',

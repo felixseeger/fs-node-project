@@ -4,5 +4,8 @@
   "private": true,
   "scripts": {
     "build": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix api && rm -rf public && cp -R frontend/dist public"
+  },
+  "dependencies": {
+    "firebase": "^12.11.0"
   }
 }
