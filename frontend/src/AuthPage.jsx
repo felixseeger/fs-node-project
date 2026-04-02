@@ -698,7 +698,7 @@ export default function AuthPage() {
         fontSize: 11, color: '#333', textAlign: 'center',
         width: '100%', pointerEvents: 'none',
       }}>
-        Powered by Kora AI &middot; All rights reserved
+        Felix Seeger &copy; {new Date().getFullYear()}
       </div>
     </div>
   );
