@@ -1,14 +1,14 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
-import { uploadImages } from '../utils/api';
 
 export default function ImageNode({ id, data, selected }) {
   const { disconnectNode } = useNodeConnections(id, data);
   const fileRef = useRef();
   const images = data.images || [];
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleUpload = useCallback(
     (files) => {
@@ -18,7 +18,7 @@ export default function ImageNode({ id, data, selected }) {
       const newImages = [];
       let processed = 0;
 
-      fileArray.forEach(file => {
+      fileArray.forEach((file) => {
         const reader = new FileReader();
         reader.onload = (event) => {
           newImages.push(event.target.result);
@@ -43,6 +43,39 @@ export default function ImageNode({ id, data, selected }) {
     [id, data, images]
   );
 
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleUpload(files);
+      }
+    },
+    [handleUpload]
+  );
+
   return (
     <NodeShell
       label={data.label || 'Image'}
@@ -51,7 +84,14 @@ export default function ImageNode({ id, data, selected }) {
       onDisconnect={disconnectNode}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 60 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            minHeight: 60,
+          }}
+        >
           <Handle
             type="target"
             position={Position.Left}
@@ -128,22 +168,36 @@ export default function ImageNode({ id, data, selected }) {
           <button
             className="nodrag nopan"
             onClick={() => fileRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             style={{
               width: '100%',
               padding: '4px',
               fontSize: 10,
-              background: '#1a1a1a',
-              border: '1px dashed #3a3a3a',
+              background: isDragging ? '#2a2a2a' : '#1a1a1a',
+              border: isDragging
+                ? '2px dashed #3b82f6'
+                : '1px dashed #3a3a3a',
               borderRadius: 4,
-              color: '#999',
+              color: isDragging ? '#3b82f6' : '#999',
               cursor: 'pointer',
+              transition: 'all 0.2s ease',
             }}
           >
-            + Upload Images (max 3)
+            {isDragging ? 'Drop images here' : '+ Upload Images (max 3)'}
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 60 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            minHeight: 60,
+          }}
+        >
           <Handle
             type="source"
             position={Position.Right}

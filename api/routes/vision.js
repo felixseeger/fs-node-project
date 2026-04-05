@@ -28,12 +28,13 @@ router.post('/analyze-image', generationLimiter, async (req, res, next) => {
 // --- Image to Prompt ---
 router.post('/image-to-prompt', generationLimiter, async (req, res, next) => {
   try {
-    const { image_url } = req.body;
-    if (!image_url) {
-      return res.status(400).json({ error: 'Image URL is required' });
+    const { image_url, image } = req.body;
+    const targetUrl = image_url || image;
+    if (!targetUrl) {
+      return res.status(400).json({ error: 'Image is required' });
     }
     console.log('[API] Image to prompt conversion');
-    const result = await generateQueue.add(() => freepik.imageToPrompt(image_url));
+    const result = await generateQueue.add(() => freepik.imageToPrompt(targetUrl));
     res.json(result);
   } catch (err) {
     console.error('[API] Image to prompt failed:', err.message);
@@ -43,13 +44,8 @@ router.post('/image-to-prompt', generationLimiter, async (req, res, next) => {
 
 router.get('/image-to-prompt/:taskId', async (req, res, next) => {
   try {
-    // Image to prompt is synchronous, return mock status
-    res.json({
-      data: {
-        status: 'COMPLETED',
-        prompt: 'Generated prompt from image'
-      }
-    });
+    const result = await freepik.getTaskStatus(req.params.taskId, 'https://api.freepik.com/v1/ai/image-to-prompt');
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -88,12 +84,13 @@ router.get('/improve-prompt/:taskId', async (req, res, next) => {
 // --- AI Image Classifier ---
 router.post('/classifier/image', generationLimiter, async (req, res, next) => {
   try {
-    const { image_url } = req.body;
-    if (!image_url) {
-      return res.status(400).json({ error: 'Image URL is required' });
+    const { image_url, image } = req.body;
+    const targetUrl = image_url || image;
+    if (!targetUrl) {
+      return res.status(400).json({ error: 'Image is required' });
     }
     console.log('[API] AI image classification');
-    const result = await generateQueue.add(() => freepik.classifyImage(image_url));
+    const result = await generateQueue.add(() => freepik.classifyImage(targetUrl));
     res.json(result);
   } catch (err) {
     console.error('[API] Image classification failed:', err.message);

@@ -10,6 +10,7 @@ export default function ImageAnalyzerNode({ id, data, selected }) {
   const { update, disconnectNode } = useNodeConnections(id, data);
   const [expandSystem, setExpandSystem] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef();
   const localImages = data.localImages || [];
 
@@ -71,6 +72,36 @@ export default function ImageAnalyzerNode({ id, data, selected }) {
       handleAnalyze();
     }
   }, [data.triggerAnalyze, handleAnalyze]);
+
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && localImages.length < 4) {
+      handleImageUpload(files);
+    }
+  }, [handleImageUpload, localImages.length]);
 
   const sectionHeader = (label, handleId, handleType, color, onAdd) => (
     <div style={{
@@ -144,10 +175,21 @@ export default function ImageAnalyzerNode({ id, data, selected }) {
       {sectionHeader('Images', 'image-in', 'target', getHandleColor('image-in'),
         () => data.onAddToInput?.('image_urls', id, 'image-in')
       )}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6,
-        marginBottom: 8,
-      }}>
+      <div 
+        style={{
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6,
+          marginBottom: 8,
+          padding: isDragging ? 8 : 0,
+          border: isDragging ? '2px dashed #3b82f6' : 'none',
+          borderRadius: 6,
+          background: isDragging ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+          transition: 'all 0.2s ease',
+        }}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {localImages.map((img, i) => (
           <div key={i} style={{
             position: 'relative', aspectRatio: '1',
@@ -177,12 +219,15 @@ export default function ImageAnalyzerNode({ id, data, selected }) {
             onClick={() => fileRef.current?.click()}
             style={{
               aspectRatio: '1', borderRadius: 6,
-              background: '#1a1a1a', border: '1px solid #3a3a3a',
-              color: '#555', fontSize: 20, cursor: 'pointer',
+              background: isDragging ? 'rgba(59, 130, 246, 0.2)' : '#1a1a1a', 
+              border: isDragging ? '2px dashed #3b82f6' : '1px solid #3a3a3a',
+              color: isDragging ? '#3b82f6' : '#555', 
+              fontSize: 20, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s ease',
             }}
           >
-            +
+            {isDragging ? '↓' : '+'}
           </button>
         ))}
       </div>

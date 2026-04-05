@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import useNodeConnections from './useNodeConnections';
@@ -20,6 +20,7 @@ const RESOLUTION_OPTIONS = ['1K', '2K', '4K'];
 export default function InputNode({ id, data, selected }) {
   const { disconnectNode } = useNodeConnections(id, data);
   const fileRef = useRef();
+  const [isDragging, setIsDragging] = useState(false);
   const fields = data.initialFields || ['prompt'];
   const values = data.fieldValues || {};
   const images = data.imagesByField || {};
@@ -66,6 +67,36 @@ export default function InputNode({ id, data, selected }) {
     return { type: f, handleId };
   });
 
+  // Drag and drop handlers for image fields
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const createDropHandler = useCallback((field) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleImageUpload(field, files);
+    }
+  }, [handleImageUpload]);
+
   return (
     <NodeShell
       label={data.label || 'Request - Inputs'}
@@ -75,6 +106,9 @@ export default function InputNode({ id, data, selected }) {
     >
       {resolvedFields.map(({ type, handleId }) => {
         const cfg = FIELD_CONFIG[type] || FIELD_CONFIG.text;
+        const isImageField = type === 'image_urls';
+        const dropHandler = createDropHandler(handleId);
+
         return (
           <div key={handleId} style={{ marginBottom: 8, position: 'relative' }}>
             <div
@@ -182,7 +216,19 @@ export default function InputNode({ id, data, selected }) {
                 </span>
               </div>
             ) : type === 'image_urls' ? (
-              <div>
+              <div
+                onDragOver={isImageField ? handleDragOver : undefined}
+                onDragEnter={isImageField ? handleDragEnter : undefined}
+                onDragLeave={isImageField ? handleDragLeave : undefined}
+                onDrop={isImageField ? dropHandler : undefined}
+                style={{
+                  padding: isDragging ? 8 : 0,
+                  border: isDragging ? '2px dashed #ec4899' : 'none',
+                  borderRadius: 6,
+                  background: isDragging ? 'rgba(236, 72, 153, 0.1)' : 'transparent',
+                  transition: 'all 0.2s ease',
+                }}
+              >
                 <div
                   style={{
                     display: 'grid',
@@ -240,14 +286,15 @@ export default function InputNode({ id, data, selected }) {
                     width: '100%',
                     padding: '4px',
                     fontSize: 10,
-                    background: '#1a1a1a',
-                    border: '1px dashed #3a3a3a',
+                    background: isDragging ? 'rgba(236, 72, 153, 0.2)' : '#1a1a1a',
+                    border: isDragging ? '2px dashed #ec4899' : '1px dashed #3a3a3a',
                     borderRadius: 4,
-                    color: '#999',
+                    color: isDragging ? '#ec4899' : '#999',
                     cursor: 'pointer',
+                    transition: 'all 0.2s ease',
                   }}
                 >
-                  + Upload Images
+                  {isDragging ? 'Drop images here' : '+ Upload Images'}
                 </button>
               </div>
             ) : null}

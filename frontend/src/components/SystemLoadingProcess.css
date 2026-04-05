@@ -1,0 +1,347 @@
+/* ==========================================================================
+   System Loading Process - Cyberpunk/Sci-fi Preloader
+   Refactored with CSS variables and improved organization
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Geist+Mono:wght@100..900&display=swap");
+
+/* CSS Custom Properties (Design Tokens) */
+:root {
+  --slp-z-backdrop: 0;
+  --slp-z-revealer: 1;
+  --slp-z-preloader: 2;
+  
+  --slp-color-white: #ffffff;
+  --slp-color-black: #000000;
+  --slp-color-gray: #7a7a7a;
+  --slp-color-dark-gray: #2b2b2b;
+  
+  --slp-font-mono: "Geist Mono", monospace;
+  --slp-font-display: "Barlow Condensed", sans-serif;
+  
+  --slp-spacing-xs: 0.25rem;
+  --slp-spacing-sm: 0.5rem;
+  --slp-spacing-md: 1rem;
+  --slp-spacing-lg: 1.5rem;
+  --slp-spacing-xl: 2rem;
+  
+  --slp-btn-size: 20rem;
+  --slp-btn-size-tablet: 16rem;
+  --slp-btn-size-mobile: 12rem;
+}
+
+/* Root Container */
+.slp-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  font-family: var(--slp-font-mono);
+}
+
+/* Revealer (white curtain transition) */
+.slp-revealer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--slp-z-revealer);
+  background-color: var(--slp-color-white);
+  clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+  will-change: clip-path;
+}
+
+/* Backdrop Layer */
+.slp-backdrop {
+  position: fixed;
+  width: 100%;
+  height: 100svh;
+  background-color: var(--slp-color-white);
+  color: var(--slp-color-gray);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: var(--slp-z-backdrop);
+}
+
+.slp-backdrop-row {
+  width: 100%;
+  padding: var(--slp-spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--slp-spacing-md);
+}
+
+.slp-backdrop-row p {
+  text-transform: uppercase;
+  font-family: var(--slp-font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.slp-backdrop-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--slp-spacing-xs);
+}
+
+/* Preloader Layer */
+.slp-preloader {
+  position: fixed;
+  width: 100%;
+  height: 100svh;
+  background-color: var(--slp-color-black);
+  color: var(--slp-color-white);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+  will-change: transform, clip-path;
+  z-index: var(--slp-z-preloader);
+}
+
+.slp-row {
+  width: 100%;
+  padding: var(--slp-spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--slp-spacing-md);
+}
+
+.slp-row:first-child {
+  align-items: flex-start;
+}
+
+.slp-col {
+  display: flex;
+  gap: 6rem;
+  align-items: flex-end;
+}
+
+.slp-col > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--slp-spacing-xs);
+}
+
+.slp-row p {
+  text-transform: uppercase;
+  font-family: var(--slp-font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0;
+}
+
+/* Text mask for animation */
+.slp-mask {
+  display: inline-block;
+  overflow: hidden;
+  line-height: 1.15;
+  vertical-align: bottom;
+}
+
+.slp-line {
+  display: inline-block;
+  will-change: transform;
+}
+
+/* Engage Button */
+.slp-btn-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--slp-btn-size);
+  height: var(--slp-btn-size);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: not-allowed;
+  border-radius: 50%;
+  transition: background-color 0.3s ease, transform 0.15s ease;
+  outline: none;
+}
+
+.slp-btn-container.slp-ready {
+  cursor: pointer;
+}
+
+.slp-btn-container.slp-ready:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.slp-btn-container.slp-ready:focus-visible {
+  box-shadow: 0 0 0 2px var(--slp-color-white);
+}
+
+.slp-btn-container.slp-ready:active {
+  transform: translate(-50%, -50%) scale(0.98);
+}
+
+/* SVG Progress Ring */
+.slp-svg-strokes,
+.slp-logo,
+.slp-engage-label,
+.slp-outro-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.slp-svg-strokes,
+.slp-svg-strokes svg {
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+}
+
+.slp-logo {
+  width: 4rem;
+  height: 4rem;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.slp-engage-label,
+.slp-outro-label {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  font-family: var(--slp-font-mono);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.slp-engage-label .slp-line,
+.slp-outro-label .slp-line {
+  transform: translateY(100%);
+}
+
+.slp-outro-label {
+  opacity: 0.8;
+}
+
+/* SVG circles */
+.slp-svg-strokes circle {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Theme Variants */
+.slp-theme-light .slp-preloader {
+  background-color: var(--slp-color-white);
+  color: var(--slp-color-black);
+}
+
+.slp-theme-light .slp-svg-strokes circle:first-child {
+  stroke: #d1d5db;
+}
+
+.slp-theme-light .slp-svg-strokes circle:last-child {
+  stroke: var(--slp-color-black);
+}
+
+.slp-theme-light .slp-btn-container.slp-ready:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.slp-theme-light .slp-btn-container.slp-ready:focus-visible {
+  box-shadow: 0 0 0 2px var(--slp-color-black);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .slp-btn-container {
+    width: var(--slp-btn-size-tablet);
+    height: var(--slp-btn-size-tablet);
+  }
+  
+  .slp-col {
+    gap: 3rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .slp-btn-container {
+    width: var(--slp-btn-size-mobile);
+    height: var(--slp-btn-size-mobile);
+  }
+  
+  .slp-backdrop-row,
+  .slp-row {
+    padding: var(--slp-spacing-md);
+  }
+  
+  .slp-backdrop-row {
+    flex-direction: column;
+    gap: var(--slp-spacing-sm);
+  }
+  
+  .slp-backdrop-row:last-child {
+    align-items: flex-start;
+  }
+  
+  /* Hide some backdrop columns on mobile for cleaner look */
+  .slp-backdrop-col:nth-child(1),
+  .slp-backdrop-col:nth-child(2) {
+    display: none;
+  }
+  
+  .slp-col {
+    flex-direction: column;
+    gap: var(--slp-spacing-md);
+  }
+  
+  .slp-engage-label,
+  .slp-outro-label {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .slp-backdrop-row p,
+  .slp-row p {
+    font-size: 0.625rem;
+  }
+  
+  .slp-logo {
+    width: 3rem;
+    height: 3rem;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .slp-line {
+    transform: none !important;
+  }
+  
+  .slp-preloader,
+  .slp-revealer,
+  .slp-svg-strokes svg {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .slp-preloader {
+    background-color: var(--slp-color-black);
+    color: var(--slp-color-white);
+  }
+  
+  .slp-backdrop {
+    background-color: var(--slp-color-white);
+    color: var(--slp-color-black);
+  }
+}
+
+/* Print Styles - Hide preloader in print */
+@media print {
+  .slp-root {
+    display: none !important;
+  }
+}

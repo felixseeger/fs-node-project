@@ -695,10 +695,10 @@ export async function textToIcon(params) {
   });
 }
 
-export async function imageToPrompt(image_url) {
-  return apiRequest(ENDPOINTS.IMAGE_TO_PROMPT, {
+export async function imageToPrompt(image) {
+  return apiRequest('https://api.freepik.com/v1/ai/image-to-prompt', {
     method: 'POST',
-    body: JSON.stringify({ image_url }),
+    body: JSON.stringify({ image }),
   });
 }
 
@@ -709,10 +709,10 @@ export async function improvePrompt(prompt, type, language) {
   });
 }
 
-export async function classifyImage(image_url) {
+export async function classifyImage(image) {
   return apiRequest(ENDPOINTS.AI_IMAGE_CLASSIFIER, {
     method: 'POST',
-    body: JSON.stringify({ image_url }),
+    body: JSON.stringify({ image }),
   });
 }
 

@@ -50,16 +50,17 @@ export default function ImageToPromptNode({ id, data, selected }) {
       if (taskId) {
         const status = await pollImageToPromptStatus(taskId);
         const generated = status.data?.generated || [];
+        const prompt = status.data?.prompt || status.prompt || generated[0] || null;
         progress.complete();
         update({
-          outputPrompt: generated[0] || null,
+          outputPrompt: prompt,
           isLoading: false,
           outputError: null,
         });
-      } else if (result.data?.generated?.length) {
+      } else if (result.data?.generated?.length || result.data?.prompt || result.prompt) {
         progress.complete();
         update({
-          outputPrompt: result.data.generated[0],
+          outputPrompt: result.data?.prompt || result.prompt || result.data?.generated?.[0] || null,
           isLoading: false,
           outputError: null,
         });

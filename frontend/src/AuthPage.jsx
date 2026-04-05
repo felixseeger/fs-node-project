@@ -5,10 +5,12 @@ import {
   GoogleAuthProvider, 
   GithubAuthProvider, 
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   sendPasswordResetEmail,
   updateProfile
 } from 'firebase/auth';
-import { getFirebaseAuth } from './config/firebase';
+import { getFirebaseAuth, isFirebaseConfigured } from './config/firebase';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -45,7 +47,7 @@ function AuthField({ label, type = 'text', placeholder, value, onChange, autoFoc
             outline: 'none',
             fontFamily: 'Inter, system-ui, sans-serif',
             transition: prefersReducedMotion ? 'none' : 'border-color 0.3s ease-out, background 0.3s ease-out',
-            background: focused ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.03)',
+            backgroundColor: focused ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.03)',
             boxSizing: 'border-box',
           }}
         />
@@ -607,21 +609,82 @@ export default function AuthPage() {
   const [globalLoading, setGlobalLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
 
+  // Check for redirect result on mount (for mobile/auth flows that use redirect)
+  useEffect(() => {
+    const checkRedirectResult = async () => {
+      try {
+        const auth = getFirebaseAuth();
+        const result = await getRedirectResult(auth);
+        if (result) {
+          console.log('[Auth] Redirect sign-in successful:', result.user?.uid);
+        }
+      } catch (err) {
+        console.error('[Auth] Redirect result error:', err);
+        setGlobalError(err.message.replace('Firebase: ', ''));
+      }
+    };
+    checkRedirectResult();
+  }, []);
+
   const handleSocialLogin = async (providerName) => {
     setGlobalError('');
     setGlobalLoading(true);
+    
+    console.log(`[Auth] Attempting ${providerName} login...`);
+    console.log(`[Auth] Current domain: ${window.location.hostname}`);
+    console.log(`[Auth] Firebase configured: ${isFirebaseConfigured()}`);
+    
     try {
       const auth = getFirebaseAuth();
       let provider;
       if (providerName === 'google') {
         provider = new GoogleAuthProvider();
+        // Add scopes if needed
+        provider.addScope('email');
+        provider.addScope('profile');
       } else if (providerName === 'github') {
         provider = new GithubAuthProvider();
       }
-      await signInWithPopup(auth, provider);
+
+      // Try popup first
+      try {
+        console.log('[Auth] Trying signInWithPopup...');
+        await signInWithPopup(auth, provider);
+        console.log('[Auth] Popup sign-in successful');
+      } catch (popupErr) {
+        console.warn('[Auth] Popup failed, error:', popupErr.code, popupErr.message);
+        
+        // If popup is blocked or fails, fall back to redirect
+        if (popupErr.code === 'auth/popup-blocked' || 
+            popupErr.code === 'auth/popup-closed-by-user' ||
+            popupErr.code === 'auth/cancelled-popup-request') {
+          console.log('[Auth] Falling back to signInWithRedirect...');
+          await signInWithRedirect(auth, provider);
+          // Redirect will happen, no need to continue
+          return;
+        }
+        
+        // For other errors, throw to be caught below
+        throw popupErr;
+      }
     } catch (err) {
       console.error(`[Auth] ${providerName} login error:`, err);
-      setGlobalError(err.message.replace('Firebase: ', ''));
+      console.error('[Auth] Error code:', err.code);
+      console.error('[Auth] Error message:', err.message);
+      
+      // Provide user-friendly error messages
+      let errorMessage = err.message.replace('Firebase: ', '');
+      if (err.code === 'auth/unauthorized-domain') {
+        errorMessage = `This domain (${window.location.hostname}) is not authorized for Google sign-in. Please add it to your Firebase Console > Authentication > Settings > Authorized domains.`;
+      } else if (err.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup was blocked by your browser. Please allow popups for this site or try again.';
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Sign-in popup was closed before completing the authentication.';
+      } else if (err.code === 'auth/account-exists-with-different-credential') {
+        errorMessage = 'An account already exists with the same email address but different sign-in credentials.';
+      }
+      
+      setGlobalError(errorMessage);
       setGlobalLoading(false);
     }
   };
@@ -684,7 +747,8 @@ export default function AuthPage() {
         <div style={{
           position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
           padding: '12px 20px', background: '#fee2e2', border: '1px solid #ef4444',
-          borderRadius: 8, color: '#b91c1c', fontSize: 13, zIndex: 100
+          borderRadius: 8, color: '#b91c1c', fontSize: 13, zIndex: 100,
+          maxWidth: '90%', wordWrap: 'break-word'
         }}>
           {globalError}
           <button onClick={() => setGlobalError('')} style={{ marginLeft: 12, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>✕</button>
@@ -700,6 +764,17 @@ export default function AuthPage() {
       )}
       {screen === 'forgot' && (
         <ForgotScreen onNavigate={setScreen} />
+      )}
+
+      {/* Debug info - remove in production */}
+      {false && (
+        <div style={{
+          position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
+          padding: '8px 12px', background: 'rgba(0,0,0,0.5)', borderRadius: 4,
+          color: '#666', fontSize: 11, fontFamily: 'monospace'
+        }}>
+          Domain: {window.location.hostname} | Firebase: {isFirebaseConfigured() ? '✓' : '✗'}
+        </div>
       )}
 
       {/* Bottom branding */}

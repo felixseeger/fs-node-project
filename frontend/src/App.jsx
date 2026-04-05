@@ -77,9 +77,11 @@ import WorkspacesPage from './WorkspacesPage';
 import ProfileModal from './ProfileModal';
 import WorkflowSettingsPage from './WorkflowSettingsPage';
 import AuthPage from './AuthPage';
+import SystemLoadingProcess from './components/SystemLoadingProcess';
 import GlobalProgressBar from './GlobalProgressBar';
 import TopBar from './TopBar';
 import EditorTopBar from './EditorTopBar';
+import BottomBar from './BottomBar';
 import GooeyNodesMenu from './GooeyNodesMenu';
 import Queue from './Queue';
 import { isValidConnection, getHandleColor, getHandleDataType } from './utils/handleTypes';
@@ -97,27 +99,39 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  
+  const [showSystemLoading, setShowSystemLoading] = useState(false);
+
+  // sessionStorage key: set after loading completes, cleared on logout.
+  // This handles both popup (no reload) and redirect (page reload) Google auth,
+  // as well as StrictMode's double effect invocation.
+  const SLP_KEY = 'slp_shown';
+
   // Initialize Firebase and Auth listener on mount
   useEffect(() => {
     try {
       initializeFirebase();
       enableOfflinePersistence();
-      
+
       const auth = getFirebaseAuth();
       const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
         if (user) {
           setIsAuthenticated(true);
           setCurrentUserId(user.uid);
+          // Show loading screen once per session (cleared on logout or first completion)
+          if (!sessionStorage.getItem(SLP_KEY)) {
+            setShowSystemLoading(true);
+          }
           console.log('[Auth] User signed in:', user.uid);
         } else {
           setIsAuthenticated(false);
           setCurrentUserId(null);
+          // Clear flag so the loading screen shows again on next login
+          sessionStorage.removeItem(SLP_KEY);
           console.log('[Auth] User signed out');
         }
         setAuthLoading(false);
       });
-      
+
       return () => unsubscribeAuth();
     } catch (err) {
       console.log('[Firebase] Initialization skipped or failed:', err.message);
@@ -1400,6 +1414,33 @@ export default function App() {
     []
   );
 
+  const handleDeleteWorkflows = async (ids) => {
+    console.log('Optimistically deleting workflows:', ids);
+    setWorkflows((prev) => prev.filter((w) => !ids.includes(w.id)));
+    for (const id of ids) {
+      deleteFirebaseWorkflow(id).catch(e => console.error('Firebase delete error:', e));
+    }
+  };
+
+  const handleRenameBoard = useCallback(async (id, newName) => {
+    if (!newName) return;
+    setWorkflows(prev => prev.map(wf => wf.id === id ? { ...wf, name: newName } : wf));
+    await saveFirebaseWorkflow(id, { name: newName });
+  }, [saveFirebaseWorkflow]);
+
+  const handleDeleteBoard = useCallback(async (id) => {
+    if (id === activeWorkflowId) {
+      const remaining = workflows.filter(w => w.id !== id);
+      if (remaining.length > 0) {
+        handleCreateWorkflow(remaining[0].name, remaining[0].id, null);
+      } else {
+        setCurrentPage('home');
+        setActiveWorkflowId(null);
+      }
+    }
+    handleDeleteWorkflows([id]);
+  }, [activeWorkflowId, workflows, handleCreateWorkflow]);
+
   // Auth guard — show login/signup if not authenticated
   if (authLoading) {
     return (
@@ -1419,13 +1460,14 @@ export default function App() {
     );
   }
 
-  const handleDeleteWorkflows = async (ids) => {
-    console.log('Optimistically deleting workflows:', ids);
-    setWorkflows((prev) => prev.filter((w) => !ids.includes(w.id)));
-    for (const id of ids) {
-      deleteFirebaseWorkflow(id).catch(e => console.error('Firebase delete error:', e));
-    }
-  };
+  if (showSystemLoading) {
+    return (
+      <SystemLoadingProcess onComplete={() => {
+        sessionStorage.setItem('slp_shown', '1');
+        setShowSystemLoading(false);
+      }} />
+    );
+  }
 
   if (currentPage === 'home') {
     return (
@@ -1651,7 +1693,6 @@ export default function App() {
             nodesDraggable={!isLocked}
             nodesConnectable={!isLocked}
             nodesFocusable={true}
-            edgesUpdatable={!isLocked}
             edgesFocusable={true}
             elementsSelectable={!isLocked}
             autoPanOnConnect={true}
@@ -1740,11 +1781,13 @@ export default function App() {
               }}
             />
             <Controls 
+              position="top-right"
               style={{
                 backgroundColor: '#1a1a1a',
                 border: '1px solid #333',
                 borderRadius: '8px',
-                marginBottom: '10px',
+                marginTop: '10px',
+                marginRight: '10px',
               }}
               showInteractive={false}
             />
@@ -1752,6 +1795,13 @@ export default function App() {
         </div>
       </div>
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+      <BottomBar
+          workflows={workflows}
+          activeWorkflowId={activeWorkflowId}
+          onSwitchWorkflow={handleCreateWorkflow}
+          onRenameBoard={handleRenameBoard}
+          onDeleteBoard={handleDeleteBoard}
+        />
     </div>
   );
 }

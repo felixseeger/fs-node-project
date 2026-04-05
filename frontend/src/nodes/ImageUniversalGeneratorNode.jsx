@@ -170,6 +170,42 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     if (locked) setIsModelMenuOpen(false);
   }, [locked]);
 
+  // ── Smart Auto Model Selection ──────────────────────────────────────────────
+
+  // Analyze prompt to determine best model
+  const analyzePromptForModel = useCallback((prompt) => {
+    if (!prompt) return { type: 'general', confidence: 0 };
+    const lower = prompt.toLowerCase();
+    
+    // Vector/Logo/Design indicators
+    if (/\b(vector|svg|logo|icon|flat design|illustration|clipart)\b/.test(lower)) {
+      return { type: 'vector', confidence: 0.9, recommended: 'recraftv4' };
+    }
+    
+    // Photorealistic indicators
+    if (/\b(photo|photorealistic|realistic| cinematic|8k|hdr|portrait of|photo of)\b/.test(lower)) {
+      return { type: 'photorealistic', confidence: 0.85, recommended: 'flux' };
+    }
+    
+    // Artistic/Style indicators
+    if (/\b(painting|art|artistic|oil painting|watercolor|sketch|drawing|style of)\b/.test(lower)) {
+      return { type: 'artistic', confidence: 0.8, recommended: 'kora' };
+    }
+    
+    // Fast/cheap priority
+    if (/\b(fast|quick|draft|low quality|cheap)\b/.test(lower)) {
+      return { type: 'fast', confidence: 0.7, recommended: 'recraftv3' };
+    }
+    
+    return { type: 'general', confidence: 0.5, recommended: 'freepik-mystic' };
+  }, []);
+
+  // Select model based on analysis and preferences
+  const selectAutoImageModel = useCallback((prompt) => {
+    const analysis = analyzePromptForModel(prompt);
+    return analysis.recommended;
+  }, [analyzePromptForModel]);
+
   // ── API dispatch ────────────────────────────────────────────────────────────
 
   const runGenerationModel = useCallback(async (model, prompt, structureImageUrl) => {
@@ -435,42 +471,6 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     }
   }, [data.triggerGenerate, handleGenerate]);
 
-  // ── Smart Auto Model Selection ──────────────────────────────────────────────
-
-  // Analyze prompt to determine best model
-  const analyzePromptForModel = useCallback((prompt) => {
-    if (!prompt) return { type: 'general', confidence: 0 };
-    const lower = prompt.toLowerCase();
-    
-    // Vector/Logo/Design indicators
-    if (/\b(vector|svg|logo|icon|flat design|illustration|clipart)\b/.test(lower)) {
-      return { type: 'vector', confidence: 0.9, recommended: 'recraftv4' };
-    }
-    
-    // Photorealistic indicators
-    if (/\b(photo|photorealistic|realistic| cinematic|8k|hdr|portrait of|photo of)\b/.test(lower)) {
-      return { type: 'photorealistic', confidence: 0.85, recommended: 'flux' };
-    }
-    
-    // Artistic/Style indicators
-    if (/\b(painting|art|artistic|oil painting|watercolor|sketch|drawing|style of)\b/.test(lower)) {
-      return { type: 'artistic', confidence: 0.8, recommended: 'kora' };
-    }
-    
-    // Fast/cheap priority
-    if (/\b(fast|quick|draft|low quality|cheap)\b/.test(lower)) {
-      return { type: 'fast', confidence: 0.7, recommended: 'recraftv3' };
-    }
-    
-    return { type: 'general', confidence: 0.5, recommended: 'freepik-mystic' };
-  }, []);
-
-  // Select model based on analysis and preferences
-  const selectAutoImageModel = useCallback((prompt) => {
-    const analysis = analyzePromptForModel(prompt);
-    return analysis.recommended;
-  }, [analyzePromptForModel]);
-
   // ── Model selection ─────────────────────────────────────────────────────────
 
   const setAutoSelect = (val) => update({ autoSelect: val, models: val ? ['Auto'] : [] });
@@ -486,6 +486,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const toggleModel = (m) => {
     if (m === 'Auto') {
       setAutoSelect(true);
+      if (!useMultiple) setIsModelMenuOpen(false);
       return;
     }
     const prev = models.filter(x => x !== 'Auto');
@@ -497,6 +498,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       });
     } else {
       update({ models: [m], autoSelect: false });
+      setIsModelMenuOpen(false);
     }
   };
 
