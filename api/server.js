@@ -13,9 +13,9 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
-import routes from './routes/index.js';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
-import { globalLimiter } from './middleware/rateLimiter.js';
+import routes from '../lib/api/routes/index.js';
+import { errorHandler, notFoundHandler } from '../lib/api/middleware/errorHandler.js';
+import { globalLimiter } from '../lib/api/middleware/rateLimiter.js';
 
 const app = express();
 const upload = multer({ 
