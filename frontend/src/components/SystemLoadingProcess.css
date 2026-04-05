@@ -201,7 +201,7 @@
 .slp-logo {
   width: 4rem;
   height: 4rem;
-  opacity: 0;
+  opacity: 1;
   pointer-events: none;
 }
 

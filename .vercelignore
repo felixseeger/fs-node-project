@@ -1,0 +1,7 @@
+api/test_*.js
+api/node_modules
+downloads
+test-screenshots
+.claude
+.DS_Store
+*.log

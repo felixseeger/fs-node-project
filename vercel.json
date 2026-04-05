@@ -1,6 +1,27 @@
 {
+  "version": 2,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/server.js" },
     { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  ],
+  "functions": {
+    "api/server.js": {
+      "includeFiles": [
+        "api/server.js",
+        "api/routes/**",
+        "api/services/**",
+        "api/middleware/**",
+        "api/queue/**"
+      ],
+      "excludeFiles": [
+        "api/test_*.js",
+        "api/node_modules/**"
+      ]
+    }
+  },
+  "build": {
+    "env": {
+      "NODE_OPTIONS": "--max-old-space-size=4096"
+    }
+  }
 }
