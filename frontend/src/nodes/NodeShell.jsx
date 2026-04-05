@@ -1,5 +1,6 @@
 import { surface, border, sp, radius, font } from './nodeTokens';
 import NodeGenerateButton from './NodeGenerateButton';
+import NodeDownloadButton from './NodeDownloadButton';
 
 /**
  * Node wrapper shell with category-aware visual identity.
@@ -13,8 +14,10 @@ import NodeGenerateButton from './NodeGenerateButton';
  *  - onEdit:        Callback to edit the node
  *  - onGenerate:    Callback to generate/regenerate (shows generate button)
  *  - isGenerating:  Whether generation is in progress
+ *  - downloadUrl:   URL for download button (shows download button if provided)
+ *  - downloadType:  Type for download: 'image' | 'video' | 'audio' | 'svg'
  */
-export default function NodeShell({ label, dotColor, selected, children, onDisconnect, onEdit, onGenerate, isGenerating }) {
+export default function NodeShell({ label, dotColor, selected, children, onDisconnect, onEdit, onGenerate, isGenerating, downloadUrl, downloadType = 'image' }) {
   const accentAlpha = dotColor ? `${dotColor}14` : 'transparent'; // 8% opacity hex
 
   return (
@@ -81,6 +84,14 @@ export default function NodeShell({ label, dotColor, selected, children, onDisco
             <NodeGenerateButton 
               onGenerate={onGenerate} 
               isGenerating={isGenerating} 
+              size="sm"
+            />
+          )}
+          {/* Download button - appears when there's a downloadUrl */}
+          {downloadUrl && (
+            <NodeDownloadButton 
+              url={downloadUrl}
+              type={downloadType}
               size="sm"
             />
           )}

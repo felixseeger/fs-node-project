@@ -78,3 +78,90 @@ html, body, #root {
   outline: 2px solid #3b82f6;
   outline-offset: 1px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CANVAS ZOOM & INTERACTIVITY FIXES
+   Prevents nodes from becoming unclickable at different zoom levels
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Ensure nodes are always interactive at all zoom levels */
+.react-flow__node {
+  pointer-events: auto !important;
+  transform-origin: center center;
+}
+
+/* Prevent drag interference on interactive elements inside nodes */
+.react-flow__node .nodrag {
+  pointer-events: auto !important;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Ensure nopan elements receive pointer events */
+.react-flow__node .nopan {
+  pointer-events: auto !important;
+}
+
+/* Fix for all clickable elements inside nodes - ensures they work at all zoom levels */
+.react-flow__node button,
+.react-flow__node input,
+.react-flow__node select,
+.react-flow__node textarea,
+.react-flow__node a,
+.react-flow__node [role="button"] {
+  pointer-events: auto !important;
+}
+
+/* Ensure handles remain interactive during zoom */
+.react-flow__handle {
+  pointer-events: all !important;
+  touch-action: none;
+}
+
+/* Fix selection box behavior - don't block clicks */
+.react-flow__selection-zone {
+  pointer-events: none;
+}
+
+/* Ensure edges remain clickable at all zoom levels */
+.react-flow__edge {
+  pointer-events: visibleStroke !important;
+}
+
+/* Fix for viewport transform issues */
+.react-flow__viewport {
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* Ensure node content is properly layered */
+.react-flow__node > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Elevate selected nodes above others */
+.react-flow__node.selected {
+  z-index: 10 !important;
+}
+
+/* Fix for connection line during drag */
+.react-flow__connection {
+  pointer-events: none !important;
+}
+
+/* Prevent text selection during canvas pan */
+.react-flow__pane {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Ensure minimap doesn't interfere with main canvas */
+.react-flow__minimap {
+  pointer-events: auto;
+}
+
+/* Fix for controls positioning */
+.react-flow__controls {
+  pointer-events: auto;
+}

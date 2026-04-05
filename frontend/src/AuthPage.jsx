@@ -186,9 +186,18 @@ function Checkbox({ label, checked, onChange }) {
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={(e) => { e.preventDefault(); onChange(!checked); }}
     >
       <div
-        onClick={(e) => { e.preventDefault(); onChange(!checked); }}
+        role="checkbox"
+        aria-checked={checked}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onChange(!checked);
+          }
+        }}
         style={{
           width: 18, height: 18, borderRadius: 5, flexShrink: 0, marginTop: 1,
           background: checked ? '#3b82f6' : hovered ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
@@ -204,6 +213,7 @@ function Checkbox({ label, checked, onChange }) {
         )}
       </div>
       <span>{label}</span>
+      <input type="checkbox" checked={checked} readOnly style={{ display: 'none' }} />
     </label>
   );
 }

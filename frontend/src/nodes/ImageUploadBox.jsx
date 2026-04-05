@@ -19,7 +19,7 @@ export default function ImageUploadBox({
   onImageChange,
   maxSizeMB = 20,
   accept = 'image/*',
-  placeholder = 'Click or drag to upload image',
+  placeholder = 'Click or drop image here',
   minHeight = 60,
 }) {
   const fileRef = useRef();
@@ -49,8 +49,9 @@ export default function ImageUploadBox({
 
     try {
       const result = await uploadImages([file]);
-      if (result.images?.length > 0) {
-        onImageChange(result.images[0]);
+      const imageList = result.urls || result.images;
+      if (imageList?.length > 0) {
+        onImageChange(imageList[0]);
       } else {
         setError('Upload failed — no image returned');
       }
@@ -62,6 +63,13 @@ export default function ImageUploadBox({
   }, [maxSizeMB, onImageChange]);
 
   const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'copy';
+    setIsDragging(true);
+  }, []);
+
+  const handleDragEnter = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
@@ -115,42 +123,52 @@ export default function ImageUploadBox({
     <>
       <div
         onClick={() => fileRef.current?.click()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        className="nodrag nopan"
         style={{
-          background: isDragging ? 'rgba(59,130,246,0.08)' : '#1a1a1a',
+          background: isDragging ? 'rgba(59,130,246,0.15)' : '#1a1a1a',
           borderRadius: 6,
-          border: `1px ${isDragging ? 'solid' : 'dashed'} ${isDragging ? '#3b82f6' : '#3a3a3a'}`,
+          border: `2px ${isDragging ? 'solid' : 'dashed'} ${isDragging ? '#3b82f6' : '#3a3a3a'}`,
           minHeight,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer',
-          transition: 'all 0.15s',
+          transition: 'all 0.15s ease',
           padding: 12,
-          gap: 4,
+          gap: 6,
+          pointerEvents: 'auto',
         }}
       >
         {isUploading ? (
           <>
             <div style={{
-              width: 20, height: 20, border: '2px solid #3a3a3a',
+              width: 24, height: 24, border: '2px solid #3a3a3a',
               borderTop: '2px solid #3b82f6', borderRadius: '50%',
               animation: 'spin 1s linear infinite',
             }} />
-            <span style={{ fontSize: 10, color: '#888' }}>Uploading...</span>
+            <span style={{ fontSize: 11, color: '#888' }}>Uploading...</span>
           </>
         ) : (
           <>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ opacity: 0.4 }}>
-              <path d="M10 4V16M4 10H16" stroke="#888" strokeWidth="1.5" strokeLinecap="round" />
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ opacity: isDragging ? 0.8 : 0.5, transition: 'opacity 0.15s' }}>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke={isDragging ? '#3b82f6' : '#888'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="17 8 12 3 7 8" stroke={isDragging ? '#3b82f6' : '#888'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="12" y1="3" x2="12" y2="15" stroke={isDragging ? '#3b82f6' : '#888'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span style={{
-              fontSize: 10, color: '#555', textAlign: 'center',
+              fontSize: 11, 
+              color: isDragging ? '#3b82f6' : '#888', 
+              textAlign: 'center',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               maxWidth: '100%',
+              fontWeight: isDragging ? 500 : 400,
+              transition: 'color 0.15s',
             }}>
-              {placeholder}
+              {isDragging ? 'Drop image here' : placeholder}
             </span>
           </>
         )}

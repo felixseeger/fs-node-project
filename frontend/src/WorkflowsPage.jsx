@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 // Mini preview canvas (static SVG illustration)
 function HeroPreview() {
@@ -126,6 +126,7 @@ function NewWorkflowModal({ onClose, onSelect }) {
   const [step, setStep] = useState('pick'); // 'pick' | 'ai'
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiMode, setAiMode] = useState('fast'); // 'fast' | 'pro'
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Step 2: Generate with AI
   if (step === 'ai') {
@@ -253,7 +254,16 @@ function NewWorkflowModal({ onClose, onSelect }) {
 
           {/* Generate Workflow button */}
           <button
-            onClick={() => onSelect('ai', aiPrompt, aiMode)}
+            onClick={async () => {
+              if (!aiPrompt.trim() || isGenerating) return;
+              setIsGenerating(true);
+              try {
+                await onSelect('ai', aiPrompt, aiMode);
+              } finally {
+                setIsGenerating(false);
+              }
+            }}
+            disabled={isGenerating}
             disabled={!aiPrompt.trim()}
             style={{
               width: '100%', padding: '12px', fontSize: 14, fontWeight: 700,
@@ -284,6 +294,7 @@ function NewWorkflowModal({ onClose, onSelect }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
+      
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
@@ -293,8 +304,39 @@ function NewWorkflowModal({ onClose, onSelect }) {
           padding: '40px 36px 36px',
           width: 520,
           maxWidth: '90vw',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
+        {isGenerating && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 10,
+            background: 'rgba(20,20,20,0.92)',
+            backdropFilter: 'blur(4px)',
+            borderRadius: 16,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 20,
+          }}>
+            <div style={{ position: 'relative', width: 56, height: 56 }}>
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid #1e1e1e' }} />
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid transparent', borderTopColor: '#a78bfa', borderRightColor: '#3b82f6', animation: 'wf-spin 0.9s linear infinite' }} />
+              <div style={{ position: 'absolute', inset: 8, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <SparkleSmall color="#a78bfa" />
+              </div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#f0f0f0', marginBottom: 6 }}>Setting up workspace...</div>
+              <div style={{ fontSize: 12, color: '#666' }}>Preparing a clean canvas</div>
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#a78bfa', animation: `wf-pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+              ))}
+            </div>
+            <style>{`@keyframes wf-spin { to { transform: rotate(360deg); } } @keyframes wf-pulse { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }`}</style>
+          </div>
+        )}
+
         <h2 style={{
           fontSize: 22, fontWeight: 700, color: '#f0f0f0',
           textAlign: 'center', margin: '0 0 8px',
@@ -357,7 +399,14 @@ function NewWorkflowModal({ onClose, onSelect }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {/* From Scratch */}
           <button
-            onClick={() => onSelect('scratch')}
+            onClick={async () => {
+              setIsGenerating(true);
+              try {
+                await onSelect('scratch');
+              } finally {
+                setIsGenerating(false);
+              }
+            }}
             onMouseEnter={() => setHovered('scratch')}
             onMouseLeave={() => setHovered(null)}
             style={{
@@ -386,7 +435,14 @@ function NewWorkflowModal({ onClose, onSelect }) {
 
           {/* Pick a Template */}
           <button
-            onClick={() => onSelect('template')}
+            onClick={async () => {
+              setIsGenerating(true);
+              try {
+                await onSelect('template');
+              } finally {
+                setIsGenerating(false);
+              }
+            }}
             onMouseEnter={() => setHovered('template')}
             onMouseLeave={() => setHovered(null)}
             style={{
@@ -418,20 +474,115 @@ function NewWorkflowModal({ onClose, onSelect }) {
   );
 }
 
-export default function WorkflowsPage({ onCreateWorkflow, workflows = [] }) {
+export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, workflows = [] }) {
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedWfs, setSelectedWfs] = useState(new Set());
+  const [templates, setTemplates] = useState([
+    {
+      id: 'template_1',
+      name: 'Generate Prompt Ideas',
+      desc: 'Upload an image or enter keywords to get a list of prompt ideas you can use to generate images in any style with Kora Imagen.',
+      colors: ['#3b82f6', '#a78bfa', '#22c55e', '#f97316', '#3b82f6', '#ec4899', '#22c55e', '#f97316', '#a78bfa']
+    }
+  ]);
+  const [isSelectingTemplates, setIsSelectingTemplates] = useState(false);
+  const [selectedTpls, setSelectedTpls] = useState(new Set());
   const [showNewModal, setShowNewModal] = useState(false);
 
-  const handleModalSelect = (type, aiPrompt, aiMode) => {
+  const toggleSelection = (id) => {
+    setSelectedWfs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAllWfs = () => {
+    if (selectedWfs.size === workflows.length && workflows.length > 0) {
+      setSelectedWfs(new Set());
+    } else {
+      setSelectedWfs(new Set(workflows.map(w => w.id)));
+    }
+  };
+
+  const handleDownloadSelected = () => {
+    const selectedData = workflows.filter(w => selectedWfs.has(w.id));
+    if (selectedData.length === 0) return;
+    const blob = new Blob([JSON.stringify(selectedData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `workflows_export_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setIsSelecting(false);
+    setSelectedWfs(new Set());
+  };
+
+  const toggleTplSelection = (id) => {
+    setSelectedTpls(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAllTpls = () => {
+    if (selectedTpls.size === templates.length && templates.length > 0) {
+      setSelectedTpls(new Set());
+    } else {
+      setSelectedTpls(new Set(templates.map(t => t.id)));
+    }
+  };
+
+  const handleDownloadSelectedTpls = () => {
+    const selectedData = templates.filter(t => selectedTpls.has(t.id));
+    if (selectedData.length === 0) return;
+    const blob = new Blob([JSON.stringify(selectedData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `templates_export_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setIsSelectingTemplates(false);
+    setSelectedTpls(new Set());
+  };
+
+  const handleDeleteSelectedTpls = () => {
+    if (selectedTpls.size === 0) return;
+    if (confirm(`Delete ${selectedTpls.size} templates?`)) {
+      setTemplates(prev => prev.filter(t => !selectedTpls.has(t.id)));
+      setIsSelectingTemplates(false);
+      setSelectedTpls(new Set());
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedWfs.size === 0) return;
+    if (confirm(`Delete ${selectedWfs.size} workflows?`)) {
+      if (onDeleteWorkflows) {
+        await onDeleteWorkflows(Array.from(selectedWfs));
+      }
+      setIsSelecting(false);
+      setSelectedWfs(new Set());
+    }
+  };
+
+  const handleModalSelect = async (type, aiPrompt, aiMode) => {
+    const name = `Workflow ${workflows.length + 1}`;
+    if (type === 'ai') {
+      await onCreateWorkflow(name, null, { type, aiPrompt, aiMode });
+    } else {
+      if (type === 'scratch') {
+        await onCreateWorkflow(name, null, { type });
+      } else if (type === 'template') {
+        await onCreateWorkflow(name);
+      }
+    }
     setShowNewModal(false);
-    if (type === 'scratch' || type === 'ai') {
-      const name = `Workflow ${workflows.length + 1}`;
-      onCreateWorkflow(name, null, { type, aiPrompt, aiMode });
-    }
-    // 'template' could open a template picker in the future
-    if (type === 'template') {
-      const name = `Workflow ${workflows.length + 1}`;
-      onCreateWorkflow(name);
-    }
   };
 
   return (
@@ -565,22 +716,74 @@ export default function WorkflowsPage({ onCreateWorkflow, workflows = [] }) {
           <h2 style={{ fontSize: 16, fontWeight: 600, color: '#e0e0e0', margin: 0 }}>
             Your Workflows
           </h2>
-          <button
-            onClick={() => setShowNewModal(true)}
-            style={{
-              padding: '6px 16px',
-              fontSize: 12,
-              background: 'transparent',
-              border: '1px solid #333',
-              borderRadius: 6,
-              color: '#ccc',
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#555'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#333'; }}
-          >
-            + New
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {isSelecting ? (
+              <>
+                <button
+                  onClick={handleSelectAllWfs}
+                  style={{
+                    padding: '6px 16px', fontSize: 12, background: 'transparent',
+                    border: '1px solid #333', borderRadius: 6, color: '#ccc',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {selectedWfs.size === workflows.length && workflows.length > 0 ? 'Deselect All' : 'Select All'}
+                </button>
+                <button
+                  onClick={handleDownloadSelected}
+                  disabled={selectedWfs.size === 0}
+                  style={{
+                    padding: '6px 16px', fontSize: 12, background: 'transparent',
+                    border: '1px solid #333', borderRadius: 6, color: selectedWfs.size === 0 ? '#666' : '#3b82f6',
+                    cursor: selectedWfs.size === 0 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Download ({selectedWfs.size})
+                </button>
+                <button
+                  onClick={handleDeleteSelected}
+                  disabled={selectedWfs.size === 0}
+                  style={{
+                    padding: '6px 16px', fontSize: 12, background: 'transparent',
+                    border: '1px solid #333', borderRadius: 6, color: selectedWfs.size === 0 ? '#666' : '#ef4444',
+                    cursor: selectedWfs.size === 0 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => { setIsSelecting(false); setSelectedWfs(new Set()); }}
+                  style={{
+                    padding: '6px 16px', fontSize: 12, background: 'transparent',
+                    border: '1px solid #333', borderRadius: 6, color: '#ccc', cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setIsSelecting(true)}
+                  style={{
+                    padding: '6px 16px', fontSize: 12, background: 'transparent',
+                    border: '1px solid #333', borderRadius: 6, color: '#ccc', cursor: 'pointer'
+                  }}
+                >
+                  Select Multiple
+                </button>
+                <button
+                  onClick={() => setShowNewModal(true)}
+                  style={{
+                    padding: '6px 16px', fontSize: 12, background: 'transparent',
+                    border: '1px solid #333', borderRadius: 6, color: '#ccc', cursor: 'pointer'
+                  }}
+                >
+                  + New
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Workflow cards grid */}
@@ -635,10 +838,11 @@ export default function WorkflowsPage({ onCreateWorkflow, workflows = [] }) {
           {workflows.map((wf) => (
             <div
               key={wf.id}
-              onClick={() => onCreateWorkflow(wf.name, wf.id)}
+              onClick={() => isSelecting ? toggleSelection(wf.id) : onCreateWorkflow(wf.name, wf.id)}
               style={{
                 background: '#141414',
-                border: '1px solid #2a2a2a',
+                border: `1px solid ${selectedWfs.has(wf.id) ? '#3b82f6' : '#2a2a2a'}`,
+                position: 'relative',
                 borderRadius: 12,
                 padding: 24,
                 cursor: 'pointer',
@@ -662,7 +866,17 @@ export default function WorkflowsPage({ onCreateWorkflow, workflows = [] }) {
                   overflow: 'hidden',
                 }}
               >
-                <svg width="120" height="40">
+                {isSelecting && (
+                <div style={{
+                  position: 'absolute', top: 12, right: 12, width: 16, height: 16,
+                  borderRadius: 4, border: `1px solid ${selectedWfs.has(wf.id) ? '#3b82f6' : '#555'}`,
+                  background: selectedWfs.has(wf.id) ? '#3b82f6' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  {selectedWfs.has(wf.id) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                </div>
+              )}
+              <svg width="120" height="40">
                   <rect x="5" y="12" width="30" height="16" rx="3" fill="#1e1e1e" stroke="#333" strokeWidth="0.5" />
                   <circle cx="8" cy="20" r="2" fill="#22c55e" />
                   <rect x="45" y="5" width="30" height="16" rx="3" fill="#1e1e1e" stroke="#333" strokeWidth="0.5" />
@@ -696,6 +910,75 @@ export default function WorkflowsPage({ onCreateWorkflow, workflows = [] }) {
             </h2>
             <span style={{ fontSize: 14, color: '#666', marginTop: 1 }}>&rsaquo;</span>
           </div>
+          
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {isSelectingTemplates ? (
+              <>
+                <button
+                  onClick={handleSelectAllTpls}
+                  style={{
+                    padding: '6px 16px', fontSize: 12, background: 'transparent',
+                    border: '1px solid #333', borderRadius: 6, color: '#ccc',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {selectedTpls.size === templates.length && templates.length > 0 ? 'Deselect All' : 'Select All'}
+                </button>
+                <button
+                  onClick={handleDownloadSelectedTpls}
+                  disabled={selectedTpls.size === 0}
+                  style={{
+                    padding: '6px 16px', fontSize: 12, background: 'transparent',
+                    border: '1px solid #333', borderRadius: 6, color: selectedTpls.size === 0 ? '#666' : '#3b82f6',
+                    cursor: selectedTpls.size === 0 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Download ({selectedTpls.size})
+                </button>
+                <button
+                  onClick={handleDeleteSelectedTpls}
+                  disabled={selectedTpls.size === 0}
+                  style={{
+                    padding: '6px 16px', fontSize: 12, background: 'transparent',
+                    border: '1px solid #333', borderRadius: 6, color: selectedTpls.size === 0 ? '#666' : '#ef4444',
+                    cursor: selectedTpls.size === 0 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => { setIsSelectingTemplates(false); setSelectedTpls(new Set()); }}
+                  style={{
+                    padding: '6px 16px', fontSize: 12, background: 'transparent',
+                    border: '1px solid #333', borderRadius: 6, color: '#ccc', cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setIsSelectingTemplates(true)}
+                  style={{
+                    padding: '6px 16px', fontSize: 12, background: 'transparent',
+                    border: '1px solid #333', borderRadius: 6, color: '#ccc', cursor: 'pointer'
+                  }}
+                >
+                  Select Multiple
+                </button>
+                <button
+                  onClick={() => setShowNewModal(true)}
+                  style={{
+                    padding: '6px 16px', fontSize: 12, background: 'transparent',
+                    border: '1px solid #333', borderRadius: 6, color: '#ccc', cursor: 'pointer'
+                  }}
+                >
+                  + New
+                </button>
+              </>
+            )}
+          </div>
 
           {/* Template cards */}
           <div style={{
@@ -703,11 +986,12 @@ export default function WorkflowsPage({ onCreateWorkflow, workflows = [] }) {
             gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
             gap: 16,
           }}>
-            {/* Generate Prompt Ideas */}
+            {templates.map((tpl) => (
             <div
+              key={tpl.id}
               style={{
                 background: '#141414',
-                border: '1px solid #2a2a2a',
+                border: `1px solid ${selectedTpls.has(tpl.id) ? '#3b82f6' : '#2a2a2a'}`,
                 borderRadius: 12,
                 padding: 24,
                 cursor: 'pointer',
@@ -716,9 +1000,20 @@ export default function WorkflowsPage({ onCreateWorkflow, workflows = [] }) {
                 alignItems: 'flex-start',
                 position: 'relative',
               }}
+              onClick={() => isSelectingTemplates ? toggleTplSelection(tpl.id) : onCreateWorkflow(tpl.name)}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2a'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = selectedTpls.has(tpl.id) ? '#3b82f6' : '#2a2a2a'; }}
             >
+              {isSelectingTemplates && (
+                <div style={{
+                  position: 'absolute', top: 12, right: 12, width: 16, height: 16,
+                  borderRadius: 4, border: `1px solid ${selectedTpls.has(tpl.id) ? '#3b82f6' : '#555'}`,
+                  background: selectedTpls.has(tpl.id) ? '#3b82f6' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10
+                }}>
+                  {selectedTpls.has(tpl.id) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                </div>
+              )}
               {/* Preview grid */}
               <div style={{
                 width: 100,
@@ -735,17 +1030,9 @@ export default function WorkflowsPage({ onCreateWorkflow, workflows = [] }) {
                 position: 'relative',
                 overflow: 'hidden',
               }}>
-                {/* Color squares */}
-                <div style={{ background: '#3b82f6', borderRadius: 4 }} />
-                <div style={{ background: '#a78bfa', borderRadius: 4 }} />
-                <div style={{ background: '#22c55e', borderRadius: 4 }} />
-                <div style={{ background: '#f97316', borderRadius: 4 }} />
-                <div style={{ background: '#3b82f6', borderRadius: 4 }} />
-                <div style={{ background: '#ec4899', borderRadius: 4 }} />
-                <div style={{ background: '#22c55e', borderRadius: 4 }} />
-                <div style={{ background: '#f97316', borderRadius: 4 }} />
-                <div style={{ background: '#a78bfa', borderRadius: 4 }} />
-
+                {tpl.colors.map((color, idx) => (
+                  <div key={idx} style={{ background: color, borderRadius: 4 }} />
+                ))}
                 {/* Sparkle overlay */}
                 <svg
                   width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -758,10 +1045,10 @@ export default function WorkflowsPage({ onCreateWorkflow, workflows = [] }) {
               {/* Text content */}
               <div style={{ flex: 1, paddingTop: 2 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#e0e0e0', marginBottom: 8 }}>
-                  Generate Prompt Ideas
+                  {tpl.name}
                 </div>
                 <p style={{ fontSize: 12, color: '#888', lineHeight: 1.5, margin: 0 }}>
-                  Upload an image or enter keywords to get a list of prompt ideas you can use to generate images in any style with Kora Imagen.
+                  {tpl.desc}
                 </p>
               </div>
 
@@ -782,6 +1069,7 @@ export default function WorkflowsPage({ onCreateWorkflow, workflows = [] }) {
                 &rsaquo;
               </div>
             </div>
+          ))}
           </div>
         </div>
 

@@ -5,13 +5,15 @@
  */
 
 import { Router } from 'express';
+import { generationLimiter } from '../middleware/rateLimiter.js';
+import generateQueue from '../queue/index.js';
 import * as anthropic from '../services/anthropic.js';
 import * as freepik from '../services/freepik.js';
 
 const router = Router();
 
 // --- Claude Image Analysis ---
-router.post('/analyze-image', async (req, res, next) => {
+router.post('/analyze-image', generationLimiter, async (req, res, next) => {
   try {
     const { images, prompt, systemDirections } = req.body;
     console.log('[API] Claude image analysis:', prompt?.substring(0, 50) + '...');
@@ -24,14 +26,14 @@ router.post('/analyze-image', async (req, res, next) => {
 });
 
 // --- Image to Prompt ---
-router.post('/image-to-prompt', async (req, res, next) => {
+router.post('/image-to-prompt', generationLimiter, async (req, res, next) => {
   try {
     const { image_url } = req.body;
     if (!image_url) {
       return res.status(400).json({ error: 'Image URL is required' });
     }
     console.log('[API] Image to prompt conversion');
-    const result = await freepik.imageToPrompt(image_url);
+    const result = await generateQueue.add(() => freepik.imageToPrompt(image_url));
     res.json(result);
   } catch (err) {
     console.error('[API] Image to prompt failed:', err.message);
@@ -54,14 +56,14 @@ router.get('/image-to-prompt/:taskId', async (req, res, next) => {
 });
 
 // --- Improve Prompt ---
-router.post('/improve-prompt', async (req, res, next) => {
+router.post('/improve-prompt', generationLimiter, async (req, res, next) => {
   try {
     const { prompt, type, language } = req.body;
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
     }
     console.log('[API] Improve prompt:', prompt?.substring(0, 50) + '...');
-    const result = await freepik.improvePrompt(prompt, type, language);
+    const result = await generateQueue.add(() => freepik.improvePrompt(prompt, type, language));
     res.json(result);
   } catch (err) {
     console.error('[API] Improve prompt failed:', err.message);
@@ -84,14 +86,14 @@ router.get('/improve-prompt/:taskId', async (req, res, next) => {
 });
 
 // --- AI Image Classifier ---
-router.post('/classifier/image', async (req, res, next) => {
+router.post('/classifier/image', generationLimiter, async (req, res, next) => {
   try {
     const { image_url } = req.body;
     if (!image_url) {
       return res.status(400).json({ error: 'Image URL is required' });
     }
     console.log('[API] AI image classification');
-    const result = await freepik.classifyImage(image_url);
+    const result = await generateQueue.add(() => freepik.classifyImage(image_url));
     res.json(result);
   } catch (err) {
     console.error('[API] Image classification failed:', err.message);
@@ -100,10 +102,10 @@ router.post('/classifier/image', async (req, res, next) => {
 });
 
 // --- Text to Icon ---
-router.post('/text-to-icon', async (req, res, next) => {
+router.post('/text-to-icon', generationLimiter, async (req, res, next) => {
   try {
     console.log('[API] Text to icon:', req.body.prompt?.substring(0, 50) + '...');
-    const result = await freepik.textToIcon(req.body);
+    const result = await generateQueue.add(() => freepik.textToIcon(req.body));
     res.json(result);
   } catch (err) {
     console.error('[API] Text to icon failed:', err.message);

@@ -20,6 +20,7 @@ import InputNode from './nodes/InputNode';
 import TextNode from './nodes/TextNode';
 import ImageNode from './nodes/ImageNode';
 import AssetNode from './nodes/AssetNode';
+import SourceMediaNode from './nodes/SourceMediaNode';
 import ImageAnalyzerNode from './nodes/ImageAnalyzerNode';
 import GeneratorNode from './nodes/GeneratorNode';
 import CreativeUpScaleNode from './nodes/CreativeUpScaleNode';
@@ -67,17 +68,22 @@ import CommentNode from './nodes/CommentNode';
 import RouterNode from './nodes/RouterNode';
 import GroupEditingNode from './nodes/GroupEditingNode';
 import FacialEditingNode from './nodes/FacialEditingNode';
+import ImageUniversalGeneratorNode from './nodes/ImageUniversalGeneratorNode';
+import VideoUniversalGeneratorNode from './nodes/VideoUniversalGeneratorNode';
+import QuiverTextToVectorGenerationNode from './nodes/QuiverTextToVectorGenerationNode';
+import QuiverImageToVectorGenerationNode from './nodes/QuiverImageToVectorGenerationNode';
 import WorkflowsPage from './WorkflowsPage';
 import WorkspacesPage from './WorkspacesPage';
 import ProfileModal from './ProfileModal';
 import WorkflowSettingsPage from './WorkflowSettingsPage';
 import AuthPage from './AuthPage';
+import GlobalProgressBar from './GlobalProgressBar';
 import TopBar from './TopBar';
 import EditorTopBar from './EditorTopBar';
 import GooeyNodesMenu from './GooeyNodesMenu';
 import Queue from './Queue';
 import { isValidConnection, getHandleColor, getHandleDataType } from './utils/handleTypes';
-import { NODE_MENU, DEFAULT_NODES } from './config/nodeMenu.js';
+import { NODE_MENU, DEFAULT_NODES, DEFAULT_EDGES } from './config/nodeMenu.js';
 import { isHandleConnected, getConnectionInfo as getConnectionInfoBase } from './helpers/nodeData.js';
 
 let nodeIdCounter = 0;
@@ -573,6 +579,7 @@ export default function App() {
       textNode: TextNode,
       imageNode: ImageNode,
       assetNode: AssetNode,
+      sourceMediaNode: SourceMediaNode,
       imageAnalyzer: ImageAnalyzerNode,
       generator: GeneratorNode,
       creativeUpscale: CreativeUpScaleNode,
@@ -620,6 +627,10 @@ export default function App() {
       routerNode: RouterNode,
       groupEditing: GroupEditingNode,
       facialEditing: FacialEditingNode,
+      universalGeneratorImage: ImageUniversalGeneratorNode,
+      universalGeneratorVideo: VideoUniversalGeneratorNode,
+      quiverTextToVector: QuiverTextToVectorGenerationNode,
+      quiverImageToVector: QuiverImageToVectorGenerationNode,
       }),
     []
   );
@@ -772,8 +783,28 @@ export default function App() {
         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
       } else if (sourceNode.type === 'precisionVideoUpscale') {
         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+      } else if (sourceNode.type === 'quiverTextToVector') {
+        if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
+      } else if (sourceNode.type === 'quiverImageToVector') {
+        if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
       } else if (sourceNode.type === 'adaptedPrompt' && sh === 'prompt-out') {
         if (sd.adaptedPrompt) results.push(sd.adaptedPrompt);
+      } else if (sourceNode.type === 'sourceMediaNode') {
+        if (sh === 'image-out' && sd.mediaFiles?.length) {
+          const images = sd.mediaFiles.filter(m => m.type === 'image').map(m => m.url);
+          results.push(...images);
+        }
+        if (sh === 'video-out' && sd.mediaFiles?.length) {
+          const videos = sd.mediaFiles.filter(m => m.type === 'video').map(m => m.url);
+          results.push(...videos);
+        }
+        if (sh === 'audio-out' && sd.mediaFiles?.length) {
+          const audio = sd.mediaFiles.filter(m => m.type === 'audio').map(m => m.url);
+          results.push(...audio);
+        }
+        if (sh === 'output' && sd.mediaFiles?.length) {
+          results.push(...sd.mediaFiles.map(m => m.url));
+        }
       }
     }
 
@@ -1294,24 +1325,49 @@ export default function App() {
         setEdges([]);
       }
       setCurrentPage('editor');
+    } else if (aiOptions?.type === 'scratch') {
+      try {
+        const newWf = await createFirebaseWorkflow(name, [], []);
+        if (newWf) {
+          setActiveWorkflowId(newWf.id);
+          setNodes([]);
+          setEdges([]);
+          subscribe(newWf.id);
+          console.log('[Firebase] Created scratch workflow:', newWf.id);
+        } else {
+          throw new Error('Firebase returned null');
+        }
+      } catch (err) {
+        console.warn('[App] Firebase scratch creation failed, using local fallback:', err.message);
+        const id = `wf_${Date.now()}`;
+        const localWf = { id, name, nodeCount: 0, nodes: [], edges: [] };
+        setWorkflows((prev) => [...prev, localWf]);
+        setActiveWorkflowId(id);
+        setNodes([]);
+        setEdges([]);
+      }
+      setCurrentPage('editor');
     } else {
       // Create default workflow in Firebase
-      const newWf = await createFirebaseWorkflow(name, DEFAULT_NODES, []);
-      
-      if (newWf) {
-        setActiveWorkflowId(newWf.id);
-        setNodes(DEFAULT_NODES);
-        setEdges([]);
-        subscribe(newWf.id);
-        console.log('[Firebase] Created workflow:', newWf.id);
-      } else {
-        // Fallback to local
+      try {
+        const newWf = await createFirebaseWorkflow(name, DEFAULT_NODES, DEFAULT_EDGES);
+        if (newWf) {
+          setActiveWorkflowId(newWf.id);
+          setNodes(DEFAULT_NODES);
+          setEdges(DEFAULT_EDGES);
+          subscribe(newWf.id);
+          console.log('[Firebase] Created default workflow:', newWf.id);
+        } else {
+          throw new Error('Firebase returned null');
+        }
+      } catch (err) {
+        console.warn('[App] Firebase default creation failed, using local fallback:', err.message);
         const id = `wf_${Date.now()}`;
-        const localWf = { id, name, nodeCount: 2, nodes: DEFAULT_NODES, edges: [] };
+        const localWf = { id, name, nodeCount: DEFAULT_NODES.length, nodes: DEFAULT_NODES, edges: DEFAULT_EDGES };
         setWorkflows((prev) => [...prev, localWf]);
         setActiveWorkflowId(id);
         setNodes(DEFAULT_NODES);
-        setEdges([]);
+        setEdges(DEFAULT_EDGES);
       }
       setCurrentPage('editor');
     }
@@ -1363,13 +1419,22 @@ export default function App() {
     );
   }
 
+  const handleDeleteWorkflows = async (ids) => {
+    console.log('Optimistically deleting workflows:', ids);
+    setWorkflows((prev) => prev.filter((w) => !ids.includes(w.id)));
+    for (const id of ids) {
+      deleteFirebaseWorkflow(id).catch(e => console.error('Firebase delete error:', e));
+    }
+  };
+
   if (currentPage === 'home') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
-        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} />
+        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <WorkflowsPage
             onCreateWorkflow={handleCreateWorkflow}
+            onDeleteWorkflows={handleDeleteWorkflows}
             workflows={workflows}
           />
         </div>
@@ -1381,7 +1446,7 @@ export default function App() {
   if (currentPage === 'workspaces') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
-        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} />
+        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <WorkspacesPage
             onCreateWorkspace={(name) => {
@@ -1400,7 +1465,7 @@ export default function App() {
   if (currentPage === 'workflow-settings') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
-        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} />
+        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <WorkflowSettingsPage />
         </div>
@@ -1427,6 +1492,7 @@ export default function App() {
         isLocked={isLocked}
         onLockView={() => setIsLocked(prev => !prev)}
         onOpenProfile={() => setIsProfileModalOpen(true)}
+        isAuthenticated={isAuthenticated}
       />
       {isRenameModalOpen && (
         <div style={{
@@ -1494,49 +1560,68 @@ export default function App() {
           input.click();
         }}
       />
+      <GlobalProgressBar nodes={nodes} />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', background: '#1a1a1a' }}>
         {/* Canvas */}
         <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }} onDrop={onDrop} onDragOver={onDragOver}>
           <GooeyNodesMenu nodeMenu={NODE_MENU} onAddNode={addNode} onOpenProfile={() => setIsProfileModalOpen(true)} />
 
-          <Queue nodes={nodes} />
+          <div style={{
+            position: 'absolute',
+            bottom: 24,
+            right: 24,
+            zIndex: 10,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            alignItems: 'flex-end',
+            pointerEvents: 'none'
+          }}>
+            {/* Global Generate Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRunWorkflow();
+              }}
+              disabled={isRunning}
+              style={{
+                pointerEvents: 'auto',
+                padding: '12px 32px', fontSize: 14, fontWeight: 700,
+                background: isRunning ? '#333' : '#3b82f6',
+                border: 'none', borderRadius: 10, color: '#fff',
+                cursor: isRunning ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 16px rgba(59,130,246,0.3)',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              {isRunning ? (
+                <>
+                  <span style={{
+                    width: 14, height: 14, border: '2px solid #666',
+                    borderTop: '2px solid #fff', borderRadius: '50%',
+                    animation: 'spin 1s linear infinite', display: 'inline-block',
+                  }} />
+                  Running...
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: 16 }}>&#9654;</span>
+                  Generate
+                </>
+              )}
+            </button>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+            
+            <div style={{ pointerEvents: 'auto' }}>
+              <Queue nodes={nodes} />
+            </div>
+          </div>
 
-          {/* Global Generate Button — bottom right */}
-          <button
-            onClick={handleRunWorkflow}
-            disabled={isRunning}
-            style={{
-              position: 'absolute', bottom: 24, right: 24, zIndex: 10,
-              padding: '12px 32px', fontSize: 14, fontWeight: 700,
-              background: isRunning ? '#333' : '#3b82f6',
-              border: 'none', borderRadius: 10, color: '#fff',
-              cursor: isRunning ? 'not-allowed' : 'pointer',
-              boxShadow: '0 4px 16px rgba(59,130,246,0.3)',
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}
-          >
-            {isRunning ? (
-              <>
-                <span style={{
-                  width: 14, height: 14, border: '2px solid #666',
-                  borderTop: '2px solid #fff', borderRadius: '50%',
-                  animation: 'spin 1s linear infinite', display: 'inline-block',
-                }} />
-                Running...
-              </>
-            ) : (
-              <>
-                <span style={{ fontSize: 16 }}>&#9654;</span>
-                Generate
-              </>
-            )}
-          </button>
-          <style>{`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}</style>
           <ReactFlow
             nodes={nodesWithCallbacks}
             edges={edges}
@@ -1549,14 +1634,28 @@ export default function App() {
             nodeTypes={nodeTypes}
             defaultEdgeOptions={defaultEdgeOptions}
             fitView
+            fitViewOptions={{ padding: 0.1, minZoom: 0.1, maxZoom: 2 }}
+            minZoom={0.1}
+            maxZoom={2}
             panOnDrag={isLocked ? false : [1, 2]}
+            panOnScroll={false}
             selectionOnDrag={!isLocked}
             selectionMode="partial"
-            elevateNodesOnSelect={!isLocked}
+            selectionKeyCode="Shift"
+            multiSelectionKeyCode="Meta"
+            nodeDragThreshold={5}
+            elevateNodesOnSelect={true}
+            elevateEdgesOnSelect={true}
             zoomOnScroll={!isLocked}
+            zoomActivationKeyCode="Meta"
             nodesDraggable={!isLocked}
+            nodesConnectable={!isLocked}
+            nodesFocusable={true}
             edgesUpdatable={!isLocked}
+            edgesFocusable={true}
             elementsSelectable={!isLocked}
+            autoPanOnConnect={true}
+            autoPanOnNodeDrag={true}
             deleteKeyCode={['Backspace', 'Delete']}
             style={{ background: '#1a1a1a' }}
             onPaneContextMenu={onPaneContextMenu}

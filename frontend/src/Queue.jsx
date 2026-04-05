@@ -8,9 +8,6 @@ export default function Queue({ nodes }) {
 
   return (
     <div style={{
-      position: 'absolute',
-      bottom: 84, // Above the generate button
-      right: 24,
       width: 250,
       background: 'rgba(20, 20, 20, 0.85)',
       backdropFilter: 'blur(10px)',
@@ -24,10 +21,10 @@ export default function Queue({ nodes }) {
       gap: 8,
       pointerEvents: 'none' // Don't block clicks to canvas
     }}>
-      <div style={{ 
-        fontSize: 12, 
-        fontWeight: 600, 
-        color: '#aaa', 
+      <div style={{
+        fontSize: 12,
+        fontWeight: 600,
+        color: '#aaa',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
         display: 'flex',
@@ -36,15 +33,15 @@ export default function Queue({ nodes }) {
         marginBottom: 4
       }}>
         <span>Active Tasks</span>
-        <span style={{ 
-          background: '#3b82f6', 
-          color: '#fff', 
-          padding: '2px 6px', 
-          borderRadius: 10, 
-          fontSize: 10 
+        <span style={{
+          background: '#3b82f6',
+          color: '#fff',
+          padding: '2px 6px',
+          borderRadius: 10,
+          fontSize: 10
         }}>{loadingNodes.length}</span>
       </div>
-      
+
       <div style={{
         display: 'flex',
         flexDirection: 'column',
@@ -62,15 +59,15 @@ export default function Queue({ nodes }) {
             borderRadius: 6,
           }}>
             <div style={{
-              width: 12, height: 12, 
+              width: 12, height: 12,
               border: '2px solid rgba(255,255,255,0.1)',
-              borderTop: '2px solid #3b82f6', 
+              borderTop: '2px solid #3b82f6',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
               flexShrink: 0
             }} />
-            <div style={{ 
-              fontSize: 12, 
+            <div style={{
+              fontSize: 12,
               color: '#fff',
               whiteSpace: 'nowrap',
               overflow: 'hidden',

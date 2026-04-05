@@ -8,6 +8,7 @@ import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 const Icons = {
   Comment: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>,
   Search: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
+  History: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>,
   Plus: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>,
   Close: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
   Folder: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>,
@@ -30,7 +31,7 @@ const CATEGORIES = [
   { id: 'Uploads', icon: Icons.Folder, title: 'Uploaded Files' },
   { id: 'Workflows', icon: Icons.Flash, title: 'Workflows' },
   { id: 'Assets', icon: Icons.Hash, title: 'Assets' },
-  { id: 'SearchHistory', icon: Icons.Search, title: 'Search History' },
+  { id: 'History', icon: Icons.History, title: 'History' },
   { id: 'Comment', icon: Icons.Comment, title: 'Add Comment' },
 ];
 
@@ -64,7 +65,7 @@ const QUICK_ADD_SECTIONS = [
   {
     title: 'Add Source',
     items: [
-      { id: 'upload', title: 'Upload', desc: 'Add media from your computer', shortcut: 'U', type: 'uploadNode',
+      { id: 'upload', title: 'Upload', desc: 'Add media from your computer', shortcut: 'U', type: 'sourceMediaNode',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> },
       { id: 'model', title: 'Add model', desc: 'Start with a model', hasSubmenu: 'LLMs',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg> },
@@ -143,7 +144,7 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
     
 
     if (activeCategory === 'Uploads') {
-      return allNodes.filter(n => n.type === 'uploadNode');
+      return allNodes.filter(n => n.type === 'sourceMediaNode');
     }
     
     if (activeCategory === 'Workflows') {
@@ -194,11 +195,8 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
                   href="#" 
                   onClick={(e) => { 
                     e.preventDefault(); 
-                    if (cat.id === 'SearchHistory') {
-                      setShowHistoryModal(true);
-                      setIsOpen(false);
-                      setActiveCategory(null);
-                      setShowHelpMenu(false);
+                    if (cat.id === 'History') {
+                      handleCategoryClick('History');
                     } else if (cat.id === 'Comment') {
                       onAddNode('comment', { label: 'Comment' });
                       setIsOpen(false);
@@ -266,7 +264,29 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
         </div>
 
         <div className="ms-overlay-scroll-area">
-          {activeCategory === 'Assets' && !searchQuery ? (
+          {activeCategory === 'History' && !searchQuery ? (
+            <div className="ms-history-browser">
+              <div className="ms-category-title">Generation History</div>
+              <div style={{ padding: '20px', color: '#888', textAlign: 'center' }}>
+                <p>Your generated images, SVGs, and videos.</p>
+                <button 
+                  onClick={() => setShowHistoryModal(true)}
+                  style={{
+                    marginTop: '16px',
+                    padding: '8px 16px',
+                    background: '#3b82f6',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '13px'
+                  }}
+                >
+                  Open Full History
+                </button>
+              </div>
+            </div>
+          ) : activeCategory === 'Assets' && !searchQuery ? (
             <div className="ms-assets-browser">
               <div className="ms-assets-tabs">
                 <button className="ms-asset-tab active">Library</button>
@@ -455,7 +475,27 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
             {/* Asset Modal */}
       <AssetModal isOpen={showAssetModal} onClose={() => setShowAssetModal(false)} onUpload={onAddNode} />
       {/* Search History Modal */}
-      <SearchHistoryMenu isOpen={showHistoryModal} onClose={() => setShowHistoryModal(false)} />
+      <SearchHistoryMenu 
+        isOpen={showHistoryModal} 
+        onClose={() => setShowHistoryModal(false)} 
+        onReuseItem={(item) => {
+          // Create appropriate node based on history item type
+          if (item.nodeType === 'quiverTextToVector') {
+            onAddNode('quiverTextToVector', { 
+              outputImage: item.url,
+              prompt: item.prompt 
+            });
+          } else if (item.nodeType === 'quiverImageToVector') {
+            onAddNode('quiverImageToVector', { 
+              outputImage: item.url 
+            });
+          } else if (item.type === 'image') {
+            onAddNode('imageNode', { 
+              images: [item.url] 
+            });
+          }
+        }}
+      />
       <KeyboardShortcutsModal isOpen={showShortcutsModal} onClose={() => setShowShortcutsModal(false)} />
     </div>
   );

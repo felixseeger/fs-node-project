@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-export default function TopBar({ currentPage, onNavigate, workflowName, editorMode, onEditorModeChange, onLogout, onZoomIn, onZoomOut, onZoomFit, onUndo, onRedo, onRename, onDuplicate, isLocked, onLockView, onOpenProfile }) {
+export default function TopBar({ currentPage, onNavigate, workflowName, editorMode, onEditorModeChange, onLogout, onZoomIn, onZoomOut, onZoomFit, onUndo, onRedo, onRename, onDuplicate, isLocked, onLockView, onOpenProfile, isAuthenticated }) {
   const [hovered, setHovered] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -234,7 +234,7 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
         )}
       </div>
 
-      {currentPage === 'home' && (
+      {currentPage === 'home' && !isAuthenticated && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           <a href="#" style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>Log In</a>
           <button 

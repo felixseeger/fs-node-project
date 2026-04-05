@@ -6,6 +6,8 @@
 import { Router } from 'express';
 import multer from 'multer';
 import * as freepik from '../services/freepik.js';
+import { generationLimiter } from '../middleware/rateLimiter.js';
+import generateQueue from '../queue/index.js';
 
 const router = Router();
 
@@ -27,10 +29,10 @@ const upload = multer({
  * Nano Banana 2 Edit - Image generation with optional structure reference
  * Real API call to Freepik Mystic endpoint
  */
-router.post('/generate-image', async (req, res, next) => {
+router.post('/generate-image', generationLimiter, async (req, res, next) => {
   try {
     console.log('[API] Generating image with prompt:', req.body.prompt?.substring(0, 50) + '...');
-    const result = await freepik.generateImage(req.body);
+    const result = await generateQueue.add(() => freepik.generateImage(req.body));
     res.json(result);
   } catch (err) {
     console.error('[API] Image generation failed:', err.message);
@@ -43,10 +45,10 @@ router.post('/generate-image', async (req, res, next) => {
  * Kora Reality - Realism-focused image generation
  * Real API call to Freepik with realism model
  */
-router.post('/generate-kora', async (req, res, next) => {
+router.post('/generate-kora', generationLimiter, async (req, res, next) => {
   try {
     console.log('[API] Generating Kora image with prompt:', req.body.prompt?.substring(0, 50) + '...');
-    const result = await freepik.generateImage({ ...req.body, model: 'realism' });
+    const result = await generateQueue.add(() => freepik.generateImage({ ...req.body, model: 'realism' }));
     res.json(result);
   } catch (err) {
     console.error('[API] Kora generation failed:', err.message);
@@ -73,7 +75,7 @@ router.get('/status/:taskId', async (req, res, next) => {
  * POST /api/upload-image
  * Upload images and return base64 data URLs
  */
-router.post('/upload-image', upload.array('images', 5), async (req, res, next) => {
+router.post('/upload-image', generationLimiter, upload.array('images', 5), async (req, res, next) => {
   try {
     console.log(`[API] Uploading ${req.files?.length || 0} images`);
     

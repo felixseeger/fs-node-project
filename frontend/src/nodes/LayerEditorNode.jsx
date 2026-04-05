@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { NodeResizer, Handle, Position } from '@xyflow/react';
 import useNodeConnections from './useNodeConnections';
@@ -155,10 +155,17 @@ function LayerEditorMenu({ width, height, isLinked, onClose, onDisconnect }) {
 }
 
 export default function LayerEditorNode({ id, data, selected }) {
-  const { resolve, disconnectNode } = useNodeConnections(id, data);
-  const [dimensions, setDimensions] = useState({ width: 2048, height: 2048 });
+  const { resolve, disconnectNode, update } = useNodeConnections(id, data);
+  const [dimensions, setDimensions] = useState({ width: 1024, height: 1024 });
 
   const bgImage = resolve.image('image-in')?.[0];
+
+  useEffect(() => {
+    // Pass the input image directly to the output handle so downstream nodes can use it
+    if (bgImage !== data.outputImage) {
+      update({ outputImage: bgImage });
+    }
+  }, [bgImage, data.outputImage, update]);
 
   return (
     <>
@@ -181,11 +188,18 @@ export default function LayerEditorNode({ id, data, selected }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'hidden',
+         
         position: 'relative'
       }}>
         <Handle type="target" position={Position.Left} id="image-in" style={{ width: 14, height: 14, background: getHandleColor('image'), border: '2px solid #1a1a1a', left: -8, zIndex: 10 }} />
         <Handle type="source" position={Position.Right} id="image-out" style={{ width: 14, height: 14, background: getHandleColor('image'), border: '2px solid #1a1a1a', right: -8, zIndex: 10 }} />
+        
+        <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: '#fff', fontSize: 12, fontWeight: 600, pointerEvents: 'none', zIndex: 5 }}>
+          Image In
+        </div>
+        <div style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: '#fff', fontSize: 12, fontWeight: 600, pointerEvents: 'none', zIndex: 5 }}>
+          Image Out
+        </div>
 
         <div style={{
           position: 'absolute',

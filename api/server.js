@@ -15,6 +15,7 @@ import cors from 'cors';
 import multer from 'multer';
 import routes from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { globalLimiter } from './middleware/rateLimiter.js';
 
 const app = express();
 const upload = multer({ 
@@ -25,6 +26,9 @@ const upload = multer({
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+// Apply global rate limiting
+app.use(globalLimiter);
 
 // Request logging middleware (development)
 if (process.env.NODE_ENV !== 'production') {
@@ -56,6 +60,7 @@ app.use(errorHandler);
 const hasFreepikKey = !!process.env.FREEPIK_API_KEY;
 const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
 const hasElevenLabsKey = !!process.env.ELEVENLABS_API_KEY;
+const hasLtxKey = !!process.env.LTXV_API_KEY;
 
 // Start server
 const PORT = process.env.PORT || 3001;
@@ -70,6 +75,7 @@ app.listen(PORT, () => {
 ║   ${hasFreepikKey ? '✅' : '❌'} Freepik API (images, video, audio)               ║
 ║   ${hasAnthropicKey ? '✅' : '❌'} Anthropic API (Claude Vision)                 ║
 ║   ${hasElevenLabsKey ? '✅' : '❌'} ElevenLabs API (Voiceover)                    ║
+║   ${hasLtxKey ? '✅' : '❌'} LTX Video API (direct)              ║
 ║                                                            ║
 ║   Available endpoints:                                     ║
 ║   • Image Generation: /api/generate-image                  ║
@@ -89,6 +95,9 @@ app.listen(PORT, () => {
   }
   if (!hasElevenLabsKey) {
     console.warn('⚠️  WARNING: ELEVENLABS_API_KEY not set. Voiceover API will fail.');
+  }
+  if (!hasLtxKey) {
+    console.warn('⚠️  WARNING: LTXV_API_KEY not set. Direct LTX Video API will fail.');
   }
 });
 

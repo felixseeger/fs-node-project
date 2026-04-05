@@ -517,6 +517,16 @@ export async function pollLtxVideo2ProStatus(mode, taskId, maxAttempts = 120, in
   throw new Error('LTX Video 2.0 Pro polling timeout');
 }
 
+// Direct LTX API (no polling, returns video directly)
+export async function ltxVideoDirectGenerate(mode, params) {
+  const res = await fetch(`${API_BASE}/api/ltx-direct/${mode}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  return safeJson(res);
+}
+
 export async function runwayGen45Generate(mode, params) {
   const res = await fetch(`${API_BASE}/api/runway-4-5/${mode}`, {
     method: 'POST',
@@ -942,5 +952,72 @@ export async function getWorkflowPatterns() {
  */
 export async function getAINodeTypes() {
   const res = await fetch(`${API_BASE}/api/ai-workflow/nodes`);
+  return safeJson(res);
+}
+
+export async function generateRecraftImage(params) {
+  const res = await fetch(`${API_BASE}/api/recraft/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  return safeJson(res);
+}
+
+export async function recraftImageToImage(params) {
+  const res = await fetch(`${API_BASE}/api/recraft/image-to-image`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  return safeJson(res);
+}
+
+export async function recraftVectorize(params) {
+  const res = await fetch(`${API_BASE}/api/recraft/vectorize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  return safeJson(res);
+}
+
+export async function recraftRemoveBackground(params) {
+  const res = await fetch(`${API_BASE}/api/recraft/remove-background`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  return safeJson(res);
+}
+
+export async function recraftUpscale(params) {
+  const res = await fetch(`${API_BASE}/api/recraft/upscale`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  return safeJson(res);
+}
+
+// ============================================================================
+// QuiverAI Operations
+// ============================================================================
+
+export async function quiverTextToSvg(params) {
+  const res = await fetch(`${API_BASE}/api/quiver/svgs/generations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  return safeJson(res);
+}
+
+export async function quiverImageToSvg(params) {
+  const res = await fetch(`${API_BASE}/api/quiver/svgs/vectorizations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
   return safeJson(res);
 }

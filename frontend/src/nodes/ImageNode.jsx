@@ -11,10 +11,25 @@ export default function ImageNode({ id, data, selected }) {
   const images = data.images || [];
 
   const handleUpload = useCallback(
-    async (files) => {
-      const result = await uploadImages(Array.from(files));
-      const updated = [...images, ...result.images].slice(0, 3);
-      data.onUpdate?.(id, { images: updated });
+    (files) => {
+      const fileArray = Array.from(files);
+      if (!fileArray.length) return;
+
+      const newImages = [];
+      let processed = 0;
+
+      fileArray.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          newImages.push(event.target.result);
+          processed++;
+          if (processed === fileArray.length) {
+            const updated = [...images, ...newImages].slice(0, 3);
+            data.onUpdate?.(id, { images: updated });
+          }
+        };
+        reader.readAsDataURL(file);
+      });
     },
     [id, data, images]
   );
@@ -76,6 +91,7 @@ export default function ImageNode({ id, data, selected }) {
                   }}
                 />
                 <button
+                  className="nodrag nopan"
                   onClick={() => removeImage(i)}
                   style={{
                     position: 'absolute',
@@ -104,9 +120,13 @@ export default function ImageNode({ id, data, selected }) {
             accept="image/*"
             multiple
             style={{ display: 'none' }}
-            onChange={(e) => handleUpload(e.target.files)}
+            onChange={(e) => {
+              handleUpload(e.target.files);
+              e.target.value = '';
+            }}
           />
           <button
+            className="nodrag nopan"
             onClick={() => fileRef.current?.click()}
             style={{
               width: '100%',
@@ -144,6 +164,7 @@ export default function ImageNode({ id, data, selected }) {
 
       <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
         <button
+          className="nodrag nopan"
           onClick={() => data.onAddToInput?.('image_urls', id, 'image-in')}
           style={{
             flex: 1,
@@ -159,6 +180,7 @@ export default function ImageNode({ id, data, selected }) {
           Add to Input
         </button>
         <button
+          className="nodrag nopan"
           onClick={() => data.onUnlink?.(id, 'image-in')}
           style={{
             flex: 1,

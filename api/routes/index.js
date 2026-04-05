@@ -10,6 +10,8 @@ import videos from './videos.js';
 import audio from './audio.js';
 import vision from './vision.js';
 import aiWorkflow from './aiWorkflow.js';
+import recraft from './recraft.js';
+import quiver from './quiver.js';
 
 const router = Router();
 
@@ -20,5 +22,7 @@ router.use('/api', videos);
 router.use('/api', audio);
 router.use('/api', vision);
 router.use('/api', aiWorkflow);
+router.use('/api', recraft);
+router.use('/api', quiver);
 
 export default router;

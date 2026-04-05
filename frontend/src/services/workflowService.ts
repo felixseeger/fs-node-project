@@ -99,8 +99,15 @@ export async function createWorkflow(
     version: 1,
   };
 
-  const docRef = await addDoc(workflowsRef, workflowData);
-  
+  // Race the Firestore write against a timeout to prevent hanging
+  // when security rules deny the write (offline persistence queues it silently)
+  const docRef = await Promise.race([
+    addDoc(workflowsRef, workflowData),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Firestore write timed out after 10s')), 10000)
+    ),
+  ]);
+
   console.log('[WorkflowService] Created workflow:', docRef.id);
   
   return {

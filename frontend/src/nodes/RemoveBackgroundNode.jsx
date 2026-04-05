@@ -231,14 +231,28 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
               fontSize: 9, color: '#06b6d4', textDecoration: 'none',
               padding: '3px 8px', background: 'rgba(6,182,212,0.1)',
               border: '1px solid rgba(6,182,212,0.25)', borderRadius: 4,
-            }}>High Res ↓</a>
+            }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 2, verticalAlign: 'middle' }}>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              High Res
+            </a>
           )}
           {data.outputPreview && (
             <a href={data.outputPreview} target="_blank" rel="noopener noreferrer" style={{
               fontSize: 9, color: '#06b6d4', textDecoration: 'none',
               padding: '3px 8px', background: 'rgba(6,182,212,0.1)',
               border: '1px solid rgba(6,182,212,0.25)', borderRadius: 4,
-            }}>Preview ↓</a>
+            }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 2, verticalAlign: 'middle' }}>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Preview
+            </a>
           )}
         </div>
       )}
