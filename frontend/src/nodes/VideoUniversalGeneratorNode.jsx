@@ -120,7 +120,7 @@ const MODEL_DEFS = {
   'ltx-video': { name: 'LTX Video', provider: 'LTX', featured: true, tags: ['4K', '8s'], description: 'Up to 4K resolution with synchronized audio', supportsImageInput: true, supportsEndFrame: false },
 };
 
-const MODELS = Object.keys(MODEL_DEFS);
+export const MODELS = Object.keys(MODEL_DEFS);
 
 const COST_MAP = {
   'Auto': 0.20, 'kling3': 0.20, 'runway': 0.15, 'minimax': 0.10,

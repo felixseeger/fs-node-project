@@ -87,7 +87,7 @@ const PROVIDERS = {
 };
 
 // Featured models (displayed at top)
-const MODELS = Object.keys(MODEL_DEFS);
+export const MODELS = Object.keys(MODEL_DEFS);
 
 const ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
 const SCALE_FACTORS_CREATIVE = ['2x', '4x', '8x', '16x'];

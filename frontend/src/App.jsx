@@ -68,8 +68,8 @@ import CommentNode from './nodes/CommentNode';
 import RouterNode from './nodes/RouterNode';
 import GroupEditingNode from './nodes/GroupEditingNode';
 import FacialEditingNode from './nodes/FacialEditingNode';
-import ImageUniversalGeneratorNode from './nodes/ImageUniversalGeneratorNode';
-import VideoUniversalGeneratorNode from './nodes/VideoUniversalGeneratorNode';
+import ImageUniversalGeneratorNode, { MODELS as IMAGE_MODELS } from './nodes/ImageUniversalGeneratorNode';
+import VideoUniversalGeneratorNode, { MODELS as VIDEO_MODELS } from './nodes/VideoUniversalGeneratorNode';
 import QuiverTextToVectorGenerationNode from './nodes/QuiverTextToVectorGenerationNode';
 import QuiverImageToVectorGenerationNode from './nodes/QuiverImageToVectorGenerationNode';
 import WorkflowsPage from './WorkflowsPage';
@@ -1461,8 +1461,19 @@ export default function App() {
   }
 
   if (showSystemLoading) {
+    const totalModels = IMAGE_MODELS.length + VIDEO_MODELS.length;
+    const totalNodes = Object.keys(nodeTypes).length;
+    
     return (
-      <SystemLoadingProcess onComplete={() => {
+      <SystemLoadingProcess 
+        config={{
+          phases: [
+            { label: 'Phase 01', value: `Loading ${totalNodes} nodes` },
+            { label: 'Signal Scan', value: `Loading ${totalModels} models` },
+          ],
+          code: `Felix Seeger | Last update ${new Date().toISOString().split('T')[0]}`
+        }}
+        onComplete={() => {
         sessionStorage.setItem('slp_shown', '1');
         setShowSystemLoading(false);
       }} />

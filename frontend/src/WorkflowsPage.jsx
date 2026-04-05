@@ -1,69 +1,135 @@
 import { useState, useCallback } from 'react';
 
-// Mini preview canvas (static SVG illustration)
-function HeroPreview() {
+// Workflow diagram for hero section (Image Input → Claude Vision → Response)
+function HeroWorkflowDiagram() {
   return (
     <div
       style={{
-        background: '#111',
-        borderRadius: 12,
-        border: '1px solid #2a2a2a',
-        padding: 24,
-        width: 420,
-        height: 180,
+        background: '#0d0d0d',
+        borderRadius: 16,
+        border: '1px solid #1a1a1a',
+        padding: '32px 40px',
+        minHeight: 320,
         position: 'relative',
         overflow: 'hidden',
       }}
     >
-      {/* Input node */}
+      {/* Status indicator */}
       <div style={{
-        position: 'absolute', top: 55, left: 20,
-        background: '#1e1e1e', border: '1px solid #333', borderRadius: 6,
-        padding: '6px 14px', fontSize: 11, color: '#ccc',
-        display: 'flex', alignItems: 'center', gap: 6,
+        position: 'absolute', top: 16, left: 20,
+        display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
-        Input
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
+        <span style={{ fontSize: 11, color: '#666', fontWeight: 500 }}>RUNNING WORKFLOW</span>
       </div>
-      {/* Claude Haiku node */}
+
+      {/* Node 1: Image Input */}
       <div style={{
-        position: 'absolute', top: 20, left: 160,
-        background: '#1e1e1e', border: '1px solid #333', borderRadius: 6,
-        padding: '6px 14px', fontSize: 11, color: '#ccc',
-        display: 'flex', alignItems: 'center', gap: 6,
+        position: 'absolute', top: 80, left: 40,
+        background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 10,
+        padding: '14px 18px', minWidth: 140,
       }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f97316' }} />
-        Claude Haiku
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <span style={{
+            width: 22, height: 22, borderRadius: 6, background: '#1e3a5f',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 700, color: '#60a5fa'
+          }}>1</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#e0e0e0' }}>Image Input</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ec4899' }} />
+            <span style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>IMAGE</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f97316' }} />
+            <span style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>PROMPT</span>
+          </div>
+        </div>
       </div>
-      {/* Generator node */}
+
+      {/* Node 2: Claude Vision */}
       <div style={{
-        position: 'absolute', top: 55, right: 20,
-        background: '#1e1e1e', border: '1px solid #333', borderRadius: 6,
-        padding: '6px 14px', fontSize: 11, color: '#ccc',
-        display: 'flex', alignItems: 'center', gap: 6,
+        position: 'absolute', top: 140, left: 200,
+        background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 10,
+        padding: '14px 18px', minWidth: 140,
       }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ec4899' }} />
-        Generate
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <span style={{
+            width: 22, height: 22, borderRadius: 6, background: '#1e3a5f',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 700, color: '#60a5fa'
+          }}>2</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#e0e0e0' }}>Claude Vision</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f97316' }} />
+            <span style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>SYSTEM PROMPT</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7' }} />
+            <span style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>OUTPUT</span>
+          </div>
+        </div>
       </div>
+
+      {/* Node 3: Response */}
+      <div style={{
+        position: 'absolute', top: 100, right: 40,
+        background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 10,
+        padding: '14px 18px', minWidth: 120,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <span style={{
+            width: 22, height: 22, borderRadius: 6, background: '#1e3a5f',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 700, color: '#60a5fa'
+          }}>3</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#e0e0e0' }}>Response</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
+          <span style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>OUTPUT</span>
+        </div>
+      </div>
+
       {/* Connection lines (SVG) */}
       <svg
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
       >
-        {/* Input -> Claude Haiku */}
-        <path d="M 100 68 C 130 68, 150 38, 170 38" stroke="#22c55e" strokeWidth="1.5" fill="none" opacity="0.6" />
-        {/* Claude Haiku -> Generate (going down) */}
-        <path d="M 270 38 C 290 38, 290 68, 310 68" stroke="#f97316" strokeWidth="1.5" fill="none" opacity="0.6" />
-        {/* Input -> Generate */}
-        <path d="M 100 72 C 190 72, 230 72, 310 72" stroke="#3b82f6" strokeWidth="1.5" fill="none" opacity="0.4" />
+        {/* Image Input -> Claude Vision */}
+        <path d="M 180 115 C 190 115, 190 175, 200 175" stroke="#ec4899" strokeWidth="2" fill="none" opacity="0.6" />
+        {/* Claude Vision -> Response */}
+        <path d="M 340 195 C 360 195, 360 135, 380 135" stroke="#a855f7" strokeWidth="2" fill="none" opacity="0.6" />
       </svg>
-      {/* Fake content bars */}
+    </div>
+  );
+}
+
+// Stat card component
+function StatCard({ value, label }) {
+  return (
+    <div style={{
+      background: '#141414',
+      border: '1px solid #1a1a1a',
+      borderRadius: 12,
+      padding: '20px 24px',
+    }}>
       <div style={{
-        position: 'absolute', bottom: 30, left: 160, right: 80,
-        display: 'flex', flexDirection: 'column', gap: 4,
-      }}>
-        <div style={{ height: 3, background: '#2a2a2a', borderRadius: 2, width: '80%' }} />
-        <div style={{ height: 3, background: '#2a2a2a', borderRadius: 2, width: '60%' }} />
-      </div>
+        fontSize: 28,
+        fontWeight: 700,
+        color: '#fff',
+        marginBottom: 4,
+        letterSpacing: '-0.02em'
+      }}>{value}</div>
+      <div style={{
+        fontSize: 12,
+        color: '#666',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+      }}>{label}</div>
     </div>
   );
 }
@@ -605,104 +671,77 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '60px 40px' }}>
         
-        {/* Hero section */}
+        {/* Hero section - Two column layout */}
         <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-          gap: 24,
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 60,
           marginBottom: 80,
-          position: 'relative'
+          position: 'relative',
+          alignItems: 'center',
         }}>
-          {/* Subtle background glow behind the text */}
-          <div style={{
-            position: 'absolute',
-            top: '20%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '600px',
-            height: '200px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            filter: 'blur(100px)',
-            zIndex: 0,
-            pointerEvents: 'none'
-          }} />
-
-          <div style={{ flex: 1, maxWidth: 650, zIndex: 1, position: 'relative' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: '#1a1a1a', border: '1px solid #333', borderRadius: 999, marginBottom: 24, fontSize: 13, color: '#aaa', fontWeight: 500 }}>
-               ✨ FS 1.0 is live
+          {/* Left column - Text and stats */}
+          <div style={{ maxWidth: 540 }}>
+            {/* Badge */}
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: 8, 
+              marginBottom: 24,
+            }}>
+              <span style={{ 
+                width: 8, height: 8, borderRadius: '50%', background: '#3b82f6' 
+              }} />
+              <span style={{ 
+                fontSize: 11, 
+                color: '#666', 
+                fontWeight: 600, 
+                letterSpacing: 1,
+                textTransform: 'uppercase'
+              }}>
+                Introducing Workflows
+              </span>
             </div>
             
+            {/* Headline */}
             <h1 style={{
-              fontSize: '4.5rem',
+              fontSize: '3.5rem',
               fontWeight: 800,
               color: '#FFFFFF',
-              lineHeight: 1.05,
+              lineHeight: 1.1,
               margin: '0 0 24px',
               letterSpacing: '-0.03em'
             }}>
-              Drag.<br />
-              Connect.<br />
-              Deploy.
+              Introducing<br />
+              <span style={{ color: '#666' }}>Workflows.</span>
             </h1>
+            
+            {/* Description */}
             <p style={{
-              fontSize: 18,
-              color: '#A9A9A9',
-              lineHeight: 1.6,
-              margin: '0 auto 40px',
-              maxWidth: 580
+              fontSize: 15,
+              color: '#888',
+              lineHeight: 1.7,
+              margin: '0 0 32px',
             }}>
-              The node-based editor for AI workflows. Connect vision models, generators, and enhancers visually, then deploy each workflow as a live API. No code required.
+              Workflows are visual AI pipelines you build by connecting nodes on a canvas. Each node is one step in your feature: accept input, process it through AI models, and return the result. Build any AI-powered feature you can imagine, then deploy it as a live API endpoint. Use it in your own apps or sell it to clients. No code, no backend, no infrastructure.
             </p>
             
-            <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-              <button
-                onClick={() => setShowNewModal(true)}
-                style={{
-                  background: '#3B3BFF',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '14px 28px',
-                  fontSize: 16,
-                  fontWeight: 600,
-                  borderRadius: 9999,
-                  cursor: 'pointer',
-                  boxShadow: '0 0 24px rgba(59, 59, 255, 0.4)',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 32px rgba(59, 59, 255, 0.6)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 24px rgba(59, 59, 255, 0.4)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-              >
-                Start building
-              </button>
-              
-              <button
-                style={{
-                  background: 'transparent',
-                  color: '#fff',
-                  border: '1px solid #444',
-                  padding: '14px 28px',
-                  fontSize: 16,
-                  fontWeight: 600,
-                  borderRadius: 9999,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = '#666'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#444'; }}
-              >
-                See how it works &rarr;
-              </button>
+            {/* Stats grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 12,
+            }}>
+              <StatCard value="20+" label="AI nodes available" />
+              <StatCard value="6" label="Pre-built templates" />
+              <StatCard value="H100" label="GPU infrastructure" />
+              <StatCard value="1-click" label="API deployment" />
             </div>
           </div>
           
-          {/* Visual Graphic */}
-          <div style={{ zIndex: 1, marginTop: 40, width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <img src="/hero_img.jpg" alt="AI workflow node editor" style={{ width: '100%', maxWidth: '1000px', borderRadius: 16, border: '1px solid #222', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }} />
+          {/* Right column - Workflow diagram */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <HeroWorkflowDiagram />
           </div>
         </div>
 
