@@ -671,14 +671,122 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '60px 40px' }}>
         
-        {/* Hero section - Two column layout */}
+        {/* HERO SECTION - Centered with large headline */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          gap: 24,
+          marginBottom: 80,
+          position: 'relative'
+        }}>
+          {/* Subtle background glow */}
+          <div style={{
+            position: 'absolute',
+            top: '20%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '600px',
+            height: '200px',
+            background: 'rgba(255, 255, 255, 0.03)',
+            filter: 'blur(100px)',
+            zIndex: 0,
+            pointerEvents: 'none'
+          }} />
+
+          <div style={{ flex: 1, maxWidth: 650, zIndex: 1, position: 'relative' }}>
+            <h1 style={{
+              fontSize: '4.5rem',
+              fontWeight: 800,
+              color: '#FFFFFF',
+              lineHeight: 1.05,
+              margin: '0 0 24px',
+              letterSpacing: '-0.03em'
+            }}>
+              Drag.<br />
+              Connect.<br />
+              <span style={{ color: '#666' }}>Deploy.</span>
+            </h1>
+            <p style={{
+              fontSize: 18,
+              color: '#888',
+              lineHeight: 1.6,
+              margin: '0 auto 40px',
+              maxWidth: 580
+            }}>
+              The node-based editor for AI workflows. Connect vision models, generators, and enhancers visually, then deploy each workflow as a live API. No code required.
+            </p>
+            
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+              <button
+                onClick={() => setShowNewModal(true)}
+                style={{
+                  background: '#3B3BFF',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '14px 28px',
+                  fontSize: 16,
+                  fontWeight: 600,
+                  borderRadius: 9999,
+                  cursor: 'pointer',
+                  boxShadow: '0 0 24px rgba(59, 59, 255, 0.4)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 32px rgba(59, 59, 255, 0.6)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 24px rgba(59, 59, 255, 0.4)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                Start building
+              </button>
+              
+              <button
+                style={{
+                  background: 'transparent',
+                  color: '#fff',
+                  border: '1px solid #444',
+                  padding: '14px 28px',
+                  fontSize: 16,
+                  fontWeight: 600,
+                  borderRadius: 9999,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = '#666'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#444'; }}
+              >
+                See how it works &rarr;
+              </button>
+            </div>
+          </div>
+          
+          {/* Hero workflow image */}
+          <div style={{ zIndex: 1, marginTop: 60, width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <img 
+              src="/hero_img.jpg" 
+              alt="AI workflow node editor" 
+              style={{ 
+                width: '100%', 
+                maxWidth: '1100px', 
+                borderRadius: 16, 
+                border: '1px solid #1a1a1a'
+              }} 
+            />
+          </div>
+        </div>
+
+        {/* INTRO SECTION - Two column with stats */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           gap: 60,
-          marginBottom: 80,
+          marginBottom: 100,
           position: 'relative',
           alignItems: 'center',
+          padding: '60px 0',
+          borderTop: '1px solid #1a1a1a',
         }}>
           {/* Left column - Text and stats */}
           <div style={{ maxWidth: 540 }}>
@@ -704,8 +812,8 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
             </div>
             
             {/* Headline */}
-            <h1 style={{
-              fontSize: '3.5rem',
+            <h2 style={{
+              fontSize: '2.5rem',
               fontWeight: 800,
               color: '#FFFFFF',
               lineHeight: 1.1,
@@ -714,7 +822,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
             }}>
               Introducing<br />
               <span style={{ color: '#666' }}>Workflows.</span>
-            </h1>
+            </h2>
             
             {/* Description */}
             <p style={{
@@ -739,12 +847,20 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
             </div>
           </div>
           
-          {/* Right column - Workflow diagram */}
+          {/* Right column - Intro workflow image */}
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <HeroWorkflowDiagram />
+            <img 
+              src="/intro_img.jpg" 
+              alt="Simple workflow example" 
+              style={{ 
+                width: '100%',
+                maxWidth: '500px',
+                borderRadius: 16, 
+                border: '1px solid #1a1a1a'
+              }} 
+            />
           </div>
         </div>
-
         {/* Your Workflows section */}
         <div style={{
           display: 'flex',
