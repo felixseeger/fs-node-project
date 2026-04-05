@@ -96,9 +96,9 @@ export default function BottomBar({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 8,
             height: 28,
-            padding: '0 8px',
+            padding: '0 10px',
             background: 'transparent',
             border: 'none',
             borderRadius: 6,
@@ -134,6 +134,7 @@ export default function BottomBar({
               transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 0.15s',
               flexShrink: 0,
+              marginLeft: 2,
             }}
           >
             <path d="M2 3.5L5 6.5L8 3.5" stroke="#aaa" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -158,18 +159,18 @@ export default function BottomBar({
             }}
           >
             {/* Header */}
-            <div style={{ color: '#666', fontSize: 11, padding: '8px 12px 4px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              My Boards
+            <div style={{ color: '#666', fontSize: 10, padding: '10px 12px 6px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
+              Boards
             </div>
 
             {/* Board list */}
-            <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+            <div style={{ maxHeight: 240, overflowY: 'auto', padding: '0 4px' }}>
               {workflows.length === 0 ? (
                 <div style={{ color: '#555', fontSize: 11, padding: '8px 12px 10px' }}>
                   No boards yet
                 </div>
               ) : (
-                workflows.map(wf => {
+                workflows.map((wf, index) => {
                   const isActive = wf.id === activeWorkflowId;
                   const isEditing = editingBoardId === wf.id;
                   const isHovered = hoveredBoardId === wf.id;
@@ -189,24 +190,19 @@ export default function BottomBar({
                         alignItems: 'center',
                         gap: 8,
                         width: '100%',
-                        padding: isActive ? '7px 8px 7px 10px' : '7px 8px',
-                        background: isHovered && !isEditing ? '#2a2a2a' : 'transparent',
-                        borderLeft: isActive ? '2px solid #22c55e' : '2px solid transparent',
-                        color: '#ccc',
-                        fontSize: 12,
+                        padding: isActive ? '8px 10px' : '8px 10px',
+                        background: isActive ? '#2d1f3d' : isHovered && !isEditing ? '#252525' : 'transparent',
+                        borderRadius: 6,
+                        color: isActive ? '#fff' : '#ccc',
+                        fontSize: 13,
+                        fontWeight: isActive ? 600 : 400,
                         cursor: isEditing ? 'default' : 'pointer',
                         boxSizing: 'border-box',
                         transition: 'background 0.1s',
+                        marginBottom: 2,
                       }}
                     >
-                      {/* Active checkmark or spacer */}
-                      {isActive ? (
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
-                          <path d="M2 6L5 9L10 3" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      ) : (
-                        <span style={{ width: 12, flexShrink: 0 }} />
-                      )}
+                      {/* Board name */}
 
                       {/* Board name or rename input */}
                       {isEditing ? (
@@ -235,15 +231,27 @@ export default function BottomBar({
                           }}
                         />
                       ) : (
-                        <span style={{
-                          flexGrow: 1,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          minWidth: 0,
-                        }}>
-                          {wf.name}
-                        </span>
+                        <>
+                          <span style={{
+                            flexGrow: 1,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            minWidth: 0,
+                          }}>
+                            {wf.name}
+                          </span>
+                          {isActive && (
+                            <span style={{ 
+                              color: '#888', 
+                              fontSize: 11, 
+                              fontWeight: 400,
+                              marginLeft: 4 
+                            }}>
+                              {index + 1}
+                            </span>
+                          )}
+                        </>
                       )}
 
                       {/* Action icons — visible on hover, hidden while editing */}
@@ -382,21 +390,24 @@ export default function BottomBar({
               ) : (
                 <button
                   onClick={() => setNewBoardMode(true)}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#222'; e.currentTarget.style.color = '#ccc'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#888'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#7c3aed'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#6d28d9'; e.currentTarget.style.transform = 'translateY(0)'; }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 7,
+                    justifyContent: 'center',
+                    gap: 6,
                     width: '100%',
-                    padding: '7px 12px',
-                    background: 'transparent',
+                    padding: '8px 12px',
+                    background: '#6d28d9',
                     border: 'none',
-                    borderRadius: 5,
-                    color: '#888',
+                    borderRadius: 6,
+                    color: '#fff',
                     fontSize: 12,
+                    fontWeight: 500,
                     cursor: 'pointer',
                     outline: 'none',
+                    transition: 'all 0.15s',
                   }}
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
