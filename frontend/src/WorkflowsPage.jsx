@@ -861,6 +861,342 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
             />
           </div>
         </div>
+
+        {/* BUILT FOR BUILDERS SECTION */}
+        <div style={{ marginBottom: 100, padding: '60px 0' }}>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <h2 style={{
+              fontSize: '2.5rem',
+              fontWeight: 800,
+              color: '#FFFFFF',
+              lineHeight: 1.1,
+              margin: '0 0 16px',
+              letterSpacing: '-0.03em'
+            }}>
+              Built for <span style={{ color: '#666' }}>builders.</span>
+            </h2>
+            <p style={{
+              fontSize: 15,
+              color: '#888',
+              lineHeight: 1.6,
+              margin: 0,
+              maxWidth: 480,
+              marginLeft: 'auto',
+              marginRight: 'auto'
+            }}>
+              You don&apos;t need to be a developer. If you have an idea for an AI-powered feature, you can build and ship it here.
+            </p>
+          </div>
+
+          {/* Cards Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 20,
+            marginBottom: 40
+          }}>
+            {/* Card 1: Creators & Agencies */}
+            <div style={{
+              background: '#0d0d0d',
+              border: '1px solid #1a1a1a',
+              borderRadius: 16,
+              padding: 24,
+              position: 'relative'
+            }}>
+              {/* Number badge */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                marginBottom: 12
+              }}>
+                <span style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  background: 'rgba(236, 72, 153, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: '#ec4899'
+                }}>1</span>
+                <h3 style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: '#e0e0e0',
+                  margin: 0
+                }}>Creators & Agencies</h3>
+              </div>
+              
+              <p style={{
+                fontSize: 13,
+                color: '#888',
+                lineHeight: 1.6,
+                margin: '0 0 24px'
+              }}>
+                Build AI photo and video tools for your clients. Deploy as APIs and charge per call.
+              </p>
+
+              {/* Tags with connector lines */}
+              <div style={{ position: 'relative', paddingTop: 8 }}>
+                {/* Connector dot */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: '#ec4899'
+                }} />
+                {/* Connector line */}
+                <div style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: '20%',
+                  right: '20%',
+                  height: 1,
+                  background: 'linear-gradient(90deg, transparent, #ec4899 20%, #ec4899 80%, transparent)'
+                }} />
+                
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  justifyContent: 'center',
+                  paddingTop: 16
+                }}>
+                  {['E-commerce', 'Fashion', 'Content creation'].map((tag) => (
+                    <span key={tag} style={{
+                      padding: '6px 12px',
+                      background: 'rgba(236, 72, 153, 0.1)',
+                      border: '1px solid rgba(236, 72, 153, 0.3)',
+                      borderRadius: 9999,
+                      fontSize: 11,
+                      color: '#ec4899',
+                      fontWeight: 500
+                    }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Indie Builders & Makers */}
+            <div style={{
+              background: '#0d0d0d',
+              border: '1px solid #1a1a1a',
+              borderRadius: 16,
+              padding: 24,
+              position: 'relative'
+            }}>
+              {/* Number badge */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                marginBottom: 12
+              }}>
+                <span style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  background: 'rgba(245, 158, 11, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: '#f59e0b'
+                }}>2</span>
+                <h3 style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: '#e0e0e0',
+                  margin: 0
+                }}>Indie Builders & Makers</h3>
+              </div>
+              
+              <p style={{
+                fontSize: 13,
+                color: '#888',
+                lineHeight: 1.6,
+                margin: '0 0 24px'
+              }}>
+                Ship AI features without writing backend code. Plug a workflow into your app with a single API call.
+              </p>
+
+              {/* Tags with connector lines */}
+              <div style={{ position: 'relative', paddingTop: 8 }}>
+                {/* Connector dot */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: '#f59e0b'
+                }} />
+                {/* Connector line */}
+                <div style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: '15%',
+                  right: '15%',
+                  height: 1,
+                  background: 'linear-gradient(90deg, transparent, #f59e0b 15%, #f59e0b 85%, transparent)'
+                }} />
+                
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  justifyContent: 'center',
+                  paddingTop: 16
+                }}>
+                  {['SaaS products', 'MVPs', 'Side projects'].map((tag) => (
+                    <span key={tag} style={{
+                      padding: '6px 12px',
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      borderRadius: 9999,
+                      fontSize: 11,
+                      color: '#f59e0b',
+                      fontWeight: 500
+                    }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: Teams Starting with AI */}
+            <div style={{
+              background: '#0d0d0d',
+              border: '1px solid #1a1a1a',
+              borderRadius: 16,
+              padding: 24,
+              position: 'relative'
+            }}>
+              {/* Number badge */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                marginBottom: 12
+              }}>
+                <span style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  background: 'rgba(59, 130, 246, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: '#3b82f6'
+                }}>3</span>
+                <h3 style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: '#e0e0e0',
+                  margin: 0
+                }}>Teams Starting with AI</h3>
+              </div>
+              
+              <p style={{
+                fontSize: 13,
+                color: '#888',
+                lineHeight: 1.6,
+                margin: '0 0 24px'
+              }}>
+                Explore AI models visually. No ML expertise required. Experiment, find what works, and deploy it. Plug and play.
+              </p>
+
+              {/* Tags with connector lines */}
+              <div style={{ position: 'relative', paddingTop: 8 }}>
+                {/* Connector dot */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: '#3b82f6'
+                }} />
+                {/* Connector line */}
+                <div style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: '20%',
+                  right: '20%',
+                  height: 1,
+                  background: 'linear-gradient(90deg, transparent, #3b82f6 20%, #3b82f6 80%, transparent)'
+                }} />
+                
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  justifyContent: 'center',
+                  paddingTop: 16
+                }}>
+                  {['No-code teams', 'Plug & play', 'Visual builders'].map((tag) => (
+                    <span key={tag} style={{
+                      padding: '6px 12px',
+                      background: 'rgba(59, 130, 246, 0.1)',
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      borderRadius: 9999,
+                      fontSize: 11,
+                      color: '#3b82f6',
+                      fontWeight: 500
+                    }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Button */}
+          <div style={{ textAlign: 'center' }}>
+            <button
+              onClick={() => setShowNewModal(true)}
+              style={{
+                background: '#3B3BFF',
+                color: '#fff',
+                border: 'none',
+                padding: '14px 28px',
+                fontSize: 15,
+                fontWeight: 600,
+                borderRadius: 9999,
+                cursor: 'pointer',
+                boxShadow: '0 0 24px rgba(59, 59, 255, 0.4)',
+                transition: 'all 0.2s',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 32px rgba(59, 59, 255, 0.6)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 24px rgba(59, 59, 255, 0.4)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              Start building <span style={{ fontSize: 14 }}>&rarr;</span>
+            </button>
+          </div>
+        </div>
+
         {/* Your Workflows section */}
         <div style={{
           display: 'flex',
