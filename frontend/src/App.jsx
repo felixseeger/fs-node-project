@@ -84,9 +84,14 @@ import EditorTopBar from './EditorTopBar';
 import BottomBar from './BottomBar';
 import GooeyNodesMenu from './GooeyNodesMenu';
 import Queue from './Queue';
+import LayoutHelper, { alignmentFunctions } from './LayoutHelper';
 import { isValidConnection, getHandleColor, getHandleDataType } from './utils/handleTypes';
 import { NODE_MENU, DEFAULT_NODES, DEFAULT_EDGES } from './config/nodeMenu.js';
 import { isHandleConnected, getConnectionInfo as getConnectionInfoBase } from './helpers/nodeData.js';
+
+const GridIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>);
+const CollageIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 22H4a2 2 0 0 1-2-2V6"></path><path d="M22 18H8a2 2 0 0 0-2 2v-12a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z"></path><circle cx="13.5" cy="8.5" r="1.5"></circle><polyline points="22 13 18 10 11 15"></polyline></svg>);
+const CopyLinksIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>);
 
 let nodeIdCounter = 0;
 const nextId = () => `node_${++nodeIdCounter}`;
@@ -99,6 +104,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
   const [showSystemLoading, setShowSystemLoading] = useState(false);
 
   // sessionStorage key: set after loading completes, cleared on logout.
@@ -130,11 +136,16 @@ export default function App() {
           console.log('[Auth] User signed out');
         }
         setAuthLoading(false);
+      }, (error) => {
+        console.error('[Auth] State change error:', error);
+        setAuthError(error.message);
+        setAuthLoading(false);
       });
 
       return () => unsubscribeAuth();
     } catch (err) {
-      console.log('[Firebase] Initialization skipped or failed:', err.message);
+      console.error('[Firebase] Initialization failed:', err.message);
+      setAuthError(err.message);
       setAuthLoading(false);
     }
   }, []);
@@ -330,6 +341,25 @@ export default function App() {
     [rfInstance, setMenu]
   );
 
+  const onSelectionContextMenu = useCallback(
+    (event, nodes) => {
+      event.preventDefault();
+      
+      const pane = reactFlowWrapper.current.getBoundingClientRect();
+      setMenu({
+        x: event.clientX - pane.left,
+        y: event.clientY - pane.top,
+        items: [
+          { label: 'Grid', action: 'grid_nodes', icon: <GridIcon /> },
+          { label: 'Compose collage', action: 'compose_collage', icon: <CollageIcon /> },
+          { label: 'Copy links', action: 'copy_links', icon: <CopyLinksIcon /> },
+        ],
+        selectedNodes: nodes,
+      });
+    },
+    [setMenu]
+  );
+
   const handleMenuAction = (action, data) => {
     saveHistory();
     const { selectedNodes } = data;
@@ -367,6 +397,39 @@ export default function App() {
           setNodes(nds => [...nds.map(n => ({...n, selected: false})), ...newNodes]);
         }
         break;
+      case 'compose_collage':
+        if (selectedNodes && selectedNodes.length > 0) {
+          const newAssetNode = {
+            id: nextId(),
+            type: 'assetNode',
+            position: {
+              x: selectedNodes[selectedNodes.length - 1].position.x + 300,
+              y: selectedNodes[selectedNodes.length - 1].position.y,
+            },
+            data: {
+              label: 'Collage',
+              images: selectedNodes.reduce((acc, node) => {
+                if (node.data.outputImage) return [...acc, node.data.outputImage];
+                if (node.data.outputVideo) return [...acc, node.data.outputVideo];
+                return acc;
+              }, []),
+            },
+          };
+          setNodes((nds) => [...nds, newAssetNode]);
+        }
+        break;
+      case 'copy_links':
+        if (selectedNodes && selectedNodes.length > 0) {
+          const links = selectedNodes.reduce((acc, node) => {
+            if (node.data.outputImage && typeof node.data.outputImage === 'string') return [...acc, node.data.outputImage];
+            if (node.data.outputVideo && typeof node.data.outputVideo === 'string') return [...acc, node.data.outputVideo];
+            return acc;
+          }, []);
+          if (links.length > 0) {
+            navigator.clipboard.writeText(links.join('\n'));
+          }
+        }
+        break;
       case 'clear_contents':
         if (selectedNodes && selectedNodes.length > 0) {
           setNodes(nds => nds.map(n => {
@@ -395,11 +458,58 @@ export default function App() {
         }
         break;
       case 'align_center':
+      case 'align_center_h':
         if (selectedNodes && selectedNodes.length > 1) {
           let sumX = 0;
           selectedNodes.forEach(n => sumX += n.position.x + (n.width || 200)/2);
           const avgX = sumX / selectedNodes.length;
           setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, x: avgX - (n.width || 200)/2 } } : n));
+        }
+        break;
+      case 'align_top':
+        if (selectedNodes && selectedNodes.length > 1) {
+          const minY = Math.min(...selectedNodes.map(n => n.position.y));
+          setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, y: minY } } : n));
+        }
+        break;
+      case 'align_center_v':
+        if (selectedNodes && selectedNodes.length > 1) {
+          let sumY = 0;
+          selectedNodes.forEach(n => sumY += n.position.y + (n.height || 100)/2);
+          const avgY = sumY / selectedNodes.length;
+          setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, y: avgY - (n.height || 100)/2 } } : n));
+        }
+        break;
+      case 'align_bottom':
+        if (selectedNodes && selectedNodes.length > 1) {
+          const maxY = Math.max(...selectedNodes.map(n => n.position.y + (n.height || 100)));
+          setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, y: maxY - (n.height || 100) } } : n));
+        }
+        break;
+      case 'distribute_h':
+        if (selectedNodes && selectedNodes.length > 2) {
+          const sorted = [...selectedNodes].sort((a, b) => a.position.x - b.position.x);
+          const minX = sorted[0].position.x;
+          const maxX = sorted[sorted.length - 1].position.x;
+          const spacing = (maxX - minX) / (sorted.length - 1);
+          setNodes(nds => nds.map(n => {
+            if (!n.selected) return n;
+            const idx = sorted.findIndex(s => s.id === n.id);
+            return { ...n, position: { ...n.position, x: minX + spacing * idx } };
+          }));
+        }
+        break;
+      case 'distribute_v':
+        if (selectedNodes && selectedNodes.length > 2) {
+          const sorted = [...selectedNodes].sort((a, b) => a.position.y - b.position.y);
+          const minY = sorted[0].position.y;
+          const maxY = sorted[sorted.length - 1].position.y;
+          const spacing = (maxY - minY) / (sorted.length - 1);
+          setNodes(nds => nds.map(n => {
+            if (!n.selected) return n;
+            const idx = sorted.findIndex(s => s.id === n.id);
+            return { ...n, position: { ...n.position, y: minY + spacing * idx } };
+          }));
         }
         break;
       case 'stack_nodes':
@@ -1441,6 +1551,58 @@ export default function App() {
     handleDeleteWorkflows([id]);
   }, [activeWorkflowId, workflows, handleCreateWorkflow]);
 
+  // Show Firebase auth errors with helpful instructions
+  if (authError) {
+    const isApiKeyError = authError.includes('api-key') || authError.includes('API key');
+    return (
+      <div style={{ width: '100vw', height: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e0e0e0', fontFamily: 'Inter, system-ui, sans-serif', padding: 24 }}>
+        <div style={{ maxWidth: 600, textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 24 }}>&#9888;</div>
+          <h2 style={{ fontSize: 24, fontWeight: 600, marginBottom: 16, color: '#fff' }}>
+            {isApiKeyError ? 'Firebase API Key Error' : 'Authentication Error'}
+          </h2>
+          <p style={{ fontSize: 14, color: '#888', marginBottom: 24, lineHeight: 1.6 }}>
+            {isApiKeyError ? (
+              <>
+                The Firebase API key is not valid for this domain. <br/>
+                This usually happens when the domain isn&apos;t authorized in Google Cloud Console.
+              </>
+            ) : (
+              authError
+            )}
+          </p>
+          {isApiKeyError && (
+            <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: 12, padding: 24, textAlign: 'left', marginBottom: 24 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 16, color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>To fix this:</h3>
+              <ol style={{ fontSize: 13, color: '#888', lineHeight: 1.8, margin: 0, paddingLeft: 20 }}>
+                <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6' }}>Google Cloud Console → APIs &amp; Services → Credentials</a></li>
+                <li>Find your API key: <code style={{ background: '#1a1a1a', padding: '2px 6px', borderRadius: 4, color: '#e0e0e0' }}>AIzaSyDNRotQNelJBJAAMwmdmo8cWjYiAchobHU</code></li>
+                <li>Click &quot;Edit API key&quot; → &quot;Application restrictions&quot;</li>
+                <li>Add this domain to HTTP referrers: <code style={{ background: '#1a1a1a', padding: '2px 6px', borderRadius: 4, color: '#22c55e' }}>nodes.felixseeger.de</code></li>
+                <li>Save and wait 2-3 minutes for changes to propagate</li>
+              </ol>
+            </div>
+          )}
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              background: '#3b82f6',
+              color: '#fff',
+              border: 'none',
+              padding: '12px 24px',
+              fontSize: 14,
+              fontWeight: 600,
+              borderRadius: 8,
+              cursor: 'pointer'
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Auth guard — show login/signup if not authenticated
   if (authLoading) {
     return (
@@ -1618,6 +1780,16 @@ export default function App() {
         {/* Canvas */}
         <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }} onDrop={onDrop} onDragOver={onDragOver}>
           <GooeyNodesMenu nodeMenu={NODE_MENU} onAddNode={addNode} onOpenProfile={() => setIsProfileModalOpen(true)} />
+          
+          {/* Layout Helper Toolbar */}
+          <LayoutHelper
+            selectedNodes={nodes.filter(n => n.selected)}
+            isVisible={nodes.filter(n => n.selected).length >= 2}
+            onAlign={(action, selectedNodes) => {
+              saveHistory();
+              handleMenuAction(action, { selectedNodes });
+            }}
+          />
 
           <div style={{
             position: 'absolute',
@@ -1711,6 +1883,7 @@ export default function App() {
             deleteKeyCode={['Backspace', 'Delete']}
             style={{ background: '#1a1a1a' }}
             onPaneContextMenu={onPaneContextMenu}
+            onSelectionContextMenu={onSelectionContextMenu}
             onPaneClick={() => setMenu(null)}
           >
             {menu && (
@@ -1760,7 +1933,10 @@ export default function App() {
                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)')}
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
-                      <span>{item.label}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {item.icon && <span style={{ display: 'flex', alignItems: 'center', opacity: 0.8 }}>{item.icon}</span>}
+                        <span>{item.label}</span>
+                      </div>
                       {item.shortcut && (
                         <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px' }}>{item.shortcut}</span>
                       )}
