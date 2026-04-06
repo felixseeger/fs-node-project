@@ -1197,6 +1197,476 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
           </div>
         </div>
 
+        {/* HOW TO SECTION - Describe your feature */}
+        <div style={{ marginBottom: 100, padding: '60px 0' }}>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <h2 style={{
+              fontSize: '3rem',
+              fontWeight: 800,
+              color: '#FFFFFF',
+              lineHeight: 1.1,
+              margin: '0 0 16px',
+              letterSpacing: '-0.03em'
+            }}>
+              Describe your feature.<br />
+              <span style={{ color: '#666' }}>Get a workflow.</span>
+            </h2>
+            <p style={{
+              fontSize: 15,
+              color: '#888',
+              lineHeight: 1.6,
+              margin: 0,
+              maxWidth: 600,
+              marginLeft: 'auto',
+              marginRight: 'auto'
+            }}>
+              Tell our AI what feature you want to build (virtual try-on, image enhancement, content generation) and it creates the entire workflow for you. It picks the models, writes the system prompts, connects every node, and deploys your API.
+            </p>
+          </div>
+
+          {/* Workflow Demo Card */}
+          <div style={{
+            background: '#0a0a0a',
+            border: '1px solid #1a1a1a',
+            borderRadius: 20,
+            padding: 32,
+            maxWidth: 1000,
+            margin: '0 auto'
+          }}>
+            {/* Card Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 24
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10
+              }}>
+                <span style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  background: '#3b82f6'
+                }} />
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: '#666',
+                  letterSpacing: 1,
+                  textTransform: 'uppercase'
+                }}>VIBE-NODING</span>
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                background: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: 9999
+              }}>
+                <span style={{ fontSize: 12 }}>&#10003;</span>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: '#22c55e'
+                }}>Workflow ready</span>
+              </div>
+            </div>
+
+            {/* Prompt Input */}
+            <div style={{
+              background: '#141414',
+              border: '1px solid #2a2a2a',
+              borderRadius: 12,
+              padding: '16px 20px',
+              marginBottom: 32,
+              fontSize: 14,
+              color: '#e0e0e0',
+              lineHeight: 1.6
+            }}>
+              Build me a virtual try-on feature. Users upload a clothing photo and a model photo, and the workflow generates a realistic try-on image.
+            </div>
+
+            {/* Workflow Diagram */}
+            <div style={{
+              position: 'relative',
+              height: 280,
+              marginBottom: 24
+            }}>
+              {/* Connection Lines SVG */}
+              <svg style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none'
+              }}>
+                {/* Line 1: Clothing Input -> Claude Vision */}
+                <path d="M 180 70 Q 230 70 250 70" stroke="#3b82f6" strokeWidth="2" fill="none" />
+                <circle cx="215" cy="70" r="3" fill="#3b82f6" />
+                
+                {/* Line 2: Model Input -> Claude Haiku */}
+                <path d="M 180 190 Q 230 190 250 190" stroke="#3b82f6" strokeWidth="2" fill="none" />
+                <circle cx="215" cy="190" r="3" fill="#3b82f6" />
+                
+                {/* Line 3: Claude Vision -> Nano Banana */}
+                <path d="M 410 70 Q 460 70 480 100" stroke="#8b5cf6" strokeWidth="2" fill="none" />
+                <circle cx="445" cy="70" r="3" fill="#8b5cf6" />
+                
+                {/* Line 4: Claude Haiku -> Nano Banana */}
+                <path d="M 410 190 Q 460 190 480 160" stroke="#8b5cf6" strokeWidth="2" fill="none" />
+                <circle cx="445" cy="190" r="3" fill="#8b5cf6" />
+                
+                {/* Line 5: Nano Banana -> Response */}
+                <path d="M 640 130 Q 690 130 720 130" stroke="#ec4899" strokeWidth="2" fill="none" />
+                <circle cx="665" cy="130" r="3" fill="#ec4899" />
+              </svg>
+
+              {/* Node 1: Clothing Input */}
+              <div style={{
+                position: 'absolute',
+                left: 0,
+                top: 30,
+                width: 160,
+                background: '#1a1a1a',
+                border: '1px solid #2a2a2a',
+                borderRadius: 10,
+                padding: 14,
+                borderLeft: '3px solid #3b82f6'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 10
+                }}>
+                  <span style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 4,
+                    background: 'rgba(59, 130, 246, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#3b82f6'
+                  }}>1</span>
+                  <span style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#e0e0e0'
+                  }}>Clothing Input</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#ec4899' }} />
+                    <span style={{ fontSize: 9, color: '#666', textTransform: 'uppercase' }}>IMAGE</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f97316' }} />
+                    <span style={{ fontSize: 9, color: '#666', textTransform: 'uppercase' }}>PROMPT</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Node 2: Model Input */}
+              <div style={{
+                position: 'absolute',
+                left: 0,
+                top: 150,
+                width: 160,
+                background: '#1a1a1a',
+                border: '1px solid #2a2a2a',
+                borderRadius: 10,
+                padding: 14,
+                borderLeft: '3px solid #3b82f6'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 10
+                }}>
+                  <span style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 4,
+                    background: 'rgba(59, 130, 246, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#3b82f6'
+                  }}>2</span>
+                  <span style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#e0e0e0'
+                  }}>Model Input</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#ec4899' }} />
+                    <span style={{ fontSize: 9, color: '#666', textTransform: 'uppercase' }}>IMAGE</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f97316' }} />
+                    <span style={{ fontSize: 9, color: '#666', textTransform: 'uppercase' }}>PROMPT</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Node 3: Claude Vision */}
+              <div style={{
+                position: 'absolute',
+                left: 260,
+                top: 30,
+                width: 160,
+                background: '#1a1a1a',
+                border: '1px solid #2a2a2a',
+                borderRadius: 10,
+                padding: 14,
+                borderLeft: '3px solid #8b5cf6'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 10
+                }}>
+                  <span style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 4,
+                    background: 'rgba(139, 92, 246, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#8b5cf6'
+                  }}>3</span>
+                  <span style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#e0e0e0'
+                  }}>Claude Vision</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f97316' }} />
+                    <span style={{ fontSize: 9, color: '#666', textTransform: 'uppercase' }}>SYSTEM</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#a855f7' }} />
+                    <span style={{ fontSize: 9, color: '#666', textTransform: 'uppercase' }}>OUTPUT</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Node 4: Claude Haiku */}
+              <div style={{
+                position: 'absolute',
+                left: 260,
+                top: 150,
+                width: 160,
+                background: '#1a1a1a',
+                border: '1px solid #2a2a2a',
+                borderRadius: 10,
+                padding: 14,
+                borderLeft: '3px solid #8b5cf6'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 10
+                }}>
+                  <span style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 4,
+                    background: 'rgba(139, 92, 246, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#8b5cf6'
+                  }}>4</span>
+                  <span style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#e0e0e0'
+                  }}>Claude Haiku</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f97316' }} />
+                    <span style={{ fontSize: 9, color: '#666', textTransform: 'uppercase' }}>SYSTEM</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#a855f7' }} />
+                    <span style={{ fontSize: 9, color: '#666', textTransform: 'uppercase' }}>OUTPUT</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Node 5: Nano Banana */}
+              <div style={{
+                position: 'absolute',
+                left: 490,
+                top: 90,
+                width: 160,
+                background: '#1a1a1a',
+                border: '1px solid #2a2a2a',
+                borderRadius: 10,
+                padding: 14,
+                borderLeft: '3px solid #ec4899'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 10
+                }}>
+                  <span style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 4,
+                    background: 'rgba(236, 72, 153, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#ec4899'
+                  }}>5</span>
+                  <span style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#e0e0e0'
+                  }}>Nano Banana</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f97316' }} />
+                    <span style={{ fontSize: 9, color: '#666', textTransform: 'uppercase' }}>PROMPT</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f59e0b' }} />
+                    <span style={{ fontSize: 9, color: '#666', textTransform: 'uppercase' }}>RATIO</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#ec4899' }} />
+                    <span style={{ fontSize: 9, color: '#666', textTransform: 'uppercase' }}>OUTPUT</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Node 6: Response */}
+              <div style={{
+                position: 'absolute',
+                left: 730,
+                top: 100,
+                width: 130,
+                background: '#1a1a1a',
+                border: '1px solid #2a2a2a',
+                borderRadius: 10,
+                padding: 14,
+                borderLeft: '3px solid #22c55e'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 10
+                }}>
+                  <span style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 4,
+                    background: 'rgba(34, 197, 94, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#22c55e'
+                  }}>6</span>
+                  <span style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#e0e0e0'
+                  }}>Response</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
+                  <span style={{ fontSize: 9, color: '#666', textTransform: 'uppercase' }}>OUTPUT</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingTop: 20,
+              borderTop: '1px solid #1a1a1a'
+            }}>
+              <div style={{
+                display: 'flex',
+                gap: 24
+              }}>
+                <span style={{
+                  fontSize: 12,
+                  color: '#666'
+                }}>
+                  <span style={{ color: '#22c55e', marginRight: 4 }}>&#10003;</span> 6 nodes
+                </span>
+                <span style={{
+                  fontSize: 12,
+                  color: '#666'
+                }}>
+                  <span style={{ color: '#22c55e', marginRight: 4 }}>&#10003;</span> 5 connections
+                </span>
+                <span style={{
+                  fontSize: 12,
+                  color: '#666'
+                }}>
+                  <span style={{ color: '#22c55e', marginRight: 4 }}>&#10003;</span> Prompts auto-configured
+                </span>
+              </div>
+              <button
+                onClick={() => setShowNewModal(true)}
+                style={{
+                  background: '#3B3BFF',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '10px 20px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#4a4aff'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#3B3BFF'; }}
+              >
+                Deploy as API
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Your Workflows section */}
         <div style={{
           display: 'flex',
