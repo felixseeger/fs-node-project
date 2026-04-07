@@ -9,10 +9,9 @@
     },
     {
       "name": "Backend (Express)",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["server.js"],
-      "port": 3001,
-      "cwd": "backend"
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["/Users/felixseeger/Projects/Node-Project/.claude/start-backend.sh"],
+      "port": 3001
     }
   ]
 }

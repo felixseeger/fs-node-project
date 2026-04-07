@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ProfileModal.css';
+import { getFirebaseAuth } from './config/firebase';
+import { updateProfile, updateEmail, updatePassword, deleteUser } from 'firebase/auth';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const Icons = {
   Profile: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>,
@@ -14,7 +17,83 @@ const Icons = {
 
 export default function ProfileModal({ isOpen, onClose }) {
   const [avatar, setAvatar] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
   const fileInputRef = React.useRef(null);
+
+  const [user, setUser] = useState(null);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const auth = getFirebaseAuth();
+      if (auth?.currentUser) {
+        setUser(auth.currentUser);
+        const parts = (auth.currentUser.displayName || '').split(' ');
+        setFirstName(parts[0] || '');
+        setLastName(parts.slice(1).join(' ') || '');
+        setEmail(auth.currentUser.email || '');
+        setAvatar(auth.currentUser.photoURL || null);
+      }
+      setMessage(null);
+      setNewPassword('');
+      setAvatarFile(null);
+    }
+  }, [isOpen]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    setIsLoading(true);
+    setMessage(null);
+    try {
+      const newDisplayName = `${firstName} ${lastName}`.trim();
+
+      let finalAvatarUrl = avatar;
+      if (avatarFile) {
+        const storage = getStorage();
+        const avatarStorageRef = ref(storage, `avatars/${user.uid}_${Date.now()}_${avatarFile.name}`);
+        const snapshot = await uploadBytes(avatarStorageRef, avatarFile);
+        finalAvatarUrl = await getDownloadURL(snapshot.ref);
+        setAvatar(finalAvatarUrl);
+        setAvatarFile(null);
+      }
+
+      if (newDisplayName !== user.displayName || finalAvatarUrl !== user.photoURL) {
+        await updateProfile(user, { displayName: newDisplayName, photoURL: finalAvatarUrl });
+      }
+      if (email !== user.email) {
+        await updateEmail(user, email);
+      }
+      if (newPassword) {
+        await updatePassword(user, newPassword);
+      }
+      setMessage({ type: 'success', text: 'Profile updated successfully.' });
+      setNewPassword('');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setMessage({ type: 'error', text: error.message || 'Failed to update. You may need to log out and log back in.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (confirm('Are you sure you want to permanently delete your account? This action cannot be undone.')) {
+      if (user) {
+        try {
+          await deleteUser(user);
+          onClose();
+        } catch (err) {
+          console.error('Delete account error:', err);
+          setMessage({ type: 'error', text: `Error deleting account: ${err.message}. You may need to log out and log back in.` });
+        }
+      }
+    }
+  };
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
@@ -23,6 +102,7 @@ export default function ProfileModal({ isOpen, onClose }) {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setAvatarFile(file);
       const reader = new FileReader();
       reader.onload = (ev) => {
         setAvatar(ev.target.result);
@@ -37,7 +117,7 @@ export default function ProfileModal({ isOpen, onClose }) {
   return (
     <div className="pm-overlay" onClick={onClose}>
       <div className="pm-modal" onClick={e => e.stopPropagation()}>
-        
+
         {/* Sidebar */}
         <div className="pm-sidebar">
           <div className="pm-section">
@@ -48,7 +128,7 @@ export default function ProfileModal({ isOpen, onClose }) {
             <button className={`pm-nav-btn ${activeTab === 'Preferences' ? 'active' : ''}`} onClick={() => setActiveTab('Preferences')}>
               <span className="pm-icon">{Icons.Preferences}</span> Preferences
             </button>
-            
+
           </div>
 
           <div className="pm-section">
@@ -80,17 +160,17 @@ export default function ProfileModal({ isOpen, onClose }) {
           {activeTab === 'Profile' && (
             <div className="pm-profile-body">
               <div className="pm-avatar-container">
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  style={{ display: 'none' }} 
-                  accept="image/*" 
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                  accept="image/*"
                 />
                 {avatar ? (
                   <img src={avatar} alt="Profile" className="pm-avatar-img" />
                 ) : (
-                  <div className="pm-avatar-placeholder">FS</div>
+                  <div className="pm-avatar-placeholder">{(firstName[0] || '') + (lastName[0] || '') || 'U'}</div>
                 )}
                 <button className="pm-edit-btn" onClick={handleAvatarClick}>Edit</button>
               </div>
@@ -98,25 +178,46 @@ export default function ProfileModal({ isOpen, onClose }) {
               <div className="pm-form-row">
                 <div className="pm-form-group">
                   <label>First Name</label>
-                  <input type="text" defaultValue="Felix" />
+                  <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First Name" />
                 </div>
                 <div className="pm-menu-dots-btn">
                   <button>{Icons.MenuDots}</button>
                 </div>
                 <div className="pm-form-group">
                   <label>Last Name</label>
-                  <input type="text" defaultValue="Seeger" />
+                  <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last Name" />
                 </div>
               </div>
 
               <div className="pm-form-group pm-form-group-full">
                 <label>Email</label>
-                <input type="email" defaultValue="felixseeger@googlemail.com" />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email Address" />
               </div>
 
+              <div className="pm-form-group pm-form-group-full" style={{ marginTop: 12 }}>
+                <label>New Password</label>
+                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Leave blank to keep current password" />
+              </div>
+
+              {message && (
+                <div style={{
+                  padding: '12px', borderRadius: '8px', marginTop: '16px',
+                  background: message.type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                  color: message.type === 'error' ? '#ef4444' : '#22c55e',
+                  border: `1px solid ${message.type === 'error' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
+                  fontSize: '13px'
+                }}>
+                  {message.text}
+                </div>
+              )}
+
               <div className="pm-actions">
-                <button className="pm-save-btn">Save changes</button>
-                <button className="pm-delete-btn">Delete account</button>
+                <button className="pm-save-btn" onClick={handleSave} disabled={isLoading}>
+                  {isLoading ? 'Saving...' : 'Save changes'}
+                </button>
+                <button className="pm-delete-btn" onClick={handleDeleteAccount} disabled={isLoading}>
+                  Delete account
+                </button>
               </div>
 
               <div className="pm-divider"></div>
@@ -130,15 +231,15 @@ export default function ProfileModal({ isOpen, onClose }) {
               </div>
             </div>
           )}
-          
-          
+
+
           {activeTab === 'Preferences' && (
             <div className="pm-preferences-body">
               <p className="pm-preferences-desc">These preferences apply to all of your new projects across FLORA</p>
-              
+
               <div className="pm-pref-section">
                 <h3>Editor & Performance</h3>
-                
+
                 <div className="pm-pref-row">
                   <div className="pm-pref-text">
                     <label>Performance Mode</label>
@@ -149,7 +250,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                     <span className="pm-slider"></span>
                   </label>
                 </div>
-                
+
                 <div className="pm-pref-row">
                   <div className="pm-pref-text">
                     <label>Snap to Grid</label>
@@ -160,7 +261,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                     <span className="pm-slider"></span>
                   </label>
                 </div>
-                
+
                 <div className="pm-pref-row">
                   <div className="pm-pref-text">
                     <label>Background Prompt Improver</label>
@@ -171,7 +272,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                     <span className="pm-slider"></span>
                   </label>
                 </div>
-                
+
                 <div className="pm-pref-row">
                   <div className="pm-pref-text">
                     <label>Show Legacy Assets Folder</label>
@@ -182,7 +283,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                     <span className="pm-slider"></span>
                   </label>
                 </div>
-                
+
                 <div className="pm-pref-row">
                   <div className="pm-pref-text">
                     <label>Show Credit Balance</label>
@@ -193,7 +294,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                     <span className="pm-slider"></span>
                   </label>
                 </div>
-                
+
                 <div className="pm-pref-row">
                   <div className="pm-pref-text">
                     <label>Open dashboard projects</label>
@@ -205,12 +306,12 @@ export default function ProfileModal({ isOpen, onClose }) {
                   </select>
                 </div>
               </div>
-              
+
               <div className="pm-divider"></div>
-              
+
               <div className="pm-pref-section">
                 <h3>Variations</h3>
-                
+
                 <div className="pm-pref-row">
                   <div className="pm-pref-text">
                     <label>Variation behavior</label>
@@ -222,12 +323,12 @@ export default function ProfileModal({ isOpen, onClose }) {
                   </select>
                 </div>
               </div>
-              
+
               <div className="pm-divider"></div>
-              
+
               <div className="pm-pref-section">
                 <h3>Multi-Model</h3>
-                
+
                 <div className="pm-pref-row">
                   <div className="pm-pref-text">
                     <label>Multi-model behavior</label>
@@ -239,20 +340,20 @@ export default function ProfileModal({ isOpen, onClose }) {
                   </select>
                 </div>
               </div>
-              
+
               <div className="pm-divider"></div>
-              
+
               <div className="pm-pref-section">
                 <h3>Default Model</h3>
-                
+
                 <div className="pm-pref-subsection">
                   <h4>Text</h4>
                   <p className="pm-pref-subdesc">Choose default text models</p>
-                  
+
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Text to text</label>
                     <select className="pm-select">
-                      
+
                       <option>Claude Sonnet 4.6</option>
                       <option>GPT-4o</option>
                       <option>Gemini 1.5 Pro</option>
@@ -262,7 +363,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Image to text</label>
                     <select className="pm-select">
-                      
+
                       <option>Claude Sonnet 4.6</option>
                       <option>GPT-4o</option>
                       <option>Gemini 1.5 Pro</option>
@@ -272,7 +373,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Video to text</label>
                     <select className="pm-select">
-                      
+
                       <option>Claude Sonnet 4.6</option>
                       <option>GPT-4o</option>
                       <option>Gemini 1.5 Pro</option>
@@ -280,17 +381,17 @@ export default function ProfileModal({ isOpen, onClose }) {
                     </select>
                   </div>
                 </div>
-                
+
                 <div className="pm-pref-subsection">
                   <h4>Image</h4>
                   <p className="pm-pref-subdesc">Choose default image models</p>
-                  
+
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Text to image</label>
                     <select className="pm-select">
-                      
+
                       <option>Flux 2</option>
-                      
+
                       <option>Flux 2</option>
                       <option>Nano Banana 2</option>
                       <option>Midjourney v6</option>
@@ -302,7 +403,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Image to image</label>
                     <select className="pm-select">
-                      
+
                       <option>Flux 2</option>
                       <option>Nano Banana 2</option>
                       <option>Midjourney v6</option>
@@ -312,7 +413,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Images to image</label>
                     <select className="pm-select">
-                      
+
                       <option>Flux 2</option>
                       <option>Nano Banana 2</option>
                       <option>Midjourney v6</option>
@@ -320,33 +421,24 @@ export default function ProfileModal({ isOpen, onClose }) {
                     </select>
                   </div>
                 </div>
-                
+
                 <div className="pm-pref-subsection">
                   <h4>Video</h4>
                   <p className="pm-pref-subdesc">Choose default video models</p>
-                  
+
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Text to video</label>
                     <select className="pm-select">
-                      
+
                       <option>Seedance 1.5 Pro</option>
-                      
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
-                      <option>Kling O1 Edit</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
@@ -355,11 +447,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                       <option>Runway Gen-4</option>
                       <option>Sora</option>
                       <option>Runway Gen-4</option>
-                      
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
@@ -368,7 +456,20 @@ export default function ProfileModal({ isOpen, onClose }) {
                       <option>Runway Gen-4</option>
                       <option>Sora</option>
                       <option>Runway Gen-4</option>
-                      
+
+                      <option>Seedance 1.5 Pro</option>
+                      <option>Veo 3.1 Frames</option>
+                      <option>Veo 3.1 Ingredients</option>
+
+                      <option>Seedance 1.5 Pro</option>
+                      <option>Veo 3.1 Frames</option>
+                      <option>Veo 3.1 Ingredients</option>
+                      <option>Kling O1 Edit</option>
+                      <option>Sora</option>
+                      <option>Runway Gen-4</option>
+                      <option>Sora</option>
+                      <option>Runway Gen-4</option>
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
@@ -382,25 +483,16 @@ export default function ProfileModal({ isOpen, onClose }) {
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Image to video</label>
                     <select className="pm-select">
-                      
+
                       <option>Seedance 1.5 Pro</option>
-                      
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
-                      <option>Kling O1 Edit</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
@@ -409,11 +501,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                       <option>Runway Gen-4</option>
                       <option>Sora</option>
                       <option>Runway Gen-4</option>
-                      
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
@@ -422,7 +510,20 @@ export default function ProfileModal({ isOpen, onClose }) {
                       <option>Runway Gen-4</option>
                       <option>Sora</option>
                       <option>Runway Gen-4</option>
-                      
+
+                      <option>Seedance 1.5 Pro</option>
+                      <option>Veo 3.1 Frames</option>
+                      <option>Veo 3.1 Ingredients</option>
+
+                      <option>Seedance 1.5 Pro</option>
+                      <option>Veo 3.1 Frames</option>
+                      <option>Veo 3.1 Ingredients</option>
+                      <option>Kling O1 Edit</option>
+                      <option>Sora</option>
+                      <option>Runway Gen-4</option>
+                      <option>Sora</option>
+                      <option>Runway Gen-4</option>
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
@@ -436,14 +537,14 @@ export default function ProfileModal({ isOpen, onClose }) {
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>First frame last frame</label>
                     <select className="pm-select">
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
@@ -452,7 +553,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                       <option>Runway Gen-4</option>
                       <option>Sora</option>
                       <option>Runway Gen-4</option>
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
@@ -466,11 +567,11 @@ export default function ProfileModal({ isOpen, onClose }) {
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Images to video</label>
                     <select className="pm-select">
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
@@ -484,7 +585,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Video to video</label>
                     <select className="pm-select">
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
@@ -496,7 +597,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Mixed to video</label>
                     <select className="pm-select">
-                      
+
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
@@ -507,31 +608,31 @@ export default function ProfileModal({ isOpen, onClose }) {
                   </div>
                 </div>
               </div>
-              
+
             </div>
           )}
-          
-          
+
+
           {activeTab === 'Settings' && (
             <div className="pm-preferences-body">
               <div className="pm-form-row">
-                 <button className="pm-save-btn" style={{background: '#1a1a1a', border: '1px solid #333', color: '#e0e0e0'}}>Leave workspace</button>
+                <button className="pm-save-btn" style={{ background: '#1a1a1a', border: '1px solid #333', color: '#e0e0e0' }}>Leave workspace</button>
               </div>
 
-              <div className="pm-security-section" style={{marginTop: '16px'}}>
-                <div className="pm-security-text" style={{maxWidth: '100%'}}>
-                  <h3 style={{fontSize: '18px'}}>Model Access Control</h3>
-                  <p style={{fontSize: '14px'}}>Control which models are available in your workspace. Restricted models are completely hidden from member workflows and can't be accessed.</p>
+              <div className="pm-security-section" style={{ marginTop: '16px' }}>
+                <div className="pm-security-text" style={{ maxWidth: '100%' }}>
+                  <h3 style={{ fontSize: '18px' }}>Model Access Control</h3>
+                  <p style={{ fontSize: '14px' }}>Control which models are available in your workspace. Restricted models are completely hidden from member workflows and can't be accessed.</p>
                 </div>
               </div>
-              
+
               <div className="pm-sectionBody" style={{ backgroundColor: '#1a1a1a', borderRadius: '8px', padding: '16px', border: '1px solid #333', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div className="pm-pref-row">
                   <div className="pm-pref-text">
-                    <label style={{fontSize: '14px'}}>New model behavior</label>
-                    <span style={{fontSize: '13px'}}>Models will <strong style={{color: '#00FF7F', fontWeight: '500'}}>automatically</strong> be added to the list when released</span>
+                    <label style={{ fontSize: '14px' }}>New model behavior</label>
+                    <span style={{ fontSize: '13px' }}>Models will <strong style={{ color: '#00FF7F', fontWeight: '500' }}>automatically</strong> be added to the list when released</span>
                   </div>
-                  
+
                   <div style={{ display: 'flex', background: '#111', borderRadius: '20px', padding: '4px', border: '1px solid #333' }}>
                     <button style={{ background: '#333', color: '#fff', border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>Opt-out</button>
                     <button style={{ background: 'transparent', color: '#999', border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>Opt-in</button>
@@ -543,19 +644,19 @@ export default function ProfileModal({ isOpen, onClose }) {
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
-                  <input 
-                    type="search" 
-                    placeholder="Search models by name, provider, or category..." 
-                    style={{ 
-                      width: '100%', 
-                      background: '#111', 
-                      border: '1px solid #333', 
-                      borderRadius: '8px', 
-                      padding: '10px 12px 10px 36px', 
+                  <input
+                    type="search"
+                    placeholder="Search models by name, provider, or category..."
+                    style={{
+                      width: '100%',
+                      background: '#111',
+                      border: '1px solid #333',
+                      borderRadius: '8px',
+                      padding: '10px 12px 10px 36px',
                       color: '#E0E0E0',
                       fontSize: '14px',
                       outline: 'none'
-                    }} 
+                    }}
                   />
                 </div>
 
@@ -570,7 +671,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                       <span className="pm-slider"></span>
                     </label>
                   </div>
-                  
+
                   <div className="pm-pref-row" style={{ padding: '12px 0', borderBottom: '1px solid #333' }}>
                     <div className="pm-pref-text">
                       <label style={{ fontSize: '14px', color: '#fff' }}>Alibaba &bull; Qwen Image Edit Angles</label>
@@ -581,7 +682,7 @@ export default function ProfileModal({ isOpen, onClose }) {
                       <span className="pm-slider"></span>
                     </label>
                   </div>
-                  
+
                   <div className="pm-pref-row" style={{ padding: '12px 0', borderBottom: '1px solid #333' }}>
                     <div className="pm-pref-text">
                       <label style={{ fontSize: '14px', color: '#fff' }}>Alibaba &bull; Qwen Image Edit Plus</label>

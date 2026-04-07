@@ -4,7 +4,7 @@ async function safeJson(res) {
   const text = await res.text();
   try {
     return JSON.parse(text);
-  } catch (err) {
+  } catch {
     console.error("Invalid JSON response:", text.substring(0, 200));
     if (!res.ok) {
       return { error: { message: `HTTP ${res.status}: ${text.substring(0, 100)}...` } };
@@ -13,8 +13,12 @@ async function safeJson(res) {
   }
 }
 
-export async function generateImage(params) {
-  const res = await fetch(`${API_BASE}/api/generate-image`, {
+
+/**
+ * Generic POST helper
+ */
+async function postToApi(endpoint, params) {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -22,850 +26,394 @@ export async function generateImage(params) {
   return safeJson(res);
 }
 
-export async function generateKora(params) {
-  const res = await fetch(`${API_BASE}/api/generate-kora`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
-}
-
-export async function pollStatus(taskId, maxAttempts = 90, intervalMs = 2000, onProgress) {
+/**
+ * Generic status polling helper
+ */
+export async function pollGenericStatus(endpoint, taskId, {
+  maxAttempts = 120,
+  intervalMs = 3000,
+  onProgress = null,
+  statusKey = 'status',
+  successValue = 'COMPLETED',
+  failureValue = 'FAILED',
+  errorLabel = 'Operation',
+  endpointSuffix = ''
+} = {}) {
   for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/status/${taskId}`);
+    const res = await fetch(`${API_BASE}${endpoint}/${taskId}${endpointSuffix}`);
     const data = await safeJson(res);
 
-    // Call progress callback if provided
     if (onProgress) {
       onProgress(i + 1, maxAttempts, data);
     }
 
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Generation failed');
+    const currentStatus = data.data?.[statusKey] || data.data?.status;
+
+    if (currentStatus === successValue) return data;
+    if (currentStatus === failureValue) {
+      throw new Error(`${errorLabel} failed: ${data.error?.message || 'Unknown error'}`);
+    }
 
     await new Promise((r) => setTimeout(r, intervalMs));
   }
-  throw new Error('Polling timeout');
+  throw new Error(`${errorLabel} polling timeout`);
+}
+
+
+export async function generateImage(params) {
+  return postToApi('/api/generate-image', params);
+}
+
+export async function generateKora(params) {
+  return postToApi('/api/generate-kora', params);
+}
+
+export async function pollStatus(taskId, maxAttempts = 90, intervalMs = 2000, onProgress) {
+  return pollGenericStatus('/api/status', taskId, { maxAttempts, intervalMs, onProgress, errorLabel: 'Generation' });
 }
 
 export async function analyzeImage(params) {
-  const res = await fetch(`${API_BASE}/api/analyze-image`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/analyze-image', params);
 }
 
 export async function upscaleCreative(params) {
-  const res = await fetch(`${API_BASE}/api/upscale-creative`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/upscale-creative', params);
 }
 
 export async function pollUpscaleStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/upscale-creative/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Upscale failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Upscale polling timeout');
+  return pollGenericStatus('/api/upscale-creative', taskId, { maxAttempts, intervalMs, errorLabel: 'Upscale' });
 }
 
 export async function upscalePrecision(params) {
-  const res = await fetch(`${API_BASE}/api/upscale-precision`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/upscale-precision', params);
 }
 
 export async function pollPrecisionStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/upscale-precision/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Precision upscale failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Precision upscale polling timeout');
+  return pollGenericStatus('/api/upscale-precision', taskId, { maxAttempts, intervalMs, errorLabel: 'Precision upscale' });
 }
 
 export async function relightImage(params) {
-  const res = await fetch(`${API_BASE}/api/relight`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/relight', params);
 }
 
 export async function pollRelightStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/relight/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Relight failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Relight polling timeout');
+  return pollGenericStatus('/api/relight', taskId, { maxAttempts, intervalMs, errorLabel: 'Relight' });
 }
 
 export async function styleTransfer(params) {
-  const res = await fetch(`${API_BASE}/api/style-transfer`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/style-transfer', params);
 }
 
 export async function pollStyleTransferStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/style-transfer/${taskId}`);
-    const data = await safeJson(res);
-
-    const status = data.data?.task_status || data.data?.status;
-    if (status === 'COMPLETED') return data;
-    if (status === 'FAILED') throw new Error('Style transfer failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Style transfer polling timeout');
+  return pollGenericStatus('/api/style-transfer', taskId, { maxAttempts, intervalMs, statusKey: 'task_status', errorLabel: 'Style transfer' });
 }
 
+
 export async function removeBackground(params) {
-  const res = await fetch(`${API_BASE}/api/remove-background`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/remove-background', params);
 }
 
 export async function reimagineFlux(params) {
-  const res = await fetch(`${API_BASE}/api/reimagine-flux`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/reimagine-flux', params);
 }
 
 export async function imageExpandFluxPro(params) {
-  const res = await fetch(`${API_BASE}/api/image-expand`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/image-expand', params);
 }
 
 export async function pollImageExpandStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/image-expand/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Image expand failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Image expand polling timeout');
+  return pollGenericStatus('/api/image-expand', taskId, { maxAttempts, intervalMs, errorLabel: 'Image expand' });
 }
 
 export async function seedreamExpand(params) {
-  const res = await fetch(`${API_BASE}/api/seedream-expand`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/seedream-expand', params);
 }
 
 export async function pollSeedreamExpandStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/seedream-expand/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Seedream expand failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Seedream expand polling timeout');
+  return pollGenericStatus('/api/seedream-expand', taskId, { maxAttempts, intervalMs, errorLabel: 'Seedream expand' });
 }
 
 export async function ideogramExpand(params) {
-  const res = await fetch(`${API_BASE}/api/ideogram-expand`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/ideogram-expand', params);
 }
 
 export async function pollIdeogramExpandStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/ideogram-expand/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Ideogram expand failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Ideogram expand polling timeout');
+  return pollGenericStatus('/api/ideogram-expand', taskId, { maxAttempts, intervalMs, errorLabel: 'Ideogram expand' });
 }
 
 export async function skinEnhancer(mode, params) {
-  const res = await fetch(`${API_BASE}/api/skin-enhancer/${mode}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi(`/api/skin-enhancer/${mode}`, params);
 }
 
 export async function pollSkinEnhancerStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/skin-enhancer/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Skin enhancer failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Skin enhancer polling timeout');
+  return pollGenericStatus('/api/skin-enhancer', taskId, { maxAttempts, intervalMs, errorLabel: 'Skin enhancer' });
 }
 
+
 export async function ideogramInpaint(params) {
-  const res = await fetch(`${API_BASE}/api/ideogram-inpaint`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/ideogram-inpaint', params);
 }
 
 export async function pollIdeogramInpaintStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/ideogram-inpaint/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Ideogram inpaint failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Ideogram inpaint polling timeout');
+  return pollGenericStatus('/api/ideogram-inpaint', taskId, { maxAttempts, intervalMs, errorLabel: 'Ideogram inpaint' });
 }
 
 export async function changeCamera(params) {
-  const res = await fetch(`${API_BASE}/api/change-camera`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/change-camera', params);
 }
 
 export async function pollChangeCameraStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/change-camera/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Change camera failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Change camera polling timeout');
+  return pollGenericStatus('/api/change-camera', taskId, { maxAttempts, intervalMs, errorLabel: 'Change camera' });
 }
 
 export async function kling3Generate(mode, params) {
-  const res = await fetch(`${API_BASE}/api/kling3/${mode}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi(`/api/kling3/${mode}`, params);
 }
 
 export async function pollKling3Status(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/kling3/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Kling 3 generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Kling 3 polling timeout');
+  return pollGenericStatus('/api/kling3', taskId, { maxAttempts, intervalMs, errorLabel: 'Kling 3 generation' });
 }
 
 export async function kling3OmniGenerate(mode, params) {
-  const res = await fetch(`${API_BASE}/api/kling3-omni/${mode}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi(`/api/kling3-omni/${mode}`, params);
 }
 
 export async function pollKling3OmniStatus(taskId, isReference, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/kling3-omni/${taskId}?reference=${isReference}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Kling 3 Omni generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Kling 3 Omni polling timeout');
+  return pollGenericStatus('/api/kling3-omni', taskId, {
+    maxAttempts,
+    intervalMs,
+    errorLabel: 'Kling 3 Omni generation',
+    endpointSuffix: `?reference=${isReference}` // Not yet supported in pollGenericStatus, but easily added
+  });
 }
 
 export async function kling3MotionGenerate(mode, params) {
-  const res = await fetch(`${API_BASE}/api/kling3-motion/${mode}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi(`/api/kling3-motion/${mode}`, params);
 }
 
 export async function pollKling3MotionStatus(mode, taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/kling3-motion/${mode}/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Kling 3 Motion Control generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Kling 3 Motion Control polling timeout');
+  return pollGenericStatus(`/api/kling3-motion/${mode}`, taskId, { maxAttempts, intervalMs, errorLabel: 'Kling 3 Motion Control generation' });
 }
 
 export async function vfxGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/vfx`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/vfx', params);
 }
 
 export async function pollVfxStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/vfx/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('VFX processing failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('VFX polling timeout');
+  return pollGenericStatus('/api/vfx', taskId, { maxAttempts, intervalMs, errorLabel: 'VFX processing' });
 }
 
 export async function klingElementsProGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/kling-elements-pro`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/kling-elements-pro', params);
 }
 
 export async function pollKlingElementsProStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/kling-elements-pro/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Kling Elements Pro generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Kling Elements Pro polling timeout');
+  return pollGenericStatus('/api/kling-elements-pro', taskId, { maxAttempts, intervalMs, errorLabel: 'Kling Elements Pro generation' });
 }
 
 export async function klingO1Generate(mode, params) {
-  const res = await fetch(`${API_BASE}/api/kling-o1/${mode}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi(`/api/kling-o1/${mode}`, params);
 }
 
 export async function pollKlingO1Status(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/kling-o1/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Kling O1 generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Kling O1 polling timeout');
+  return pollGenericStatus('/api/kling-o1', taskId, { maxAttempts, intervalMs, errorLabel: 'Kling O1 generation' });
 }
 
+
 export async function minimaxLiveGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/minimax-live`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/minimax-live', params);
 }
 
 export async function pollMiniMaxLiveStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/minimax-live/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('MiniMax Live generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('MiniMax Live polling timeout');
+  return pollGenericStatus('/api/minimax-live', taskId, { maxAttempts, intervalMs, errorLabel: 'MiniMax Live generation' });
 }
 
+
 export async function wan26Generate(mode, resolution, params) {
-  const res = await fetch(`${API_BASE}/api/wan-v2-6/${mode}/${resolution}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi(`/api/wan-v2-6/${mode}/${resolution}`, params);
 }
 
 export async function pollWan26Status(mode, resolution, taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/wan-v2-6/${mode}/${resolution}/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('WAN 2.6 generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('WAN 2.6 polling timeout');
+  return pollGenericStatus(`/api/wan-v2-6/${mode}/${resolution}`, taskId, { maxAttempts, intervalMs, errorLabel: 'WAN 2.6 generation' });
 }
 
+
 export async function seedanceGenerate(resolution, params) {
-  const res = await fetch(`${API_BASE}/api/seedance-1-5-pro/${resolution}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi(`/api/seedance-1-5-pro/${resolution}`, params);
 }
 
 export async function pollSeedanceStatus(resolution, taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/seedance-1-5-pro/${resolution}/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Seedance generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Seedance polling timeout');
+  return pollGenericStatus(`/api/seedance-1-5-pro/${resolution}`, taskId, { maxAttempts, intervalMs, errorLabel: 'Seedance generation' });
 }
 
+
 export async function ltxVideo2ProGenerate(mode, params) {
-  const res = await fetch(`${API_BASE}/api/ltx-2-pro/${mode}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi(`/api/ltx-2-pro/${mode}`, params);
 }
 
 export async function pollLtxVideo2ProStatus(mode, taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/ltx-2-pro/${mode}/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('LTX Video 2.0 Pro generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('LTX Video 2.0 Pro polling timeout');
+  return pollGenericStatus(`/api/ltx-2-pro/${mode}`, taskId, { maxAttempts, intervalMs, errorLabel: 'LTX Video 2.0 Pro generation' });
 }
 
-// Direct LTX API (no polling, returns video directly)
 export async function ltxVideoDirectGenerate(mode, params) {
-  const res = await fetch(`${API_BASE}/api/ltx-direct/${mode}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi(`/api/ltx-direct/${mode}`, params);
 }
+
 
 export async function runwayGen45Generate(mode, params) {
-  const res = await fetch(`${API_BASE}/api/runway-4-5/${mode}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi(`/api/runway-4-5/${mode}`, params);
 }
 
 export async function pollRunwayGen45Status(mode, taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/runway-4-5/${mode}/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Runway Gen 4.5 generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Runway Gen 4.5 polling timeout');
+  return pollGenericStatus(`/api/runway-4-5/${mode}`, taskId, { maxAttempts, intervalMs, errorLabel: 'Runway Gen 4.5 generation' });
 }
 
+
 export async function runwayGen4TurboGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/runway-gen4-turbo`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/runway-gen4-turbo', params);
 }
 
 export async function pollRunwayGen4TurboStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/runway-gen4-turbo/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Runway Gen4 Turbo generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Runway Gen4 Turbo polling timeout');
+  return pollGenericStatus('/api/runway-gen4-turbo', taskId, { maxAttempts, intervalMs, errorLabel: 'Runway Gen4 Turbo generation' });
 }
 
+
 export async function runwayActTwoGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/runway-act-two`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/runway-act-two', params);
 }
 
 export async function pollRunwayActTwoStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/runway-act-two/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Runway Act Two generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Runway Act Two polling timeout');
+  return pollGenericStatus('/api/runway-act-two', taskId, { maxAttempts, intervalMs, errorLabel: 'Runway Act Two generation' });
 }
 
+
 export async function pixVerseV5Generate(params) {
-  const res = await fetch(`${API_BASE}/api/pixverse-v5`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/pixverse-v5', params);
 }
 
 export async function pollPixVerseV5Status(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/pixverse-v5/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('PixVerse V5 generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('PixVerse V5 polling timeout');
+  return pollGenericStatus('/api/pixverse-v5', taskId, { maxAttempts, intervalMs, errorLabel: 'PixVerse V5 generation' });
 }
 
+
 export async function pixVerseV5TransitionGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/pixverse-v5-transition`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/pixverse-v5-transition', params);
 }
 
 export async function pollPixVerseV5TransitionStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/pixverse-v5-transition/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('PixVerse V5 Transition generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('PixVerse V5 Transition polling timeout');
+  return pollGenericStatus('/api/pixverse-v5-transition', taskId, { maxAttempts, intervalMs, errorLabel: 'PixVerse V5 Transition generation' });
 }
 
+
 export async function omniHumanGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/omni-human-1-5`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/omni-human-1-5', params);
 }
 
 export async function pollOmniHumanStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/omni-human-1-5/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('OmniHuman generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('OmniHuman polling timeout');
+  return pollGenericStatus('/api/omni-human-1-5', taskId, { maxAttempts, intervalMs, errorLabel: 'OmniHuman generation' });
 }
 
+export async function videoImproveGenerate(params) {
+  return postToApi('/api/video-improve', params);
+}
+
+export async function pollVideoImproveStatus(taskId, maxAttempts = 120, intervalMs = 5000) {
+  return pollGenericStatus('/api/video-improve', taskId, { maxAttempts, intervalMs, errorLabel: 'Video Improvement' });
+}
+
+
 export async function videoUpscaleGenerate(mode, params) {
-  const res = await fetch(`${API_BASE}/api/video-upscale/${mode}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi(`/api/video-upscale/${mode}`, params);
 }
 
 export async function pollVideoUpscaleStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/video-upscale/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Video upscaling failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Video upscaling polling timeout');
+  return pollGenericStatus('/api/video-upscale', taskId, { maxAttempts, intervalMs, errorLabel: 'Video upscaling' });
 }
 
+
 export async function precisionVideoUpscaleGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/video-upscaler-precision`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/video-upscaler-precision', params);
 }
 
 export async function pollPrecisionVideoUpscaleStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/video-upscaler-precision/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Precision video upscaling failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Precision video upscaling polling timeout');
+  return pollGenericStatus('/api/video-upscaler-precision', taskId, { maxAttempts, intervalMs, errorLabel: 'Precision video upscaling' });
 }
 
 export async function textToIconGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/text-to-icon`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/text-to-icon', params);
 }
 
 export async function pollTextToIconStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/text-to-icon/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Icon generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Icon generation polling timeout');
+  return pollGenericStatus('/api/text-to-icon', taskId, { maxAttempts, intervalMs, errorLabel: 'Icon generation' });
 }
 
 export async function imageToPromptGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/image-to-prompt`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/image-to-prompt', params);
 }
 
 export async function pollImageToPromptStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/image-to-prompt/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Image to prompt generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Image to prompt polling timeout');
+  return pollGenericStatus('/api/image-to-prompt', taskId, { maxAttempts, intervalMs, errorLabel: 'Image to prompt generation' });
 }
 
+
 export async function imageClassifierGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/classifier/image`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/classifier/image', params);
 }
 
 export async function improvePromptGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/improve-prompt`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/improve-prompt', params);
 }
 
 export async function pollImprovePromptStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/improve-prompt/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Improve prompt failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Improve prompt polling timeout');
+  return pollGenericStatus('/api/improve-prompt', taskId, { maxAttempts, intervalMs, errorLabel: 'Improve prompt' });
 }
 
+
 export async function musicGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/music-generation`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/music-generation', params);
 }
 
 export async function pollMusicStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/music-generation/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Music generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Music generation polling timeout');
+  return pollGenericStatus('/api/music-generation', taskId, { maxAttempts, intervalMs, errorLabel: 'Music generation' });
 }
 
 export async function soundEffectsGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/sound-effects`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/sound-effects', params);
 }
 
 export async function pollSoundEffectsStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/sound-effects/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Sound effects generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Sound effects polling timeout');
+  return pollGenericStatus('/api/sound-effects', taskId, { maxAttempts, intervalMs, errorLabel: 'Sound effects' });
 }
+
 
 export async function audioIsolationGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/audio-isolation`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/audio-isolation', params);
 }
 
-export async function pollAudioIsolationStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/audio-isolation/${taskId}`);
-    const data = await safeJson(res);
 
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Audio isolation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Audio isolation polling timeout');
+export async function pollAudioIsolationStatus(taskId, onProgress, maxAttempts = 120, intervalMs = 3000) {
+  return pollGenericStatus('/api/audio-isolation', taskId, {
+    maxAttempts,
+    intervalMs,
+    onProgress: (attempt, total, data) => {
+      // Audio isolation uses a specific progress structure
+      if (onProgress && data.data?.progress) {
+        onProgress(data.data.progress, data.data.message || 'Processing audio...');
+      }
+    },
+    errorLabel: 'Audio isolation'
+  });
 }
 
 export async function voiceoverGenerate(params) {
-  const res = await fetch(`${API_BASE}/api/voiceover`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/voiceover', params);
 }
 
 export async function pollVoiceoverStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}/api/voiceover/${taskId}`);
-    const data = await safeJson(res);
-
-    if (data.data?.status === 'COMPLETED') return data;
-    if (data.data?.status === 'FAILED') throw new Error('Voiceover generation failed');
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error('Voiceover polling timeout');
+  return pollGenericStatus('/api/voiceover', taskId, { maxAttempts, intervalMs, errorLabel: 'Voiceover' });
 }
 
+export { API_BASE };
 export async function uploadImages(files) {
   const formData = new FormData();
   files.forEach((f) => formData.append('images', f));
@@ -875,6 +423,7 @@ export async function uploadImages(files) {
   });
   return safeJson(res);
 }
+
 
 export async function groupEditGenerate(params) {
   const res = await fetch(`${API_BASE}/api/group-edit`, {
@@ -887,6 +436,10 @@ export async function groupEditGenerate(params) {
     throw new Error(err.error || 'Failed to process group edit');
   }
   return safeJson(res);
+}
+
+export async function pollGroupEditStatus(taskId, maxAttempts = 240, intervalMs = 5000) {
+  return pollGenericStatus('/api/group-edit', taskId, { maxAttempts, intervalMs, errorLabel: 'Group edit' });
 }
 
 export async function facialEditGenerate(params) {
@@ -956,68 +509,34 @@ export async function getAINodeTypes() {
 }
 
 export async function generateRecraftImage(params) {
-  const res = await fetch(`${API_BASE}/api/recraft/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/recraft/generate', params);
 }
 
 export async function recraftImageToImage(params) {
-  const res = await fetch(`${API_BASE}/api/recraft/image-to-image`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/recraft/image-to-image', params);
 }
 
 export async function recraftVectorize(params) {
-  const res = await fetch(`${API_BASE}/api/recraft/vectorize`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/recraft/vectorize', params);
 }
 
 export async function recraftRemoveBackground(params) {
-  const res = await fetch(`${API_BASE}/api/recraft/remove-background`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/recraft/remove-background', params);
 }
 
 export async function recraftUpscale(params) {
-  const res = await fetch(`${API_BASE}/api/recraft/upscale`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/recraft/upscale', params);
 }
+
 
 // ============================================================================
 // QuiverAI Operations
 // ============================================================================
 
 export async function quiverTextToSvg(params) {
-  const res = await fetch(`${API_BASE}/api/quiver/svgs/generations`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/quiver/svgs/generations', params);
 }
 
 export async function quiverImageToSvg(params) {
-  const res = await fetch(`${API_BASE}/api/quiver/svgs/vectorizations`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  return safeJson(res);
+  return postToApi('/api/quiver/svgs/vectorizations', params);
 }

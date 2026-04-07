@@ -63,7 +63,7 @@ export default function GroupEditingNode({ id, data, selected }) {
       onDisconnect={disconnectNode}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: sp[4] }}>
-        
+
         {/* Connection Handles */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, position: 'relative' }}>
@@ -95,21 +95,21 @@ export default function GroupEditingNode({ id, data, selected }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div>
             <label style={{ ...font.xs, color: '#999', display: 'block', marginBottom: 4 }}>Subject to Mask (GroundingDINO)</label>
-            <input 
-              type="text" 
-              placeholder="e.g. red car" 
-              value={localSubject} 
+            <input
+              type="text"
+              placeholder="e.g. red car"
+              value={localSubject}
               onChange={e => update({ subjectPrompt: e.target.value })}
               style={{ width: '100%', background: '#111', border: '1px solid #333', padding: '6px 10px', borderRadius: 6, color: '#e0e0e0', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
               className="nodrag"
             />
           </div>
-          
+
           <div>
             <label style={{ ...font.xs, color: '#999', display: 'block', marginBottom: 4 }}>Edit Instructions</label>
-            <textarea 
-              placeholder="e.g. a futuristic hover-car" 
-              value={promptIn || localEdit} 
+            <textarea
+              placeholder="e.g. a futuristic hover-car"
+              value={promptIn || localEdit}
               onChange={e => update({ editPrompt: e.target.value })}
               readOnly={!!promptIn}
               rows={2}

@@ -4,22 +4,37 @@ import { text, surface, border, radius, sp, font } from './nodeTokens';
  * Pill-style toggle button for option selection.
  * Replaces the duplicated pill() helper across all nodes.
  */
-export function Pill({ label, isActive, onClick, accentColor = '#14b8a6' }) {
+export function Pill({ label, isActive, onClick, accentColor = '#5ee7df' }) {
   return (
     <button
       onClick={onClick}
       aria-pressed={isActive}
       style={{
         flex: 1,
-        padding: `${sp[1]}px 0`,
+        padding: '8px 4px',
         fontSize: 11,
-        fontWeight: isActive ? 600 : 400,
+        fontWeight: 600,
         borderRadius: radius.md,
         cursor: 'pointer',
-        background: isActive ? accentColor : surface.sunken,
-        color: isActive ? '#fff' : text.secondary,
-        border: `1px solid ${isActive ? accentColor : border.subtle}`,
-        transition: 'all 0.12s',
+        background: isActive ? accentColor : 'rgba(255, 255, 255, 0.03)',
+        color: isActive ? '#000' : 'rgba(255, 255, 255, 0.4)',
+        border: `1px solid ${isActive ? accentColor : 'rgba(255, 255, 255, 0.08)'}`,
+        transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        boxShadow: isActive ? `0 0 16px ${accentColor}40` : 'none',
+      }}
+      onMouseEnter={(e) => {
+        if (!isActive) {
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isActive) {
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+        }
       }}
     >
       {label}
@@ -31,27 +46,31 @@ export function Pill({ label, isActive, onClick, accentColor = '#14b8a6' }) {
  * Toggle switch (boolean on/off).
  * Replaces the duplicated toggle() helper across all nodes.
  */
-export function Toggle({ label, value, onChange, accentColor = '#14b8a6' }) {
+export function Toggle({ label, value, onChange, accentColor = '#5ee7df' }) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      marginBottom: sp[2], padding: `${sp[1]}px 0`,
+      marginBottom: sp[3], padding: '4px 0',
     }}>
-      <span style={font.sm}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>{label}</span>
       <button
         onClick={() => onChange(!value)}
         role="switch"
         aria-checked={value}
         aria-label={label}
         style={{
-          width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer',
-          background: value ? accentColor : surface.raised, position: 'relative',
-          transition: 'background 0.15s',
+          width: 32, height: 18, borderRadius: 9, border: 'none', cursor: 'pointer',
+          background: value ? accentColor : 'rgba(255, 255, 255, 0.1)', position: 'relative',
+          transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+          boxShadow: value ? `0 0 12px ${accentColor}40` : 'inset 0 1px 4px rgba(0,0,0,0.2)',
         }}
       >
         <span style={{
-          width: 14, height: 14, borderRadius: '50%', background: '#fff',
-          position: 'absolute', top: 3, left: value ? 19 : 3, transition: 'left 0.15s',
+          width: 12, height: 12, borderRadius: '50%', 
+          background: value ? '#000' : 'rgba(255,255,255,0.4)',
+          position: 'absolute', top: 3, left: value ? 17 : 3, 
+          transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
         }} />
       </button>
     </div>
@@ -66,30 +85,33 @@ export function Slider({
   label, value, onChange,
   min = 0, max = 100, step = 1,
   minLabel, maxLabel, unit = '',
-  accentColor = '#14b8a6',
+  accentColor = '#5ee7df',
 }) {
   return (
-    <div style={{ marginBottom: sp[3] }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: sp[1] }}>
-        <span style={font.sm}>{label}</span>
-        <span style={{ ...font.sm, color: text.primary, fontWeight: 600 }}>
+    <div style={{ marginBottom: sp[4] }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>{label}</span>
+        <span style={{ fontSize: 12, color: accentColor, fontWeight: 700 }}>
           {value}{unit}
         </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: sp[3] }}>
-        <span style={{ ...font.xs, color: text.muted, minWidth: 18, textAlign: 'right' }}>
-          {minLabel ?? min}
-        </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <input
           type="range"
           min={min} max={max} step={step} value={value}
           onChange={(e) => onChange(Number(e.target.value))}
           aria-label={label}
-          style={{ flex: 1, accentColor }}
+          className="liquid-slider"
+          style={{ 
+            flex: 1, 
+            height: 4,
+            borderRadius: 2,
+            background: `linear-gradient(90deg, ${accentColor} ${(value - min) / (max - min) * 100}%, rgba(255,255,255,0.1) ${(value - min) / (max - min) * 100}%)`,
+            appearance: 'none',
+            outline: 'none',
+            cursor: 'pointer'
+          }}
         />
-        <span style={{ ...font.xs, color: text.muted, minWidth: 18 }}>
-          {maxLabel ?? max}
-        </span>
       </div>
     </div>
   );

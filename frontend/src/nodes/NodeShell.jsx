@@ -1,4 +1,4 @@
-import { surface, border, sp, radius, font } from './nodeTokens';
+import { surface, border, sp, radius, font, text } from './nodeTokens';
 import NodeGenerateButton from './NodeGenerateButton';
 import NodeDownloadButton from './NodeDownloadButton';
 
@@ -22,30 +22,33 @@ export default function NodeShell({ label, dotColor, selected, children, onDisco
 
   return (
     <div
+      className="glass-card"
       style={{
         background: surface.base,
-        border: `1px solid ${selected ? border.active : border.subtle}`,
-        borderLeft: dotColor ? `3px solid ${dotColor}` : `1px solid ${selected ? border.active : border.subtle}`,
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        border: `1.5px solid ${selected ? border.active : border.subtle}`,
         boxShadow: selected 
-          ? `0 0 0 1px ${border.active}, 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 15px ${border.active}40` 
-          : '0 4px 12px rgba(0, 0, 0, 0.25)',
+          ? `0 0 0 1px ${border.active}40, 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 20px ${border.active}30` 
+          : '0 8px 32px rgba(0, 0, 0, 0.2)',
         borderRadius: radius.lg,
         minWidth: 240,
-        maxWidth: 380,
-        fontFamily: 'Inter, system-ui, sans-serif',
-        transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+        maxWidth: 400,
+        fontFamily: 'var(--font-body)',
+        transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
         zIndex: selected ? 10 : 1,
+        overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
         if (!selected) {
           e.currentTarget.style.borderColor = border.hover;
-          e.currentTarget.style.borderLeftColor = dotColor || border.hover;
+          e.currentTarget.style.boxShadow = '0 12px 48px rgba(0, 0, 0, 0.3)';
         }
       }}
       onMouseLeave={(e) => {
         if (!selected) {
           e.currentTarget.style.borderColor = border.subtle;
-          e.currentTarget.style.borderLeftColor = dotColor || border.subtle;
+          e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.2)';
         }
       }}
     >
@@ -55,26 +58,31 @@ export default function NodeShell({ label, dotColor, selected, children, onDisco
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: `${sp[3]}px ${sp[5]}px`,
+          padding: `${sp[4]}px ${sp[6]}px`, // Increased padding
           borderBottom: `1px solid ${border.subtle}`,
-          background: `linear-gradient(90deg, ${accentAlpha}, transparent)`,
-          borderRadius: `${radius.lg - 1}px ${radius.lg - 1}px 0 0`,
+          background: `linear-gradient(135deg, ${accentAlpha}, transparent)`,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: sp[2] }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: sp[3] }}>
           {dotColor && (
             <span
               style={{
-                width: 10,
-                height: 10,
+                width: 8,
+                height: 8,
                 borderRadius: '50%',
                 background: dotColor,
                 flexShrink: 0,
-                boxShadow: `0 0 6px ${dotColor}40`,
+                boxShadow: `0 0 12px ${dotColor}`,
               }}
             />
           )}
-          <span style={{ ...font.lg, fontWeight: 600, color: '#e0e0e0' }}>{label}</span>
+          <span style={{ 
+            fontSize: 14, 
+            fontWeight: 500, 
+            letterSpacing: '0.02em',
+            color: '#fff',
+            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          }}>{label}</span>
         </div>
 
         
@@ -105,7 +113,7 @@ export default function NodeShell({ label, dotColor, selected, children, onDisco
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#666',
+                color: '#888',
                 cursor: 'pointer',
                 fontSize: 14,
                 padding: 4,
@@ -114,14 +122,6 @@ export default function NodeShell({ label, dotColor, selected, children, onDisco
                 justifyContent: 'center',
                 borderRadius: 4,
                 transition: 'all 0.1s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#fff';
-                e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#666';
-                e.currentTarget.style.background = 'transparent';
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -140,7 +140,7 @@ export default function NodeShell({ label, dotColor, selected, children, onDisco
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#666',
+              color: '#888',
               cursor: 'pointer',
               fontSize: 14,
               padding: 4,
@@ -149,14 +149,6 @@ export default function NodeShell({ label, dotColor, selected, children, onDisco
               justifyContent: 'center',
               borderRadius: 4,
               transition: 'all 0.1s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#ef4444';
-              e.currentTarget.style.background = 'rgba(239,68,68,0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#666';
-              e.currentTarget.style.background = 'transparent';
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -170,7 +162,12 @@ export default function NodeShell({ label, dotColor, selected, children, onDisco
       </div>
 
       {/* Body */}
-      <div style={{ padding: `${sp[3]}px ${sp[5]}px` }}>{children}</div>
+      <div style={{ 
+        padding: `${sp[5]}px ${sp[6]}px`, // Increased padding
+        color: text.secondary,
+        fontSize: 13,
+        lineHeight: 1.6
+      }}>{children}</div>
     </div>
   );
 }

@@ -1,125 +1,64 @@
-/**
- * Firebase Configuration
- * Centralized Firebase app initialization and service exports
- */
+import { FirebaseApp } from 'firebase/app';
+import { Auth } from 'firebase/auth';
+import { Firestore } from 'firebase/firestore';
+import { FirebaseStorage } from 'firebase/storage';
 
-import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getFirestore, type Firestore } from 'firebase/firestore';
-import { getAuth, type Auth } from 'firebase/auth';
-import { getStorage, type FirebaseStorage } from 'firebase/storage';
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
+let db: Firestore | undefined;
+let storage: FirebaseStorage | undefined;
 
-// Firebase configuration
-// Replace with your Firebase project config or use environment variables
-const getFirebaseConfig = () => {
-  // In Vite, import.meta.env is available
-  const env = (import.meta as any).env || {};
-  
-  return {
-    apiKey: env.VITE_FIREBASE_API_KEY || 'your-api-key',
-    authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || 'your-project.firebaseapp.com',
-    projectId: env.VITE_FIREBASE_PROJECT_ID || 'your-project-id',
-    storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || 'your-project.appspot.com',
-    messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789',
-    appId: env.VITE_FIREBASE_APP_ID || 'your-app-id',
-  };
+// ... (your existing initialization code here)
+
+export const getFirebaseAuth = () => auth;
+export const getDb = () => db;
+export const getFirebaseStorage = () => storage;
+
+// Replace this with your new config
+const firebaseConfig = {
+  apiKey: "AIzaSyDNRotQNelJBJAAMwmdmo8cWjYiAchobHU",
+  authDomain: "fs-nodes-project.firebaseapp.com",
+  projectId: "fs-nodes-project",
+  storageBucket: "fs-nodes-project.firebasestorage.app",
+  messagingSenderId: "52625049495",
+  appId: "1:52625049495:web:17ea6e522bbf257faf26d2",
+  measurementId: "G-TZWFY20XY2"
 };
 
-// Initialize Firebase app (singleton)
-let app: FirebaseApp | null = null;
-let db: Firestore | null = null;
-let auth: Auth | null = null;
-let storage: FirebaseStorage | null = null;
+let app, auth, db, storage;
 
-/**
- * Initialize Firebase services
- * Call this once at app startup
- */
-export function initializeFirebase(): FirebaseApp {
-  if (app) return app;
-  
-  try {
-    const config = getFirebaseConfig();
-    app = initializeApp(config);
-    db = getFirestore(app);
+export function initializeFirebase() {
+  if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
     auth = getAuth(app);
+    db = getFirestore(app);
     storage = getStorage(app);
-    
-    console.log('[Firebase] Initialized successfully');
-    return app;
-  } catch (error) {
-    console.error('[Firebase] Initialization error:', error);
-    throw error;
-  }
-}
 
-/**
- * Get Firestore database instance
- */
-export function getDb(): Firestore {
-  if (!db) {
-    initializeFirebase();
-  }
-  if (!db) {
-    throw new Error('[Firebase] Firestore not initialized');
-  }
-  return db;
-}
-
-/**
- * Get Firebase Auth instance
- */
-export function getFirebaseAuth(): Auth {
-  if (!auth) {
-    initializeFirebase();
-  }
-  if (!auth) {
-    throw new Error('[Firebase] Auth not initialized');
-  }
-  return auth;
-}
-
-/**
- * Get Firebase Storage instance
- */
-export function getFirebaseStorage(): FirebaseStorage {
-  if (!storage) {
-    initializeFirebase();
-  }
-  if (!storage) {
-    throw new Error('[Firebase] Storage not initialized');
-  }
-  return storage;
-}
-
-/**
- * Check if Firebase is configured properly
- */
-export function isFirebaseConfigured(): boolean {
-  const config = getFirebaseConfig();
-  return !!config.apiKey && 
-         config.apiKey !== 'your-api-key' &&
-         !!config.projectId;
-}
-
-/**
- * Enable offline persistence for Firestore
- */
-export async function enableOfflinePersistence(): Promise<void> {
-  try {
-    const { enableIndexedDbPersistence } = await import('firebase/firestore');
-    const database = getDb();
-    await enableIndexedDbPersistence(database);
-    console.log('[Firebase] Offline persistence enabled');
-  } catch (error: any) {
-    if (error.code === 'failed-precondition') {
-      console.warn('[Firebase] Multiple tabs open, persistence can only be enabled in one tab');
-    } else if (error.code === 'unimplemented') {
-      console.warn('[Firebase] Browser does not support persistence');
-    } else {
-      console.error('[Firebase] Persistence error:', error);
+    // Analytics should only run in the browser
+    if (typeof window !== 'undefined') {
+      getAnalytics(app);
     }
+  } else {
+    app = getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+  }
+  return app;
+}
+
+export function enableOfflinePersistence() {
+  if (db) {
+    enableMultiTabIndexedDbPersistence(db).catch((err) => {
+      console.error("Firestore persistence error:", err);
+    });
   }
 }
 
-export { app, db, auth, storage };
-export default getFirebaseConfig();
+export const getFirebaseAuth = () => auth;
+export const getFirebaseDb = () => db;
+export const getFirebaseStorage = () => storage;
+
+export const isFirebaseConfigured = () => {
+  return firebaseConfig.apiKey && firebaseConfig.apiKey.length > 0;
+};

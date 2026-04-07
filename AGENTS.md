@@ -32,7 +32,10 @@ A node-based visual editor for building AI-powered image, video, and audio proce
 /Node-Project/
 ├── frontend/              # React frontend application
 │   ├── src/
-│   │   ├── nodes/         # 50+ node component implementations
+│   │   ├── LandingPage.jsx      # Public landing page (before login)
+│   │   ├── ProjectsDashboard.jsx # Post-login projects dashboard
+│   │   ├── WorkflowsPage.jsx    # Legacy workflow grid view
+│   │   ├── nodes/               # 50+ node component implementations
 │   │   │   ├── shared.js  # Barrel exports for shared components
 │   │   │   ├── nodeTokens.js  # Design tokens
 │   │   │   ├── NodeShell.jsx  # Base node wrapper
@@ -387,6 +390,125 @@ These take screenshots from `frontend/ref/` and query Gemini for UI analysis.
 1. Capture screenshot of running app
 2. Compare against reference image using pixelmatch
 3. Output diff report
+
+## Page Routing Structure
+
+The app uses a simple page state system with the following routes:
+
+### Public Routes (Unauthenticated)
+- **`/landing`** - LandingPage.jsx
+  - Marketing page with Hero, Intro, Features sections
+  - Shows "Get Started" CTA leading to auth
+  - This is the default page for non-authenticated users
+
+### Protected Routes (Authenticated)
+- **`/home`** - ProjectsDashboard.jsx (default after login)
+  - Left sidebar: User avatar, workspace navigation, favorites, recent projects, workspaces
+  - Top bar: New Project CTA (left), Search (center), Invite button (right)
+  - Main area: Filter tabs (All/Favorites/Recent/Shared), project cards grid
+  - Bottom left: Delete, Settings, Help icons
+  
+- **`/editor`** - Node Editor (React Flow canvas)
+  - Full node-based workflow editor
+  - GooeyNodesMenu (left), ChatUI (right), MatrixDot background
+  - Accessed by clicking "New Project" or opening an existing project
+
+- **`/workspaces`** - WorkspacesPage.jsx (legacy)
+- **`/workflow-settings`** - WorkflowSettingsPage.jsx
+
+### Auth Flow
+1. Unauthenticated user → LandingPage
+2. Login/Signup → Redirects to ProjectsDashboard (`/home`)
+3. Logout → Redirects to LandingPage
+
+## Canvas UI Components
+
+### MatrixDot (`frontend/src/components/MatrixDot.jsx`)
+Grey dot matrix background pattern for canvas:
+- **Position**: Behind all canvas content (z-index: 0)
+- **Features**:
+  - SVG-based pattern for crisp rendering at any zoom
+  - Configurable dot size, color, spacing, and opacity
+  - Uses `userSpaceOnUse` pattern for consistent sizing
+- **Props**:
+  - `dotSize` (number): Diameter of dots in pixels (default: 2)
+  - `dotColor` (string): CSS color for dots (default: '#444')
+  - `spacing` (number): Distance between dot centers (default: 24)
+  - `opacity` (number): Dot opacity 0-1 (default: 0.5)
+- **Variants**:
+  - `MatrixDotDense`: Smaller spacing (16px) for compact view
+  - `MatrixDotSparse`: Larger spacing (32px) for wide displays
+  - `MatrixDotWithFade`: Gradient fade at top/bottom edges
+
+### LayoutHelper (`frontend/src/LayoutHelper.jsx`)
+Floating toolbar that appears when 2+ nodes are selected. Provides alignment and distribution functions:
+- **Position**: Top center of canvas
+- **Functions**: alignLeft, alignCenter, alignRight, alignTop, alignBottom, distributeHorizontal, distributeVertical
+
+### ProjectsDashboard (`frontend/src/ProjectsDashboard.jsx`)
+Post-login projects overview dashboard matching reference design:
+- **Layout**: Full-screen with left sidebar + main content area
+- **Sidebar Sections**:
+  - User header: Avatar with initials, workspace name, member count, dropdown menu
+  - Brand: "Nodespace" with "New" badge
+  - Navigation: Techniques, Community, Shared with me
+  - Favorites: List of favorited projects (empty state: "No favorites yet")
+  - Recent Projects: Last 3 accessed projects
+  - Workspace: "All Workspace" with project count
+  - Private: "All Private" section
+  - Bottom actions: Delete, Settings, Help icons
+- **Top Bar**:
+  - Left: "New project" button (white bg, black text)
+  - Center: Search input with icon
+  - Right: Member count badge, "Invite" button
+- **Main Area**:
+  - Filter tabs: All, Favorites, Recent, Shared
+  - Project cards grid: Thumbnail, title, last edited date
+  - Empty state: "No projects found" with create prompt
+- **Events**: `onCreateProject()`, `onOpenProject(project)`, `onLogout()` callbacks
+
+### LandingPage (`frontend/src/LandingPage.jsx`)
+Public marketing landing page (before login):
+- **Sections**: Hero with workflow diagram, Built for Builders cards, HowTo demo
+- **Purpose**: Marketing content with CTA to sign up/login
+- **Note**: Contains all content previously in WorkflowsPage
+
+### ReferenceSelection (`frontend/src/components/ReferenceSelection.jsx`)
+Reference image selector for AI workflows:
+- **Position**: Bottom left of canvas
+- **Features**: Drag-and-drop image upload, preview with remove button, file picker
+- **Events**: `onImageSelect(imageData)` callback
+
+### ChatIcon (`frontend/src/components/ChatIcon.jsx`)
+Floating toggle button for Chat UI visibility:
+- **Position**: Right side of canvas, above Queue (bottom: 100px)
+- **Features**:
+  - Chat bubble icon
+  - Blue background when active, dark when inactive
+  - Hover scale effect
+  - Unread message badge (red dot with count)
+  - Active status indicator (green dot)
+- **Events**: `onClick()` callback
+- **Props**: `isOpen`, `unreadCount`
+
+### ChatUI (`frontend/src/components/ChatUI.jsx`)
+AI assistant chat panel with integrated Generate button:
+- **Position**: Right side of canvas (fixed width 320px)
+- **Features**:
+  - Header with close button (X)
+  - Chat message history (user/assistant)
+  - Text input with auto-resize
+  - Tags/badges (Portrait, 10s) with toggle
+  - History button
+  - Generate button (moved from global position)
+- **Events**: `onSendMessage(message)`, `onGenerate()`, `onClose()` callbacks
+- **Props**: `isOpen`, `isGenerating`, `disabled` for button states
+- **Visibility**: Controlled by `isOpen` prop - can be toggled via ChatIcon
+
+### Queue (`frontend/src/Queue.jsx`)
+Job queue display for workflow execution:
+- **Position**: Bottom right of canvas
+- **Displays**: Running jobs, pending operations, completion status
 
 ## Keyboard Shortcuts
 

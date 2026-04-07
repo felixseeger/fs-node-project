@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 export default function TopBar({ currentPage, onNavigate, workflowName, editorMode, onEditorModeChange, onLogout, onZoomIn, onZoomOut, onZoomFit, onUndo, onRedo, onRename, onDuplicate, isLocked, onLockView, onOpenProfile, isAuthenticated }) {
   const [hovered, setHovered] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState(null);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -14,6 +15,36 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Active section detection via IntersectionObserver
+  useEffect(() => {
+    if (isAuthenticated) return;
+    const sections = ['how-it-works', 'built-for-builders', 'models', 'nodes'];
+    const observers = [];
+    sections.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveSection(id); },
+        { threshold: 0.3 }
+      );
+      obs.observe(el);
+      observers.push(obs);
+    });
+    return () => observers.forEach((o) => o.disconnect());
+  }, [isAuthenticated, currentPage]);
+
+  const scrollTo = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const container = document.getElementById('landing-scroll');
+    if (container) {
+      const top = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+      container.scrollTo({ top, behavior: 'smooth' });
+    } else {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
     const defaultMenuItems = [
     { id: 'workspaces', label: 'Workspaces', icon: '&#9864;' },
@@ -57,47 +88,47 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
         justifyContent: 'space-between',
         padding: '0 20px',
         flexShrink: 0,
+        position: 'relative',
       }}
     >
       {/* Left — Logo + Breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: currentPage === 'home' ? 40 : 0 }}>
         {/* Logo with Dropdown */}
         <div ref={menuRef} style={{ position: 'relative' }}>
-          <button
-            onClick={() => setMenuOpen((prev) => !prev)}
-            onMouseEnter={() => setHovered('logo')}
-            onMouseLeave={() => setHovered(null)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: '4px 8px',
-              borderRadius: 6,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              transition: 'background 0.15s',
-              ...(hovered === 'logo' || menuOpen ? { background: '#1a1a1a' } : {}),
-            }}
-          >
-            <img
-              src="/logo-light.svg"
-              alt="Logo"
-              style={{ height: 28, width: 'auto' }}
-            />
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 10 10"
-              fill="none"
+          {isAuthenticated ? (
+            <button
+              onClick={() => setMenuOpen((prev) => !prev)}
+              onMouseEnter={() => setHovered('logo')}
+              onMouseLeave={() => setHovered(null)}
               style={{
-                transition: 'transform 0.2s',
-                transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                background: 'transparent',
+                border: 'none',
+                padding: '4px 8px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'background 0.15s',
+                ...(hovered === 'logo' || menuOpen ? { background: '#1a1a1a' } : {}),
               }}
             >
-              <path d="M2 4L5 7L8 4" stroke="#888" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+              <img src="/logo-light.svg" alt="Logo" style={{ height: 28, width: 'auto' }} />
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 10 10"
+                fill="none"
+                style={{ transition: 'transform 0.2s', transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+              >
+                <path d="M2 4L5 7L8 4" stroke="#888" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          ) : (
+            <div style={{ padding: '4px 8px', display: 'flex', alignItems: 'center' }}>
+              <img src="/logo-light.svg" alt="Logo" style={{ height: 28, width: 'auto' }} />
+            </div>
+          )}
 
           {/* Dropdown Menu */}
           {menuOpen && (
@@ -181,47 +212,16 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
         </div>
 
         
-        {currentPage === 'home' && (
+
+        {isAuthenticated && currentPage === 'home' && (
           <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
-            <a href="#" style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>How It Works</a>
-            <a href="#" style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>Nodes</a>
-            <a href="#" style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>API</a>
-            <a href="#" style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>Pricing</a>
+            <a href="#" onClick={e => { e.preventDefault(); onNavigate?.('workspaces'); }} style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>Workflows</a>
+            <a href="#" style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>Templates</a>
           </div>
         )}
+
         
-        {currentPage !== 'home' && (
-          <>
-            {/* Breadcrumb separator + Workflows link (always shown) */}
 
-        <span style={{ color: '#444', margin: '0 12px', fontSize: 14, userSelect: 'none' }}>/</span>
-        <button
-          onClick={() => onNavigate('home')}
-          onMouseEnter={() => setHovered('workflows')}
-          onMouseLeave={() => setHovered(null)}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            padding: 0,
-            fontSize: 13,
-            fontWeight: 500,
-            color: currentPage === 'home' ? '#e0e0e0' : '#888',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            transition: 'color 0.15s',
-            ...(hovered === 'workflows' && currentPage !== 'home' ? { color: '#bbb' } : {}),
-          }}
-        >
-          {currentPage !== 'home' && (
-            <span style={{ fontSize: 12 }}>&lsaquo;</span>
-          )}
-          Workflows
-        </button>
-
-        </>
-        )}
 
         {/* Workflow name (only in editor) */}
         {currentPage === 'editor' && workflowName && (
@@ -234,10 +234,59 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
         )}
       </div>
 
-      {currentPage === 'home' && !isAuthenticated && (
+      {/* Center Nav — absolutely centered on X */}
+      {!isAuthenticated && (
+        <div style={{
+          position: 'absolute',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: 32,
+          alignItems: 'center',
+          pointerEvents: 'none',
+        }}>
+          <a
+            href="#how-it-works"
+            onClick={(e) => { e.preventDefault(); scrollTo('how-it-works'); }}
+            style={{ color: activeSection === 'how-it-works' ? '#fff' : '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: activeSection === 'how-it-works' ? 600 : 500, transition: 'color 0.2s', pointerEvents: 'auto' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+            onMouseLeave={e => e.currentTarget.style.color = activeSection === 'how-it-works' ? '#fff' : '#a9a9a9'}
+          >How It Works</a>
+          <a
+            href="#built-for-builders"
+            onClick={(e) => { e.preventDefault(); scrollTo('built-for-builders'); }}
+            style={{ color: activeSection === 'built-for-builders' ? '#fff' : '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: activeSection === 'built-for-builders' ? 600 : 500, transition: 'color 0.2s', pointerEvents: 'auto' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+            onMouseLeave={e => e.currentTarget.style.color = activeSection === 'built-for-builders' ? '#fff' : '#a9a9a9'}
+          >Builders</a>
+          <a
+            href="#models"
+            onClick={(e) => { e.preventDefault(); scrollTo('models'); }}
+            style={{ color: activeSection === 'models' ? '#fff' : '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: activeSection === 'models' ? 600 : 500, transition: 'color 0.2s', pointerEvents: 'auto' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+            onMouseLeave={e => e.currentTarget.style.color = activeSection === 'models' ? '#fff' : '#a9a9a9'}
+          >Models</a>
+          <a
+            href="#nodes"
+            onClick={(e) => { e.preventDefault(); scrollTo('nodes'); }}
+            style={{ color: activeSection === 'nodes' ? '#fff' : '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: activeSection === 'nodes' ? 600 : 500, transition: 'color 0.2s', pointerEvents: 'auto' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+            onMouseLeave={e => e.currentTarget.style.color = activeSection === 'nodes' ? '#fff' : '#a9a9a9'}
+          >Nodes</a>
+        </div>
+      )}
+
+      {!isAuthenticated && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <a href="#" style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>Log In</a>
-          <button 
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); onNavigate?.('auth'); }}
+            style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.color='#fff'}
+            onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}
+          >Log In</a>
+          <button
+            onClick={() => onNavigate?.('auth-signup')}
             style={{
               background: '#3B3BFF',
               color: '#fff',

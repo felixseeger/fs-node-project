@@ -2,10 +2,19 @@
   "name": "fs-node-project-root",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix api && rm -rf public && cp -R frontend/dist public"
   },
   "dependencies": {
-    "firebase": "^12.11.0"
+    "@anthropic-ai/sdk": "^0.80.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.3.2",
+    "firebase": "^12.11.0",
+    "multer": "^2.1.1",
+    "p-queue": "^9.1.1",
+    "uuid": "^13.0.0"
   }
 }

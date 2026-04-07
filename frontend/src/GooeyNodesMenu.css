@@ -22,7 +22,7 @@
 .ms-nav {
   position: relative;
   margin: 0;
-  padding: 16px 0;
+  padding: 12px 0;
   list-style: none;
   background: var(--ms-glass-bg);
   backdrop-filter: blur(12px);
@@ -33,8 +33,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  min-height: 450px;
+  gap: 12px;
+  min-height: 400px;
 }
 
 .ms-li {
@@ -47,12 +47,12 @@
 .ms-li a, .ms-li button {
   position: relative;
   background: transparent;
-  width: 50px;
-  height: 50px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 10px;
   color: #e0e0e0;
   text-decoration: none;
   transition: background 0.2s, color 0.2s, transform 0.2s;
@@ -84,8 +84,8 @@
 }
 
 .ms-li svg {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
 }
 
 .ms-spacer {
@@ -154,7 +154,6 @@
   transform: translateX(-20px);
   pointer-events: none;
   transition: all 0.3s ease;
-  align-self: flex-start;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   display: flex;
   flex-direction: column;

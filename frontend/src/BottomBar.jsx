@@ -15,6 +15,7 @@ export default function BottomBar({
   const [editingBoardName, setEditingBoardName] = useState('');
   const dropdownRef = useRef(null);
 
+  const activeWorkflows = workflows.filter(w => !w.deleted);
   const activeWorkflowName = workflows.find(w => w.id === activeWorkflowId)?.name || 'Untitled';
 
   useEffect(() => {
@@ -165,12 +166,12 @@ export default function BottomBar({
 
             {/* Board list */}
             <div style={{ maxHeight: 240, overflowY: 'auto', padding: '0 4px' }}>
-              {workflows.length === 0 ? (
+              {activeWorkflows.length === 0 ? (
                 <div style={{ color: '#555', fontSize: 11, padding: '8px 12px 10px' }}>
                   No boards yet
                 </div>
               ) : (
-                workflows.map((wf, index) => {
+                activeWorkflows.map((wf, index) => {
                   const isActive = wf.id === activeWorkflowId;
                   const isEditing = editingBoardId === wf.id;
                   const isHovered = hoveredBoardId === wf.id;
@@ -242,11 +243,11 @@ export default function BottomBar({
                             {wf.name}
                           </span>
                           {isActive && (
-                            <span style={{ 
-                              color: '#888', 
-                              fontSize: 11, 
+                            <span style={{
+                              color: '#888',
+                              fontSize: 11,
                               fontWeight: 400,
-                              marginLeft: 4 
+                              marginLeft: 4
                             }}>
                               {index + 1}
                             </span>

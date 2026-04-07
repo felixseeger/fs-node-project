@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import CustomEase from 'gsap/CustomEase';
+import ScrambleText from './ScrambleText';
 import './SystemLoadingProcess.css';
 
 gsap.registerPlugin(CustomEase);
@@ -47,12 +48,6 @@ function MaskLine({ innerRef, children }) {
 
 /**
  * SystemLoadingProcess - Cyberpunk/Sci-fi preloader animation
- * 
- * @param {Object} props
- * @param {Function} props.onComplete - Callback when preloader finishes
- * @param {boolean} props.autoStart - Whether to auto-start animation (default: true)
- * @param {Object} props.config - Custom content configuration
- * @param {string} props.theme - Theme variant: 'dark' | 'light' (default: 'dark')
  */
 export default function SystemLoadingProcess({ 
   onComplete, 
@@ -61,8 +56,7 @@ export default function SystemLoadingProcess({
   theme = 'dark',
 }) {
   const [ready, setReady] = useState(false);
-  
-  // Merge config with defaults
+  const [exiting, setExiting] = useState(false);
   const cfg = { ...DEFAULT_CONFIG, ...config };
 
   const preloaderRef   = useRef(null);
@@ -75,12 +69,12 @@ export default function SystemLoadingProcess({
   const outroLineRef   = useRef(null);
   const readyRef       = useRef(false);
   const timelineRef    = useRef(null);
-  // Collect the 6 row text lines (refs on the .slp-line spans directly)
   const rowLine        = useRef([]);
 
   const handleEngage = useCallback(() => {
     if (!readyRef.current) return;
     readyRef.current = false;
+    setExiting(true);
 
     const svgLen = trackRef.current?.getTotalLength() ?? 974;
 
@@ -92,17 +86,10 @@ export default function SystemLoadingProcess({
     });
 
     exitTl
-      .to(preloaderRef.current, { 
-        scale: 0.75, 
-        duration: 1.25, 
-        ease: 'hop' 
-      })
-      .to([trackRef.current, progressRef.current],
-          { strokeDashoffset: -svgLen, duration: 1.25, ease: 'hop' }, '<')
-      .to(labelLineRef.current,
-          { y: '-100%', duration: 0.75, ease: 'power3.out' }, '-=1.25')
-      .to(outroLineRef.current,
-          { y: '0%', duration: 0.75, ease: 'power3.out' }, '-=0.75')
+      .to(preloaderRef.current, { scale: 0.75, duration: 1.25, ease: 'hop' })
+      .to([trackRef.current, progressRef.current], { strokeDashoffset: -svgLen, duration: 1.25, ease: 'hop' }, '<')
+      .to(labelLineRef.current, { y: '-100%', duration: 0.75, ease: 'power3.out' }, '-=1.25')
+      .to(outroLineRef.current, { y: '0%', duration: 0.75, ease: 'power3.out' }, '-=0.75')
       .to(preloaderRef.current, {
         clipPath: 'polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)',
         duration: 1.5,
@@ -117,7 +104,6 @@ export default function SystemLoadingProcess({
 
   useEffect(() => {
     if (!autoStart) return;
-
     const svgLen = trackRef.current?.getTotalLength() ?? 974;
 
     gsap.set([trackRef.current, progressRef.current], {
@@ -125,7 +111,6 @@ export default function SystemLoadingProcess({
       strokeDashoffset: svgLen,
     });
 
-    // Set all line spans to their off-screen start position
     gsap.set([...rowLine.current, labelLineRef.current, outroLineRef.current], { y: '100%' });
 
     const progressStops = [0.2, 0.25, 0.85, 1].map((base, i) =>
@@ -135,12 +120,9 @@ export default function SystemLoadingProcess({
     const tl = gsap.timeline({ delay: 0.5 });
     timelineRef.current = tl;
 
-    tl.to(rowLine.current,
-        { y: '0%', duration: 0.75, ease: 'power3.out', stagger: 0.1 })
-      .to(trackRef.current,
-        { strokeDashoffset: 0, duration: 2, ease: 'hop' }, '<')
-      .to(btnRef.current.querySelector('svg'),
-        { rotation: 270, duration: 2, ease: 'hop' }, '<');
+    tl.to(rowLine.current, { y: '0%', duration: 0.75, ease: 'power3.out', stagger: 0.1 })
+      .to(trackRef.current, { strokeDashoffset: 0, duration: 2, ease: 'hop' }, '<')
+      .to(btnRef.current.querySelector('svg'), { rotation: 270, duration: 2, ease: 'hop' }, '<');
 
     progressStops.forEach((stop, i) => {
       tl.to(progressRef.current, {
@@ -151,10 +133,8 @@ export default function SystemLoadingProcess({
       });
     });
 
-    tl.to(logoRef.current,
-        { opacity: 0, duration: 0.35, ease: 'power1.out' }, '-=0.25')
-      .to(btnRef.current,
-        { scale: 0.9, duration: 1.5, ease: 'hop' }, '-=0.5')
+    tl.to(logoRef.current, { opacity: 0, duration: 0.35, ease: 'power1.out' }, '-=0.25')
+      .to(btnRef.current, { scale: 0.9, duration: 1.5, ease: 'hop' }, '-=0.5')
       .to(labelLineRef.current, {
         y: '0%',
         duration: 0.75,
@@ -167,55 +147,73 @@ export default function SystemLoadingProcess({
 
     return () => {
       tl.kill();
-      // Reset ready state on cleanup so StrictMode double-invoke restarts cleanly
       readyRef.current = false;
       setReady(false);
     };
   }, [autoStart]);
 
-  // Helper for indexed row-line refs
   const lineRef = (i) => (el) => { rowLine.current[i] = el; };
 
   return (
     <div className={`slp-root slp-theme-${theme}`}>
-      {/* White curtain that wipes away after the black panel exits */}
       <div ref={revealerRef} className="slp-revealer" />
-
-      {/* Decorative backdrop (white layer) */}
       <div className="slp-backdrop">
         <div className="slp-backdrop-row">
           {cfg.backdropTop.map((group, gi) => (
             <div key={gi} className="slp-backdrop-col">
-              {group.map((t, ti) => <p key={ti}>{t}</p>)}
+              {group.map((t, ti) => (
+                <p key={ti}>
+                  <ScrambleText text={t} trigger={exiting} delay={gi * 100 + ti * 30} />
+                </p>
+              ))}
             </div>
           ))}
         </div>
         <div className="slp-backdrop-row" style={{ alignItems: 'flex-end' }}>
           {cfg.backdropBottom.map((group, gi) => (
             <div key={gi} className="slp-backdrop-col">
-              {group.map((t, ti) => <p key={ti}>{t}</p>)}
+              {group.map((t, ti) => (
+                <p key={ti}>
+                  <ScrambleText text={t} trigger={exiting} delay={gi * 150 + ti * 50} />
+                </p>
+              ))}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Main black panel */}
       <div ref={preloaderRef} className="slp-preloader">
         <div className="slp-row">
-          <p><MaskLine innerRef={lineRef(0)}>{cfg.title}</MaskLine></p>
+          <p>
+            <MaskLine innerRef={lineRef(0)}>
+              <ScrambleText text={cfg.title} delay={500} />
+            </MaskLine>
+          </p>
         </div>
 
         <div className="slp-row">
           <div className="slp-col">
             {cfg.phases.map((phase, idx) => (
               <div key={idx}>
-                <p><MaskLine innerRef={lineRef(idx * 2 + 1)}>{phase.label}</MaskLine></p>
-                <p><MaskLine innerRef={lineRef(idx * 2 + 2)}>{phase.value}</MaskLine></p>
+                <p>
+                  <MaskLine innerRef={lineRef(idx * 2 + 1)}>
+                    <ScrambleText text={phase.label} delay={800 + idx * 200} />
+                  </MaskLine>
+                </p>
+                <p>
+                  <MaskLine innerRef={lineRef(idx * 2 + 2)}>
+                    <ScrambleText text={phase.value} delay={1000 + idx * 200} />
+                  </MaskLine>
+                </p>
               </div>
             ))}
           </div>
           <div className="slp-col">
-            <p><MaskLine innerRef={lineRef(5)}>{cfg.code}</MaskLine></p>
+            <p>
+              <MaskLine innerRef={lineRef(5)}>
+                <ScrambleText text={cfg.code} delay={1500} />
+              </MaskLine>
+            </p>
           </div>
         </div>
 
@@ -235,22 +233,22 @@ export default function SystemLoadingProcess({
         >
           <div className="slp-svg-strokes">
             <svg viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle ref={trackRef}
-                cx="160" cy="160" r="155"
-                stroke="#2b2b2b" strokeWidth="2" />
-              <circle ref={progressRef}
-                cx="160" cy="160" r="155"
-                stroke="#fff" strokeWidth="2" />
+              <circle ref={trackRef} cx="160" cy="160" r="155" stroke="#2b2b2b" strokeWidth="2" />
+              <circle ref={progressRef} cx="160" cy="160" r="155" stroke="#fff" strokeWidth="2" />
             </svg>
           </div>
 
           <img ref={logoRef} className="slp-logo" src={cfg.logoSrc} alt="Logo" />
 
           <p className="slp-engage-label">
-            <MaskLine innerRef={labelLineRef}>{cfg.engageText}</MaskLine>
+            <MaskLine innerRef={labelLineRef}>
+              {ready ? <ScrambleText text={cfg.engageText} /> : cfg.engageText}
+            </MaskLine>
           </p>
           <p className="slp-outro-label">
-            <MaskLine innerRef={outroLineRef}>{cfg.successText}</MaskLine>
+            <MaskLine innerRef={outroLineRef}>
+              <ScrambleText text={cfg.successText} trigger={readyRef.current === false && ready === true} />
+            </MaskLine>
           </p>
         </div>
       </div>

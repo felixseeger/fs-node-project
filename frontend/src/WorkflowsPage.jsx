@@ -360,7 +360,7 @@ function NewWorkflowModal({ onClose, onSelect }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
-      
+
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
@@ -565,10 +565,11 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
   };
 
   const handleSelectAllWfs = () => {
-    if (selectedWfs.size === workflows.length && workflows.length > 0) {
+    const activeWfs = workflows.filter(w => !w.deleted);
+    if (selectedWfs.size === activeWfs.length && activeWfs.length > 0) {
       setSelectedWfs(new Set());
     } else {
-      setSelectedWfs(new Set(workflows.map(w => w.id)));
+      setSelectedWfs(new Set(activeWfs.map(w => w.id)));
     }
   };
 
@@ -626,6 +627,18 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
     }
   };
 
+  const handleDuplicateSelectedTpls = () => {
+    if (selectedTpls.size === 0) return;
+    const newTemplates = templates.filter(t => selectedTpls.has(t.id)).map(t => ({
+      ...t,
+      id: `template_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      name: `${t.name} (Copy)`
+    }));
+    setTemplates(prev => [...prev, ...newTemplates]);
+    setIsSelectingTemplates(false);
+    setSelectedTpls(new Set());
+  };
+
   const handleDeleteSelected = async () => {
     if (selectedWfs.size === 0) return;
     if (confirm(`Delete ${selectedWfs.size} workflows?`)) {
@@ -670,7 +683,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
       )}
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '60px 40px' }}>
-        
+
         {/* HERO SECTION - Centered with large headline */}
         <div style={{
           display: 'flex',
@@ -717,7 +730,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
             }}>
               The node-based editor for AI workflows. Connect vision models, generators, and enhancers visually, then deploy each workflow as a live API. No code required.
             </p>
-            
+
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
               <button
                 onClick={() => setShowNewModal(true)}
@@ -738,7 +751,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
               >
                 Start building
               </button>
-              
+
               <button
                 style={{
                   background: 'transparent',
@@ -761,18 +774,18 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
               </button>
             </div>
           </div>
-          
+
           {/* Hero workflow image */}
           <div style={{ zIndex: 1, marginTop: 60, width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <img 
-              src="/hero_img.jpg" 
-              alt="AI workflow node editor" 
-              style={{ 
-                width: '100%', 
-                maxWidth: '1100px', 
-                borderRadius: 16, 
+            <img
+              src="/hero_img.jpg"
+              alt="AI workflow node editor"
+              style={{
+                width: '100%',
+                maxWidth: '1100px',
+                borderRadius: 16,
                 border: '1px solid #1a1a1a'
-              }} 
+              }}
             />
           </div>
         </div>
@@ -791,26 +804,26 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
           {/* Left column - Text and stats */}
           <div style={{ maxWidth: 540 }}>
             {/* Badge */}
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: 8, 
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
               marginBottom: 24,
             }}>
-              <span style={{ 
-                width: 8, height: 8, borderRadius: '50%', background: '#3b82f6' 
+              <span style={{
+                width: 8, height: 8, borderRadius: '50%', background: '#3b82f6'
               }} />
-              <span style={{ 
-                fontSize: 11, 
-                color: '#666', 
-                fontWeight: 600, 
+              <span style={{
+                fontSize: 11,
+                color: '#666',
+                fontWeight: 600,
                 letterSpacing: 1,
                 textTransform: 'uppercase'
               }}>
                 Introducing Workflows
               </span>
             </div>
-            
+
             {/* Headline */}
             <h2 style={{
               fontSize: '2.5rem',
@@ -823,7 +836,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
               Introducing<br />
               <span style={{ color: '#666' }}>Workflows.</span>
             </h2>
-            
+
             {/* Description */}
             <p style={{
               fontSize: 15,
@@ -833,7 +846,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
             }}>
               Workflows are visual AI pipelines you build by connecting nodes on a canvas. Each node is one step in your feature: accept input, process it through AI models, and return the result. Build any AI-powered feature you can imagine, then deploy it as a live API endpoint. Use it in your own apps or sell it to clients. No code, no backend, no infrastructure.
             </p>
-            
+
             {/* Stats grid */}
             <div style={{
               display: 'grid',
@@ -846,18 +859,18 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
               <StatCard value="1-click" label="API deployment" />
             </div>
           </div>
-          
+
           {/* Right column - Intro workflow image */}
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <img 
-              src="/intro_img.jpg" 
-              alt="Simple workflow example" 
-              style={{ 
+            <img
+              src="/intro_img.jpg"
+              alt="Simple workflow example"
+              style={{
                 width: '100%',
                 maxWidth: '500px',
-                borderRadius: 16, 
+                borderRadius: 16,
                 border: '1px solid #1a1a1a'
-              }} 
+              }}
             />
           </div>
         </div>
@@ -930,7 +943,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
                   margin: 0
                 }}>Creators & Agencies</h3>
               </div>
-              
+
               <p style={{
                 fontSize: 13,
                 color: '#888',
@@ -962,7 +975,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
                   height: 1,
                   background: 'linear-gradient(90deg, transparent, #ec4899 20%, #ec4899 80%, transparent)'
                 }} />
-                
+
                 <div style={{
                   display: 'flex',
                   flexWrap: 'wrap',
@@ -1021,7 +1034,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
                   margin: 0
                 }}>Indie Builders & Makers</h3>
               </div>
-              
+
               <p style={{
                 fontSize: 13,
                 color: '#888',
@@ -1053,7 +1066,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
                   height: 1,
                   background: 'linear-gradient(90deg, transparent, #f59e0b 15%, #f59e0b 85%, transparent)'
                 }} />
-                
+
                 <div style={{
                   display: 'flex',
                   flexWrap: 'wrap',
@@ -1112,7 +1125,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
                   margin: 0
                 }}>Teams Starting with AI</h3>
               </div>
-              
+
               <p style={{
                 fontSize: 13,
                 color: '#888',
@@ -1144,7 +1157,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
                   height: 1,
                   background: 'linear-gradient(90deg, transparent, #3b82f6 20%, #3b82f6 80%, transparent)'
                 }} />
-                
+
                 <div style={{
                   display: 'flex',
                   flexWrap: 'wrap',
@@ -1309,19 +1322,19 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
                 {/* Line 1: Clothing Input -> Claude Vision */}
                 <path d="M 180 70 Q 230 70 250 70" stroke="#3b82f6" strokeWidth="2" fill="none" />
                 <circle cx="215" cy="70" r="3" fill="#3b82f6" />
-                
+
                 {/* Line 2: Model Input -> Claude Haiku */}
                 <path d="M 180 190 Q 230 190 250 190" stroke="#3b82f6" strokeWidth="2" fill="none" />
                 <circle cx="215" cy="190" r="3" fill="#3b82f6" />
-                
+
                 {/* Line 3: Claude Vision -> Nano Banana */}
                 <path d="M 410 70 Q 460 70 480 100" stroke="#8b5cf6" strokeWidth="2" fill="none" />
                 <circle cx="445" cy="70" r="3" fill="#8b5cf6" />
-                
+
                 {/* Line 4: Claude Haiku -> Nano Banana */}
                 <path d="M 410 190 Q 460 190 480 160" stroke="#8b5cf6" strokeWidth="2" fill="none" />
                 <circle cx="445" cy="190" r="3" fill="#8b5cf6" />
-                
+
                 {/* Line 5: Nano Banana -> Response */}
                 <path d="M 640 130 Q 690 130 720 130" stroke="#ec4899" strokeWidth="2" fill="none" />
                 <circle cx="665" cy="130" r="3" fill="#ec4899" />
@@ -1796,7 +1809,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
           </div>
 
           {/* Existing workflow cards */}
-          {workflows.map((wf) => (
+          {workflows.filter(w => !w.deleted).map((wf) => (
             <div
               key={wf.id}
               onClick={() => isSelecting ? toggleSelection(wf.id) : onCreateWorkflow(wf.name, wf.id)}
@@ -1828,16 +1841,16 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
                 }}
               >
                 {isSelecting && (
-                <div style={{
-                  position: 'absolute', top: 12, right: 12, width: 16, height: 16,
-                  borderRadius: 4, border: `1px solid ${selectedWfs.has(wf.id) ? '#3b82f6' : '#555'}`,
-                  background: selectedWfs.has(wf.id) ? '#3b82f6' : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                  {selectedWfs.has(wf.id) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                </div>
-              )}
-              <svg width="120" height="40">
+                  <div style={{
+                    position: 'absolute', top: 12, right: 12, width: 16, height: 16,
+                    borderRadius: 4, border: `1px solid ${selectedWfs.has(wf.id) ? '#3b82f6' : '#555'}`,
+                    background: selectedWfs.has(wf.id) ? '#3b82f6' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    {selectedWfs.has(wf.id) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                  </div>
+                )}
+                <svg width="120" height="40">
                   <rect x="5" y="12" width="30" height="16" rx="3" fill="#1e1e1e" stroke="#333" strokeWidth="0.5" />
                   <circle cx="8" cy="20" r="2" fill="#22c55e" />
                   <rect x="45" y="5" width="30" height="16" rx="3" fill="#1e1e1e" stroke="#333" strokeWidth="0.5" />
@@ -1871,7 +1884,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
             </h2>
             <span style={{ fontSize: 14, color: '#666', marginTop: 1 }}>&rsaquo;</span>
           </div>
-          
+
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             {isSelectingTemplates ? (
               <>
@@ -1895,6 +1908,17 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
                   }}
                 >
                   Download ({selectedTpls.size})
+                </button>
+                <button
+                  onClick={handleDuplicateSelectedTpls}
+                  disabled={selectedTpls.size === 0}
+                  style={{
+                    padding: '6px 16px', fontSize: 12, background: 'transparent',
+                    border: '1px solid #333', borderRadius: 6, color: selectedTpls.size === 0 ? '#666' : '#3b82f6',
+                    cursor: selectedTpls.size === 0 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Duplicate
                 </button>
                 <button
                   onClick={handleDeleteSelectedTpls}
@@ -1948,89 +1972,89 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
             gap: 16,
           }}>
             {templates.map((tpl) => (
-            <div
-              key={tpl.id}
-              style={{
-                background: '#141414',
-                border: `1px solid ${selectedTpls.has(tpl.id) ? '#3b82f6' : '#2a2a2a'}`,
-                borderRadius: 12,
-                padding: 24,
-                cursor: 'pointer',
-                display: 'flex',
-                gap: 20,
-                alignItems: 'flex-start',
-                position: 'relative',
-              }}
-              onClick={() => isSelectingTemplates ? toggleTplSelection(tpl.id) : onCreateWorkflow(tpl.name)}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = selectedTpls.has(tpl.id) ? '#3b82f6' : '#2a2a2a'; }}
-            >
-              {isSelectingTemplates && (
+              <div
+                key={tpl.id}
+                style={{
+                  background: '#141414',
+                  border: `1px solid ${selectedTpls.has(tpl.id) ? '#3b82f6' : '#2a2a2a'}`,
+                  borderRadius: 12,
+                  padding: 24,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  gap: 20,
+                  alignItems: 'flex-start',
+                  position: 'relative',
+                }}
+                onClick={() => isSelectingTemplates ? toggleTplSelection(tpl.id) : onCreateWorkflow(tpl.name)}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = selectedTpls.has(tpl.id) ? '#3b82f6' : '#2a2a2a'; }}
+              >
+                {isSelectingTemplates && (
+                  <div style={{
+                    position: 'absolute', top: 12, right: 12, width: 16, height: 16,
+                    borderRadius: 4, border: `1px solid ${selectedTpls.has(tpl.id) ? '#3b82f6' : '#555'}`,
+                    background: selectedTpls.has(tpl.id) ? '#3b82f6' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10
+                  }}>
+                    {selectedTpls.has(tpl.id) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                  </div>
+                )}
+                {/* Preview grid */}
                 <div style={{
-                  position: 'absolute', top: 12, right: 12, width: 16, height: 16,
-                  borderRadius: 4, border: `1px solid ${selectedTpls.has(tpl.id) ? '#3b82f6' : '#555'}`,
-                  background: selectedTpls.has(tpl.id) ? '#3b82f6' : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10
+                  width: 100,
+                  height: 100,
+                  borderRadius: 10,
+                  background: '#0e0e0e',
+                  border: '1px solid #2a2a2a',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 1fr',
+                  gridTemplateRows: '1fr 1fr 1fr',
+                  gap: 3,
+                  padding: 6,
+                  flexShrink: 0,
+                  position: 'relative',
+                  overflow: 'hidden',
                 }}>
-                  {selectedTpls.has(tpl.id) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                  {tpl.colors.map((color, idx) => (
+                    <div key={idx} style={{ background: color, borderRadius: 4 }} />
+                  ))}
+                  {/* Sparkle overlay */}
+                  <svg
+                    width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    style={{ position: 'absolute', top: 8, right: 8 }}
+                  >
+                    <path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="#a78bfa" opacity="0.8" />
+                  </svg>
                 </div>
-              )}
-              {/* Preview grid */}
-              <div style={{
-                width: 100,
-                height: 100,
-                borderRadius: 10,
-                background: '#0e0e0e',
-                border: '1px solid #2a2a2a',
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
-                gridTemplateRows: '1fr 1fr 1fr',
-                gap: 3,
-                padding: 6,
-                flexShrink: 0,
-                position: 'relative',
-                overflow: 'hidden',
-              }}>
-                {tpl.colors.map((color, idx) => (
-                  <div key={idx} style={{ background: color, borderRadius: 4 }} />
-                ))}
-                {/* Sparkle overlay */}
-                <svg
-                  width="20" height="20" viewBox="0 0 24 24" fill="none"
-                  style={{ position: 'absolute', top: 8, right: 8 }}
-                >
-                  <path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="#a78bfa" opacity="0.8" />
-                </svg>
-              </div>
 
-              {/* Text content */}
-              <div style={{ flex: 1, paddingTop: 2 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#e0e0e0', marginBottom: 8 }}>
-                  {tpl.name}
+                {/* Text content */}
+                <div style={{ flex: 1, paddingTop: 2 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#e0e0e0', marginBottom: 8 }}>
+                    {tpl.name}
+                  </div>
+                  <p style={{ fontSize: 12, color: '#888', lineHeight: 1.5, margin: 0 }}>
+                    {tpl.desc}
+                  </p>
                 </div>
-                <p style={{ fontSize: 12, color: '#888', lineHeight: 1.5, margin: 0 }}>
-                  {tpl.desc}
-                </p>
-              </div>
 
-              {/* Right arrow */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 28,
-                height: 28,
-                borderRadius: 6,
-                background: '#1e1e1e',
-                border: '1px solid #333',
-                flexShrink: 0,
-                color: '#888',
-                fontSize: 14,
-              }}>
-                &rsaquo;
+                {/* Right arrow */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  background: '#1e1e1e',
+                  border: '1px solid #333',
+                  flexShrink: 0,
+                  color: '#888',
+                  fontSize: 14,
+                }}>
+                  &rsaquo;
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
           </div>
         </div>
 

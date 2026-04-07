@@ -5,40 +5,40 @@
 
 // ── Category accent colors ──
 export const CATEGORY_COLORS = {
-  imageGeneration: '#f97316',  // Orange — generators, reimagine
-  imageEditing:    '#f97316',  // Orange — upscale, expand, relight, etc.
-  videoGeneration: '#14b8a6',  // Teal — all video gen nodes
-  videoEditing:    '#14b8a6',  // Teal — VFX
-  vision:          '#0ea5e9',  // Blue — image analyzer
-  utility:         '#8b5cf6',  // Purple — response, adapted prompt
-  input:           '#6b7280',  // Gray — input, text, image source nodes
+  imageGeneration: '#ffd27f',  // Amber
+  imageEditing:    '#ffd27f',  // Amber
+  videoGeneration: '#5ee7df',  // Aqua
+  videoEditing:    '#5ee7df',  // Aqua
+  vision:          '#b490f5',  // Violet
+  utility:         '#3b82f6',  // Blue
+  input:           'rgba(255, 255, 255, 0.35)', // Subtle
 };
 
 // ── Surface colors ──
 export const surface = {
-  base:   '#2a2a2a',  // Node background
-  sunken: '#1a1a1a',  // Inputs, panels, output boxes
-  deep:   '#111111',  // Nested containers, summary bars
-  raised: '#333333',  // Elevated elements
-  canvas: '#1a1a1a',  // Page/canvas background
+  base:   'rgba(255, 255, 255, 0.08)', // Liquid Glass base
+  sunken: 'rgba(0, 0, 0, 0.2)',        // Darkened glass
+  deep:   'rgba(0, 0, 0, 0.4)',        // Deeper glass
+  raised: 'rgba(255, 255, 255, 0.15)', // Raised glass
+  canvas: '#0b0e1a',                   // App background
 };
 
 // ── Border colors ──
 export const border = {
-  subtle:   '#3a3a3a',  // Default borders
-  hover:    '#4a4a4a',  // Hover state borders
-  active:   '#3b82f6',  // Selected/focus borders
-  input:    '#3a3a3a',  // Form input borders
+  subtle:   'rgba(255, 255, 255, 0.12)',
+  hover:    'rgba(255, 255, 255, 0.25)',
+  active:   '#5ee7df',                 // Aqua focus
+  input:    'rgba(255, 255, 255, 0.12)',
 };
 
 // ── Text colors ──
 export const text = {
-  primary:   '#e0e0e0',  // Main text, labels
-  secondary: '#999999',  // Descriptions, sublabels
-  muted:     '#555555',  // Placeholders, disabled
-  accent:    '#3b82f6',  // Links, linked badges
-  error:     '#ef4444',  // Error messages
-  success:   '#22c55e',  // Success indicators
+  primary:   '#ffffff',
+  secondary: 'rgba(255, 255, 255, 0.55)',
+  muted:     'rgba(255, 255, 255, 0.35)',
+  accent:    '#5ee7df',
+  error:     '#f87171',
+  success:   '#a8f08a',
 };
 
 // ── Semantic UI colors ──

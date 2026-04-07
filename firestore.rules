@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // A completely locked down default rule: reject everything that doesn't match below.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Example: Workflows collection
+    match /workflows/{workflowId} {
+      // Any logged-in user can create a workflow
+      allow create: if request.auth != null;
+      
+      // Users can only read, update, or delete workflows IF the workflow document 
+      // contains a `userId` field that matches their own authentication UID.
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    // Add other collections here...
+  }
+}

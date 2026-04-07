@@ -4,14 +4,16 @@ import {
   addEdge,
   useNodesState,
   useEdgesState,
-  Controls,
   MiniMap,
   Background,
   BackgroundVariant,
+  Panel,
+  useViewport,
+  useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { generateAIWorkflow } from './utils/api';
+import { generateAIWorkflow, suggestNodes } from './utils/api';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirebaseAuth, initializeFirebase, enableOfflinePersistence } from './config/firebase';
 import { useFirebaseWorkflows } from './hooks/useFirebaseWorkflows';
@@ -70,8 +72,12 @@ import GroupEditingNode from './nodes/GroupEditingNode';
 import FacialEditingNode from './nodes/FacialEditingNode';
 import ImageUniversalGeneratorNode, { MODELS as IMAGE_MODELS } from './nodes/ImageUniversalGeneratorNode';
 import VideoUniversalGeneratorNode, { MODELS as VIDEO_MODELS } from './nodes/VideoUniversalGeneratorNode';
+import VideoImproveNode from './nodes/VideoImproveNode';
 import QuiverTextToVectorGenerationNode from './nodes/QuiverTextToVectorGenerationNode';
 import QuiverImageToVectorGenerationNode from './nodes/QuiverImageToVectorGenerationNode';
+import TextElementNode from './nodes/TextElementNode';
+import LandingPage from './LandingPage';
+import ProjectsDashboard from './ProjectsDashboard';
 import WorkflowsPage from './WorkflowsPage';
 import WorkspacesPage from './WorkspacesPage';
 import ProfileModal from './ProfileModal';
@@ -79,6 +85,10 @@ import WorkflowSettingsPage from './WorkflowSettingsPage';
 import AuthPage from './AuthPage';
 import SystemLoadingProcess from './components/SystemLoadingProcess';
 import GlobalProgressBar from './GlobalProgressBar';
+import ReferenceSelection from './components/ReferenceSelection';
+import ChatUI from './components/ChatUI';
+import ChatButton from './components/ChatButton';
+import MatrixDot from './components/MatrixDot';
 import TopBar from './TopBar';
 import EditorTopBar from './EditorTopBar';
 import BottomBar from './BottomBar';
@@ -93,11 +103,109 @@ const GridIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="no
 const CollageIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 22H4a2 2 0 0 1-2-2V6"></path><path d="M22 18H8a2 2 0 0 0-2 2v-12a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z"></path><circle cx="13.5" cy="8.5" r="1.5"></circle><polyline points="22 13 18 10 11 15"></polyline></svg>);
 const CopyLinksIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>);
 
-let nodeIdCounter = 0;
-const nextId = () => `node_${++nodeIdCounter}`;
+function CanvasNavigation() {
+  const { zoom } = useViewport();
+  const { zoomIn, zoomOut, fitView } = useReactFlow();
+
+  const buttonStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '28px',
+    height: '28px',
+    background: 'transparent',
+    border: 'none',
+    color: '#e0e0e0',
+    cursor: 'pointer',
+    borderRadius: '4px',
+  };
+
+  return (
+    <Panel
+      position="top-right"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: '12px',
+        marginTop: '10px',
+        marginRight: '10px',
+      }}
+    >
+      {/* Inline Zoom Controls */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        background: '#2a2a2a',
+        border: '1px solid #333',
+        borderRadius: '8px',
+        padding: '4px',
+      }}>
+        <button onClick={() => zoomOut()} style={buttonStyle} title="Zoom Out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+
+        {/* Zoom Factor Text in % */}
+        <div style={{
+          minWidth: '48px',
+          textAlign: 'center',
+          fontSize: '12px',
+          color: '#e0e0e0',
+          fontFamily: 'monospace',
+          userSelect: 'none'
+        }}>
+          {Math.round(zoom * 100)}%
+        </div>
+
+        <button onClick={() => zoomIn()} style={buttonStyle} title="Zoom In">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+
+        <div style={{ width: '1px', height: '16px', background: '#4a4a4a', margin: '0 4px' }} />
+
+        <button onClick={() => fitView({ duration: 800 })} style={buttonStyle} title="Fit View">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M19 9l3 3-3 3M9 19l3 3-3 3M2 12h20M12 2v20"></path>
+          </svg>
+        </button>
+      </div>
+
+      {/* MiniMap Below Controls */}
+      <div style={{
+        background: '#1a1a1a',
+        border: '1px solid #333',
+        borderRadius: '8px',
+        overflow: 'hidden'
+      }}>
+        <MiniMap
+          nodeStrokeWidth={3}
+          zoomable
+          pannable
+          style={{ position: 'relative', margin: 0, width: 200, height: 150, backgroundColor: '#1a1a1a' }}
+          maskColor="rgba(0, 0, 0, 0.7)"
+          nodeColor={(node) => {
+            if (node.type === 'inputNode') return '#22c55e';
+            if (node.type === 'generator') return '#f97316';
+            if (node.type === 'imageAnalyzer') return '#0ea5e9';
+            if (node.type === 'response') return '#8b5cf6';
+            return '#3b82f6';
+          }}
+        />
+      </div>
+    </Panel>
+  );
+}
+
+const nextId = () => `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState('landing');
   const [workflows, setWorkflows] = useState([]);
   const [activeWorkflowId, setActiveWorkflowId] = useState(null);
   const [editorMode, setEditorMode] = useState('node-editor');
@@ -123,6 +231,8 @@ export default function App() {
         if (user) {
           setIsAuthenticated(true);
           setCurrentUserId(user.uid);
+          // Redirect to home (Projects Dashboard) when authenticated
+          setCurrentPage('home');
           // Show loading screen once per session (cleared on logout or first completion)
           if (!sessionStorage.getItem(SLP_KEY)) {
             setShowSystemLoading(true);
@@ -131,6 +241,7 @@ export default function App() {
         } else {
           setIsAuthenticated(false);
           setCurrentUserId(null);
+          setCurrentPage('landing');
           // Clear flag so the loading screen shows again on next login
           sessionStorage.removeItem(SLP_KEY);
           console.log('[Auth] User signed out');
@@ -149,7 +260,7 @@ export default function App() {
       setAuthLoading(false);
     }
   }, []);
-  
+
   // Firebase workflow integration
   const {
     workflows: firebaseWorkflows,
@@ -171,17 +282,39 @@ export default function App() {
     try {
       const auth = getFirebaseAuth();
       await signOut(auth);
-      setCurrentPage('home');
+      setCurrentPage('landing');
     } catch (err) {
       console.error('[Auth] Logout error:', err);
     }
   }, []);
-  
+
   useEffect(() => {
     if (firebaseWorkflows.length > 0) {
-      setWorkflows(firebaseWorkflows);
+      setWorkflows((prev) => {
+        if (JSON.stringify(prev) === JSON.stringify(firebaseWorkflows)) {
+          return prev;
+        }
+        return firebaseWorkflows;
+      });
     }
   }, [firebaseWorkflows]);
+
+  // Auto-empty trash items older than 30 days
+  useEffect(() => {
+    if (!workflows || workflows.length === 0) return;
+
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const expiredIds = workflows
+      .filter(w => w.deleted && w.deletedAt && (now - w.deletedAt > THIRTY_DAYS_MS))
+      .map(w => w.id);
+
+    if (expiredIds.length > 0) {
+      console.log('[Trash] Auto-deleting expired items:', expiredIds);
+      setWorkflows((prev) => prev.filter((w) => !expiredIds.includes(w.id)));
+      expiredIds.forEach(id => deleteFirebaseWorkflow(id).catch(e => console.error('Firebase auto-delete error:', e)));
+    }
+  }, [workflows, deleteFirebaseWorkflow]);
 
   const activeWorkflowName = workflows.find((w) => w.id === activeWorkflowId)?.name || 'Untitled';
 
@@ -193,8 +326,13 @@ export default function App() {
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(true); // Chat UI open by default
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [menu, setMenu] = useState(null);
+  const [clipboardNodes, setClipboardNodes] = useState(null);
+  const clipboardRef = useRef(null);
+  const pastePositionRef = useRef(null);
+  const chatUIRef = useRef(null);
 
   const reactFlowWrapper = useRef(null);
   const edgesRef = useRef(edges);
@@ -225,9 +363,9 @@ export default function App() {
       isHistoryAction.current = true;
       setNodes(previous.nodes);
       setEdges(previous.edges);
-      return { 
-        past: newPast, 
-        future: [{ nodes: JSON.parse(JSON.stringify(nodesRef.current)), edges: JSON.parse(JSON.stringify(edgesRef.current)) }, ...prev.future] 
+      return {
+        past: newPast,
+        future: [{ nodes: JSON.parse(JSON.stringify(nodesRef.current)), edges: JSON.parse(JSON.stringify(edgesRef.current)) }, ...prev.future]
       };
     });
   }, [setNodes, setEdges]);
@@ -240,9 +378,9 @@ export default function App() {
       isHistoryAction.current = true;
       setNodes(next.nodes);
       setEdges(next.edges);
-      return { 
-        past: [...prev.past, { nodes: JSON.parse(JSON.stringify(nodesRef.current)), edges: JSON.parse(JSON.stringify(edgesRef.current)) }], 
-        future: newFuture 
+      return {
+        past: [...prev.past, { nodes: JSON.parse(JSON.stringify(nodesRef.current)), edges: JSON.parse(JSON.stringify(edgesRef.current)) }],
+        future: newFuture
       };
     });
   }, [setNodes, setEdges]);
@@ -254,7 +392,7 @@ export default function App() {
       saveHistory();
     }
     if (changes.every(c => c.type !== 'position' || !c.dragging)) {
-        isHistoryAction.current = false;
+      isHistoryAction.current = false;
     }
     onNodesChange(changes);
   }, [onNodesChange, saveHistory]);
@@ -268,7 +406,7 @@ export default function App() {
     onEdgesChange(changes);
   }, [onEdgesChange, saveHistory]);
 
-  
+
   const onDragOver = useCallback((event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
@@ -307,63 +445,95 @@ export default function App() {
     },
     [rfInstance, saveHistory, setNodes]
   );
-  
+
   const onPaneContextMenu = useCallback(
     (event) => {
       event.preventDefault();
-      
+
       if (!rfInstance) return;
 
       const selectedNodes = rfInstance.getNodes().filter(n => n.selected);
+      const hasClipboard = clipboardRef.current || clipboardNodes;
 
       const pane = reactFlowWrapper.current.getBoundingClientRect();
+
+      // Build menu items dynamically based on context
+      const menuItems = [];
+
+      // Selection-based actions
+      if (selectedNodes.length > 0) {
+        menuItems.push({ label: 'Cut', action: 'cut', shortcut: '⌘X' });
+        menuItems.push({ label: 'Copy', action: 'copy', shortcut: '⌘C' });
+        menuItems.push({ label: 'Duplicate', action: 'duplicate', shortcut: '⌘D' });
+        menuItems.push({ label: 'Clear node contents', action: 'clear_contents', shortcut: '⌘⇧X' });
+        menuItems.push({ type: 'divider' });
+
+        // Alignment options for multiple nodes
+        if (selectedNodes.length > 1) {
+          menuItems.push({ label: 'Grid Nodes', action: 'grid_nodes' });
+          menuItems.push({ label: 'Stack Nodes', action: 'stack_nodes' });
+          menuItems.push({ label: 'Align Left', action: 'align_left' });
+          menuItems.push({ label: 'Align Center', action: 'align_center' });
+          menuItems.push({ label: 'Align Right', action: 'align_right' });
+          menuItems.push({ type: 'divider' });
+        }
+      }
+
+      // Always show Paste if clipboard has content
+      if (hasClipboard) {
+        menuItems.push({ label: 'Paste', action: 'paste', shortcut: '⌘V' });
+      }
+
+      // Actions that work on selection or create new
+      if (selectedNodes.length > 0) {
+        menuItems.push({ label: 'Create Element', action: 'create_element' });
+      }
+
       setMenu({
         x: event.clientX - pane.left,
         y: event.clientY - pane.top,
-        items: [
-          { label: 'Create Element', action: 'create_element' },
-          { label: 'Autoformat', action: 'autoformat' },
-          { label: 'Grid Nodes', action: 'grid_nodes' },
-          { label: 'Stack Nodes', action: 'stack_nodes' },
-          { label: 'Align Left', action: 'align_left' },
-          { label: 'Align Center', action: 'align_center' },
-          { label: 'Align Right', action: 'align_right' },
-          { type: 'divider' },
-          { label: 'Copy', action: 'copy', shortcut: '⌘C' },
-          { label: 'Paste', action: 'paste', shortcut: '⌘V' },
-          { label: 'Duplicate', action: 'duplicate', shortcut: '⌘D' },
-          { label: 'Download', action: 'download', shortcut: '⌘⇧D' },
-          { label: 'Clear node contents', action: 'clear_contents', shortcut: '⌘⇧X' }
-        ],
+        items: menuItems,
         selectedNodes: selectedNodes,
       });
     },
-    [rfInstance, setMenu]
+    [rfInstance, setMenu, clipboardNodes]
   );
 
   const onSelectionContextMenu = useCallback(
     (event, nodes) => {
       event.preventDefault();
-      
+
       const pane = reactFlowWrapper.current.getBoundingClientRect();
+      const hasClipboard = clipboardRef.current || clipboardNodes;
+
+      const menuItems = [
+        { label: 'Cut', action: 'cut', shortcut: '⌘X' },
+        { label: 'Copy', action: 'copy', shortcut: '⌘C' },
+        { label: 'Duplicate', action: 'duplicate', shortcut: '⌘D' },
+        { type: 'divider' },
+        { label: 'Grid', action: 'grid_nodes', icon: <GridIcon /> },
+        { label: 'Compose collage', action: 'compose_collage', icon: <CollageIcon /> },
+        { label: 'Copy links', action: 'copy_links', icon: <CopyLinksIcon /> },
+      ];
+
+      if (hasClipboard) {
+        menuItems.splice(2, 0, { label: 'Paste', action: 'paste', shortcut: '⌘V' });
+      }
+
       setMenu({
         x: event.clientX - pane.left,
         y: event.clientY - pane.top,
-        items: [
-          { label: 'Grid', action: 'grid_nodes', icon: <GridIcon /> },
-          { label: 'Compose collage', action: 'compose_collage', icon: <CollageIcon /> },
-          { label: 'Copy links', action: 'copy_links', icon: <CopyLinksIcon /> },
-        ],
+        items: menuItems,
         selectedNodes: nodes,
       });
     },
-    [setMenu]
+    [setMenu, clipboardNodes]
   );
 
   const handleMenuAction = (action, data) => {
     saveHistory();
     const { selectedNodes } = data;
-    
+
     switch (action) {
       case 'create_element':
         if (selectedNodes && selectedNodes.length > 0) {
@@ -394,7 +564,7 @@ export default function App() {
             selected: true,
             position: { x: node.position.x + 50, y: node.position.y + 50 }
           }));
-          setNodes(nds => [...nds.map(n => ({...n, selected: false})), ...newNodes]);
+          setNodes(nds => [...nds.map(n => ({ ...n, selected: false })), ...newNodes]);
         }
         break;
       case 'compose_collage':
@@ -461,9 +631,9 @@ export default function App() {
       case 'align_center_h':
         if (selectedNodes && selectedNodes.length > 1) {
           let sumX = 0;
-          selectedNodes.forEach(n => sumX += n.position.x + (n.width || 200)/2);
+          selectedNodes.forEach(n => sumX += n.position.x + (n.width || 200) / 2);
           const avgX = sumX / selectedNodes.length;
-          setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, x: avgX - (n.width || 200)/2 } } : n));
+          setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, x: avgX - (n.width || 200) / 2 } } : n));
         }
         break;
       case 'align_top':
@@ -475,9 +645,9 @@ export default function App() {
       case 'align_center_v':
         if (selectedNodes && selectedNodes.length > 1) {
           let sumY = 0;
-          selectedNodes.forEach(n => sumY += n.position.y + (n.height || 100)/2);
+          selectedNodes.forEach(n => sumY += n.position.y + (n.height || 100) / 2);
           const avgY = sumY / selectedNodes.length;
-          setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, y: avgY - (n.height || 100)/2 } } : n));
+          setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, y: avgY - (n.height || 100) / 2 } } : n));
         }
         break;
       case 'align_bottom':
@@ -515,7 +685,7 @@ export default function App() {
       case 'stack_nodes':
         if (selectedNodes && selectedNodes.length > 1) {
           // Sort by Y position
-          const sorted = [...selectedNodes].sort((a,b) => a.position.y - b.position.y);
+          const sorted = [...selectedNodes].sort((a, b) => a.position.y - b.position.y);
           let currentY = sorted[0].position.y;
           const x = sorted[0].position.x;
           setNodes(nds => {
@@ -523,7 +693,7 @@ export default function App() {
               if (!n.selected) return n;
               const idx = sorted.findIndex(s => s.id === n.id);
               if (idx === 0) return n;
-              const prev = sorted[idx-1];
+              const prev = sorted[idx - 1];
               currentY += (prev.height || 300) + 20;
               return { ...n, position: { x, y: currentY } };
             });
@@ -546,7 +716,108 @@ export default function App() {
         }
         break;
       case 'copy':
+      case 'cut':
+        if (selectedNodes && selectedNodes.length > 0) {
+          // Store nodes in both state and ref for reliability
+          const nodesToCopy = selectedNodes.map(node => ({
+            ...node,
+            selected: false // Deselect when copying
+          }));
+          setClipboardNodes(nodesToCopy);
+          clipboardRef.current = nodesToCopy;
+
+          // Also copy to system clipboard as JSON for cross-workflow copying
+          try {
+            const clipboardData = {
+              type: 'nodespace-nodes',
+              nodes: nodesToCopy,
+              copiedAt: new Date().toISOString()
+            };
+            navigator.clipboard.writeText(JSON.stringify(clipboardData));
+          } catch (e) {
+            console.log('Could not write to system clipboard:', e);
+          }
+
+          // If cutting, delete the selected nodes
+          if (action === 'cut') {
+            setNodes(nds => nds.filter(n => !selectedNodes.find(sn => sn.id === n.id)));
+          }
+        }
+        break;
+
       case 'paste':
+        // Try to paste from system clipboard first (for cross-workflow copying)
+        const pasteFromClipboard = async () => {
+          let nodesToPaste = clipboardRef.current || clipboardNodes;
+
+          // Try to read from system clipboard
+          try {
+            const clipboardText = await navigator.clipboard.readText();
+            if (clipboardText) {
+              const parsed = JSON.parse(clipboardText);
+              if (parsed.type === 'nodespace-nodes' && parsed.nodes) {
+                nodesToPaste = parsed.nodes;
+              }
+            }
+          } catch (e) {
+            // Fall back to internal clipboard
+          }
+
+          if (nodesToPaste && nodesToPaste.length > 0) {
+            // Calculate offset based on paste count to avoid stacking
+            const pasteCount = (pastePositionRef.current?.count || 0) + 1;
+            pastePositionRef.current = { count: pasteCount };
+
+            const offsetX = 50 * (pasteCount % 10); // Cycle offset every 10 pastes
+            const offsetY = 50 * (pasteCount % 10);
+
+            // Use menu position if available, otherwise use center of view
+            let baseX, baseY;
+            if (data.x !== undefined && rfInstance) {
+              const flowPos = rfInstance.screenToFlowPosition({ x: data.x, y: data.y });
+              baseX = flowPos.x;
+              baseY = flowPos.y;
+            } else if (rfInstance) {
+              const center = rfInstance.screenToFlowPosition({
+                x: window.innerWidth / 2,
+                y: window.innerHeight / 2
+              });
+              baseX = center.x;
+              baseY = center.y;
+            } else {
+              baseX = nodesToPaste[0].position.x + offsetX;
+              baseY = nodesToPaste[0].position.y + offsetY;
+            }
+
+            // Calculate bounding box of copied nodes
+            const minX = Math.min(...nodesToPaste.map(n => n.position.x));
+            const minY = Math.min(...nodesToPaste.map(n => n.position.y));
+
+            const newNodes = nodesToPaste.map((node, index) => {
+              const relativeX = node.position.x - minX;
+              const relativeY = node.position.y - minY;
+
+              return {
+                ...node,
+                id: nextId(),
+                selected: true,
+                position: {
+                  x: baseX + relativeX,
+                  y: baseY + relativeY
+                },
+                data: { ...node.data } // Deep clone data
+              };
+            });
+
+            // Deselect existing nodes and add new ones
+            setNodes(nds => [...nds.map(n => ({ ...n, selected: false })), ...newNodes]);
+            saveHistory();
+          }
+        };
+
+        pasteFromClipboard();
+        break;
+
       case 'autoformat':
       case 'download':
         console.log(`Action ${action} not fully implemented yet.`);
@@ -560,7 +831,7 @@ export default function App() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Don't trigger if user is typing in an input or textarea
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable) return;
 
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
@@ -582,13 +853,32 @@ export default function App() {
         return;
       }
 
+      if (cmdOrCtrl && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        handleMenuAction('copy', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
+        return;
+      }
+
+      if (cmdOrCtrl && e.key.toLowerCase() === 'x') {
+        e.preventDefault();
+        handleMenuAction('cut', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
+        return;
+      }
+
+      if (cmdOrCtrl && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        // Get mouse position or use center of view
+        handleMenuAction('paste', { x: window.innerWidth / 2, y: window.innerHeight / 2 });
+        return;
+      }
+
       if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'x') {
         e.preventDefault();
         handleMenuAction('clear_contents', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
         return;
       }
 
-      
+
       if (cmdOrCtrl && e.key === '.') {
         e.preventDefault();
         window.dispatchEvent(new Event('open-keyboard-shortcuts'));
@@ -612,7 +902,7 @@ export default function App() {
         return;
       }
 
-            // Single key shortcuts for node creation
+      // Single key shortcuts for node creation
       if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key) {
         const key = e.key.toLowerCase();
         let typeToAdd = null;
@@ -624,19 +914,20 @@ export default function App() {
           case 'b': typeToAdd = 'groupEditing'; break;
           case 'r': typeToAdd = 'routerNode'; break;
           case 'f': typeToAdd = 'facialEditing'; break;
-          case 'u': typeToAdd = 'uploadNode'; break;
-          case 'h': 
+          case 'v': typeToAdd = 'videoImprove'; break;
+          case 'u': typeToAdd = 'sourceMediaNode'; break;
+          case 'h':
             window.dispatchEvent(new CustomEvent('open-search-history'));
             return;
         }
-        
+
         if (typeToAdd) {
           e.preventDefault();
           saveHistory();
-          
+
           let x = 300;
           let y = 300;
-          
+
           if (rfInstance) {
             // Find center of current view
             const center = rfInstance.screenToFlowPosition({
@@ -646,7 +937,7 @@ export default function App() {
             x = center.x;
             y = center.y;
           }
-          
+
           // Get default data from NODE_MENU
           let defaults = { label: typeToAdd };
           for (const section of NODE_MENU) {
@@ -656,7 +947,7 @@ export default function App() {
               break;
             }
           }
-          
+
           const newNode = {
             id: nextId(),
             type: typeToAdd,
@@ -753,9 +1044,11 @@ export default function App() {
       facialEditing: FacialEditingNode,
       universalGeneratorImage: ImageUniversalGeneratorNode,
       universalGeneratorVideo: VideoUniversalGeneratorNode,
+      videoImprove: VideoImproveNode,
       quiverTextToVector: QuiverTextToVectorGenerationNode,
       quiverImageToVector: QuiverImageToVectorGenerationNode,
-      }),
+      textElement: TextElementNode,
+    }),
     []
   );
 
@@ -799,6 +1092,9 @@ export default function App() {
         if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
       } else if (sourceNode.type === 'groupEditing') {
         if (sh === 'images-out' && sd.outputImages) results.push(...sd.outputImages);
+        if (sh === 'video-out' && sd.outputVideo) results.push(sd.outputVideo);
+      } else if (sourceNode.type === 'videoImprove') {
+        if (sh === 'video-out' && sd.outputVideo) results.push(sd.outputVideo);
       } else if (sourceNode.type === 'imageAnalyzer') {
         if (sh === 'analysis-out' && sd.analysisResult) results.push(sd.analysisResult);
         if (sh === 'image-out' && sd.localImages?.length) results.push(...sd.localImages);
@@ -1193,6 +1489,18 @@ export default function App() {
       updateNodeData(ip.id, { triggerGenerate: Date.now() });
     }
 
+    // Step 13.5: Trigger all facialEditing nodes
+    const facialNodes = nodesRef.current.filter((n) => n.type === 'facialEditing');
+    for (const fn of facialNodes) {
+      updateNodeData(fn.id, { triggerGenerate: Date.now() });
+    }
+
+    // Step 13.6: Trigger all groupEditing nodes
+    const groupNodes = nodesRef.current.filter((n) => n.type === 'groupEditing');
+    for (const gn of groupNodes) {
+      updateNodeData(gn.id, { triggerGenerate: Date.now() });
+    }
+
     // Step 14: Trigger all changeCamera nodes
     const changeCameraNodes = nodesRef.current.filter((n) => n.type === 'changeCamera');
     for (const cc of changeCameraNodes) {
@@ -1331,18 +1639,24 @@ export default function App() {
       updateNodeData(vo.id, { triggerGenerate: Date.now() });
     }
 
+    // Step 37: Trigger all videoImprove nodes
+    const videoImproveNodes = nodesRef.current.filter((n) => n.type === 'videoImprove');
+    for (const vi of videoImproveNodes) {
+      updateNodeData(vi.id, { triggerGenerate: Date.now() });
+    }
+
     // The actual loading state is managed by each GeneratorNode
     // Wait a moment then check if any are still loading
     setTimeout(() => setIsRunning(false), 2000);
   }, [updateNodeData]);
 
   const handleCreateWorkflow = useCallback(async (name, existingId, aiOptions = null) => {
-    console.log('[App] handleCreateWorkflow called:', {name, existingId, aiOptions});
-    
+    console.log('[App] handleCreateWorkflow called:', { name, existingId, aiOptions });
+
     if (existingId && aiOptions?.type !== 'system-test' && aiOptions?.type !== 'ai' && aiOptions?.type !== 'scratch') {
       // Open existing workflow - try Firebase first, then local
       setActiveWorkflowId(existingId);
-      
+
       // Try to load from Firebase
       const firebaseWf = await loadFirebaseWorkflow(existingId);
       if (firebaseWf) {
@@ -1362,7 +1676,7 @@ export default function App() {
       const allNodes = [];
       let currentX = 50;
       let currentY = 50;
-      
+
       NODE_MENU.forEach((section) => {
         let col = 0;
         section.items.forEach((item) => {
@@ -1393,7 +1707,7 @@ export default function App() {
           subscribe(newWf.id);
           console.log('[System Test] Created workflow:', newWf.id);
         } else {
-           console.error('[System Test] createFirebaseWorkflow returned null!');
+          console.error('[System Test] createFirebaseWorkflow returned null!');
         }
       } catch (err) {
         console.error('Failed to create system test workflow:', err);
@@ -1411,7 +1725,7 @@ export default function App() {
             result.workflow.nodes,
             result.workflow.edges
           );
-          
+
           if (newWf) {
             setActiveWorkflowId(newWf.id);
             setNodes(result.workflow.nodes);
@@ -1564,7 +1878,7 @@ export default function App() {
           <p style={{ fontSize: 14, color: '#888', marginBottom: 24, lineHeight: 1.6 }}>
             {isApiKeyError ? (
               <>
-                The Firebase API key is not valid for this domain. <br/>
+                The Firebase API key is not valid for this domain. <br />
                 This usually happens when the domain isn&apos;t authorized in Google Cloud Console.
               </>
             ) : (
@@ -1583,7 +1897,7 @@ export default function App() {
               </ol>
             </div>
           )}
-          <button 
+          <button
             onClick={() => window.location.reload()}
             style={{
               background: '#3b82f6',
@@ -1625,9 +1939,9 @@ export default function App() {
   if (showSystemLoading) {
     const totalModels = IMAGE_MODELS.length + VIDEO_MODELS.length;
     const totalNodes = Object.keys(nodeTypes).length;
-    
+
     return (
-      <SystemLoadingProcess 
+      <SystemLoadingProcess
         config={{
           phases: [
             { label: 'Phase 01', value: `Loading ${totalNodes} nodes` },
@@ -1636,18 +1950,28 @@ export default function App() {
           code: `Felix Seeger | Last update ${new Date().toISOString().split('T')[0]}`
         }}
         onComplete={() => {
-        sessionStorage.setItem('slp_shown', '1');
-        setShowSystemLoading(false);
-      }} />
+          sessionStorage.setItem('slp_shown', '1');
+          setShowSystemLoading(false);
+        }} />
     );
   }
 
-  if (currentPage === 'home') {
+  // Show loading while auth is initializing
+  if (authLoading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100vw', height: '100vh', background: '#0a0a0a', color: '#fff' }}>
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
+  // Landing page for non-authenticated users
+  if (!isAuthenticated) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
-        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+        <TopBar currentPage="landing" onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={false} />
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <WorkflowsPage
+          <LandingPage
             onCreateWorkflow={handleCreateWorkflow}
             onDeleteWorkflows={handleDeleteWorkflows}
             workflows={workflows}
@@ -1657,7 +1981,41 @@ export default function App() {
     );
   }
 
-  
+  // Projects Dashboard for authenticated users (default home)
+  if (currentPage === 'home') {
+    return (
+      <>
+        <ProjectsDashboard
+          projects={workflows}
+          onCreateProject={(name) => handleCreateWorkflow(name || 'New Project')}
+          onOpenProject={(project) => {
+            // Open existing project in editor
+            handleCreateWorkflow(project.name || project.title, project.id);
+          }}
+          onUpdateProject={async (id, updates) => {
+            setWorkflows(prev => prev.map(w => w.id === id ? { ...w, ...updates } : w));
+            if (saveFirebaseWorkflow) {
+              await saveFirebaseWorkflow(id, updates);
+            }
+          }}
+          onDeleteProject={(id) => {
+            handleDeleteWorkflows([id]);
+          }}
+          onDuplicateProject={async (project) => {
+            const newName = `${project.name || project.title || 'Untitled'} (Copy)`;
+            if (createFirebaseWorkflow) {
+              await createFirebaseWorkflow(newName, project.nodes || [], project.edges || []);
+            }
+          }}
+          onLogout={handleLogout}
+          onOpenProfile={() => setIsProfileModalOpen(true)}
+        />
+        <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+      </>
+    );
+  }
+
+
   if (currentPage === 'workspaces') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
@@ -1671,11 +2029,12 @@ export default function App() {
             workspaces={[]}
           />
         </div>
+        <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
       </div>
     );
   }
 
-  
+
 
   if (currentPage === 'workflow-settings') {
     return (
@@ -1684,6 +2043,7 @@ export default function App() {
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <WorkflowSettingsPage />
         </div>
+        <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
       </div>
     );
   }
@@ -1716,10 +2076,10 @@ export default function App() {
         }}>
           <div style={{ background: '#1c1c1c', padding: 24, borderRadius: 12, border: '1px solid #333', width: 320 }}>
             <h3 style={{ margin: '0 0 16px', color: '#fff', fontSize: 16 }}>Rename Workspace</h3>
-            <input 
+            <input
               autoFocus
-              type="text" 
-              value={newWorkflowName} 
+              type="text"
+              value={newWorkflowName}
               onChange={e => setNewWorkflowName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleRenameSubmit(); if (e.key === 'Escape') setIsRenameModalOpen(false); }}
               style={{ width: '100%', padding: '10px 12px', background: '#111', border: '1px solid #333', borderRadius: 8, color: '#e0e0e0', outline: 'none', marginBottom: 16, boxSizing: 'border-box' }}
@@ -1780,7 +2140,7 @@ export default function App() {
         {/* Canvas */}
         <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }} onDrop={onDrop} onDragOver={onDragOver}>
           <GooeyNodesMenu nodeMenu={NODE_MENU} onAddNode={addNode} onOpenProfile={() => setIsProfileModalOpen(true)} />
-          
+
           {/* Layout Helper Toolbar */}
           <LayoutHelper
             selectedNodes={nodes.filter(n => n.selected)}
@@ -1791,61 +2151,136 @@ export default function App() {
             }}
           />
 
+          {/* Reference Selection - Bottom Left */}
+          <ReferenceSelection
+            onImageSelect={(imageData) => {
+              // Store selected reference image in app state or pass to workflow
+              console.log('[ReferenceSelection] Image selected:', imageData ? 'yes' : 'no');
+            }}
+          />
+
+          {/* Chat Button - Bottom Left */}
+          <ChatButton
+            isOpen={isChatOpen}
+            onClick={() => setIsChatOpen(!isChatOpen)}
+          />
+
+          {/* Action Buttons (Generate) - Bottom Center */}
           <div style={{
             position: 'absolute',
-            bottom: 24,
-            right: 24,
-            zIndex: 10,
+            bottom: 32,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 50,
             display: 'flex',
-            flexDirection: 'column',
-            gap: 16,
-            alignItems: 'flex-end',
-            pointerEvents: 'none'
+            alignItems: 'center',
+            gap: 16
           }}>
-            {/* Global Generate Button */}
+            <style>{`
+              @keyframes action-spin {
+                to { transform: rotate(360deg); }
+              }
+            `}</style>
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRunWorkflow();
-              }}
+              onClick={handleRunWorkflow}
               disabled={isRunning}
               style={{
-                pointerEvents: 'auto',
-                padding: '12px 32px', fontSize: 14, fontWeight: 700,
-                background: isRunning ? '#333' : '#3b82f6',
-                border: 'none', borderRadius: 10, color: '#fff',
+                background: 'linear-gradient(145deg, #3a3a3a 0%, #111 100%)',
+                border: '1px solid #444',
+                boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.1), 0 8px 16px rgba(0,0,0,0.4)',
+                color: '#fff',
+                padding: '12px 24px',
+                borderRadius: '24px',
+                fontSize: '14px',
+                fontWeight: 600,
                 cursor: isRunning ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 16px rgba(59,130,246,0.3)',
-                display: 'flex', alignItems: 'center', gap: 8,
+                opacity: isRunning ? 0.7 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                transition: 'all 0.2s ease'
               }}
             >
               {isRunning ? (
                 <>
-                  <span style={{
-                    width: 14, height: 14, border: '2px solid #666',
-                    borderTop: '2px solid #fff', borderRadius: '50%',
-                    animation: 'spin 1s linear infinite', display: 'inline-block',
-                  }} />
-                  Running...
+                  <span style={{ width: 14, height: 14, border: '2px solid #666', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'action-spin 1s linear infinite' }} />
+                  Generating...
                 </>
               ) : (
-                <>
-                  <span style={{ fontSize: 16 }}>&#9654;</span>
-                  Generate
-                </>
+                <>Generate</>
               )}
             </button>
-            <style>{`
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}</style>
-            
-            <div style={{ pointerEvents: 'auto' }}>
-              <Queue nodes={nodes} />
-            </div>
           </div>
+
+          {/* Chat UI - Right Side */}
+          <ChatUI
+            ref={chatUIRef}
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+            onSendMessage={(message) => {
+              console.log('[ChatUI] Message sent:', message);
+              // Message is handled in the chat UI, generation happens on Generate button
+            }}
+            onGenerate={async (message) => {
+              if (!message || message.trim() === '') {
+                console.log('[ChatUI] No message to generate workflow from');
+                return;
+              }
+
+              setIsRunning(true);
+              try {
+                console.log('[ChatUI] Generating workflow from:', message);
+                const result = await generateAIWorkflow(message.trim(), 'standard');
+
+                if (result.success && result.workflow) {
+                  // Save the generated workflow
+                  const newWf = await createFirebaseWorkflow(
+                    result.workflow.name || 'AI Generated Workflow',
+                    result.workflow.nodes,
+                    result.workflow.edges
+                  );
+
+                  if (newWf) {
+                    setActiveWorkflowId(newWf.id);
+                    setNodes(result.workflow.nodes);
+                    setEdges(result.workflow.edges);
+                    subscribe(newWf.id);
+                    console.log('[ChatUI] Workflow generated and saved:', newWf.id);
+                  } else {
+                    // Fallback: just update current workflow
+                    setNodes(result.workflow.nodes);
+                    setEdges(result.workflow.edges);
+                  }
+                } else {
+                  console.error('[ChatUI] Failed to generate workflow:', result.error);
+                }
+              } catch (error) {
+                console.error('[ChatUI] Error generating workflow:', error);
+              } finally {
+                setIsRunning(false);
+              }
+            }}
+            isGenerating={isRunning}
+            disabled={isRunning}
+          />
+
+          {/* Queue - Bottom Right, below Chat UI */}
+          <div style={{
+            position: 'absolute',
+            bottom: 96,
+            right: 24,
+            zIndex: 10,
+          }}>
+            <Queue nodes={nodes} />
+          </div>
+
+          {/* Matrix Dot Background */}
+          <MatrixDot
+            dotSize={2}
+            dotColor="#3a3a3a"
+            spacing={28}
+            opacity={0.6}
+          />
 
           <ReactFlow
             nodes={nodesWithCallbacks}
@@ -1908,7 +2343,7 @@ export default function App() {
                   if (item.type === 'divider') {
                     return <div key={'divider-' + index} style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.15)', margin: '6px 0' }} />;
                   }
-                  
+
                   return (
                     <div
                       key={item.action}
@@ -1945,50 +2380,20 @@ export default function App() {
                 })}
               </div>
             )}
-            
+
             <Background variant="dots" gap={20} size={1} color="#333" />
-            <MiniMap 
-              nodeStrokeWidth={3}
-              zoomable
-              pannable
-              style={{
-                backgroundColor: '#1a1a1a',
-                border: '1px solid #333',
-                borderRadius: '8px',
-                marginBottom: '100px',
-                marginRight: '10px',
-              }}
-              maskColor="rgba(0, 0, 0, 0.7)"
-              nodeColor={(node) => {
-                if (node.type === 'inputNode') return '#22c55e';
-                if (node.type === 'generator') return '#f97316';
-                if (node.type === 'imageAnalyzer') return '#0ea5e9';
-                if (node.type === 'response') return '#8b5cf6';
-                return '#3b82f6';
-              }}
-            />
-            <Controls 
-              position="top-right"
-              style={{
-                backgroundColor: '#1a1a1a',
-                border: '1px solid #333',
-                borderRadius: '8px',
-                marginTop: '10px',
-                marginRight: '10px',
-              }}
-              showInteractive={false}
-            />
+            <CanvasNavigation />
           </ReactFlow>
         </div>
       </div>
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
       <BottomBar
-          workflows={workflows}
-          activeWorkflowId={activeWorkflowId}
-          onSwitchWorkflow={handleCreateWorkflow}
-          onRenameBoard={handleRenameBoard}
-          onDeleteBoard={handleDeleteBoard}
-        />
+        workflows={workflows}
+        activeWorkflowId={activeWorkflowId}
+        onSwitchWorkflow={handleCreateWorkflow}
+        onRenameBoard={handleRenameBoard}
+        onDeleteBoard={handleDeleteBoard}
+      />
     </div>
   );
 }

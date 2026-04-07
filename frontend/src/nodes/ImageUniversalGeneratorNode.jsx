@@ -23,8 +23,28 @@ import {
   styleTransfer as styleTransferApi, pollStyleTransferStatus,
   // Utilities
   improvePromptGenerate, pollImprovePromptStatus,
+  imageToPromptGenerate, pollImageToPromptStatus,
+  quiverTextToSvg, quiverImageToSvg,
   uploadImages,
 } from '../utils/api';
+import { compressImageBase64 } from '../utils/imageUtils';
+
+async function urlToBase64(url) {
+  if (!url) return null;
+  if (url.startsWith('data:image')) return url;
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
 import qwenLogo from '../assets/icons/qwen.png';
 import bflLogo from '../assets/icons/black-forest-labs.svg';
@@ -41,17 +61,18 @@ const getModelLogo = (m) => {
   if (lower.includes('veo') || lower.includes('gemini') || lower.includes('google') || lower.includes('nano banana')) return googleLogo;
   if (lower.includes('qwen')) return qwenLogo;
   if (lower.includes('kora')) return koraLogo;
+  if (lower.includes('quiver')) return null; // no logo asset yet
   return null;
 };
 
 // ── Model lists ──────────────────────────────────────────────────────────────
 
-const GENERATION_MODELS = ['Auto', 'Nano Banana 2', 'recraftv4', 'recraftv3', 'kora', 'flux'];
+const GENERATION_MODELS = ['Auto', 'Nano Banana 2', 'recraftv4', 'recraftv3', 'kora', 'flux', 'quiver-text-to-vector'];
 const EDITING_MODELS = [
   'remove-bg', 'creative-upscale', 'precision-upscale',
   'relight', 'skin-enhancer', 'change-camera',
   'flux-expand', 'seedream-expand', 'ideogram-expand',
-  'style-transfer',
+  'style-transfer', 'quiver-image-to-vector',
 ];
 const isEditingModel = (m) => EDITING_MODELS.includes(m);
 
@@ -75,6 +96,9 @@ const MODEL_DEFS = {
   'seedream-expand': { name: 'Seedream Expand', provider: 'Editing', featured: false, tags: ['Outpaint'], description: 'Expand image with Seedream', type: 'editing' },
   'ideogram-expand': { name: 'Ideogram Expand', provider: 'Editing', featured: false, tags: ['Outpaint'], description: 'Expand image with Ideogram', type: 'editing' },
   'style-transfer': { name: 'Style Transfer', provider: 'Editing', featured: true, tags: ['Artistic'], description: 'Transfer style from reference image', type: 'editing' },
+  // Quiver
+  'quiver-text-to-vector': { name: 'Text to Vector', provider: 'Quiver', featured: false, tags: ['SVG', 'Vector'], description: 'Generate SVG vectors from text prompts', type: 'generation' },
+  'quiver-image-to-vector': { name: 'Image to Vector', provider: 'Quiver', featured: false, tags: ['SVG', 'Vectorize'], description: 'Vectorize raster images to SVG', type: 'editing' },
 };
 
 // Providers for grouping
@@ -84,6 +108,7 @@ const PROVIDERS = {
   'Kora': ['kora'],
   'Black Forest Labs': ['flux'],
   'Editing Tools': ['remove-bg', 'creative-upscale', 'precision-upscale', 'relight', 'skin-enhancer', 'change-camera', 'flux-expand', 'seedream-expand', 'ideogram-expand', 'style-transfer'],
+  'Quiver': ['quiver-text-to-vector'],
 };
 
 // Featured models (displayed at top)
@@ -107,6 +132,7 @@ const COST_MAP = {
   'relight': 0.04, 'skin-enhancer': 0.03, 'change-camera': 0.04,
   'flux-expand': 0.03, 'seedream-expand': 0.03, 'ideogram-expand': 0.03,
   'style-transfer': 0.05,
+  'quiver-text-to-vector': 0.02, 'quiver-image-to-vector': 0.02,
 };
 
 const PROMPT_PLACEHOLDER = {
@@ -120,9 +146,11 @@ const PROMPT_PLACEHOLDER = {
   'seedream-expand': 'Optional: describe the expanded area content...',
   'ideogram-expand': 'Optional: describe the expanded area content...',
   'style-transfer': 'Optional: guide the style transfer direction...',
+  'quiver-text-to-vector': 'Describe the vector/SVG to generate...',
+  'quiver-image-to-vector': 'No prompt needed for vectorization',
 };
 
-const PROMPT_DISABLED = new Set(['remove-bg', 'precision-upscale', 'skin-enhancer', 'change-camera']);
+const PROMPT_DISABLED = new Set(['remove-bg', 'precision-upscale', 'skin-enhancer', 'change-camera', 'quiver-image-to-vector']);
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -131,6 +159,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isImprovingPrompt, setIsImprovingPrompt] = useState(false);
+  const [isImageToPrompting, setIsImageToPrompting] = useState(false);
   const [isHoveringRun, setIsHoveringRun] = useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const [modelSearch, setModelSearch] = useState('');
@@ -174,30 +203,30 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
   // Analyze prompt to determine best model
   const analyzePromptForModel = useCallback((prompt) => {
-    if (!prompt) return { type: 'general', confidence: 0 };
-    const lower = prompt.toLowerCase();
-    
+    if (!prompt) return { type: 'general', confidence: 0, recommended: 'Nano Banana 2' };
+    const lower = String(prompt).toLowerCase();
+
     // Vector/Logo/Design indicators
     if (/\b(vector|svg|logo|icon|flat design|illustration|clipart)\b/.test(lower)) {
       return { type: 'vector', confidence: 0.9, recommended: 'recraftv4' };
     }
-    
+
     // Photorealistic indicators
-    if (/\b(photo|photorealistic|realistic| cinematic|8k|hdr|portrait of|photo of)\b/.test(lower)) {
+    if (/\b(photo|photorealistic|realistic|cinematic|8k|hdr|portrait of|photo of)\b/.test(lower)) {
       return { type: 'photorealistic', confidence: 0.85, recommended: 'flux' };
     }
-    
+
     // Artistic/Style indicators
     if (/\b(painting|art|artistic|oil painting|watercolor|sketch|drawing|style of)\b/.test(lower)) {
       return { type: 'artistic', confidence: 0.8, recommended: 'kora' };
     }
-    
+
     // Fast/cheap priority
     if (/\b(fast|quick|draft|low quality|cheap)\b/.test(lower)) {
       return { type: 'fast', confidence: 0.7, recommended: 'recraftv3' };
     }
-    
-    return { type: 'general', confidence: 0.5, recommended: 'freepik-mystic' };
+
+    return { type: 'general', confidence: 0.5, recommended: 'Nano Banana 2' };
   }, []);
 
   // Select model based on analysis and preferences
@@ -213,7 +242,9 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     let effectiveModel = model;
     if (model === 'Auto') {
       effectiveModel = selectAutoImageModel(prompt);
-    } else if (model === 'Nano Banana 2') {
+    }
+    // Map display-name keys to API keys
+    if (effectiveModel === 'Nano Banana 2' || effectiveModel === 'freepik-mystic') {
       effectiveModel = 'freepik-mystic';
     }
 
@@ -230,6 +261,13 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       if (result.error) throw new Error(result.error?.message || 'Kora generation failed');
       if (result.data?.task_id) return (await pollStatus(result.data.task_id)).data?.generated || [];
       return result.data?.generated || [];
+    }
+    if (effectiveModel === 'quiver-text-to-vector') {
+      const result = await quiverTextToSvg({ model: 'arrow-preview', stream: false, prompt });
+      if (result.error) throw new Error(result.error?.message || 'Quiver generation failed');
+      const generatedData = result.data?.data?.[0];
+      if (!generatedData?.svg) throw new Error('No SVG returned from Quiver');
+      return [`data:image/svg+xml;utf8,${encodeURIComponent(generatedData.svg)}`];
     }
     // freepik-mystic (Nano Banana 2), flux, Auto
     const params = { prompt, num_images: numOutputs, aspect_ratio: aspectRatio };
@@ -323,6 +361,17 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
         if (prompt) params.prompt = prompt;
         return pollGenerated(await styleTransferApi(params), pollStyleTransferStatus);
       }
+      case 'quiver-image-to-vector': {
+        const base64DataUri = await urlToBase64(imageUrl);
+        if (!base64DataUri) throw new Error('Failed to load image for vectorization');
+        const compressed = await compressImageBase64(base64DataUri);
+        const base64Only = compressed.includes(',') ? compressed.split(',')[1] : compressed;
+        const result = await quiverImageToSvg({ model: 'arrow-preview', stream: false, image: { base64: base64Only } });
+        if (result.error) throw new Error(result.error?.message || 'Quiver vectorization failed');
+        const generatedData = result.data?.data?.[0];
+        if (!generatedData?.svg) throw new Error('No SVG returned from Quiver');
+        return [`data:image/svg+xml;utf8,${encodeURIComponent(generatedData.svg)}`];
+      }
       default:
         throw new Error(`Unknown editing model: ${model}`);
     }
@@ -365,15 +414,41 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
         setIsGenerating(false);
       }
     } else {
-      if (!prompt) return;
+      if (!prompt) {
+        update({ outputError: 'A prompt is required to generate images' });
+        return;
+      }
+      const activeModels = models.filter(Boolean);
+      if (activeModels.length === 0) {
+        update({ outputError: 'Select at least one model to generate' });
+        return;
+      }
       setIsGenerating(true);
       update({ outputImage: null, outputImages: [], outputError: null });
       try {
-        // For generation models, pass the uploaded images as structure/reference if applicable
         const nbImage = data.nanoBananaImage || image1 || null;
-        const results = await Promise.all(models.map(m => runGenerationModel(m, prompt, m === 'Nano Banana 2' ? nbImage : null)));
-        const allImages = results.flat().filter(Boolean);
-        update({ outputImage: allImages[0] || null, outputImages: allImages });
+        const settled = await Promise.allSettled(
+          activeModels.map(m => runGenerationModel(m, prompt, m === 'Nano Banana 2' ? nbImage : null))
+        );
+        const allImages = settled
+          .filter(r => r.status === 'fulfilled')
+          .flatMap(r => r.value)
+          .filter(Boolean);
+        const failures = settled
+          .map((r, i) => r.status === 'rejected'
+            ? `${MODEL_DEFS[activeModels[i]]?.name || activeModels[i]}: ${r.reason?.message || 'failed'}`
+            : null)
+          .filter(Boolean);
+
+        if (allImages.length > 0) {
+          update({
+            outputImage: allImages[0],
+            outputImages: allImages,
+            outputError: failures.length ? `Some models failed: ${failures.join('; ')}` : null,
+          });
+        } else {
+          update({ outputError: failures.join('; ') || 'All models failed to generate' });
+        }
       } catch (err) {
         console.error('Universal image generation error:', err);
         update({ outputError: err.message });
@@ -403,6 +478,38 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       setIsImprovingPrompt(false);
     }
   }, [data.inputPrompt, update, isImprovingPrompt]);
+
+  const handleImageToPrompt = useCallback(async () => {
+    if (isImageToPrompting) return;
+
+    // Prefer the generated output image; fall back to connected/uploaded input images
+    const image1Input = data.resolveInput?.(id, 'image-1-in');
+    const image1 = Array.isArray(image1Input) ? image1Input[0] : (image1Input || data.image1Url);
+    const sourceImage = data.outputImage || image1 || null;
+    if (!sourceImage) return;
+
+    setIsImageToPrompting(true);
+    try {
+      const compressed = await compressImageBase64(sourceImage);
+      const result = await imageToPromptGenerate({ image: compressed });
+      if (result.error) throw new Error(result.error?.message || JSON.stringify(result.error));
+
+      const taskId = result.task_id || result.data?.task_id;
+      let prompt = null;
+      if (taskId) {
+        const status = await pollImageToPromptStatus(taskId);
+        const generated = status.data?.generated || [];
+        prompt = status.data?.prompt || status.prompt || generated[0] || null;
+      } else {
+        prompt = result.data?.prompt || result.prompt || result.data?.generated?.[0] || null;
+      }
+      if (prompt) update({ inputPrompt: prompt });
+    } catch (err) {
+      console.error('Image to prompt error:', err);
+    } finally {
+      setIsImageToPrompting(false);
+    }
+  }, [id, data, update, isImageToPrompting]);
 
   const handleDownload = useCallback(() => {
     const url = data.outputImage;
@@ -515,7 +622,8 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     if (autoSelect || models.length === 0) {
       const effective = getEffectiveModel();
       const def = MODEL_DEFS[effective];
-      return `Auto → ${def?.name || effective}`;
+      const displayName = def?.name || MODEL_DEFS['Nano Banana 2']?.name || 'Auto';
+      return `Auto → ${effective ? displayName : 'Auto'}`;
     }
     if (models.length === 1) return MODEL_DEFS[models[0]]?.name || models[0];
     return `${models.length} Models`;
@@ -1054,6 +1162,35 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
               >@</button>
 
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {(() => {
+                  const image1Input = data.resolveInput?.(id, 'image-1-in');
+                  const image1 = Array.isArray(image1Input) ? image1Input[0] : (image1Input || data.image1Url);
+                  const hasImageForPrompt = !!(data.outputImage || image1);
+                  return (
+                    <button
+                      onClick={handleImageToPrompt}
+                      onMouseDown={e => e.stopPropagation()}
+                      disabled={isImageToPrompting || !hasImageForPrompt}
+                      className="nodrag nopan"
+                      title="Describe image as prompt"
+                      style={{
+                        background: 'transparent', border: 'none',
+                        color: isImageToPrompting || !hasImageForPrompt ? text.muted : CATEGORY_COLORS.utility,
+                        cursor: isImageToPrompting || !hasImageForPrompt ? 'not-allowed' : 'pointer',
+                        ...font.sm, display: 'flex', alignItems: 'center', gap: 4,
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 2 }}>
+                        {isImageToPrompting ? (
+                          <><path d="M12 2v4" /><path d="M12 18v4" /><path d="M4.93 4.93l2.83 2.83" /><path d="M16.24 16.24l2.83 2.83" /><path d="M2 12h4" /><path d="M18 12h4" /><path d="M4.93 19.07l2.83-2.83" /><path d="M16.24 7.76l2.83-2.83" /></>
+                        ) : (
+                          <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></>
+                        )}
+                      </svg>
+                      Describe
+                    </button>
+                  );
+                })()}
                 {!promptDisabled && (
                   <button
                     onClick={handleImprovePrompt}

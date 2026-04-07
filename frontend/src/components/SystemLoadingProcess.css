@@ -339,6 +339,12 @@
   }
 }
 
+/* ScrambleText Styles */
+.scramble-text .dud {
+  color: var(--slp-color-gray);
+  opacity: 0.5;
+}
+
 /* Print Styles - Hide preloader in print */
 @media print {
   .slp-root {

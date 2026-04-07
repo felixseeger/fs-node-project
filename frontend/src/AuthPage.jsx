@@ -604,8 +604,8 @@ function ForgotScreen({ onNavigate }) {
 /* ═══════════════════════════════════════════════════════════════
    MAIN AUTH PAGE — routes between screens
    ═══════════════════════════════════════════════════════════════ */
-export default function AuthPage() {
-  const [screen, setScreen] = useState('login');
+export default function AuthPage({ initialScreen = 'login' }) {
+  const [screen, setScreen] = useState(initialScreen);
   const [globalLoading, setGlobalLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
 

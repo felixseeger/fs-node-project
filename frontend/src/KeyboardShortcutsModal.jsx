@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 export default function KeyboardShortcutsModal({ isOpen, onClose }) {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const categories = [
     {
@@ -44,12 +51,13 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
         { keys: ['B'], label: 'Add Group Editor' },
         { keys: ['R'], label: 'Add Router' },
         { keys: ['F'], label: 'Add Facial Editor' },
+        { keys: ['V'], label: 'Add Video Improve' },
         { keys: ['U'], label: 'Add Upload' },
       ]
     }
   ];
 
-  return createPortal(
+  const modalContent = (
     <div
       onClick={onClose}
       style={{
@@ -138,4 +146,11 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
       </div>
     </div>
   );
+
+  // Only create portal if document.body exists
+  if (typeof document !== 'undefined' && document.body) {
+    return createPortal(modalContent, document.body);
+  }
+
+  return null;
 }
