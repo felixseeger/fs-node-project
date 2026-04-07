@@ -1,18 +1,8 @@
-import { FirebaseApp } from 'firebase/app';
-import { Auth } from 'firebase/auth';
-import { Firestore } from 'firebase/firestore';
-import { FirebaseStorage } from 'firebase/storage';
-
-let app: FirebaseApp | undefined;
-let auth: Auth | undefined;
-let db: Firestore | undefined;
-let storage: FirebaseStorage | undefined;
-
-// ... (your existing initialization code here)
-
-export const getFirebaseAuth = () => auth;
-export const getDb = () => db;
-export const getFirebaseStorage = () => storage;
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getAnalytics } from 'firebase/analytics';
 
 // Replace this with your new config
 const firebaseConfig = {
@@ -25,7 +15,10 @@ const firebaseConfig = {
   measurementId: "G-TZWFY20XY2"
 };
 
-let app, auth, db, storage;
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
+let db: Firestore | undefined;
+let storage: FirebaseStorage | undefined;
 
 export function initializeFirebase() {
   if (!getApps().length) {
@@ -55,10 +48,12 @@ export function enableOfflinePersistence() {
   }
 }
 
-export const getFirebaseAuth = () => auth;
-export const getFirebaseDb = () => db;
-export const getFirebaseStorage = () => storage;
+// Getters with type assertions to avoid widespread 'undefined' errors
+// callers should check isFirebaseConfigured() first.
+export const getFirebaseAuth = () => auth as Auth;
+export const getDb = () => db as Firestore;
+export const getFirebaseStorage = () => storage as FirebaseStorage;
 
 export const isFirebaseConfigured = () => {
-  return firebaseConfig.apiKey && firebaseConfig.apiKey.length > 0;
+  return !!firebaseConfig.apiKey && firebaseConfig.apiKey.length > 0;
 };
