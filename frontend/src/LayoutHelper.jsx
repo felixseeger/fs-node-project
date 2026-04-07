@@ -1,5 +1,7 @@
 import React from 'react';
 
+/* eslint-disable react-refresh/only-export-components */
+
 // Alignment Icons
 const AlignLeftIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -157,7 +159,7 @@ export const alignmentFunctions = {
     const minX = Math.min(...nodes.map(n => n.position.x));
     return nodes.map(n => ({ ...n, position: { ...n.position, x: minX } }));
   },
-  
+
   align_center_h: (nodes) => {
     const sumX = nodes.reduce((acc, n) => acc + n.position.x + (n.width || 200) / 2, 0);
     const avgX = sumX / nodes.length;
@@ -166,7 +168,7 @@ export const alignmentFunctions = {
       position: { ...n.position, x: avgX - (n.width || 200) / 2 }
     }));
   },
-  
+
   align_right: (nodes) => {
     const maxX = Math.max(...nodes.map(n => n.position.x + (n.width || 200)));
     return nodes.map(n => ({
@@ -174,12 +176,12 @@ export const alignmentFunctions = {
       position: { ...n.position, x: maxX - (n.width || 200) }
     }));
   },
-  
+
   align_top: (nodes) => {
     const minY = Math.min(...nodes.map(n => n.position.y));
     return nodes.map(n => ({ ...n, position: { ...n.position, y: minY } }));
   },
-  
+
   align_center_v: (nodes) => {
     const sumY = nodes.reduce((acc, n) => acc + n.position.y + (n.height || 100) / 2, 0);
     const avgY = sumY / nodes.length;
@@ -188,7 +190,7 @@ export const alignmentFunctions = {
       position: { ...n.position, y: avgY - (n.height || 100) / 2 }
     }));
   },
-  
+
   align_bottom: (nodes) => {
     const maxY = Math.max(...nodes.map(n => n.position.y + (n.height || 100)));
     return nodes.map(n => ({
@@ -196,27 +198,27 @@ export const alignmentFunctions = {
       position: { ...n.position, y: maxY - (n.height || 100) }
     }));
   },
-  
+
   distribute_h: (nodes) => {
     const sorted = [...nodes].sort((a, b) => a.position.x - b.position.x);
     const minX = sorted[0].position.x;
     const maxX = sorted[sorted.length - 1].position.x + (sorted[sorted.length - 1].width || 200);
     const totalWidth = maxX - minX;
     const spacing = totalWidth / (sorted.length - 1);
-    
+
     return sorted.map((n, i) => ({
       ...n,
       position: { ...n.position, x: minX + spacing * i - (n.width || 200) / 2 }
     }));
   },
-  
+
   distribute_v: (nodes) => {
     const sorted = [...nodes].sort((a, b) => a.position.y - b.position.y);
     const minY = sorted[0].position.y;
     const maxY = sorted[sorted.length - 1].position.y + (sorted[sorted.length - 1].height || 100);
     const totalHeight = maxY - minY;
     const spacing = totalHeight / (sorted.length - 1);
-    
+
     return sorted.map((n, i) => ({
       ...n,
       position: { ...n.position, y: minY + spacing * i - (n.height || 100) / 2 }

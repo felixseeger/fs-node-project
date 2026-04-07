@@ -508,6 +508,15 @@ export async function getAINodeTypes() {
   return safeJson(res);
 }
 
+/**
+ * General AI chat conversation
+ * @param {Array} messages - Chat history messages
+ * @returns {Promise<{success: boolean, content: string}>}
+ */
+export async function chatWithAI(messages) {
+  return postToApi('/api/ai-chat', { messages });
+}
+
 export async function generateRecraftImage(params) {
   return postToApi('/api/recraft/generate', params);
 }
@@ -539,4 +548,15 @@ export async function quiverTextToSvg(params) {
 
 export async function quiverImageToSvg(params) {
   return postToApi('/api/quiver/svgs/vectorizations', params);
+}
+
+export async function fetchGeneratedProjectName() {
+  try {
+    const res = await fetch(`${API_BASE}/api/generate-name`);
+    const data = await safeJson(res);
+    return data.name || "Untitled-Board-001";
+  } catch (error) {
+    console.error("Failed to fetch board name, falling back to default:", error);
+    return "Untitled-Board-001";
+  }
 }

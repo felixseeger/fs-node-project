@@ -258,16 +258,23 @@ function AuthCard({ children }) {
 }
 
 /* ── Logo mark ─────────────────────────────────────────────── */
-function LogoMark() {
+function LogoMark({ onClick }) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'center', marginBottom: 32,
     }}>
-      <img
-        src="/logo-light.svg"
-        alt="Logo"
-        style={{ height: 32, width: 'auto', opacity: 0.9 }}
-      />
+      <button 
+        onClick={() => onClick?.('landing')}
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', transition: 'opacity 0.2s' }}
+        onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
+        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+      >
+        <img
+          src="/logo-light.svg"
+          alt="Logo"
+          style={{ height: 32, width: 'auto', opacity: 0.9 }}
+        />
+      </button>
     </div>
   );
 }
@@ -275,7 +282,7 @@ function LogoMark() {
 /* ═══════════════════════════════════════════════════════════════
    LOGIN SCREEN
    ═══════════════════════════════════════════════════════════════ */
-function LoginScreen({ onNavigate, onSocialLogin }) {
+function LoginScreen({ onNavigate, onSocialLogin, onExternalNavigate }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -301,7 +308,7 @@ function LoginScreen({ onNavigate, onSocialLogin }) {
 
   return (
     <AuthCard>
-      <LogoMark />
+      <LogoMark onClick={onExternalNavigate} />
 
       <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0f0', textAlign: 'center', margin: '0 0 4px' }}>
         Welcome back
@@ -373,7 +380,7 @@ function LoginScreen({ onNavigate, onSocialLogin }) {
 /* ═══════════════════════════════════════════════════════════════
    SIGNUP SCREEN
    ═══════════════════════════════════════════════════════════════ */
-function SignupScreen({ onNavigate, onSocialLogin }) {
+function SignupScreen({ onNavigate, onSocialLogin, onExternalNavigate }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -416,7 +423,7 @@ function SignupScreen({ onNavigate, onSocialLogin }) {
 
   return (
     <AuthCard>
-      <LogoMark />
+      <LogoMark onClick={onExternalNavigate} />
 
       <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0f0', textAlign: 'center', margin: '0 0 4px' }}>
         Create your account
@@ -491,7 +498,7 @@ function SignupScreen({ onNavigate, onSocialLogin }) {
 /* ═══════════════════════════════════════════════════════════════
    FORGOT PASSWORD SCREEN
    ═══════════════════════════════════════════════════════════════ */
-function ForgotScreen({ onNavigate }) {
+function ForgotScreen({ onNavigate, onExternalNavigate }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -520,7 +527,7 @@ function ForgotScreen({ onNavigate }) {
   if (sent) {
     return (
       <AuthCard>
-        <LogoMark />
+        <LogoMark onClick={onExternalNavigate} />
 
         <div style={{
           display: 'flex', justifyContent: 'center', marginBottom: 20,
@@ -563,7 +570,7 @@ function ForgotScreen({ onNavigate }) {
 
   return (
     <AuthCard>
-      <LogoMark />
+      <LogoMark onClick={onExternalNavigate} />
 
       <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f0f0f0', textAlign: 'center', margin: '0 0 4px' }}>
         Reset your password
@@ -604,7 +611,7 @@ function ForgotScreen({ onNavigate }) {
 /* ═══════════════════════════════════════════════════════════════
    MAIN AUTH PAGE — routes between screens
    ═══════════════════════════════════════════════════════════════ */
-export default function AuthPage({ initialScreen = 'login' }) {
+export default function AuthPage({ initialScreen = 'login', onNavigate: onExternalNavigate }) {
   const [screen, setScreen] = useState(initialScreen);
   const [globalLoading, setGlobalLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
@@ -757,14 +764,17 @@ export default function AuthPage({ initialScreen = 'login' }) {
 
       {/* Screen router */}
       {screen === 'login' && (
-        <LoginScreen onNavigate={setScreen} onSocialLogin={handleSocialLogin} />
+        <LoginScreen onNavigate={setScreen} onSocialLogin={handleSocialLogin} onExternalNavigate={onExternalNavigate} />
       )}
       {screen === 'signup' && (
-        <SignupScreen onNavigate={setScreen} onSocialLogin={handleSocialLogin} />
+        <SignupScreen onNavigate={setScreen} onSocialLogin={handleSocialLogin} onExternalNavigate={onExternalNavigate} />
       )}
       {screen === 'forgot' && (
-        <ForgotScreen onNavigate={setScreen} />
+        <ForgotScreen onNavigate={setScreen} onExternalNavigate={onExternalNavigate} />
       )}
+
+      {/* Global Logo Overlay (Optional: only if centered or always visible) */}
+      {/* For now, just making sure LogoMark gets the prop if it's rendered inside Screens */}
 
       {/* Debug info - remove in production */}
       {false && (

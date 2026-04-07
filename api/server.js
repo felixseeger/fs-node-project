@@ -12,16 +12,12 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import multer from 'multer';
 import routes from '../lib/api/routes/index.js';
 import { errorHandler, notFoundHandler } from '../lib/api/middleware/errorHandler.js';
 import { globalLimiter } from '../lib/api/middleware/rateLimiter.js';
+import { generateProjectName } from './utils/nameGenerator.js';
 
 const app = express();
-const upload = multer({ 
-  storage: multer.memoryStorage(), 
-  limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
-});
 
 // Middleware
 app.use(cors());
@@ -40,8 +36,8 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
   });
@@ -49,6 +45,16 @@ app.get('/health', (req, res) => {
 
 // Mount all API routes
 app.use(routes);
+
+// --- UTILITY ROUTES ---
+app.get('/api/generate-name', (req, res) => {
+  try {
+    const projectName = generateProjectName();
+    res.json({ name: projectName });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to generate name' });
+  }
+});
 
 // 404 handler for unmatched routes
 app.use(notFoundHandler);
@@ -86,7 +92,7 @@ app.listen(PORT, () => {
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
   `);
-  
+
   if (!hasFreepikKey) {
     console.warn('⚠️  WARNING: FREEPIK_API_KEY not set. Image/video/audio APIs will fail.');
   }

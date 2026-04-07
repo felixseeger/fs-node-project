@@ -420,8 +420,6 @@ function NewWorkspaceModal({ onClose, onSelect }) {
 
 export default function WorkspacesPage({ onCreateWorkspace, workspaces = [] }) {
   const [showNewModal, setShowNewModal] = useState(false);
-  const [isSelectingTemplates, setIsSelectingTemplates] = useState(false);
-  const [selectedTpls, setSelectedTpls] = useState(new Set());
   const [templates, setTemplates] = useState([
     {
       id: 'template_1',
@@ -430,58 +428,6 @@ export default function WorkspacesPage({ onCreateWorkspace, workspaces = [] }) {
       colors: ['#3b82f6', '#a78bfa', '#22c55e', '#f97316', '#3b82f6', '#ec4899', '#22c55e', '#f97316', '#a78bfa']
     }
   ]);
-
-  const toggleTplSelection = (id) => {
-    setSelectedTpls(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const handleSelectAllTpls = () => {
-    if (selectedTpls.size === templates.length && templates.length > 0) {
-      setSelectedTpls(new Set());
-    } else {
-      setSelectedTpls(new Set(templates.map(t => t.id)));
-    }
-  };
-
-  const handleDownloadSelectedTpls = () => {
-    const selectedData = templates.filter(t => selectedTpls.has(t.id));
-    if (selectedData.length === 0) return;
-    const blob = new Blob([JSON.stringify(selectedData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `templates_export_${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setIsSelectingTemplates(false);
-    setSelectedTpls(new Set());
-  };
-
-  const handleDeleteSelectedTpls = () => {
-    if (selectedTpls.size === 0) return;
-    if (confirm(`Delete ${selectedTpls.size} templates?`)) {
-      setTemplates(prev => prev.filter(t => !selectedTpls.has(t.id)));
-      setIsSelectingTemplates(false);
-      setSelectedTpls(new Set());
-    }
-  };
-
-  const handleDuplicateSelectedTpls = () => {
-    if (selectedTpls.size === 0) return;
-    const newTemplates = templates.filter(t => selectedTpls.has(t.id)).map(t => ({
-      ...t,
-      id: `template_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-      name: `${t.name} (Copy)`
-    }));
-    setTemplates(prev => [...prev, ...newTemplates]);
-    setIsSelectingTemplates(false);
-    setSelectedTpls(new Set());
-  };
 
   const handleModalSelect = (type) => {
     setShowNewModal(false);

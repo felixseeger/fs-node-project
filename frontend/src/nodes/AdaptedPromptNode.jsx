@@ -2,7 +2,7 @@ import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 
-export default function AdaptedPromptNode({ id, data, selected }) {
+export default function AdaptedPromptNode({ data, selected }) {
   return (
     <NodeShell label="Adapted Prompt" dotColor="#f97316" selected={selected}>
       <div style={{ display: 'flex', alignItems: 'center' }}>

@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 
-export default function ReferenceSelection({ onImageSelect }) {
-  const [selectedImage, setSelectedImage] = useState(null);
+export default function ReferenceSelection({ selectedImage, onImageSelect }) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -10,7 +9,6 @@ export default function ReferenceSelection({ onImageSelect }) {
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setSelectedImage(event.target.result);
         onImageSelect?.(event.target.result);
       };
       reader.readAsDataURL(file);
@@ -25,7 +23,6 @@ export default function ReferenceSelection({ onImageSelect }) {
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setSelectedImage(event.target.result);
         onImageSelect?.(event.target.result);
       };
       reader.readAsDataURL(file);
@@ -42,7 +39,6 @@ export default function ReferenceSelection({ onImageSelect }) {
   };
 
   const handleClear = () => {
-    setSelectedImage(null);
     onImageSelect?.(null);
   };
 

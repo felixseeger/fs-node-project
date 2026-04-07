@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
+import ThemeToggle from './components/ThemeToggle';
 
-export default function TopBar({ currentPage, onNavigate, workflowName, editorMode, onEditorModeChange, onLogout, onZoomIn, onZoomOut, onZoomFit, onUndo, onRedo, onRename, onDuplicate, isLocked, onLockView, onOpenProfile, isAuthenticated }) {
+export default function TopBar({ currentPage, onNavigate, workflowName, editorMode, onEditorModeChange, onLogout, onZoomIn, onZoomOut, onZoomFit, onUndo, onRedo, onRename, onDuplicate, isLocked, onLockView, onOpenProfile, isAuthenticated, setIsMobileMenuOpen }) {
   const [hovered, setHovered] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState(null);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -16,37 +16,8 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Active section detection via IntersectionObserver
-  useEffect(() => {
-    if (isAuthenticated) return;
-    const sections = ['how-it-works', 'built-for-builders', 'models', 'nodes'];
-    const observers = [];
-    sections.forEach((id) => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      const obs = new IntersectionObserver(
-        ([entry]) => { if (entry.isIntersecting) setActiveSection(id); },
-        { threshold: 0.3 }
-      );
-      obs.observe(el);
-      observers.push(obs);
-    });
-    return () => observers.forEach((o) => o.disconnect());
-  }, [isAuthenticated, currentPage]);
-
-  const scrollTo = (id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const container = document.getElementById('landing-scroll');
-    if (container) {
-      const top = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
-      container.scrollTo({ top, behavior: 'smooth' });
-    } else {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-    const defaultMenuItems = [
+  const defaultMenuItems = [
+    { id: 'landing', label: 'Landing page', icon: '&#8962;' }, // House icon
     { id: 'workspaces', label: 'Workspaces', icon: '&#9864;' },
     { id: 'home', label: 'Back home', icon: '&#9776;' },
     { id: 'editor', label: 'New Workflow', icon: '&#43;' },
@@ -58,6 +29,7 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
   ];
 
   const editorMenuItems = [
+    { id: 'landing', label: 'Landing page' },
     { id: 'home', label: 'Back home' },
     { id: 'profile', label: 'My profile' },
     { id: 'divider-1', type: 'divider' },
@@ -81,14 +53,16 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
     <div
       style={{
         height: 48,
-        background: '#0c0c0c',
-        borderBottom: '1px solid #1e1e1e',
+        background: 'var(--color-bg)',
+        borderBottom: '1px solid var(--color-border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 20px',
         flexShrink: 0,
         position: 'relative',
+        color: 'var(--color-text)',
+        zIndex: 1300
       }}
     >
       {/* Left — Logo + Breadcrumb */}
@@ -108,12 +82,15 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 8,
                 transition: 'background 0.15s',
-                ...(hovered === 'logo' || menuOpen ? { background: '#1a1a1a' } : {}),
+                ...(hovered === 'logo' || menuOpen ? { background: 'var(--color-surface-hover)' } : {}),
               }}
             >
-              <img src="/logo-light.svg" alt="Logo" style={{ height: 28, width: 'auto' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <img src="/logo-light.svg" alt="Logo" style={{ height: 24, width: 'auto' }} />
+                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>Nodespace</span>
+              </div>
               <svg
                 width="10"
                 height="10"
@@ -125,8 +102,9 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
               </svg>
             </button>
           ) : (
-            <div style={{ padding: '4px 8px', display: 'flex', alignItems: 'center' }}>
-              <img src="/logo-light.svg" alt="Logo" style={{ height: 28, width: 'auto' }} />
+            <div style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src="/logo-light.svg" alt="Logo" style={{ height: 24, width: 'auto' }} />
+              <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>Nodespace</span>
             </div>
           )}
 
@@ -138,13 +116,13 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
                 top: '100%',
                 left: 0,
                 marginTop: 6,
-                background: '#1a1a1a',
-                border: '1px solid #2a2a2a',
+                background: 'var(--color-bg)',
+                border: '1px solid var(--color-border)',
                 borderRadius: 10,
                 padding: 4,
                 minWidth: 180,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-                zIndex: 100,
+                boxShadow: 'var(--shadow-default)',
+                zIndex: 10001,
               }}
             >
               {menuItems.map((item) =>
@@ -153,7 +131,7 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
                     key={item.id}
                     style={{
                       height: 1,
-                      background: '#2a2a2a',
+                      background: 'var(--color-border)',
                       margin: '4px 8px',
                     }}
                   />
@@ -172,7 +150,7 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
                       else if (item.id === 'redo') onRedo?.();
                       else if (item.id === 'rename-project') onRename?.();
                       else if (item.id === 'duplicate-project') onDuplicate?.();
-                      
+
                       else onNavigate(item.id);
                       setMenuOpen(false);
                     }}
@@ -184,12 +162,12 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
                       gap: 10,
                       width: '100%',
                       padding: '8px 12px',
-                      background: hovered === `menu-${item.id}` ? '#252525' : 'transparent',
+                      background: hovered === `menu-${item.id}` ? 'var(--color-surface-hover)' : 'transparent',
                       border: 'none',
                       borderRadius: 7,
                       color: item.id === 'logout'
-                        ? (hovered === `menu-${item.id}` ? '#f87171' : '#888')
-                        : currentPage === item.id ? '#e0e0e0' : '#999',
+                        ? (hovered === `menu-${item.id}` ? '#f87171' : 'var(--color-text-dim)')
+                        : currentPage === item.id ? 'var(--color-text)' : 'var(--color-text-dim)',
                       fontSize: 13,
                       fontWeight: 500,
                       cursor: 'pointer',
@@ -202,7 +180,7 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
                         {item.icon && <span style={{ fontSize: 14, width: 18, textAlign: 'center', opacity: 0.7 }} dangerouslySetInnerHTML={{ __html: item.icon }} />}
                         {item.label}
                       </span>
-                      {item.shortcut && <span style={{ fontSize: 11, color: '#666' }}>{item.shortcut}</span>}
+                      {item.shortcut && <span style={{ fontSize: 11, color: 'var(--color-text-dim)' }}>{item.shortcut}</span>}
                     </span>
                   </button>
                 )
@@ -211,23 +189,23 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
           )}
         </div>
 
-        
+
 
         {isAuthenticated && currentPage === 'home' && (
           <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
-            <a href="#" onClick={e => { e.preventDefault(); onNavigate?.('workspaces'); }} style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>Workflows</a>
-            <a href="#" style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='#fff'} onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}>Templates</a>
+            <a href="#" onClick={e => { e.preventDefault(); onNavigate?.('workspaces'); }} style={{ color: 'var(--color-text-dim)', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--color-text)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-dim)'}>Workflows</a>
+            <a href="#" style={{ color: 'var(--color-text-dim)', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--color-text)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-dim)'}>Templates</a>
           </div>
         )}
 
-        
+
 
 
         {/* Workflow name (only in editor) */}
         {currentPage === 'editor' && workflowName && (
           <>
-            <span style={{ color: '#444', margin: '0 12px', fontSize: 14, userSelect: 'none' }}>/</span>
-            <span style={{ fontSize: 13, fontWeight: 500, color: '#e0e0e0' }}>
+            <span style={{ color: 'var(--color-border)', margin: '0 12px', fontSize: 14, userSelect: 'none' }}>/</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)' }}>
               {workflowName}
             </span>
           </>
@@ -235,124 +213,111 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
       </div>
 
       {/* Center Nav — absolutely centered on X */}
-      {!isAuthenticated && (
-        <div style={{
-          position: 'absolute',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          gap: 32,
-          alignItems: 'center',
-          pointerEvents: 'none',
-        }}>
-          <a
-            href="#how-it-works"
-            onClick={(e) => { e.preventDefault(); scrollTo('how-it-works'); }}
-            style={{ color: activeSection === 'how-it-works' ? '#fff' : '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: activeSection === 'how-it-works' ? 600 : 500, transition: 'color 0.2s', pointerEvents: 'auto' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-            onMouseLeave={e => e.currentTarget.style.color = activeSection === 'how-it-works' ? '#fff' : '#a9a9a9'}
-          >How It Works</a>
-          <a
-            href="#built-for-builders"
-            onClick={(e) => { e.preventDefault(); scrollTo('built-for-builders'); }}
-            style={{ color: activeSection === 'built-for-builders' ? '#fff' : '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: activeSection === 'built-for-builders' ? 600 : 500, transition: 'color 0.2s', pointerEvents: 'auto' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-            onMouseLeave={e => e.currentTarget.style.color = activeSection === 'built-for-builders' ? '#fff' : '#a9a9a9'}
-          >Builders</a>
-          <a
-            href="#models"
-            onClick={(e) => { e.preventDefault(); scrollTo('models'); }}
-            style={{ color: activeSection === 'models' ? '#fff' : '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: activeSection === 'models' ? 600 : 500, transition: 'color 0.2s', pointerEvents: 'auto' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-            onMouseLeave={e => e.currentTarget.style.color = activeSection === 'models' ? '#fff' : '#a9a9a9'}
-          >Models</a>
-          <a
-            href="#nodes"
-            onClick={(e) => { e.preventDefault(); scrollTo('nodes'); }}
-            style={{ color: activeSection === 'nodes' ? '#fff' : '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: activeSection === 'nodes' ? 600 : 500, transition: 'color 0.2s', pointerEvents: 'auto' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-            onMouseLeave={e => e.currentTarget.style.color = activeSection === 'nodes' ? '#fff' : '#a9a9a9'}
-          >Nodes</a>
-        </div>
-      )}
+      {/* Center Nav removed by user request */}
 
-      {!isAuthenticated && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <a
-            href="#"
-            onClick={(e) => { e.preventDefault(); onNavigate?.('auth'); }}
-            style={{ color: '#a9a9a9', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.color='#fff'}
-            onMouseLeave={e => e.currentTarget.style.color='#a9a9a9'}
-          >Log In</a>
+
+
+
+      {/* Right side for Authenticated Users */}
+      {isAuthenticated && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* ThemeToggle removed by user request */}
+
+
+          {currentPage === 'editor' && (
+            <div style={{
+              display: window.innerWidth < 768 ? 'none' : 'flex',
+              alignItems: 'center',
+              background: 'var(--color-surface)',
+              borderRadius: 8,
+              border: '1px solid var(--color-border)',
+              padding: 2,
+            }}>
+              <button
+                onClick={() => onEditorModeChange?.('interface')}
+                onMouseEnter={() => setHovered('interface')}
+                onMouseLeave={() => setHovered(null)}
+                style={{
+                  padding: '5px 14px',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  background: editorMode === 'interface' ? 'var(--color-surface-hover)' : 'transparent',
+                  color: editorMode === 'interface' ? 'var(--color-text)' : 'var(--color-text-dim)',
+                  ...(hovered === 'interface' && editorMode !== 'interface' ? { color: 'var(--color-text)' } : {}),
+                }}
+              >
+                Interface
+              </button>
+              <button
+                onClick={() => onEditorModeChange?.('node-editor')}
+                onMouseEnter={() => setHovered('node-editor')}
+                onMouseLeave={() => setHovered(null)}
+                style={{
+                  padding: '5px 14px',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  background: editorMode === 'node-editor' ? 'var(--color-surface-hover)' : 'transparent',
+                  color: editorMode === 'node-editor' ? 'var(--color-text)' : 'var(--color-text-dim)',
+                  ...(hovered === 'node-editor' && editorMode !== 'node-editor' ? { color: 'var(--color-text)' } : {}),
+                }}
+              >
+                Node Editor
+              </button>
+            </div>
+          )}
+
           <button
-            onClick={() => onNavigate?.('auth-signup')}
+            onClick={onOpenProfile}
             style={{
-              background: '#3B3BFF',
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'var(--color-accent)',
               color: '#fff',
-              border: 'none',
-              padding: '10px 24px',
-              fontSize: 14,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 13,
               fontWeight: 600,
-              borderRadius: 9999,
-              cursor: 'pointer',
-              transition: 'background 0.2s'
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = '#4F46E5'}
-            onMouseLeave={e => e.currentTarget.style.background = '#3B3BFF'}
-          >
-            Get Started
+            }}>
+              U
+            </div>
           </button>
-        </div>
-      )}
 
-      {/* Right — Interface / Node Editor toggle (only in editor) */}
-      {currentPage === 'editor' && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          background: '#1a1a1a',
-          borderRadius: 8,
-          border: '1px solid #2a2a2a',
-          padding: 2,
-        }}>
+          {/* Hamburger Menu (Mobile Only - Auth) */}
           <button
-            onClick={() => onEditorModeChange?.('interface')}
-            onMouseEnter={() => setHovered('interface')}
-            onMouseLeave={() => setHovered(null)}
+            onClick={() => setIsMobileMenuOpen(true)}
             style={{
-              padding: '5px 14px',
-              fontSize: 12,
-              fontWeight: 500,
+              display: window.innerWidth < 768 ? 'flex' : 'none',
+              background: 'transparent',
               border: 'none',
-              borderRadius: 6,
+              color: 'var(--color-text)',
+              fontSize: 24,
               cursor: 'pointer',
-              transition: 'all 0.15s',
-              background: editorMode === 'interface' ? '#2a2a2a' : 'transparent',
-              color: editorMode === 'interface' ? '#f0f0f0' : '#777',
-              ...(hovered === 'interface' && editorMode !== 'interface' ? { color: '#aaa' } : {}),
+              padding: 8,
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
-            Interface
-          </button>
-          <button
-            onClick={() => onEditorModeChange?.('node-editor')}
-            onMouseEnter={() => setHovered('node-editor')}
-            onMouseLeave={() => setHovered(null)}
-            style={{
-              padding: '5px 14px',
-              fontSize: 12,
-              fontWeight: 500,
-              border: 'none',
-              borderRadius: 6,
-              cursor: 'pointer',
-              transition: 'all 0.15s',
-              background: editorMode === 'node-editor' ? '#2a2a2a' : 'transparent',
-              color: editorMode === 'node-editor' ? '#f0f0f0' : '#777',
-              ...(hovered === 'node-editor' && editorMode !== 'node-editor' ? { color: '#aaa' } : {}),
-            }}
-          >
-            Node Editor
+            &#9776;
           </button>
         </div>
       )}

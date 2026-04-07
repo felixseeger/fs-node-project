@@ -1,130 +1,467 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { saveTemplate } from './templates/templateStore';
 
-export default function TemplateBuilderModal({ isOpen, onClose }) {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const totalSlides = 4;
+/**
+ * TemplateBuilderModal
+ *
+ * Packages the current selection (or, when nothing is selected, the entire
+ * canvas) into a reusable Workflow Template. The user picks which boundary
+ * handles become external Inputs and which become external Outputs, names
+ * the template, and saves. The saved template can later be re-instantiated
+ * on the canvas as a single WorkflowNode, or driven via the simplified app
+ * interface.
+ *
+ * Props:
+ *   isOpen          – modal visibility
+ *   onClose         – close handler
+ *   selectedNodes   – currently selected canvas nodes (may be empty)
+ *   nodes           – all canvas nodes
+ *   edges           – all canvas edges
+ *   onCreated       – ({ template, placeNode }) => void  (parent decides what to do)
+ */
+export default function TemplateBuilderModal({
+  isOpen,
+  onClose,
+  selectedNodes = [],
+  nodes = [],
+  edges = [],
+  onCreated,
+}) {
+  // Decide what is "in scope". If the user opened the builder with a real
+  // selection, package only that. Otherwise default to the entire canvas.
+  const scopeNodes = selectedNodes.length > 0 ? selectedNodes : nodes;
+  // Stable signature for the in-scope set so memos/effects don't churn.
+  const scopeIdsKey = scopeNodes.map((n) => n.id).sort().join('|');
+  const scopeIds = useMemo(() => new Set(scopeIdsKey ? scopeIdsKey.split('|') : []), [scopeIdsKey]);
+
+  // Auto-detect candidate I/O from edges that cross the selection boundary.
+  const { candidateInputs, candidateOutputs, internalEdges } = useMemo(() => {
+    const ins = new Map();
+    const outs = new Map();
+    const inner = [];
+    edges.forEach((e) => {
+      const sIn = scopeIds.has(e.source);
+      const tIn = scopeIds.has(e.target);
+      if (sIn && tIn) {
+        inner.push(e);
+      } else if (tIn && !sIn) {
+        const key = `${e.target}::${e.targetHandle || 'in'}`;
+        if (!ins.has(key)) {
+          const node = scopeNodes.find((n) => n.id === e.target);
+          ins.set(key, {
+            id: key,
+            nodeId: e.target,
+            handleId: e.targetHandle || 'in',
+            nodeLabel: node?.data?.label || node?.type || e.target,
+            defaultLabel: `${node?.data?.label || node?.type || e.target} ${e.targetHandle || 'in'}`,
+          });
+        }
+      } else if (sIn && !tIn) {
+        const key = `${e.source}::${e.sourceHandle || 'out'}`;
+        if (!outs.has(key)) {
+          const node = scopeNodes.find((n) => n.id === e.source);
+          outs.set(key, {
+            id: key,
+            nodeId: e.source,
+            handleId: e.sourceHandle || 'out',
+            nodeLabel: node?.data?.label || node?.type || e.source,
+            defaultLabel: `${node?.data?.label || node?.type || e.source} ${e.sourceHandle || 'out'}`,
+          });
+        }
+      }
+    });
+    return {
+      candidateInputs: [...ins.values()],
+      candidateOutputs: [...outs.values()],
+      internalEdges: inner,
+    };
+  }, [edges, scopeIds, scopeNodes]);
+
+  // Form state
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [inputState, setInputState] = useState({}); // key -> { include, label }
+  const [outputState, setOutputState] = useState({});
+  const [placeOnCanvas, setPlaceOnCanvas] = useState(true);
+  const [error, setError] = useState('');
+
+  // Reset form when the modal transitions from closed → open. Capture latest
+  // candidate sets via refs so this effect doesn't depend on memoized arrays
+  // (which would otherwise re-trigger and clobber user edits).
+  const candidatesRef = useRef({ inputs: candidateInputs, outputs: candidateOutputs });
+  useEffect(() => {
+    candidatesRef.current = { inputs: candidateInputs, outputs: candidateOutputs };
+  }, [candidateInputs, candidateOutputs]);
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      setName('');
+      setDescription('');
+      setError('');
+      const initIns = {};
+      candidatesRef.current.inputs.forEach((c) => {
+        initIns[c.id] = { include: true, label: c.defaultLabel };
+      });
+      setInputState(initIns);
+      const initOuts = {};
+      candidatesRef.current.outputs.forEach((c) => {
+        initOuts[c.id] = { include: true, label: c.defaultLabel };
+      });
+      setOutputState(initOuts);
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const slides = [
-    {
-      number: '01',
-      title: 'Compress your creative workspace',
-      image: '/ref/save workflow 1-4.jpg'
-    },
-    {
-      number: '02',
-      title: 'Publish it as a Workflow Template',
-      image: '/ref/save workflow 3-4.jpg'
-    },
-    {
-      number: '03',
-      title: 'Reuse it anywhere on the FS workspace canvas',
-      image: '/ref/save workflow 4-4.jpg'
-    },
-    {
-      number: '04',
-      title: 'Share with others as a simple app',
-      image: '/ref/save workflow_3-4.jpg'
+  const handleSave = () => {
+    if (!name.trim()) {
+      setError('Please give the template a name.');
+      return;
     }
-  ];
+    if (scopeNodes.length === 0) {
+      setError('There are no nodes to package.');
+      return;
+    }
+    const inputs = candidateInputs
+      .filter((c) => inputState[c.id]?.include)
+      .map((c) => ({
+        id: c.id,
+        label: (inputState[c.id]?.label || '').trim() || c.defaultLabel,
+        nodeId: c.nodeId,
+        handleId: c.handleId,
+      }));
+    const outputs = candidateOutputs
+      .filter((c) => outputState[c.id]?.include)
+      .map((c) => ({
+        id: c.id,
+        label: (outputState[c.id]?.label || '').trim() || c.defaultLabel,
+        nodeId: c.nodeId,
+        handleId: c.handleId,
+      }));
+
+    const template = {
+      id: `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: name.trim(),
+      description: description.trim(),
+      nodes: scopeNodes.map((n) => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: n.data,
+      })),
+      edges: internalEdges.map((e) => ({ ...e })),
+      inputs,
+      outputs,
+    };
+
+    saveTemplate(template);
+    onCreated?.({ template, placeOnCanvas });
+    onClose();
+  };
+
+  const sectionTitle = {
+    fontSize: 11,
+    fontWeight: 600,
+    color: '#888',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    margin: '0 0 8px 0',
+  };
+
+  const fieldLabel = {
+    fontSize: 11,
+    color: '#999',
+    marginBottom: 4,
+    display: 'block',
+  };
+
+  const inputStyle = {
+    width: '100%',
+    background: '#0f0f0f',
+    border: '1px solid #2a2a2a',
+    borderRadius: 6,
+    color: '#e0e0e0',
+    fontSize: 13,
+    padding: '8px 10px',
+    outline: 'none',
+    boxSizing: 'border-box',
+  };
+
+  const renderIORow = (item, state, setState) => {
+    const entry = state[item.id] || { include: true, label: item.defaultLabel };
+    return (
+      <div
+        key={item.id}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '6px 8px',
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid #222',
+          borderRadius: 6,
+          marginBottom: 6,
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={entry.include}
+          onChange={(e) =>
+            setState((s) => ({ ...s, [item.id]: { ...entry, include: e.target.checked } }))
+          }
+          style={{ accentColor: '#a78bfa' }}
+        />
+        <input
+          type="text"
+          value={entry.label}
+          disabled={!entry.include}
+          onChange={(e) =>
+            setState((s) => ({ ...s, [item.id]: { ...entry, label: e.target.value } }))
+          }
+          style={{
+            ...inputStyle,
+            padding: '4px 8px',
+            fontSize: 12,
+            opacity: entry.include ? 1 : 0.4,
+          }}
+        />
+        <span style={{ fontSize: 10, color: '#666', whiteSpace: 'nowrap' }}>
+          {item.nodeLabel}
+        </span>
+      </div>
+    );
+  };
 
   return (
-    <div className="tb-overlay" onClick={onClose} style={{
-      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-      background: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(4px)',
-      display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000
-    }}>
-      <div className="tb-modal" onClick={e => e.stopPropagation()} style={{
-        background: '#1C1C1C', border: '1px solid #333', borderRadius: '16px',
-        width: '460px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-        fontFamily: 'Inter, system-ui, sans-serif'
-      }}>
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.75)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 3000,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#1C1C1C',
+          border: '1px solid #333',
+          borderRadius: 16,
+          width: 560,
+          maxHeight: '90vh',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          fontFamily: 'Inter, system-ui, sans-serif',
+        }}
+      >
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #2a2a2a' }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Workflow Template Builder</div>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        </div>
-
-        {/* Content */}
-        <div style={{ padding: '24px 32px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#fff', margin: '0 0 12px 0' }}>Build a Workflow Template</h2>
-          <p style={{ fontSize: '14px', color: '#aaa', lineHeight: 1.5, margin: '0 0 16px 0' }}>
-            Define your workspace's inputs and outputs to package it as a reusable Workflow Template. Templates can be run as nodes on canvas, or via a simplified app interface.
-          </p>
-          <a href="#" style={{ fontSize: '13px', color: '#fff', textDecoration: 'underline', marginBottom: '24px' }}>What are Workflow Templates?</a>
-
-          {/* Carousel Viewport */}
-          <div style={{ width: '100%', aspectRatio: '16/10', background: '#111', borderRadius: '12px', overflow: 'hidden', position: 'relative', border: '1px solid #2a2a2a' }}>
-            
-            <div style={{ 
-              display: 'flex', height: '100%', 
-              transform: `translateX(-${currentSlide * 100}%)`, 
-              transition: 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)' 
-            }}>
-              {slides.map((slide, i) => (
-                <div key={i} style={{ minWidth: '100%', height: '100%', position: 'relative', flexShrink: 0 }}>
-                  <img src={slide.image} alt={slide.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  
-                  {/* Overlay Gradient */}
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)' }} />
-                  
-                  {/* Slide Text */}
-                  <div style={{ position: 'absolute', bottom: '16px', left: '16px', right: '16px', textAlign: 'left' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#888', marginBottom: '4px' }}>{slide.number}</div>
-                    <div style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>{slide.title}</div>
-                  </div>
-                </div>
-              ))}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '16px 24px',
+            borderBottom: '1px solid #2a2a2a',
+            flexShrink: 0,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: '#888',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+              }}
+            >
+              Workflow Template Builder
             </div>
-
-            {/* Left/Right Buttons */}
-            <button 
-              onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
-              disabled={currentSlide === 0}
-              style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', cursor: currentSlide === 0 ? 'not-allowed' : 'pointer', opacity: currentSlide === 0 ? 0.3 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-            <button 
-              onClick={() => setCurrentSlide(prev => Math.min(totalSlides - 1, prev + 1))}
-              disabled={currentSlide === totalSlides - 1}
-              style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', cursor: currentSlide === totalSlides - 1 ? 'not-allowed' : 'pointer', opacity: currentSlide === totalSlides - 1 ? 0.3 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginTop: 2 }}>
+              {selectedNodes.length > 0
+                ? `Package ${scopeNodes.length} selected node${scopeNodes.length === 1 ? '' : 's'}`
+                : `Package entire workflow (${scopeNodes.length} node${scopeNodes.length === 1 ? '' : 's'})`}
+            </div>
           </div>
-
-          {/* Dots */}
-          <div style={{ display: 'flex', gap: '8px', marginTop: '20px', marginBottom: '8px' }}>
-            {slides.map((_, i) => (
-              <button 
-                key={i} 
-                onClick={() => setCurrentSlide(i)}
-                style={{ 
-                  width: '8px', height: '8px', borderRadius: '50%', padding: 0, border: 'none', 
-                  background: currentSlide === i ? '#fff' : '#444', cursor: 'pointer', transition: 'background 0.2s' 
-                }}
-              />
-            ))}
-          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#888',
+              cursor: 'pointer',
+              padding: 4,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
-        {/* Footer Actions */}
-        <div style={{ padding: '16px 32px 32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <button style={{ 
-            width: '100%', background: '#22c55e', color: '#000', border: 'none', borderRadius: '8px', 
-            padding: '12px', fontSize: '15px', fontWeight: 600, cursor: 'pointer' 
-          }}>
-            Start Building
+        {/* Body */}
+        <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+          <p style={{ fontSize: 13, color: '#aaa', lineHeight: 1.5, margin: '0 0 20px 0' }}>
+            Define the inputs and outputs to package this as a reusable Workflow Template.
+            Templates can be dropped on the canvas as a single node, or run through the
+            simplified app interface.
+          </p>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={fieldLabel}>Template name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Virtual Try-On"
+              style={inputStyle}
+              autoFocus
+            />
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={fieldLabel}>Description (optional)</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What does this template do?"
+              rows={2}
+              style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }}
+            />
+          </div>
+
+          {/* Inputs */}
+          <div style={{ marginBottom: 18 }}>
+            <h4 style={sectionTitle}>
+              Inputs · {candidateInputs.filter((c) => inputState[c.id]?.include).length}/{candidateInputs.length}
+            </h4>
+            {candidateInputs.length === 0 ? (
+              <div
+                style={{
+                  fontSize: 12,
+                  color: '#666',
+                  fontStyle: 'italic',
+                  padding: '10px 12px',
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px dashed #2a2a2a',
+                  borderRadius: 6,
+                }}
+              >
+                No incoming edges from outside the selection. The template will have no inputs.
+              </div>
+            ) : (
+              candidateInputs.map((c) => renderIORow(c, inputState, setInputState))
+            )}
+          </div>
+
+          {/* Outputs */}
+          <div style={{ marginBottom: 18 }}>
+            <h4 style={sectionTitle}>
+              Outputs · {candidateOutputs.filter((c) => outputState[c.id]?.include).length}/{candidateOutputs.length}
+            </h4>
+            {candidateOutputs.length === 0 ? (
+              <div
+                style={{
+                  fontSize: 12,
+                  color: '#666',
+                  fontStyle: 'italic',
+                  padding: '10px 12px',
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px dashed #2a2a2a',
+                  borderRadius: 6,
+                }}
+              >
+                No outgoing edges from inside the selection. The template will have no outputs.
+              </div>
+            ) : (
+              candidateOutputs.map((c) => renderIORow(c, outputState, setOutputState))
+            )}
+          </div>
+
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 12,
+              color: '#bbb',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={placeOnCanvas}
+              onChange={(e) => setPlaceOnCanvas(e.target.checked)}
+              style={{ accentColor: '#a78bfa' }}
+            />
+            Drop template node on canvas after saving
+          </label>
+
+          {error && (
+            <div
+              style={{
+                marginTop: 12,
+                fontSize: 12,
+                color: '#f87171',
+                background: 'rgba(248,113,113,0.08)',
+                border: '1px solid rgba(248,113,113,0.25)',
+                borderRadius: 6,
+                padding: '8px 10px',
+              }}
+            >
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div
+          style={{
+            padding: '14px 24px',
+            borderTop: '1px solid #2a2a2a',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 10,
+            flexShrink: 0,
+          }}
+        >
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              color: '#888',
+              border: '1px solid #333',
+              borderRadius: 8,
+              padding: '8px 16px',
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
           </button>
-          <button onClick={onClose} style={{ 
-            width: '100%', background: 'transparent', color: '#888', border: 'none', 
-            padding: '8px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' 
-          }}>
-            Go Back
+          <button
+            onClick={handleSave}
+            style={{
+              background: '#a78bfa',
+              color: '#0b0b0b',
+              border: 'none',
+              borderRadius: 8,
+              padding: '8px 18px',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Save Template
           </button>
         </div>
       </div>

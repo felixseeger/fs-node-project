@@ -1,3 +1,83 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production
+dist/
+build/
+
+# Vercel
 .vercel
-frontend/ref/
+
+# Environment variables
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Project specific
+frontend/ref/
+frontend/dist/
+frontend/visual-diff-output/
+api/dist/
+
+# AI Tooling & Metadata
+.claude/
+.gemini/
+.agents/
+.cortex/
+.goose/
+.roo/
+.trae/
+.windsurf/
+.codebuddy/
+.junie/
+.kode/
+.pi/
+.pochi/
+.qwen/
+.roo/
+.adal/
+.augment/
+.commandcode/
+.continue/
+.crush/
+.factory/
+.iflow/
+.kilocode/
+.kiro/
+.mcpjam/
+.mux/
+.neovate/
+.openhands/
+.qoder/
+.vibe/
+.zencoder/
+skills/
+skills-lock.json
+TASK_STATUS.md
+dev_pid.txt
+dev_log.txt
+lint-errors.txt
+test-screenshots/

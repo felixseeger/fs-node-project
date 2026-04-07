@@ -8,6 +8,7 @@ export default function MatrixDot({
   style = {},
 }) {
   // Create SVG pattern for the dot matrix
+  // eslint-disable-next-line react-hooks/purity
   const patternId = useMemo(() => `matrix-dot-${Math.random().toString(36).substr(2, 9)}`, []);
 
   return (
@@ -60,7 +61,9 @@ export function MatrixDotWithFade({
   fadeEdges = false,
   style = {},
 }) {
+  // eslint-disable-next-line react-hooks/purity
   const patternId = useMemo(() => `matrix-dot-fade-${Math.random().toString(36).substr(2, 9)}`, []);
+  // eslint-disable-next-line react-hooks/purity
   const maskId = useMemo(() => `matrix-mask-${Math.random().toString(36).substr(2, 9)}`, []);
 
   return (

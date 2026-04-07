@@ -29,8 +29,13 @@ export default function TextElementNode({ id, data, selected }) {
     const [html, setHtml] = useState(data.text || '<p>Double click or right-click to edit text...</p>');
 
     useEffect(() => {
-        if (!isEditing) {
-            setHtml(data.text || '<p>Double click or right-click to edit text...</p>');
+        if (!isEditing && data.text) {
+            // Only update html from server if it differs significantly from our local state
+            if (contentRef.current && contentRef.current.innerHTML !== data.text) {
+                setHtml(data.text);
+            } else if (!contentRef.current && data.text !== html) {
+                setHtml(data.text);
+            }
         }
     }, [data.text, isEditing]);
 

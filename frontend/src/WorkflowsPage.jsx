@@ -573,7 +573,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
     }
   };
 
-  const handleDownloadSelected = () => {
+  const handleDownloadSelected = useCallback(() => {
     const selectedData = workflows.filter(w => selectedWfs.has(w.id));
     if (selectedData.length === 0) return;
     const blob = new Blob([JSON.stringify(selectedData, null, 2)], { type: 'application/json' });
@@ -585,7 +585,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
     URL.revokeObjectURL(url);
     setIsSelecting(false);
     setSelectedWfs(new Set());
-  };
+  }, [workflows, selectedWfs]);
 
   const toggleTplSelection = (id) => {
     setSelectedTpls(prev => {
@@ -604,7 +604,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
     }
   };
 
-  const handleDownloadSelectedTpls = () => {
+  const handleDownloadSelectedTpls = useCallback(() => {
     const selectedData = templates.filter(t => selectedTpls.has(t.id));
     if (selectedData.length === 0) return;
     const blob = new Blob([JSON.stringify(selectedData, null, 2)], { type: 'application/json' });
@@ -616,7 +616,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
     URL.revokeObjectURL(url);
     setIsSelectingTemplates(false);
     setSelectedTpls(new Set());
-  };
+  }, [templates, selectedTpls]);
 
   const handleDeleteSelectedTpls = () => {
     if (selectedTpls.size === 0) return;
@@ -627,7 +627,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
     }
   };
 
-  const handleDuplicateSelectedTpls = () => {
+  const handleDuplicateSelectedTpls = useCallback(() => {
     if (selectedTpls.size === 0) return;
     const newTemplates = templates.filter(t => selectedTpls.has(t.id)).map(t => ({
       ...t,
@@ -637,7 +637,7 @@ export default function WorkflowsPage({ onCreateWorkflow, onDeleteWorkflows, wor
     setTemplates(prev => [...prev, ...newTemplates]);
     setIsSelectingTemplates(false);
     setSelectedTpls(new Set());
-  };
+  }, [templates, selectedTpls]);
 
   const handleDeleteSelected = async () => {
     if (selectedWfs.size === 0) return;

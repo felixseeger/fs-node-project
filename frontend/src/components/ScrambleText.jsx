@@ -24,7 +24,6 @@ export default function ScrambleText({
   const frameRequest = useRef(null);
   const frameCounter = useRef(0);
   const queue = useRef([]);
-  const resolveRef = useRef(null);
 
   const randomChar = useCallback(() => {
     return chars[Math.floor(Math.random() * chars.length)];
@@ -74,6 +73,7 @@ export default function ScrambleText({
       onComplete?.();
     } else {
       frameCounter.current++;
+      // eslint-disable-next-line react-hooks/immutability
       frameRequest.current = requestAnimationFrame(update);
     }
   }, [randomChar, onComplete]);

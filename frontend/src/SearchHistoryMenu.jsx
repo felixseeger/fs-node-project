@@ -63,6 +63,7 @@ export default function SearchHistoryMenu({ isOpen, onClose, onReuseItem }) {
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHistory(getHistory());
     }
   }, [isOpen]);
@@ -70,7 +71,7 @@ export default function SearchHistoryMenu({ isOpen, onClose, onReuseItem }) {
   if (!isOpen) return null;
 
   const filteredHistory = history.filter(item => {
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       item.prompt?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.nodeLabel?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = filterType === 'all' || item.type === filterType;
@@ -100,7 +101,7 @@ export default function SearchHistoryMenu({ isOpen, onClose, onReuseItem }) {
       zIndex: 9999,
       pointerEvents: 'none'
     }}>
-      <div 
+      <div
         style={{
           width: '420px',
           height: '560px',
@@ -135,9 +136,9 @@ export default function SearchHistoryMenu({ isOpen, onClose, onReuseItem }) {
             marginRight: '24px'
           }}>
             <SearchIcon style={{ color: '#888', marginRight: '10px' }} />
-            <input 
-              type="text" 
-              placeholder="Search generated media..." 
+            <input
+              type="text"
+              placeholder="Search generated media..."
               autoFocus
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -154,9 +155,9 @@ export default function SearchHistoryMenu({ isOpen, onClose, onReuseItem }) {
 
           {/* Controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button 
+            <button
               onClick={() => setFilterType(filterType === 'all' ? 'svg' : filterType === 'svg' ? 'image' : 'all')}
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: filterType !== 'all' ? '#4ade80' : '#888' }} 
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: filterType !== 'all' ? '#4ade80' : '#888' }}
               title={`Filter: ${filterType}`}
             >
               <FilterIcon />
@@ -221,14 +222,14 @@ export default function SearchHistoryMenu({ isOpen, onClose, onReuseItem }) {
                     flexShrink: 0
                   }}>
                     {item.type === 'svg' ? (
-                      <img 
-                        src={item.url} 
+                      <img
+                        src={item.url}
                         alt=""
                         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                       />
                     ) : (
-                      <img 
-                        src={item.url} 
+                      <img
+                        src={item.url}
                         alt=""
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />

@@ -7,7 +7,7 @@ import './SystemLoadingProcess.css';
 gsap.registerPlugin(CustomEase);
 
 // Guard against re-registration on hot-reload
-if (!CustomEase.get('hop'))   CustomEase.create('hop',   '0.9, 0, 0.1, 1');
+if (!CustomEase.get('hop')) CustomEase.create('hop', '0.9, 0, 0.1, 1');
 if (!CustomEase.get('glide')) CustomEase.create('glide', '0.8, 0, 0.2, 1');
 
 // Default content configuration
@@ -49,8 +49,8 @@ function MaskLine({ innerRef, children }) {
 /**
  * SystemLoadingProcess - Cyberpunk/Sci-fi preloader animation
  */
-export default function SystemLoadingProcess({ 
-  onComplete, 
+export default function SystemLoadingProcess({
+  onComplete,
   autoStart = true,
   config = {},
   theme = 'dark',
@@ -59,27 +59,44 @@ export default function SystemLoadingProcess({
   const [exiting, setExiting] = useState(false);
   const cfg = { ...DEFAULT_CONFIG, ...config };
 
-  const preloaderRef   = useRef(null);
-  const revealerRef    = useRef(null);
-  const btnRef         = useRef(null);
-  const trackRef       = useRef(null);
-  const progressRef    = useRef(null);
-  const logoRef        = useRef(null);
-  const labelLineRef   = useRef(null);
-  const outroLineRef   = useRef(null);
-  const readyRef       = useRef(false);
-  const timelineRef    = useRef(null);
-  const rowLine        = useRef([]);
+  const preloaderRef = useRef(null);
+  const revealerRef = useRef(null);
+  const btnRef = useRef(null);
+  const trackRef = useRef(null);
+  const progressRef = useRef(null);
+  const logoRef = useRef(null);
+  const labelLineRef = useRef(null);
+  const outroLineRef = useRef(null);
+  const readyRef = useRef(false);
+  const timelineRef = useRef(null);
+  const rowLine = useRef([]);
+  const playSound = useCallback((soundName) => {
+    const audio = new Audio(`/assets/sfx/${soundName}.mp3`);
+    audio.volume = 0.5;
+    audio.play().catch(e => {
+      // Browsers block autoplay if there's no user interaction
+      // We'll log it as info instead of error to avoid clutter
+      if (e.name === 'NotAllowedError') {
+        console.debug(`[SFX] Sound ${soundName} suppressed (user interaction needed)`);
+      } else {
+        console.warn(`[SFX] Sound ${soundName} play failed:`, e);
+      }
+    });
+  }, []);
 
   const handleEngage = useCallback(() => {
     if (!readyRef.current) return;
     readyRef.current = false;
     setExiting(true);
+    
+    // Play select sound
+    playSound('menu-select');
 
     const svgLen = trackRef.current?.getTotalLength() ?? 974;
 
     const exitTl = gsap.timeline({
       onComplete: () => {
+        playSound('menu-close');
         gsap.set(preloaderRef.current, { display: 'none' });
         onComplete?.();
       },
@@ -100,10 +117,14 @@ export default function SystemLoadingProcess({
         duration: 1.5,
         ease: 'hop',
       }, '-=1.45');
-  }, [onComplete]);
+  }, [onComplete, playSound]);
 
   useEffect(() => {
     if (!autoStart) return;
+    
+    // Play opener sound when loading starts
+    playSound('menu-open');
+    
     const svgLen = trackRef.current?.getTotalLength() ?? 974;
 
     gsap.set([trackRef.current, progressRef.current], {
@@ -247,7 +268,7 @@ export default function SystemLoadingProcess({
           </p>
           <p className="slp-outro-label">
             <MaskLine innerRef={outroLineRef}>
-              <ScrambleText text={cfg.successText} trigger={readyRef.current === false && ready === true} />
+              <ScrambleText text={cfg.successText} trigger={exiting} />
             </MaskLine>
           </p>
         </div>

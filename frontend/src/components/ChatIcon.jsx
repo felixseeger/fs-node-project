@@ -6,7 +6,7 @@ export default function ChatIcon({ isOpen, onClick, unreadCount = 0 }) {
         position: 'absolute',
         right: 24,
         bottom: 80, // Position above the BottomBar
-        zIndex: 10,
+        zIndex: 2000,
         width: 56,
         height: 56,
         borderRadius: '50%',

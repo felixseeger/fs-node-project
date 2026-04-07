@@ -21,11 +21,12 @@ export default function AssetNode({ id, data, selected }) {
     fileInputRef.current?.click();
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const processFiles = useCallback(async (files) => {
-    const fileArray = Array.from(files).filter(f => 
+    const fileArray = Array.from(files).filter(f =>
       f.type.startsWith('image/') || f.type.startsWith('video/')
     );
-    
+
     if (!fileArray.length) {
       console.warn('AssetNode: No valid image/video files found');
       return;
@@ -94,7 +95,7 @@ export default function AssetNode({ id, data, selected }) {
 
     const files = e.dataTransfer.files;
     console.log('AssetNode: Dropped', files?.length, 'files');
-    
+
     if (files?.length > 0) {
       processFiles(files);
     }
@@ -102,92 +103,92 @@ export default function AssetNode({ id, data, selected }) {
 
   return (
     <>
-    <NodeShell
-      label={data.label || 'Asset'}
-      dotColor={CATEGORY_COLORS.input}
-      selected={selected}
-      onDisconnect={disconnectNode}
-      onEdit={() => setIsUpdateModalOpen(true)}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: sp[4] }}>
-        <input
-          type="file"
-          multiple
-          accept="image/*,video/*"
-          ref={fileInputRef}
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-        />
-        
-        {images.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: sp[2] }}>
-            {images.map((src, i) => (
-              <div key={i} style={{ width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '1px solid #333' }}>
-                <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={`Asset ${i}`} />
-              </div>
-            ))}
-            <button 
+      <NodeShell
+        label={data.label || 'Asset'}
+        dotColor={CATEGORY_COLORS.input}
+        selected={selected}
+        onDisconnect={disconnectNode}
+        onEdit={() => setIsUpdateModalOpen(true)}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: sp[4] }}>
+          <input
+            type="file"
+            multiple
+            accept="image/*,video/*"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+
+          {images.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: sp[2] }}>
+              {images.map((src, i) => (
+                <div key={i} style={{ width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '1px solid #333' }}>
+                  <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={`Asset ${i}`} />
+                </div>
+              ))}
+              <button
+                onClick={handleUploadClick}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 8,
+                  border: isDragging ? '2px dashed #3b82f6' : '1px dashed #444',
+                  background: isDragging ? 'rgba(59, 130, 246, 0.2)' : '#222',
+                  color: isDragging ? '#3b82f6' : '#888',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: 0,
+                  padding: 0,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <span style={{ width: 24, height: 24 }}>{Icons.Plus}</span>
+              </button>
+            </div>
+          ) : (
+            <div
               onClick={handleUploadClick}
               onDragOver={handleDragOver}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              style={{ 
-                width: 80, 
-                height: 80, 
-                borderRadius: 8, 
+              style={{
+                padding: sp[4],
                 border: isDragging ? '2px dashed #3b82f6' : '1px dashed #444',
-                background: isDragging ? 'rgba(59, 130, 246, 0.2)' : '#222', 
-                color: isDragging ? '#3b82f6' : '#888', 
-                cursor: 'pointer', 
+                borderRadius: 8,
+                background: isDragging ? 'rgba(59, 130, 246, 0.1)' : '#222',
                 display: 'flex',
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                margin: 0, 
-                padding: 0,
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: sp[2],
+                cursor: 'pointer',
+                color: isDragging ? '#3b82f6' : '#888',
                 transition: 'all 0.2s ease',
               }}
             >
-              <span style={{ width: 24, height: 24 }}>{Icons.Plus}</span>
-            </button>
-          </div>
-        ) : (
-          <div 
-            onClick={handleUploadClick}
-            onDragOver={handleDragOver}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            style={{
-              padding: sp[4],
-              border: isDragging ? '2px dashed #3b82f6' : '1px dashed #444',
-              borderRadius: 8,
-              background: isDragging ? 'rgba(59, 130, 246, 0.1)' : '#222',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: sp[2],
-              cursor: 'pointer',
-              color: isDragging ? '#3b82f6' : '#888',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <span style={{ width: 24, height: 24 }}>{Icons.Upload}</span>
-            <span style={{ ...font.sm, fontWeight: 500 }}>
-              {isDragging ? 'Drop files here' : 'Upload Media'}
-            </span>
-          </div>
-        )}
+              <span style={{ width: 24, height: 24 }}>{Icons.Upload}</span>
+              <span style={{ ...font.sm, fontWeight: 500 }}>
+                {isDragging ? 'Drop files here' : 'Upload Media'}
+              </span>
+            </div>
+          )}
 
-      </div>
-      <Handle type="source" position={Position.Right} style={{ top: 40 }} />
-    </NodeShell>
-    <UpdateAssetModal 
-      isOpen={isUpdateModalOpen}
-      onClose={() => setIsUpdateModalOpen(false)}
-      nodeData={{ id, label: data.label || data.name, images }}
-      onUpdate={(nodeId, patch) => data.onUpdate?.(nodeId, patch)}
-    />
-  </>);
+        </div>
+        <Handle type="source" position={Position.Right} style={{ top: 40 }} />
+      </NodeShell>
+      <UpdateAssetModal
+        isOpen={isUpdateModalOpen}
+        onClose={() => setIsUpdateModalOpen(false)}
+        nodeData={{ id, label: data.label || data.name, images }}
+        onUpdate={(nodeId, patch) => data.onUpdate?.(nodeId, patch)}
+      />
+    </>);
 }

@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import useNodeConnections from './useNodeConnections';
@@ -37,11 +37,11 @@ export default function AudioIsolationNode({ id, data, selected }) {
 
     let mediaUrls;
     if (localInputType === 'audio') {
-        mediaUrls = data.resolveInput?.(id, 'audio-in');
-        if (!mediaUrls?.length && data.localAudio) mediaUrls = [data.localAudio];
+      mediaUrls = data.resolveInput?.(id, 'audio-in');
+      if (!mediaUrls?.length && data.localAudio) mediaUrls = [data.localAudio];
     } else {
-        mediaUrls = data.resolveInput?.(id, 'video-in');
-        if (!mediaUrls?.length && data.localVideo) mediaUrls = [data.localVideo];
+      mediaUrls = data.resolveInput?.(id, 'video-in');
+      if (!mediaUrls?.length && data.localVideo) mediaUrls = [data.localVideo];
     }
 
     if (!mediaUrls?.length) return;
@@ -57,16 +57,16 @@ export default function AudioIsolationNode({ id, data, selected }) {
       };
 
       if (localInputType === 'audio') {
-          params.audio = mediaUrls[0];
+        params.audio = mediaUrls[0];
       } else {
-          params.video = mediaUrls[0];
-          params.sample_fps = localSampleFps;
-          if (localX1 > 0 || localX2 > 0 || localY1 > 0 || localY2 > 0) {
-              params.x1 = localX1;
-              params.y1 = localY1;
-              params.x2 = localX2;
-              params.y2 = localY2;
-          }
+        params.video = mediaUrls[0];
+        params.sample_fps = localSampleFps;
+        if (localX1 > 0 || localX2 > 0 || localY1 > 0 || localY2 > 0) {
+          params.x1 = localX1;
+          params.y1 = localY1;
+          params.x2 = localX2;
+          params.y2 = localY2;
+        }
       }
 
       const result = await audioIsolationGenerate(params);
@@ -318,7 +318,7 @@ export default function AudioIsolationNode({ id, data, selected }) {
         {localInputType === 'video' && (
           <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid #333' }}>
             <div style={{ fontSize: 11, color: '#999', marginBottom: 6, fontWeight: 600 }}>Video Settings</div>
-            
+
             <div style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ fontSize: 10, color: '#888' }}>Sample FPS</span>

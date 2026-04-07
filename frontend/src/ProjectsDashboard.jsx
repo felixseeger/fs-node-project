@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getFirebaseAuth } from './config/firebase';
 import DecodeTextButton from './components/DecodeTextButton';
+import ThemeToggle from './components/ThemeToggle';
 import { deleteUser } from 'firebase/auth';
 
 // Icons
@@ -29,34 +30,14 @@ function SidebarItem({ icon, label, active, onClick, count }) {
   return (
     <button
       onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        width: '100%',
-        padding: '8px 12px',
-        background: active ? 'var(--bg-active)' : 'transparent',
-        border: 'none',
-        borderRadius: 6,
-        color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-        fontSize: 13,
-        cursor: 'pointer',
-        transition: 'all 0.2s',
-        textAlign: 'left',
-      }}
-      onMouseEnter={(e) => {
-        if (!active) e.currentTarget.style.background = 'var(--bg-hover)';
-      }}
-      onMouseLeave={(e) => {
-        if (!active) e.currentTarget.style.background = 'transparent';
-      }}
+      className={`sidebar-item ${active ? 'active' : ''}`}
     >
-      <span style={{ width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span className="sidebar-item-icon">
         {icon}
       </span>
       <span style={{ flex: 1 }}>{label}</span>
       {count !== undefined && (
-        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{count}</span>
+        <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{count}</span>
       )}
     </button>
   );
@@ -65,16 +46,7 @@ function SidebarItem({ icon, label, active, onClick, count }) {
 // Section Header Component
 function SectionHeader({ title }) {
   return (
-    <div
-      style={{
-        padding: '16px 12px 8px',
-        fontSize: 11,
-        fontWeight: 600,
-        color: 'var(--text-muted)',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-      }}
-    >
+    <div className="sidebar-section-header">
       {title}
     </div>
   );
@@ -89,52 +61,28 @@ function ProjectCard({ project, onClick, onContextMenu }) {
     <div
       onClick={onClick}
       onContextMenu={(e) => onContextMenu(e, project)}
-      className="glass-card"
-      style={{
-        background: 'var(--bg-card)',
-        backdropFilter: 'blur(10px)',
-        borderRadius: 16,
-        overflow: 'hidden',
-        cursor: 'pointer',
-        transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
-        border: '1.5px solid var(--border-card)',
-        boxShadow: 'var(--shadow-default)',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
-        e.currentTarget.style.borderColor = 'rgba(94, 231, 223, 0.4)';
-        e.currentTarget.style.boxShadow = 'var(--shadow-hover)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0) scale(1)';
-        e.currentTarget.style.borderColor = 'var(--border-card)';
-        e.currentTarget.style.boxShadow = 'var(--shadow-default)';
-      }}
+      className="project-card"
     >
       <div
+        className="project-thumbnail-container"
         style={{
-          aspectRatio: '16/10',
-          background: thumbnail ? `url(${thumbnail})` : 'var(--bg-hover)',
+          background: thumbnail ? `url(${thumbnail})` : 'var(--color-surface-hover)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderBottom: '1.5px solid var(--border-subtle)',
         }}
       >
         {!thumbnail && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 24, opacity: 0.2 }}>⚡</span>
-            <span style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 500 }}>Void Canvas</span>
+            <span style={{ fontSize: 12, color: 'var(--color-text-faint)', fontWeight: 500 }}>Void Canvas</span>
           </div>
         )}
       </div>
-      <div style={{ padding: 16 }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      <div className="project-card-content">
+        <div className="project-card-title">
           {title}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 500 }}>
+        <div className="project-card-date">
           {updatedAt instanceof Date ? updatedAt.toLocaleDateString() : (typeof updatedAt === 'number' ? new Date(updatedAt).toLocaleDateString() : updatedAt)}
         </div>
       </div>
@@ -149,7 +97,7 @@ function EmptyState({ message }) {
       style={{
         padding: '32px 16px',
         textAlign: 'center',
-        color: 'var(--text-faint)',
+        color: 'var(--color-text-faint)',
         fontSize: 13,
         fontWeight: 500,
         fontFamily: 'var(--font-body)'
@@ -184,11 +132,11 @@ function ProjectContextMenu({ x, y, onClose, onAction, project }) {
           left: x,
           zIndex: 9999,
           width: 200,
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border-card)',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
           borderRadius: 12,
           padding: '6px',
-          boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
+          boxShadow: 'var(--shadow-lg)',
           animation: 'fadeIn 0.1s ease-out'
         }}
       >
@@ -205,7 +153,7 @@ function ProjectContextMenu({ x, y, onClose, onAction, project }) {
             background: transparent;
             border: none;
             border-radius: 6px;
-            color: var(--text-primary);
+            color: var(--color-text);
             font-size: 13px;
             font-weight: 500;
             cursor: pointer;
@@ -213,13 +161,13 @@ function ProjectContextMenu({ x, y, onClose, onAction, project }) {
             text-align: left;
           }
           .menu-item:hover {
-            background: var(--bg-hover);
+            background: var(--color-surface-hover);
           }
           .menu-item.danger {
-            color: #ff4d4d;
+            color: var(--color-danger);
           }
           .menu-item.disabled {
-            color: var(--text-muted);
+            color: var(--color-text-muted);
             cursor: default;
           }
           .menu-item.disabled:hover {
@@ -278,14 +226,14 @@ function TrashEmptyState({ onBack }) {
         style={{
           width: 56,
           height: 56,
-          background: 'var(--bg-surface)',
+          background: 'var(--color-surface)',
           borderRadius: 16,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: 24,
-          color: 'var(--text-primary)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+          color: 'var(--color-text)',
+          boxShadow: 'var(--shadow-md)',
         }}
       >
         <span style={{ width: 20, height: 20 }}>{Icons.Grid}</span>
@@ -294,7 +242,7 @@ function TrashEmptyState({ onBack }) {
         style={{
           fontSize: 18,
           fontWeight: 700,
-          color: 'var(--text-primary)',
+          color: 'var(--color-text)',
           margin: '0 0 8px 0',
         }}
       >
@@ -303,7 +251,7 @@ function TrashEmptyState({ onBack }) {
       <p
         style={{
           fontSize: 14,
-          color: 'var(--text-muted)',
+          color: 'var(--color-text-muted)',
           margin: '0 0 32px 0',
         }}
       >
@@ -312,23 +260,23 @@ function TrashEmptyState({ onBack }) {
       <button
         onClick={onBack}
         style={{
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border-card)',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
           borderRadius: 12,
           padding: '12px 24px',
-          color: 'var(--text-primary)',
+          color: 'var(--color-text)',
           fontSize: 14,
           fontWeight: 600,
           cursor: 'pointer',
           transition: 'all 0.2s',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--bg-hover)';
-          e.currentTarget.style.borderColor = 'var(--border-default)';
+          e.currentTarget.style.background = 'var(--color-surface-hover)';
+          e.currentTarget.style.borderColor = 'var(--color-border)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'var(--bg-surface)';
-          e.currentTarget.style.borderColor = 'var(--border-card)';
+          e.currentTarget.style.background = 'var(--color-surface)';
+          e.currentTarget.style.borderColor = 'var(--color-border)';
         }}
       >
         Back to my projects
@@ -345,10 +293,11 @@ export default function ProjectsDashboard({
   onDeleteProject,
   onDuplicateProject,
   onLogout,
-  onOpenProfile
+  onOpenProfile,
+  theme,
+  setTheme
 }) {
   const [user, setUser] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(true);
   const [activeSection, setActiveSection] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -447,7 +396,8 @@ export default function ProjectsDashboard({
   useEffect(() => {
     const auth = getFirebaseAuth();
     if (auth) {
-      setUser(auth.currentUser);
+      const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
+      return () => unsubscribe();
     }
   }, []);
 
@@ -468,60 +418,23 @@ export default function ProjectsDashboard({
     return true;
   });
 
-  // Define theme variables
-  const themeVars = isDarkMode ? {
-    '--bg-main': '#0a0a0a',
-    '--bg-aside': 'rgba(0, 0, 0, 0.2)',
-    '--bg-surface': '#1a1a1a',
-    '--bg-input': '#141414',
-    '--bg-hover': 'rgba(255, 255, 255, 0.05)',
-    '--bg-active': 'rgba(255, 255, 255, 0.1)',
-    '--bg-card': 'rgba(255, 255, 255, 0.03)',
-    '--text-primary': '#ffffff',
-    '--text-secondary': '#888888',
-    '--text-muted': '#666666',
-    '--text-faint': 'rgba(255, 255, 255, 0.4)',
-    '--border-subtle': 'rgba(255, 255, 255, 0.05)',
-    '--border-card': 'rgba(255, 255, 255, 0.08)',
-    '--border-default': 'rgba(255, 255, 255, 0.1)',
-    '--shadow-default': '0 8px 32px rgba(0, 0, 0, 0.2)',
-    '--shadow-hover': '0 20px 48px rgba(0, 0, 0, 0.4), 0 0 20px rgba(94, 231, 223, 0.1)',
-  } : {
-    '--bg-main': '#f9fafb',
-    '--bg-aside': 'rgba(255, 255, 255, 0.6)',
-    '--bg-surface': '#ffffff',
-    '--bg-input': '#ffffff',
-    '--bg-hover': 'rgba(0, 0, 0, 0.05)',
-    '--bg-active': 'rgba(0, 0, 0, 0.1)',
-    '--bg-card': '#ffffff',
-    '--text-primary': '#111827',
-    '--text-secondary': '#4b5563',
-    '--text-muted': '#9ca3af',
-    '--text-faint': 'rgba(0, 0, 0, 0.5)',
-    '--border-subtle': 'rgba(0, 0, 0, 0.05)',
-    '--border-card': 'rgba(0, 0, 0, 0.1)',
-    '--border-default': 'rgba(0, 0, 0, 0.15)',
-    '--shadow-default': '0 4px 12px rgba(0, 0, 0, 0.05)',
-    '--shadow-hover': '0 12px 32px rgba(0, 0, 0, 0.1), 0 0 20px rgba(94, 231, 223, 0.2)',
-  };
 
   return (
-    <div
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className="dashboard-container"
-      style={{
-        ...themeVars,
-        display: 'flex',
-        height: '100vh',
-        background: 'var(--bg-main)',
-        color: 'var(--text-primary)',
-        position: 'relative',
-        fontFamily: 'var(--font-body)',
-        transition: 'background 0.3s ease, color 0.3s ease',
-      }}
-    >
+     <div
+       onDragOver={handleDragOver}
+       onDragLeave={handleDragLeave}
+       onDrop={handleDrop}
+       className="dashboard-container"
+       style={{
+         display: 'flex',
+         height: '100vh',
+         background: 'var(--color-bg)',
+         color: 'var(--color-text)',
+         position: 'relative',
+         fontFamily: 'var(--font-body)',
+         transition: 'background 0.3s ease, color 0.3s ease',
+       }}
+     >
       {isDragging && (
         <div
           style={{
@@ -530,7 +443,7 @@ export default function ProjectsDashboard({
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'var(--bg-active)',
+            background: 'var(--color-surface-active)',
             backdropFilter: 'blur(10px)',
             border: '2px dashed rgba(94, 231, 223, 0.3)',
             zIndex: 10000,
@@ -543,18 +456,18 @@ export default function ProjectsDashboard({
           <div
             className="glass-card"
             style={{
-              background: 'var(--bg-hover)',
+              background: 'var(--color-surface-hover)',
               backdropFilter: 'blur(20px)',
               padding: '32px 64px',
               borderRadius: 24,
-              border: '1px solid var(--border-default)',
+              border: '1px solid var(--color-border)',
               boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
               textAlign: 'center',
             }}
           >
             <div style={{ fontSize: 48, marginBottom: 16 }}>🖼️</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Drop to create</div>
-            <div style={{ fontSize: 15, color: 'var(--text-faint)', marginTop: 8 }}>Your image will start the flow</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>Drop to create</div>
+            <div style={{ fontSize: 15, color: 'var(--color-text-faint)', marginTop: 8 }}>Your image will start the flow</div>
           </div>
         </div>
       )}
@@ -562,10 +475,10 @@ export default function ProjectsDashboard({
       <aside
         style={{
           width: 260,
-          background: 'var(--bg-aside)',
+          background: 'var(--color-bg-aside)',
           backdropFilter: 'blur(40px)',
           WebkitBackdropFilter: 'blur(40px)',
-          borderRight: '1px solid var(--border-subtle)',
+          borderRight: '1px solid var(--color-border-subtle)',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 10,
@@ -575,7 +488,7 @@ export default function ProjectsDashboard({
         <div
           style={{
             padding: 16,
-            borderBottom: '1px solid var(--border-subtle)',
+            borderBottom: '1px solid var(--color-border-subtle)',
           }}
         >
           <button
@@ -590,10 +503,10 @@ export default function ProjectsDashboard({
               border: 'none',
               borderRadius: 8,
               cursor: 'pointer',
-              color: 'var(--text-primary)',
+              color: 'var(--color-text)',
               transition: 'background 0.2s',
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-surface-hover)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
             <div
@@ -601,7 +514,7 @@ export default function ProjectsDashboard({
                 width: 32,
                 height: 32,
                 borderRadius: '50%',
-                background: '#3b82f6',
+                background: 'var(--color-accent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -613,9 +526,9 @@ export default function ProjectsDashboard({
             </div>
             <div style={{ flex: 1, textAlign: 'left' }}>
               <div style={{ fontSize: 13, fontWeight: 500 }}>{userName}'s Workspace</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>1 Member</div>
+              <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>1 Member</div>
             </div>
-            <span style={{ color: 'var(--text-muted)' }}>{Icons.MoreVertical}</span>
+            <span style={{ color: 'var(--color-text-muted)' }}>{Icons.MoreVertical}</span>
           </button>
 
           {/* User Menu Dropdown */}
@@ -624,14 +537,14 @@ export default function ProjectsDashboard({
               style={{
                 marginTop: 8,
                 padding: 8,
-                background: 'var(--bg-surface)',
+                background: 'var(--color-surface)',
                 borderRadius: 8,
-                border: '1px solid var(--border-default)',
+                border: '1px solid var(--color-border)',
               }}
             >
               <SidebarItem icon={Icons.Settings} label="Settings" onClick={() => { onOpenProfile?.(); setShowUserMenu(false); }} />
               <SidebarItem icon={Icons.Help} label="Help & Support" onClick={() => { alert('Help & Support coming soon!'); setShowUserMenu(false); }} />
-              <div style={{ height: 1, background: 'var(--border-default)', margin: '8px 0' }} />
+              <div style={{ height: 1, background: 'var(--color-border)', margin: '8px 0' }} />
               <SidebarItem icon={Icons.Trash} label="Delete Account" onClick={() => {
                 if (confirm('Are you sure you want to permanently delete your account? This action cannot be undone.')) {
                   if (user) {
@@ -649,16 +562,17 @@ export default function ProjectsDashboard({
 
         {/* Brand */}
         <div style={{ padding: '16px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 20, fontWeight: 700 }}>Nodespace</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img src="/logo-light.svg" alt="Logo" style={{ height: 24, width: 'auto' }} />
+            <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>Nodespace</span>
             <span
               style={{
                 padding: '2px 6px',
-                background: '#22c55e',
+                background: 'var(--color-success)',
                 borderRadius: 4,
                 fontSize: 9,
                 fontWeight: 600,
-                color: '#000',
+                color: 'var(--color-bg)',
               }}
             >
               New
@@ -729,7 +643,7 @@ export default function ProjectsDashboard({
         <div
           style={{
             padding: 12,
-            borderTop: '1px solid var(--border-subtle)',
+            borderTop: '1px solid var(--color-border-subtle)',
             display: 'flex',
             gap: 8,
           }}
@@ -739,10 +653,10 @@ export default function ProjectsDashboard({
             style={{
               flex: 1,
               padding: 8,
-              background: activeSection === 'trash' ? 'var(--bg-active)' : 'transparent',
+              background: activeSection === 'trash' ? 'var(--color-surface-active)' : 'transparent',
               border: 'none',
               borderRadius: 6,
-              color: activeSection === 'trash' ? 'var(--text-primary)' : 'var(--text-muted)',
+              color: activeSection === 'trash' ? 'var(--color-text)' : 'var(--color-text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -761,7 +675,7 @@ export default function ProjectsDashboard({
               background: 'transparent',
               border: 'none',
               borderRadius: 6,
-              color: 'var(--text-muted)',
+              color: 'var(--color-text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -781,7 +695,7 @@ export default function ProjectsDashboard({
               background: 'transparent',
               border: 'none',
               borderRadius: 6,
-              color: 'var(--text-muted)',
+              color: 'var(--color-text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -795,26 +709,7 @@ export default function ProjectsDashboard({
             </span>
           </button>
           {/* Theme Toggle */}
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            style={{
-              flex: 1,
-              padding: 8,
-              background: 'transparent',
-              border: 'none',
-              borderRadius: 6,
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            title="Toggle Theme"
-          >
-            <span style={{ display: 'flex', width: 16, height: 16, alignItems: 'center', justifyContent: 'center' }}>
-              {isDarkMode ? Icons.Sun : Icons.Moon}
-            </span>
-          </button>
+          <ThemeToggle theme={theme} setTheme={setTheme} />
         </div>
       </aside>
 
@@ -827,7 +722,7 @@ export default function ProjectsDashboard({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '16px 24px',
-            borderBottom: '1px solid var(--border-subtle)',
+            borderBottom: '1px solid var(--color-border-subtle)',
           }}
         >
           {/* Left: New Project Button */}
@@ -855,7 +750,7 @@ export default function ProjectsDashboard({
                 transform: 'translateY(-50%)',
                 width: 16,
                 height: 16,
-                color: 'var(--text-muted)',
+                color: 'var(--color-text-muted)',
               }}
             >
               {Icons.Search}
@@ -868,10 +763,10 @@ export default function ProjectsDashboard({
               style={{
                 width: '100%',
                 padding: '10px 12px 10px 36px',
-                background: 'var(--bg-input)',
-                border: '1px solid var(--border-default)',
+                background: 'var(--color-input)',
+                border: '1px solid var(--color-border)',
                 borderRadius: 8,
-                color: 'var(--text-primary)',
+                color: 'var(--color-text)',
                 fontSize: 13,
                 outline: 'none',
               }}
@@ -887,9 +782,9 @@ export default function ProjectsDashboard({
                 gap: 6,
                 padding: '6px 12px',
                 background: 'transparent',
-                border: '1px solid var(--border-default)',
+                border: '1px solid var(--color-border)',
                 borderRadius: 6,
-                color: 'var(--text-secondary)',
+                color: 'var(--color-text-dim)',
                 fontSize: 13,
                 cursor: 'pointer',
               }}
@@ -901,9 +796,9 @@ export default function ProjectsDashboard({
               style={{
                 padding: '6px 12px',
                 background: 'transparent',
-                border: '1px solid var(--border-default)',
+                border: '1px solid var(--color-border)',
                 borderRadius: 6,
-                color: 'var(--text-secondary)',
+                color: 'var(--color-text-dim)',
                 fontSize: 13,
                 cursor: 'pointer',
               }}
@@ -925,8 +820,8 @@ export default function ProjectsDashboard({
                   padding: '6px 0',
                   background: 'transparent',
                   border: 'none',
-                  borderBottom: activeSection === tab.toLowerCase() ? '2px solid var(--text-primary)' : '2px solid transparent',
-                  color: activeSection === tab.toLowerCase() ? 'var(--text-primary)' : 'var(--text-muted)',
+                  borderBottom: activeSection === tab.toLowerCase() ? '2px solid var(--color-text)' : '2px solid transparent',
+                  color: activeSection === tab.toLowerCase() ? 'var(--color-text)' : 'var(--color-text-muted)',
                   fontSize: 13,
                   fontWeight: 500,
                   cursor: 'pointer',
@@ -944,7 +839,7 @@ export default function ProjectsDashboard({
           ) : (
             <>
               {activeSection === 'trash' && filteredProjects.length > 0 && (
-                <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                   Items in trash will be permanently deleted after 30 days.
                 </div>
@@ -990,7 +885,7 @@ export default function ProjectsDashboard({
                 alignItems: 'center',
                 justifyContent: 'center',
                 height: 300,
-                color: 'var(--text-muted)',
+                color: 'var(--color-text-muted)',
               }}
             >
               <div style={{ fontSize: 48, marginBottom: 16 }}>📁</div>

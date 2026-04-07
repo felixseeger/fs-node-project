@@ -1,0 +1,20 @@
+wing: node_project
+rooms:
+- name: frontend
+  description: Files from frontend/
+- name: test_screenshots
+  description: Files from test-screenshots/
+- name: public
+  description: Files from public/
+- name: lib
+  description: Files from lib/
+- name: backend
+  description: Files from api/
+- name: skills
+  description: Files from skills/
+- name: downloads
+  description: Files from downloads/
+- name: design
+  description: Files from assets/
+- name: general
+  description: Files that don't fit other rooms

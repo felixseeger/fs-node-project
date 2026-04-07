@@ -13,7 +13,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { generateAIWorkflow, suggestNodes } from './utils/api';
+import { generateAIWorkflow, suggestNodes, chatWithAI } from './utils/api';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirebaseAuth, initializeFirebase, enableOfflinePersistence } from './config/firebase';
 import { useFirebaseWorkflows } from './hooks/useFirebaseWorkflows';
@@ -98,6 +98,7 @@ import LayoutHelper, { alignmentFunctions } from './LayoutHelper';
 import { isValidConnection, getHandleColor, getHandleDataType } from './utils/handleTypes';
 import { NODE_MENU, DEFAULT_NODES, DEFAULT_EDGES } from './config/nodeMenu.js';
 import { isHandleConnected, getConnectionInfo as getConnectionInfoBase } from './helpers/nodeData.js';
+import NodePropertyEditor from './nodes/NodePropertyEditor';
 
 const GridIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>);
 const CollageIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 22H4a2 2 0 0 1-2-2V6"></path><path d="M22 18H8a2 2 0 0 0-2 2v-12a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z"></path><circle cx="13.5" cy="8.5" r="1.5"></circle><polyline points="22 13 18 10 11 15"></polyline></svg>);
@@ -333,6 +334,10 @@ export default function App() {
   const clipboardRef = useRef(null);
   const pastePositionRef = useRef(null);
   const chatUIRef = useRef(null);
+  const [chatMessages, setChatMessages] = useState([
+    { role: 'assistant', content: 'Hello! I am your AI assistant. How can I help you build your workflow today?' }
+  ]);
+  const [isChatting, setIsChatting] = useState(false);
 
   const reactFlowWrapper = useRef(null);
   const edgesRef = useRef(edges);
@@ -354,6 +359,84 @@ export default function App() {
       };
     });
   }, []);
+
+  const updateNodeData = useCallback(
+    (nodeId, patch) => {
+      saveHistory();
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n
+        )
+      );
+    },
+    [setNodes]
+  );
+
+  const onConnect = useCallback(
+    (connection) => {
+      const edgeColor = getHandleColor(connection.sourceHandle);
+      const newEdge = {
+        ...connection,
+        id: `e-${connection.source}-${connection.sourceHandle}-${connection.target}-${connection.targetHandle}`,
+        style: { stroke: edgeColor, strokeWidth: 2 },
+        type: 'default',
+      };
+      setEdges((eds) => addEdge(newEdge, eds));
+
+      if (connection.target) {
+        const targetNode = nodesRef.current.find((n) => n.id === connection.target);
+        if (targetNode?.type === 'response') {
+          const sourceNode = nodesRef.current.find((n) => n.id === connection.source);
+          const existingFields = targetNode.data.responseFields || [];
+          const newField = {
+            id: `${connection.source}-${connection.sourceHandle}`,
+            label: connection.sourceHandle,
+            source: {
+              nodeLabel: sourceNode?.data.label || connection.source,
+              handle: connection.sourceHandle,
+            },
+            color: edgeColor,
+          };
+          if (!existingFields.find((f) => f.id === newField.id)) {
+            updateNodeData(connection.target, {
+              responseFields: [...existingFields, newField],
+            });
+          }
+        }
+      }
+    },
+    [setEdges, updateNodeData]
+  );
+
+  const onEdgesDelete = useCallback(
+    (deletedEdges) => {
+      for (const edge of deletedEdges) {
+        const targetNode = nodesRef.current.find((n) => n.id === edge.target);
+        if (targetNode?.type === 'response') {
+          const fieldId = `${edge.source}-${edge.sourceHandle}`;
+          const fields = targetNode.data.responseFields || [];
+          updateNodeData(edge.target, {
+            responseFields: fields.filter((f) => f.id !== fieldId),
+          });
+        }
+      }
+    },
+    [updateNodeData]
+  );
+
+  const addNode = useCallback(
+    (type, defaults) => {
+      const id = nextId();
+      const newNode = {
+        id,
+        type,
+        position: { x: 350 + Math.random() * 200, y: 100 + Math.random() * 300 },
+        data: { ...defaults },
+      };
+      setNodes((nds) => [...nds, newNode]);
+    },
+    [setNodes]
+  );
 
   const handleUndo = useCallback(() => {
     setHistory((prev) => {
@@ -405,6 +488,312 @@ export default function App() {
     isHistoryAction.current = false;
     onEdgesChange(changes);
   }, [onEdgesChange, saveHistory]);
+
+  const nodeTypes = useMemo(
+    () => ({
+      inputNode: InputNode,
+      textNode: TextNode,
+      imageNode: ImageNode,
+      assetNode: AssetNode,
+      sourceMediaNode: SourceMediaNode,
+      imageAnalyzer: ImageAnalyzerNode,
+      generator: GeneratorNode,
+      creativeUpscale: CreativeUpScaleNode,
+      precisionUpscale: PrecisionUpScaleNode,
+      relight: RelightNode,
+      styleTransfer: StyleTransferNode,
+      removeBackground: RemoveBackgroundNode,
+      fluxReimagine: FluxReimagineNode,
+      fluxImageExpand: FluxImageExpandNode,
+      seedreamExpand: SeedreamExpandNode,
+      ideogramExpand: IdeogramExpandNode,
+      skinEnhancer: SkinEnhancerNode,
+      ideogramInpaint: IdeogramInpaintNode,
+      changeCamera: ChangeCameraNode,
+      kling3: Kling3Node,
+      kling3Omni: Kling3OmniNode,
+      kling3Motion: Kling3MotionControlNode,
+      klingElementsPro: KlingElementsProNode,
+      klingO1: KlingO1Node,
+      minimaxLive: MiniMaxLiveNode,
+      wan26: Wan26VideoNode,
+      seedance: SeedanceNode,
+      ltxVideo2Pro: LtxVideo2ProNode,
+      runwayGen45: RunwayGen45Node,
+      runwayGen4Turbo: RunwayGen4TurboNode,
+      runwayActTwo: RunwayActTwoNode,
+      pixVerseV5: PixVerseV5Node,
+      pixVerseV5Transition: PixVerseV5TransitionNode,
+      omniHuman: OmniHumanNode,
+      vfx: VfxNode,
+      creativeVideoUpscale: CreativeVideoUpscaleNode,
+      precisionVideoUpscale: PrecisionVideoUpscaleNode,
+      textToIcon: TextToIconNode,
+      imageToPrompt: ImageToPromptNode,
+      improvePrompt: ImprovePromptNode,
+      aiImageClassifier: AIImageClassifierNode,
+      musicGeneration: MusicGenerationNode,
+      soundEffects: SoundEffectsNode,
+      audioIsolation: AudioIsolationNode,
+      voiceover: VoiceoverNode,
+      response: ResponseNode,
+      adaptedPrompt: AdaptedPromptNode,
+      layerEditor: LayerEditorNode,
+      comment: CommentNode,
+      routerNode: RouterNode,
+      groupEditing: GroupEditingNode,
+      facialEditing: FacialEditingNode,
+      universalGeneratorImage: ImageUniversalGeneratorNode,
+      universalGeneratorVideo: VideoUniversalGeneratorNode,
+      videoImprove: VideoImproveNode,
+      quiverTextToVector: QuiverTextToVectorGenerationNode,
+      quiverImageToVector: QuiverImageToVectorGenerationNode,
+      textElement: TextElementNode,
+    }),
+    []
+  );
+
+  // Resolve input data from connected edges
+  const resolveInput = useCallback((nodeId, handleId, originalHandleId = handleId) => {
+    const currentEdges = edgesRef.current;
+    const currentNodes = nodesRef.current;
+
+    const incoming = currentEdges.filter(
+      (e) => e.target === nodeId && e.targetHandle === handleId
+    );
+    if (incoming.length === 0) return null;
+
+    const results = [];
+    for (const edge of incoming) {
+      const sourceNode = currentNodes.find((n) => n.id === edge.source);
+      if (!sourceNode) continue;
+
+      const sd = sourceNode.data;
+      const sh = edge.sourceHandle;
+
+      if (sourceNode.type === 'inputNode') {
+        const val = sd.fieldValues?.[sh];
+        if (val !== undefined) {
+          if (Array.isArray(val)) results.push(...val);
+          else results.push(val);
+        }
+      } else if (sourceNode.type === 'textNode') {
+        if (sd.text) results.push(sd.text);
+      } else if (sourceNode.type === 'imageNode') {
+        if (sd.images?.length) results.push(...sd.images);
+      } else if (sourceNode.type === 'routerNode') {
+        const routedInput = resolveInput(sourceNode.id, 'in', originalHandleId);
+        if (routedInput !== null && routedInput !== undefined) {
+          if (Array.isArray(routedInput)) results.push(...routedInput);
+          else results.push(routedInput);
+        }
+      } else if (sourceNode.type === 'layerEditor') {
+        if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
+      } else if (sourceNode.type === 'facialEditing') {
+        if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
+      } else if (sourceNode.type === 'groupEditing') {
+        if (sh === 'images-out' && sd.outputImages) results.push(...sd.outputImages);
+        if (sh === 'video-out' && sd.outputVideo) results.push(sd.outputVideo);
+      } else if (sourceNode.type === 'videoImprove') {
+        if (sh === 'video-out' && sd.outputVideo) results.push(sd.outputVideo);
+      } else if (sourceNode.type === 'imageAnalyzer') {
+        if (sh === 'analysis-out' && sd.analysisResult) results.push(sd.analysisResult);
+        if (sh === 'image-out' && sd.localImages?.length) results.push(...sd.localImages);
+      } else if (sourceNode.type === 'generator') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'creativeUpscale') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'precisionUpscale') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+      } else if (sourceNode.type === 'relight') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'styleTransfer') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'removeBackground') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+      } else if (sourceNode.type === 'fluxReimagine') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'textToIcon') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'imageToPrompt') {
+        if (sh === 'prompt-out' && sd.outputPrompt) results.push(sd.outputPrompt);
+      } else if (sourceNode.type === 'improvePrompt') {
+        if (sh === 'prompt-out' && sd.outputPrompt) results.push(sd.outputPrompt);
+      } else if (sourceNode.type === 'aiImageClassifier') {
+        if (sh === 'text-out' && sd.outputText) results.push(sd.outputText);
+      } else if (sourceNode.type === 'musicGeneration') {
+        if (sh === 'output-audio' && sd.outputAudio) results.push(sd.outputAudio);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'soundEffects') {
+        if (sh === 'output-audio' && sd.outputAudio) results.push(sd.outputAudio);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'audioIsolation') {
+        if (sh === 'output-audio' && sd.outputAudio) results.push(sd.outputAudio);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'voiceover') {
+        if (sh === 'output-audio' && sd.outputAudio) results.push(sd.outputAudio);
+      } else if (sourceNode.type === 'fluxImageExpand') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'seedreamExpand') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'ideogramExpand') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'skinEnhancer') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+      } else if (sourceNode.type === 'ideogramInpaint') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'changeCamera') {
+        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+      } else if (sourceNode.type === 'kling3') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'kling3Omni') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'kling3Motion') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'klingElementsPro') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'klingO1') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'minimaxLive') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'wan26') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'seedance') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'ltxVideo2Pro') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'runwayGen45') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'runwayGen4Turbo') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'runwayActTwo') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+      } else if (sourceNode.type === 'pixVerseV5') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'pixVerseV5Transition') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'omniHuman') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'vfx') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+      } else if (sourceNode.type === 'creativeVideoUpscale') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+      } else if (sourceNode.type === 'precisionVideoUpscale') {
+        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+      } else if (sourceNode.type === 'quiverTextToVector') {
+        if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
+      } else if (sourceNode.type === 'quiverImageToVector') {
+        if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
+      } else if (sourceNode.type === 'adaptedPrompt' && sh === 'prompt-out') {
+        if (sd.adaptedPrompt) results.push(sd.adaptedPrompt);
+      } else if (sourceNode.type === 'sourceMediaNode') {
+        if (sh === 'image-out' && sd.mediaFiles?.length) {
+          const images = sd.mediaFiles.filter(m => m.type === 'image').map(m => m.url);
+          results.push(...images);
+        }
+        if (sh === 'video-out' && sd.mediaFiles?.length) {
+          const videos = sd.mediaFiles.filter(m => m.type === 'video').map(m => m.url);
+          results.push(...videos);
+        }
+        if (sh === 'audio-out' && sd.mediaFiles?.length) {
+          const audio = sd.mediaFiles.filter(m => m.type === 'audio').map(m => m.url);
+          results.push(...audio);
+        }
+        if (sh === 'output' && sd.mediaFiles?.length) {
+          results.push(...sd.mediaFiles.map(m => m.url));
+        }
+      }
+    }
+
+    const dataType = getHandleDataType(originalHandleId);
+    if (dataType === 'image') return results;
+    if (results.length === 1) return results[0];
+    return results.length > 0 ? results.join('\n') : null;
+  }, []);
+
+  // Use base helpers with ref-based edge/node access
+  const hasConnection = useCallback((nodeId, handleId) => {
+    return isHandleConnected(nodeId, handleId, edgesRef.current);
+  }, []);
+
+  const getConnectionInfo = useCallback((nodeId, handleId) => {
+    return getConnectionInfoBase(nodeId, handleId, edgesRef.current, nodesRef.current);
+  }, []);
+
+
+  const nodesWithCallbacks = useMemo(() => {
+    return nodes.map((n) => ({
+      ...n,
+      data: {
+        ...n.data,
+        onUpdate: updateNodeData,
+        resolveInput,
+        hasConnection,
+        getConnectionInfo,
+        onAnalyzeComplete: (nodeId) => {
+          if (analyzeResolvers.current[nodeId]) {
+            analyzeResolvers.current[nodeId]();
+            delete analyzeResolvers.current[nodeId];
+          }
+        },
+        onAddToInput: (fieldType, targetNodeId, targetHandle) => {
+          const inputNode = nodesRef.current.find((nd) => nd.type === 'inputNode');
+          if (!inputNode) return;
+          const fields = inputNode.data.initialFields || [];
+          if (!fields.includes(fieldType)) {
+            updateNodeData(inputNode.id, {
+              initialFields: [...fields, fieldType],
+            });
+          }
+          const newEdge = {
+            id: `e-${inputNode.id}-${fieldType}-${targetNodeId}-${targetHandle}`,
+            source: inputNode.id,
+            sourceHandle: fieldType,
+            target: targetNodeId,
+            targetHandle: targetHandle,
+            style: { stroke: getHandleColor(fieldType), strokeWidth: 2 },
+          };
+          setEdges((eds) => addEdge(newEdge, eds));
+        },
+        onUnlink: (targetNodeId, targetHandle) => {
+          setEdges((eds) =>
+            eds.filter(
+              (e) => !(e.target === targetNodeId && e.targetHandle === targetHandle)
+            )
+          );
+        },
+        onDisconnectNode: (nodeId) => {
+          setEdges((eds) =>
+            eds.filter((e) => e.source !== nodeId && e.target !== nodeId)
+          );
+        },
+      },
+    }));
+  }, [nodes, edges, updateNodeData, resolveInput, hasConnection, getConnectionInfo, setEdges]);
 
 
   const onDragOver = useCallback((event) => {
@@ -988,388 +1377,6 @@ export default function App() {
   }, [activeWorkflowId, workflows, setNodes, setEdges]);
 
 
-  const nodeTypes = useMemo(
-    () => ({
-      inputNode: InputNode,
-      textNode: TextNode,
-      imageNode: ImageNode,
-      assetNode: AssetNode,
-      sourceMediaNode: SourceMediaNode,
-      imageAnalyzer: ImageAnalyzerNode,
-      generator: GeneratorNode,
-      creativeUpscale: CreativeUpScaleNode,
-      precisionUpscale: PrecisionUpScaleNode,
-      relight: RelightNode,
-      styleTransfer: StyleTransferNode,
-      removeBackground: RemoveBackgroundNode,
-      fluxReimagine: FluxReimagineNode,
-      fluxImageExpand: FluxImageExpandNode,
-      seedreamExpand: SeedreamExpandNode,
-      ideogramExpand: IdeogramExpandNode,
-      skinEnhancer: SkinEnhancerNode,
-      ideogramInpaint: IdeogramInpaintNode,
-      changeCamera: ChangeCameraNode,
-      kling3: Kling3Node,
-      kling3Omni: Kling3OmniNode,
-      kling3Motion: Kling3MotionControlNode,
-      klingElementsPro: KlingElementsProNode,
-      klingO1: KlingO1Node,
-      minimaxLive: MiniMaxLiveNode,
-      wan26: Wan26VideoNode,
-      seedance: SeedanceNode,
-      ltxVideo2Pro: LtxVideo2ProNode,
-      runwayGen45: RunwayGen45Node,
-      runwayGen4Turbo: RunwayGen4TurboNode,
-      runwayActTwo: RunwayActTwoNode,
-      pixVerseV5: PixVerseV5Node,
-      pixVerseV5Transition: PixVerseV5TransitionNode,
-      omniHuman: OmniHumanNode,
-      vfx: VfxNode,
-      creativeVideoUpscale: CreativeVideoUpscaleNode,
-      precisionVideoUpscale: PrecisionVideoUpscaleNode,
-      textToIcon: TextToIconNode,
-      imageToPrompt: ImageToPromptNode,
-      improvePrompt: ImprovePromptNode,
-      aiImageClassifier: AIImageClassifierNode,
-      musicGeneration: MusicGenerationNode,
-      soundEffects: SoundEffectsNode,
-      audioIsolation: AudioIsolationNode,
-      voiceover: VoiceoverNode,
-      response: ResponseNode,
-      adaptedPrompt: AdaptedPromptNode,
-      layerEditor: LayerEditorNode,
-      comment: CommentNode,
-      routerNode: RouterNode,
-      groupEditing: GroupEditingNode,
-      facialEditing: FacialEditingNode,
-      universalGeneratorImage: ImageUniversalGeneratorNode,
-      universalGeneratorVideo: VideoUniversalGeneratorNode,
-      videoImprove: VideoImproveNode,
-      quiverTextToVector: QuiverTextToVectorGenerationNode,
-      quiverImageToVector: QuiverImageToVectorGenerationNode,
-      textElement: TextElementNode,
-    }),
-    []
-  );
-
-  // Resolve input data from connected edges
-  const resolveInput = useCallback((nodeId, handleId, originalHandleId = handleId) => {
-    const currentEdges = edgesRef.current;
-    const currentNodes = nodesRef.current;
-
-    const incoming = currentEdges.filter(
-      (e) => e.target === nodeId && e.targetHandle === handleId
-    );
-    if (incoming.length === 0) return null;
-
-    const results = [];
-    for (const edge of incoming) {
-      const sourceNode = currentNodes.find((n) => n.id === edge.source);
-      if (!sourceNode) continue;
-
-      const sd = sourceNode.data;
-      const sh = edge.sourceHandle;
-
-      if (sourceNode.type === 'inputNode') {
-        const val = sd.fieldValues?.[sh];
-        if (val !== undefined) {
-          if (Array.isArray(val)) results.push(...val);
-          else results.push(val);
-        }
-      } else if (sourceNode.type === 'textNode') {
-        if (sd.text) results.push(sd.text);
-      } else if (sourceNode.type === 'imageNode') {
-        if (sd.images?.length) results.push(...sd.images);
-      } else if (sourceNode.type === 'routerNode') {
-        const routedInput = resolveInput(sourceNode.id, 'in', originalHandleId);
-        if (routedInput !== null && routedInput !== undefined) {
-          if (Array.isArray(routedInput)) results.push(...routedInput);
-          else results.push(routedInput);
-        }
-      } else if (sourceNode.type === 'layerEditor') {
-        if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
-      } else if (sourceNode.type === 'facialEditing') {
-        if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
-      } else if (sourceNode.type === 'groupEditing') {
-        if (sh === 'images-out' && sd.outputImages) results.push(...sd.outputImages);
-        if (sh === 'video-out' && sd.outputVideo) results.push(sd.outputVideo);
-      } else if (sourceNode.type === 'videoImprove') {
-        if (sh === 'video-out' && sd.outputVideo) results.push(sd.outputVideo);
-      } else if (sourceNode.type === 'imageAnalyzer') {
-        if (sh === 'analysis-out' && sd.analysisResult) results.push(sd.analysisResult);
-        if (sh === 'image-out' && sd.localImages?.length) results.push(...sd.localImages);
-      } else if (sourceNode.type === 'generator') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'creativeUpscale') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'precisionUpscale') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-      } else if (sourceNode.type === 'relight') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'styleTransfer') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'removeBackground') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-      } else if (sourceNode.type === 'fluxReimagine') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'textToIcon') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'imageToPrompt') {
-        if (sh === 'prompt-out' && sd.outputPrompt) results.push(sd.outputPrompt);
-      } else if (sourceNode.type === 'improvePrompt') {
-        if (sh === 'prompt-out' && sd.outputPrompt) results.push(sd.outputPrompt);
-      } else if (sourceNode.type === 'aiImageClassifier') {
-        if (sh === 'text-out' && sd.outputText) results.push(sd.outputText);
-      } else if (sourceNode.type === 'musicGeneration') {
-        if (sh === 'output-audio' && sd.outputAudio) results.push(sd.outputAudio);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'soundEffects') {
-        if (sh === 'output-audio' && sd.outputAudio) results.push(sd.outputAudio);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'audioIsolation') {
-        if (sh === 'output-audio' && sd.outputAudio) results.push(sd.outputAudio);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'voiceover') {
-        if (sh === 'output-audio' && sd.outputAudio) results.push(sd.outputAudio);
-      } else if (sourceNode.type === 'fluxImageExpand') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'seedreamExpand') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'ideogramExpand') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'skinEnhancer') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-      } else if (sourceNode.type === 'ideogramInpaint') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'changeCamera') {
-        if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
-      } else if (sourceNode.type === 'kling3') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'kling3Omni') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'kling3Motion') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'klingElementsPro') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'klingO1') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'minimaxLive') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'wan26') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'seedance') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'ltxVideo2Pro') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'runwayGen45') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'runwayGen4Turbo') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'runwayActTwo') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-      } else if (sourceNode.type === 'pixVerseV5') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'pixVerseV5Transition') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'omniHuman') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'vfx') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-      } else if (sourceNode.type === 'creativeVideoUpscale') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-      } else if (sourceNode.type === 'precisionVideoUpscale') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-      } else if (sourceNode.type === 'quiverTextToVector') {
-        if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
-      } else if (sourceNode.type === 'quiverImageToVector') {
-        if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
-      } else if (sourceNode.type === 'adaptedPrompt' && sh === 'prompt-out') {
-        if (sd.adaptedPrompt) results.push(sd.adaptedPrompt);
-      } else if (sourceNode.type === 'sourceMediaNode') {
-        if (sh === 'image-out' && sd.mediaFiles?.length) {
-          const images = sd.mediaFiles.filter(m => m.type === 'image').map(m => m.url);
-          results.push(...images);
-        }
-        if (sh === 'video-out' && sd.mediaFiles?.length) {
-          const videos = sd.mediaFiles.filter(m => m.type === 'video').map(m => m.url);
-          results.push(...videos);
-        }
-        if (sh === 'audio-out' && sd.mediaFiles?.length) {
-          const audio = sd.mediaFiles.filter(m => m.type === 'audio').map(m => m.url);
-          results.push(...audio);
-        }
-        if (sh === 'output' && sd.mediaFiles?.length) {
-          results.push(...sd.mediaFiles.map(m => m.url));
-        }
-      }
-    }
-
-    const dataType = getHandleDataType(originalHandleId);
-    if (dataType === 'image') return results;
-    if (results.length === 1) return results[0];
-    return results.length > 0 ? results.join('\n') : null;
-  }, []);
-
-  // Use base helpers with ref-based edge/node access
-  const hasConnection = useCallback((nodeId, handleId) => {
-    return isHandleConnected(nodeId, handleId, edgesRef.current);
-  }, []);
-
-  const getConnectionInfo = useCallback((nodeId, handleId) => {
-    return getConnectionInfoBase(nodeId, handleId, edgesRef.current, nodesRef.current);
-  }, []);
-
-  const updateNodeData = useCallback(
-    (nodeId, patch) => {
-      saveHistory();
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n
-        )
-      );
-    },
-    [setNodes]
-  );
-
-  const nodesWithCallbacks = useMemo(() => {
-    return nodes.map((n) => ({
-      ...n,
-      data: {
-        ...n.data,
-        onUpdate: updateNodeData,
-        resolveInput,
-        hasConnection,
-        getConnectionInfo,
-        onAnalyzeComplete: (nodeId) => {
-          if (analyzeResolvers.current[nodeId]) {
-            analyzeResolvers.current[nodeId]();
-            delete analyzeResolvers.current[nodeId];
-          }
-        },
-        onAddToInput: (fieldType, targetNodeId, targetHandle) => {
-          const inputNode = nodesRef.current.find((nd) => nd.type === 'inputNode');
-          if (!inputNode) return;
-          const fields = inputNode.data.initialFields || [];
-          if (!fields.includes(fieldType)) {
-            updateNodeData(inputNode.id, {
-              initialFields: [...fields, fieldType],
-            });
-          }
-          const newEdge = {
-            id: `e-${inputNode.id}-${fieldType}-${targetNodeId}-${targetHandle}`,
-            source: inputNode.id,
-            sourceHandle: fieldType,
-            target: targetNodeId,
-            targetHandle: targetHandle,
-            style: { stroke: getHandleColor(fieldType), strokeWidth: 2 },
-          };
-          setEdges((eds) => addEdge(newEdge, eds));
-        },
-        onUnlink: (targetNodeId, targetHandle) => {
-          setEdges((eds) =>
-            eds.filter(
-              (e) => !(e.target === targetNodeId && e.targetHandle === targetHandle)
-            )
-          );
-        },
-        onDisconnectNode: (nodeId) => {
-          setEdges((eds) =>
-            eds.filter((e) => e.source !== nodeId && e.target !== nodeId)
-          );
-        },
-      },
-    }));
-  }, [nodes, edges, updateNodeData, resolveInput, hasConnection, getConnectionInfo, setEdges]);
-
-  const onConnect = useCallback(
-    (connection) => {
-      const edgeColor = getHandleColor(connection.sourceHandle);
-      const newEdge = {
-        ...connection,
-        id: `e-${connection.source}-${connection.sourceHandle}-${connection.target}-${connection.targetHandle}`,
-        style: { stroke: edgeColor, strokeWidth: 2 },
-        type: 'default',
-      };
-      setEdges((eds) => addEdge(newEdge, eds));
-
-      if (connection.target) {
-        const targetNode = nodesRef.current.find((n) => n.id === connection.target);
-        if (targetNode?.type === 'response') {
-          const sourceNode = nodesRef.current.find((n) => n.id === connection.source);
-          const existingFields = targetNode.data.responseFields || [];
-          const newField = {
-            id: `${connection.source}-${connection.sourceHandle}`,
-            label: connection.sourceHandle,
-            source: {
-              nodeLabel: sourceNode?.data.label || connection.source,
-              handle: connection.sourceHandle,
-            },
-            color: edgeColor,
-          };
-          if (!existingFields.find((f) => f.id === newField.id)) {
-            updateNodeData(connection.target, {
-              responseFields: [...existingFields, newField],
-            });
-          }
-        }
-      }
-    },
-    [setEdges, updateNodeData]
-  );
-
-  const onEdgesDelete = useCallback(
-    (deletedEdges) => {
-      for (const edge of deletedEdges) {
-        const targetNode = nodesRef.current.find((n) => n.id === edge.target);
-        if (targetNode?.type === 'response') {
-          const fieldId = `${edge.source}-${edge.sourceHandle}`;
-          const fields = targetNode.data.responseFields || [];
-          updateNodeData(edge.target, {
-            responseFields: fields.filter((f) => f.id !== fieldId),
-          });
-        }
-      }
-    },
-    [updateNodeData]
-  );
-
-  const addNode = useCallback(
-    (type, defaults) => {
-      const id = nextId();
-      const newNode = {
-        id,
-        type,
-        position: { x: 350 + Math.random() * 200, y: 100 + Math.random() * 300 },
-        data: { ...defaults },
-      };
-      setNodes((nds) => [...nds, newNode]);
-    },
-    [setNodes]
-  );
 
   // Global generate: run analyzers first, then generators
   const [isRunning, setIsRunning] = useState(false);
@@ -1918,21 +1925,23 @@ export default function App() {
   }
 
   // Auth guard — show login/signup if not authenticated
-  if (authLoading) {
-    return (
-      <div style={{ width: '100vw', height: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontFamily: 'Inter, system-ui, sans-serif' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.1)', borderTop: '2px solid #3b82f6', borderRadius: '50%', animation: 'authSpin 0.8s linear infinite' }} />
-          <span>Loading account...</span>
-        </div>
-        <style>{`@keyframes authSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
+  // No auth guard here - we want LandingPage to be visible while loading
+  // if not authenticated yet.
+
+
+  // Handle unauthenticated navigation
+  if (!isAuthenticated && currentPage !== 'landing' && !currentPage.startsWith('auth-')) {
+    // If not landing and not an auth page, redirect to landing
+    setCurrentPage('landing');
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && currentPage.startsWith('auth-')) {
+    const initialScreen = currentPage.replace('auth-', '');
     return (
-      <AuthPage />
+      <AuthPage
+        initialScreen={initialScreen === 'login' || initialScreen === 'signup' ? initialScreen : 'login'}
+        onNavigate={setCurrentPage}
+      />
     );
   }
 
@@ -1956,25 +1965,24 @@ export default function App() {
     );
   }
 
-  // Show loading while auth is initializing
-  if (authLoading) {
+  // Landing page for non-authenticated users OR when explicitly navigated to landing
+  if (!isAuthenticated || currentPage === 'landing') {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100vw', height: '100vh', background: '#0a0a0a', color: '#fff' }}>
-        <div>Loading...</div>
-      </div>
-    );
-  }
-
-  // Landing page for non-authenticated users
-  if (!isAuthenticated) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
-        <TopBar currentPage="landing" onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={false} />
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+      <div className="app-container">
+        <TopBar 
+          currentPage={currentPage}
+          onNavigate={setCurrentPage} 
+          workflowName={null} 
+          onLogout={handleLogout} 
+          onOpenProfile={() => setIsProfileModalOpen(true)} 
+          isAuthenticated={isAuthenticated} 
+        />
+        <div className="app-content">
           <LandingPage
             onCreateWorkflow={handleCreateWorkflow}
             onDeleteWorkflows={handleDeleteWorkflows}
             workflows={workflows}
+            onNavigate={setCurrentPage}
           />
         </div>
       </div>
@@ -2018,9 +2026,9 @@ export default function App() {
 
   if (currentPage === 'workspaces') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
+      <div className="app-container">
         <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div className="app-content">
           <WorkspacesPage
             onCreateWorkspace={(name) => {
               // Stub for creating workspace
@@ -2038,9 +2046,9 @@ export default function App() {
 
   if (currentPage === 'workflow-settings') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
+      <div className="app-container">
         <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div className="app-content">
           <WorkflowSettingsPage />
         </div>
         <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
@@ -2049,7 +2057,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
+    <div className="app-container">
       <TopBar
         currentPage={currentPage}
         onNavigate={() => handleBackToHome()}
@@ -2070,23 +2078,30 @@ export default function App() {
         isAuthenticated={isAuthenticated}
       />
       {isRenameModalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div style={{ background: '#1c1c1c', padding: 24, borderRadius: 12, border: '1px solid #333', width: 320 }}>
-            <h3 style={{ margin: '0 0 16px', color: '#fff', fontSize: 16 }}>Rename Workspace</h3>
+        <div className="modal-overlay">
+          <div className="modal-surface">
+            <h3 className="modal-title">Rename Workspace</h3>
             <input
               autoFocus
+              className="modal-input"
               type="text"
               value={newWorkflowName}
               onChange={e => setNewWorkflowName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleRenameSubmit(); if (e.key === 'Escape') setIsRenameModalOpen(false); }}
-              style={{ width: '100%', padding: '10px 12px', background: '#111', border: '1px solid #333', borderRadius: 8, color: '#e0e0e0', outline: 'none', marginBottom: 16, boxSizing: 'border-box' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button onClick={() => setIsRenameModalOpen(false)} style={{ padding: '8px 16px', background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', borderRadius: 6 }}>Cancel</button>
-              <button onClick={handleRenameSubmit} style={{ padding: '8px 16px', background: '#3b82f6', border: 'none', color: '#fff', cursor: 'pointer', borderRadius: 6, fontWeight: 600 }}>Save</button>
+            <div className="modal-actions">
+              <button 
+                className="modal-btn modal-btn-secondary" 
+                onClick={() => setIsRenameModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="modal-btn modal-btn-primary" 
+                onClick={handleRenameSubmit}
+              >
+                Save
+              </button>
             </div>
           </div>
         </div>
@@ -2159,6 +2174,20 @@ export default function App() {
             }}
           />
 
+          {/* Node Property Editor - Right Side */}
+          {currentPage === 'editor' && nodes.filter(n => n.selected).length === 1 && (
+            <NodePropertyEditor
+              node={nodes.find(n => n.selected)}
+              isChatOpen={isChatOpen}
+              onUpdate={updateNodeData}
+              onDelete={(id) => {
+                saveHistory();
+                setNodes(nds => nds.filter(n => n.id !== id));
+                setEdges(eds => eds.filter(e => e.source !== id && e.target !== id));
+              }}
+            />
+          )}
+
           {/* Chat Button - Bottom Left */}
           <ChatButton
             isOpen={isChatOpen}
@@ -2217,10 +2246,28 @@ export default function App() {
             ref={chatUIRef}
             isOpen={isChatOpen}
             onClose={() => setIsChatOpen(false)}
-            onSendMessage={(message) => {
-              console.log('[ChatUI] Message sent:', message);
-              // Message is handled in the chat UI, generation happens on Generate button
+            onSendMessage={async (message) => {
+              const newUserMsg = { role: 'user', content: message };
+              const updatedMessages = [...chatMessages, newUserMsg];
+              setChatMessages(updatedMessages);
+              setIsChatting(true);
+
+              try {
+                const response = await chatWithAI(updatedMessages);
+                if (response.success && response.content) {
+                  setChatMessages([...updatedMessages, { role: 'assistant', content: response.content }]);
+                } else {
+                  setChatMessages([...updatedMessages, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+                }
+              } catch (err) {
+                console.error('[ChatUI] Error sending message:', err);
+                setChatMessages([...updatedMessages, { role: 'assistant', content: 'Connection error. Please check your network and try again.' }]);
+              } finally {
+                setIsChatting(false);
+              }
             }}
+            messages={chatMessages}
+            isChatting={isChatting}
             onGenerate={async (message) => {
               if (!message || message.trim() === '') {
                 console.log('[ChatUI] No message to generate workflow from');

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import DecodedText from './DecodedText';
 
 const THINKING_PHRASES = [
   'Analyzing request...',
@@ -13,23 +14,19 @@ const ChatUI = forwardRef(({
   onClose,
   onSendMessage,
   onGenerate,
-  isGenerating,
-  tags = [],
+  isGenerating = false,
+  isChatting = false,
+  messages = [],
   disabled = false,
+  referenceImage = null,
+  setReferenceImage,
 }, ref) => {
   const [inputValue, setInputValue] = useState('');
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'assistant',
-      content: 'Hi! I\'m here to help you build your AI workflow. Describe what you\'d like to create, and I\'ll guide you through it.',
-      timestamp: new Date(),
-    },
-  ]);
   const [activeTags, setActiveTags] = useState(new Set(['Portrait', '10s']));
   const [thinkingIndex, setThinkingIndex] = useState(0);
   const textareaRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const imageInputRef = useRef(null);
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
@@ -39,14 +36,14 @@ const ChatUI = forwardRef(({
   // Cycle thinking phrases
   useEffect(() => {
     let interval;
-    if (isGenerating) {
+    if (isGenerating || isChatting) {
       setThinkingIndex(0);
       interval = setInterval(() => {
         setThinkingIndex((prev) => (prev + 1) % THINKING_PHRASES.length);
       }, 2500);
     }
     return () => clearInterval(interval);
-  }, [isGenerating]);
+  }, [isGenerating, isChatting]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -57,46 +54,35 @@ const ChatUI = forwardRef(({
     }
   }, [inputValue]);
 
+  const handleGenerate = () => {
+    if (isGenerating || disabled) return;
+    const messageToGenerate = inputValue.trim();
+    if (messageToGenerate) {
+      setInputValue('');
+      onGenerate?.(messageToGenerate);
+    }
+  };
+
   useImperativeHandle(ref, () => ({
     submitGeneration: () => {
       handleGenerate();
     }
   }));
 
-  const handleSend = () => {
-    if (!inputValue.trim() || isGenerating) return;
-
-    const userMessage = {
-      id: Date.now(),
-      type: 'user',
-      content: inputValue.trim(),
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    onSendMessage?.(inputValue.trim());
-    setInputValue('');
+  const toggleTag = (tag) => {
+    setActiveTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
+      return next;
+    });
   };
 
-  const handleGenerate = () => {
-    if (isGenerating || disabled) return;
-    // Pass the current input value to generate workflow from
-    const messageToGenerate = inputValue.trim();
-    if (messageToGenerate) {
-      // Add user message to chat first
-      const userMessage = {
-        id: Date.now(),
-        type: 'user',
-        content: messageToGenerate,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, userMessage]);
+  const handleSend = () => {
+    if (!inputValue.trim() || isGenerating || isChatting) return;
 
-      setInputValue('');
-
-      // Call onGenerate with the message
-      onGenerate?.(messageToGenerate);
-    }
+    onSendMessage?.(inputValue.trim());
+    setInputValue('');
   };
 
   const handleKeyDown = (e) => {
@@ -106,16 +92,20 @@ const ChatUI = forwardRef(({
     }
   };
 
-  const toggleTag = (tag) => {
-    setActiveTags((prev) => {
-      const next = new Set(prev);
-      if (next.has(tag)) {
-        next.delete(tag);
-      } else {
-        next.add(tag);
-      }
-      return next;
-    });
+
+  const handleImageClick = () => {
+    imageInputRef.current?.click();
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setReferenceImage?.(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   if (!isOpen) return null;
@@ -129,7 +119,7 @@ const ChatUI = forwardRef(({
         transform: 'translate(-50%, -50%)',
         width: 720,
         height: 480,
-        zIndex: 10,
+        zIndex: 2100,
         display: 'flex',
         flexDirection: 'column',
         background: '#1a1a1a',
@@ -218,7 +208,7 @@ const ChatUI = forwardRef(({
           gap: 12,
         }}
       >
-        {messages.map((msg) => (
+        {messages.map((msg, idx) => (
           <div
             key={msg.id}
             style={{
@@ -232,12 +222,16 @@ const ChatUI = forwardRef(({
               lineHeight: 1.5,
             }}
           >
-            {msg.content}
+            {msg.type === 'assistant' && idx === messages.length - 1 ? (
+              <DecodedText text={msg.content} active={true} />
+            ) : (
+              msg.content
+            )}
           </div>
         ))}
 
         {/* Thinking Indicator */}
-        {isGenerating && (
+        {(isGenerating || isChatting) && (
           <div
             style={{
               alignSelf: 'flex-start',
@@ -264,7 +258,11 @@ const ChatUI = forwardRef(({
               <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
             </svg>
             <span style={{ animation: 'pulseOpacity 2s ease-in-out infinite' }}>
-              {THINKING_PHRASES[thinkingIndex]}
+              <DecodedText
+                text={isGenerating ? THINKING_PHRASES[thinkingIndex] : "Thinking..."}
+                active={true}
+                speed={70}
+              />
             </span>
           </div>
         )}
@@ -280,6 +278,56 @@ const ChatUI = forwardRef(({
         }}
       >
         {/* Text Input */}
+        {/* Reference Image Preview */}
+        {referenceImage && (
+          <div style={{
+            padding: '8px 12px',
+            marginBottom: 8,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            background: '#222',
+            borderRadius: 8,
+            border: '1px solid #333',
+            position: 'relative',
+          }}>
+            <div style={{ position: 'relative', width: 40, height: 40 }}>
+              <img
+                src={referenceImage}
+                alt="Ref"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: 4,
+                }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#aaa' }}>Reference Image</div>
+              <div style={{ fontSize: 10, color: '#666' }}>Attached to prompt</div>
+            </div>
+            <button
+              onClick={() => setReferenceImage?.(null)}
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                background: '#333',
+                border: 'none',
+                color: '#fff',
+                fontSize: 10,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
         <div
           style={{
             position: 'relative',
@@ -293,13 +341,13 @@ const ChatUI = forwardRef(({
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe what you want to create..."
-            disabled={isGenerating}
+            placeholder={isGenerating || isChatting ? "AI is thinking..." : "Describe what you want to create..."}
+            disabled={isGenerating || isChatting || disabled}
             style={{
               width: '100%',
               minHeight: 44,
               maxHeight: 120,
-              padding: '12px 44px 12px 14px',
+              padding: '12px 80px 12px 14px',
               background: 'transparent',
               border: 'none',
               borderRadius: 10,
@@ -313,7 +361,7 @@ const ChatUI = forwardRef(({
           />
           <button
             onClick={handleSend}
-            disabled={!inputValue.trim() || isGenerating}
+            disabled={!inputValue.trim() || isGenerating || isChatting || disabled}
             style={{
               position: 'absolute',
               right: 8,
@@ -321,10 +369,10 @@ const ChatUI = forwardRef(({
               width: 28,
               height: 28,
               borderRadius: 6,
-              background: inputValue.trim() && !isGenerating ? '#3b82f6' : '#333',
+              background: inputValue.trim() && !isGenerating && !isChatting ? '#3b82f6' : '#333',
               border: 'none',
               color: '#fff',
-              cursor: inputValue.trim() && !isGenerating ? 'pointer' : 'not-allowed',
+              cursor: inputValue.trim() && !isGenerating && !isChatting ? 'pointer' : 'not-allowed',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -333,6 +381,43 @@ const ChatUI = forwardRef(({
             }}
           >
             &#9654;
+          </button>
+
+          {/* Image button */}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            style={{ display: 'none' }}
+          />
+          <button
+            onClick={handleImageClick}
+            disabled={isGenerating || isChatting || disabled}
+            style={{
+              position: 'absolute',
+              right: 44,
+              bottom: 8,
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              background: referenceImage ? 'rgba(34, 197, 94, 0.2)' : '#2a2a2a',
+              border: `1px solid ${referenceImage ? '#22c55e' : '#333'}`,
+              color: referenceImage ? '#22c55e' : '#888',
+              cursor: isGenerating || isChatting || disabled ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 14,
+              transition: 'all 0.2s',
+            }}
+            title="Add reference image"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
           </button>
         </div>
 

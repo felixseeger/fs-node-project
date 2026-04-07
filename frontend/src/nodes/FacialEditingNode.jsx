@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import NodeProgress from './NodeProgress';
@@ -29,16 +29,10 @@ export default function FacialEditingNode({ id, data, selected }) {
   const inputImage = resolve.image('image-in')?.[0];
   const inputIntensity = resolve.number('intensity-in');
   const outputImage = data.outputImage || null;
-  
+
   const finalIntensity = inputIntensity !== undefined ? inputIntensity : localIntensity;
 
-  useEffect(() => {
-    if (data.triggerGenerate) {
-      runGeneration();
-    }
-  }, [data.triggerGenerate]);
-
-  const runGeneration = async () => {
+  const runGeneration = useCallback(async () => {
     if (!inputImage) return;
     start();
     try {
@@ -59,7 +53,13 @@ export default function FacialEditingNode({ id, data, selected }) {
       console.error('Facial editing failed:', e);
       fail(e.message || 'Facial editing failed');
     }
-  };
+  }, [inputImage, localEmotion, finalIntensity, strictIdentity, maskFace, start, complete, fail, update]);
+
+  useEffect(() => {
+    if (data.triggerGenerate) {
+      runGeneration();
+    }
+  }, [data.triggerGenerate, runGeneration]);
 
   const handleIntensityChange = (e) => {
     const val = parseFloat(e.target.value);
@@ -76,7 +76,7 @@ export default function FacialEditingNode({ id, data, selected }) {
       isGenerating={isActive}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: sp[4] }}>
-        
+
         {/* Connection Handles */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, position: 'relative' }}>
@@ -111,8 +111,8 @@ export default function FacialEditingNode({ id, data, selected }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={{ ...font.xs, color: '#999', display: 'block', marginBottom: 4 }}>Emotion LoRA Vector</label>
-            <select 
-              value={localEmotion} 
+            <select
+              value={localEmotion}
               onChange={e => update({ emotion: e.target.value })}
               style={{ width: '100%', background: '#111', border: '1px solid #333', padding: '6px 10px', borderRadius: 6, color: '#e0e0e0', fontSize: 12, outline: 'none', appearance: 'none', cursor: 'pointer' }}
               className="nodrag"
@@ -124,7 +124,7 @@ export default function FacialEditingNode({ id, data, selected }) {
               <option value="Neutral">Neutral</option>
             </select>
           </div>
-          
+
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <label style={{ ...font.xs, color: '#999' }}>LoRA Intensity</label>
@@ -135,12 +135,12 @@ export default function FacialEditingNode({ id, data, selected }) {
                 <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', background: '#ec4899', borderRadius: 3, width: `${Math.max(0, Math.min(100, (finalIntensity + 1) / 2 * 100))}%` }} />
               </div>
             ) : (
-              <input 
-                type="range" 
-                min="-1.0" 
-                max="1.0" 
+              <input
+                type="range"
+                min="-1.0"
+                max="1.0"
                 step="0.05"
-                value={localIntensity} 
+                value={localIntensity}
                 onChange={handleIntensityChange}
                 style={{ width: '100%', cursor: 'pointer', accentColor: '#ec4899' }}
                 className="nodrag nopan"
@@ -162,7 +162,7 @@ export default function FacialEditingNode({ id, data, selected }) {
               </div>
             </label>
           </div>
-          
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ ...font.xs, color: '#999' }}>Mask Auto-Detection</span>
             <label style={{ display: 'inline-flex', cursor: 'pointer' }}>
