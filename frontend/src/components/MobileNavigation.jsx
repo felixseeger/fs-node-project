@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import './MobileNavigation.css';
 
@@ -11,6 +11,7 @@ export default function MobileNavigation({ isOpen, onClose, onNavigate, theme, s
   const bgRefs = useRef([]);
   const contentRef = useRef(null);
   const timeline = useRef(null);
+  const [isLoginHovered, setIsLoginHovered] = useState(false);
 
   // Initialize GSAP Timeline once on mount
   useEffect(() => {

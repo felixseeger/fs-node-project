@@ -146,6 +146,7 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
   const [isImprovingPrompt, setIsImprovingPrompt] = useState(false);
   const [isHoveringRun, setIsHoveringRun] = useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+  const [showReferenceMenu, setShowReferenceMenu] = useState(false);
   const [modelSearch, setModelSearch] = useState('');
   const [expandedProviders, setExpandedProviders] = useState({});
   const [dragOverFrame, setDragOverFrame] = useState(null); // 'start', 'end', or null
@@ -919,20 +920,64 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
             />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-              <button
-                title="Reference (@)"
-                style={{
-                  background: surface.base, border: `1px solid ${border.default}`,
-                  color: text.muted, borderRadius: radius.sm, width: 24, height: 24,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', ...font.xs,
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="4" />
-                  <path d="M16 8v8a4 4 0 0 1-8 0" />
-                </svg>
-              </button>
+              <div style={{ position: 'relative' }}>
+                <button
+                  title="Reference (@)"
+                  className="nodrag nopan"
+                  onClick={() => setShowReferenceMenu(!showReferenceMenu)}
+                  onMouseDown={e => e.stopPropagation()}
+                  style={{
+                    background: showReferenceMenu ? surface.deep : surface.base,
+                    border: `1px solid ${showReferenceMenu ? border.active : border.default}`,
+                    color: showReferenceMenu ? text.primary : text.muted,
+                    borderRadius: radius.sm, width: 32, height: 32,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path>
+                  </svg>
+                </button>
+                {showReferenceMenu && (
+                  <div className="nodrag nopan" style={{
+                    position: 'absolute', top: '100%', left: 0, marginTop: 4,
+                    background: surface.deep, border: `1px solid ${border.default}`,
+                    borderRadius: radius.md, padding: 4, zIndex: 10,
+                    display: 'flex', flexDirection: 'column', gap: 2,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)', width: 80
+                  }}>
+                    {['@img_1', '@img_2', '@img_3', '@img_4'].map(tag => (
+                      <div
+                        key={tag}
+                        onClick={() => {
+                          const input = promptRef.current;
+                          if (!input) return;
+                          const start = input.selectionStart || 0;
+                          const end = input.selectionEnd || 0;
+                          const val = input.value;
+                          const newVal = val.substring(0, start) + tag + val.substring(end);
+                          update({ inputPrompt: newVal });
+                          setTimeout(() => {
+                            input.focus();
+                            input.setSelectionRange(start + tag.length, start + tag.length);
+                          }, 0);
+                          setShowReferenceMenu(false);
+                        }}
+                        style={{
+                          padding: '4px 8px', borderRadius: radius.sm, cursor: 'pointer',
+                          color: text.primary, ...font.xs, fontFamily: 'monospace'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = surface.hover}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        {tag}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button

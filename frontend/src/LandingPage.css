@@ -270,3 +270,8 @@
   0%, 100% { transform: translateX(0); }
   50% { transform: translateX(3px); }
 }
+
+@keyframes pulse-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}

@@ -3,10 +3,19 @@ import { NodeResizer } from '@xyflow/react';
 
 export default function CommentNode({ id, data, selected }) {
   const [isEditing, setIsEditing] = useState(!data.text);
+  const [localText, setLocalText] = useState(data.text || '');
   const textRef = useRef(null);
 
+  useEffect(() => {
+    if (!isEditing && data.text !== undefined && data.text !== localText) {
+      setLocalText(data.text);
+    }
+  }, [data.text, isEditing]);
+
   const handleTextChange = useCallback((e) => {
-    data.onUpdate?.(id, { text: e.target.value });
+    const val = e.target.value;
+    setLocalText(val);
+    data.onUpdate?.(id, { text: val });
   }, [id, data]);
 
   useEffect(() => {
@@ -60,7 +69,7 @@ export default function CommentNode({ id, data, selected }) {
           {isEditing ? (
             <textarea
               ref={textRef}
-              value={data.text || ''}
+              value={localText}
               onChange={handleTextChange}
               onBlur={() => setIsEditing(false)}
               className="nodrag nopan"
@@ -81,13 +90,13 @@ export default function CommentNode({ id, data, selected }) {
           ) : (
             <div style={{
               whiteSpace: 'pre-wrap',
-              color: data.text ? '#f5d87a' : '#4a3c10',
+              color: localText ? '#f5d87a' : '#4a3c10',
               fontSize: 13,
               lineHeight: 1.6,
-              fontStyle: data.text ? 'normal' : 'italic',
+              fontStyle: localText ? 'normal' : 'italic',
               userSelect: 'none',
             }}>
-              {data.text || 'Double-click to comment...'}
+              {localText || 'Double-click to comment...'}
             </div>
           )}
         </div>

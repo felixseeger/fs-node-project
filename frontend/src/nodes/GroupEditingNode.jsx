@@ -18,8 +18,23 @@ export default function GroupEditingNode({ id, data, selected }) {
   const { resolve, disconnectNode, update } = useNodeConnections(id, data);
   const [isLoading, setIsLoading] = useState(false);
 
-  const localSubject = data.subjectPrompt || '';
-  const localEdit = data.editPrompt || '';
+  const [localSubjectVal, setLocalSubjectVal] = useState(data.subjectPrompt || '');
+  const [localEditVal, setLocalEditVal] = useState(data.editPrompt || '');
+  const [isEditingSubject, setIsEditingSubject] = useState(false);
+  const [isEditingEdit, setIsEditingEdit] = useState(false);
+
+  useEffect(() => {
+    if (!isEditingSubject && data.subjectPrompt !== undefined && data.subjectPrompt !== localSubjectVal) {
+      setLocalSubjectVal(data.subjectPrompt);
+    }
+  }, [data.subjectPrompt, isEditingSubject]);
+
+  useEffect(() => {
+    if (!isEditingEdit && data.editPrompt !== undefined && data.editPrompt !== localEditVal) {
+      setLocalEditVal(data.editPrompt);
+    }
+  }, [data.editPrompt, isEditingEdit]);
+
   const useVGGT = data.useVGGT ?? true;
   const denoising = data.denoising ?? 0.85;
 
@@ -37,10 +52,10 @@ export default function GroupEditingNode({ id, data, selected }) {
     if (!inputImages || inputImages.length === 0) return;
     setIsLoading(true);
     try {
-      const finalEdit = promptIn || localEdit;
+      const finalEdit = promptIn || localEditVal;
       const res = await groupEditGenerate({
         images: inputImages,
-        subjectPrompt: localSubject,
+        subjectPrompt: localSubjectVal,
         editPrompt: finalEdit,
         useVGGT,
         denoising
@@ -98,10 +113,15 @@ export default function GroupEditingNode({ id, data, selected }) {
             <input
               type="text"
               placeholder="e.g. red car"
-              value={localSubject}
-              onChange={e => update({ subjectPrompt: e.target.value })}
+              value={localSubjectVal}
+              onFocus={() => setIsEditingSubject(true)}
+              onBlur={() => setIsEditingSubject(false)}
+              onChange={e => {
+                setLocalSubjectVal(e.target.value);
+                update({ subjectPrompt: e.target.value });
+              }}
               style={{ width: '100%', background: '#111', border: '1px solid #333', padding: '6px 10px', borderRadius: 6, color: '#e0e0e0', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
-              className="nodrag"
+              className="nodrag nopan"
             />
           </div>
 
@@ -109,8 +129,13 @@ export default function GroupEditingNode({ id, data, selected }) {
             <label style={{ ...font.xs, color: '#999', display: 'block', marginBottom: 4 }}>Edit Instructions</label>
             <textarea
               placeholder="e.g. a futuristic hover-car"
-              value={promptIn || localEdit}
-              onChange={e => update({ editPrompt: e.target.value })}
+              value={promptIn || localEditVal}
+              onFocus={() => setIsEditingEdit(true)}
+              onBlur={() => setIsEditingEdit(false)}
+              onChange={e => {
+                setLocalEditVal(e.target.value);
+                update({ editPrompt: e.target.value });
+              }}
               readOnly={!!promptIn}
               rows={2}
               style={{ width: '100%', background: promptIn ? '#1a1a1a' : '#111', border: '1px solid #333', padding: '6px 10px', borderRadius: 6, color: promptIn ? '#888' : '#e0e0e0', fontSize: 12, resize: 'none', outline: 'none', boxSizing: 'border-box' }}

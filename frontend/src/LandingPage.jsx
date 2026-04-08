@@ -4,6 +4,7 @@ import ScrambledHeroText from './components/ScrambledHeroText';
 import DotMatrixDisplay from './components/DotMatrixDisplay';
 import MobileNavigation from './components/MobileNavigation';
 import Nodes3DScroll from './components/Nodes3DScroll';
+import ThemeToggle from './components/ThemeToggle';
 import heroWorkflowImg from './assets/workflows/try-on_workflow_img.png';
 import './LandingPage.css';
 
@@ -843,6 +844,53 @@ function useWindowSize() {
   return windowSize;
 }
 
+// ScrollDownIndicator Component
+function ScrollDownIndicator() {
+  const scrollToNext = () => {
+    const el = document.getElementById('intro-section');
+    if (!el) return;
+    const container = document.getElementById('landing-scroll');
+    if (container) {
+      const top = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+      container.scrollTo({ top, behavior: 'smooth' });
+    } else {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <div 
+      onClick={scrollToNext}
+      style={{
+        position: 'absolute',
+        bottom: 40,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 12,
+        cursor: 'pointer',
+        zIndex: 20,
+        opacity: 0.6,
+        transition: 'opacity 0.3s'
+      }}
+      onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+      onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}
+    >
+      <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.15em', color: 'var(--color-text-dim)' }}>
+        <ScrambledHeroText phrases={["SCROLL DOWN", "DISCOVER MORE", "EXPLORE NOW"]} interval={3000} />
+      </div>
+      <div style={{ animation: 'pulse-y 2s ease-in-out infinite', color: 'var(--color-accent)' }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="4" x2="12" y2="20"></line>
+          <polyline points="18 14 12 20 6 14"></polyline>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 function DesktopNavbar({ onNavigate, theme, setTheme }) {
   const primaryLinks = [
     { label: 'How it works', id: 'how-it-works' },
@@ -1050,12 +1098,15 @@ export default function LandingPage({ onCreateWorkflow, onDeleteWorkflows, workf
 
       {/* Fixed Burger / Close Trigger — Mobile Only, always on top */}
       {isMobile && (
-        <button
-          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen(!menuOpen)}
-          className={`mobile-hamburger ${menuOpen ? 'mobile-hamburger-open' : 'mobile-hamburger-closed'}`}
-        >
+        <div style={{ position: 'fixed', top: 24, right: 24, zIndex: 9999, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <ThemeToggle theme={theme} setTheme={setTheme} />
+          <button
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(!menuOpen)}
+            className={`mobile-hamburger ${menuOpen ? 'mobile-hamburger-open' : 'mobile-hamburger-closed'}`}
+            style={{ position: 'relative', top: 'auto', right: 'auto', margin: 0 }}
+          >
           {/* Top bar */}
           <span 
             className="hamburger-line"
@@ -1079,6 +1130,7 @@ export default function LandingPage({ onCreateWorkflow, onDeleteWorkflows, workf
             }} 
           />
         </button>
+      </div>
       )}
 
       {showNewModal && (
@@ -1221,6 +1273,8 @@ export default function LandingPage({ onCreateWorkflow, onDeleteWorkflows, workf
             </div>
           </div>
 
+          <ScrollDownIndicator />
+
         </section>
 
         <style>{`
@@ -1231,7 +1285,7 @@ export default function LandingPage({ onCreateWorkflow, onDeleteWorkflows, workf
         `}</style>
 
         {/* INTRO SECTION - Two column with stats */}
-        <div style={{
+        <div id="intro-section" style={{
           maxWidth: 1200,
           margin: '0 auto',
           padding: '100px 40px',

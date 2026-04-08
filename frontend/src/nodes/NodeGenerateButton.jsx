@@ -17,7 +17,7 @@ export default function NodeGenerateButton({ onGenerate, isGenerating, size = 'm
 
   if (!onGenerate) return null;
 
-  const dimensions = size === 'sm' ? { width: 22, height: 22, icon: 10 } : { width: 26, height: 26, icon: 12 };
+  const dimensions = size === 'sm' ? { width: 28, height: 28, icon: 14 } : { width: 32, height: 32, icon: 16 };
 
   return (
     <button
@@ -32,13 +32,14 @@ export default function NodeGenerateButton({ onGenerate, isGenerating, size = 'm
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
-        background: isGenerating 
-          ? 'rgba(59, 130, 246, 0.2)' 
+        background: '#000',
+        border: `1px solid ${isGenerating ? '#3b82f6' : isHovered ? '#555' : '#222'}`,
+        color: '#fff',
+        boxShadow: isGenerating 
+          ? '0 0 10px rgba(59, 130, 246, 0.5)' 
           : isHovered 
-            ? 'rgba(34, 197, 94, 0.2)' 
-            : 'transparent',
-        border: `1px solid ${isGenerating ? '#3b82f6' : isHovered ? '#22c55e' : '#444'}`,
-        color: isGenerating ? '#3b82f6' : isHovered ? '#22c55e' : '#666',
+            ? '0 0 12px rgba(255, 255, 255, 0.3)' 
+            : '0 0 8px rgba(0, 0, 0, 0.5)',
         cursor: isGenerating ? 'not-allowed' : 'pointer',
         width: dimensions.width,
         height: dimensions.height,
@@ -48,7 +49,7 @@ export default function NodeGenerateButton({ onGenerate, isGenerating, size = 'm
         justifyContent: 'center',
         padding: 0,
         transition: 'all 0.15s ease',
-        opacity: isHovered || isGenerating ? 1 : 0.7,
+        opacity: isHovered || isGenerating ? 1 : 0.85,
       }}
     >
       {isGenerating ? (
@@ -77,9 +78,13 @@ export default function NodeGenerateButton({ onGenerate, isGenerating, size = 'm
           width={dimensions.icon} 
           height={dimensions.icon} 
           viewBox="0 0 24 24" 
-          fill="currentColor"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <path d="M8 5v14l11-7z" />
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
         </svg>
       )}
       <style>{`

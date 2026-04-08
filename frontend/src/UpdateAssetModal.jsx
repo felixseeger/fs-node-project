@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-export default function UpdateAssetModal({ isOpen, onClose, nodeData, onUpdate }) {
+export default function UpdateAssetModal({ isOpen, onClose, nodeData, onUpdate, onCreateAsset }) {
   const [name, setName] = useState('Unnamed Element');
   const [images, setImages] = useState([]);
   const fileInputRef = useRef(null);
@@ -47,6 +47,8 @@ export default function UpdateAssetModal({ isOpen, onClose, nodeData, onUpdate }
   const handleSave = () => {
     if (onUpdate && nodeData?.id) {
       onUpdate(nodeData.id, { label: name, name: name, images });
+    } else if (onCreateAsset) {
+      onCreateAsset({ name, images });
     }
     onClose();
   };

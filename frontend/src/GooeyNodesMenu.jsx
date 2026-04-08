@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import './GooeyNodesMenu.css';
-import AssetModal from './AssetModal';
+import UpdateAssetModal from './UpdateAssetModal';
 import SearchHistoryMenu from './SearchHistoryMenu';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 
@@ -99,7 +99,7 @@ const QUICK_ADD_SECTIONS = [
   }
 ];
 
-export default function GooeyNodesMenu({ nodeMenu, templates = [], onAddNode, onOpenProfile }) {
+export default function GooeyNodesMenu({ nodeMenu, templates = [], assets = [], onCreateAsset, onAddNode, onOpenProfile }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeSubMenu, setActiveSubMenu] = useState(null);
@@ -324,26 +324,47 @@ export default function GooeyNodesMenu({ nodeMenu, templates = [], onAddNode, on
             </div>
           ) : activeCategory === 'Assets' && !searchQuery ? (
             <div className="ms-assets-browser">
-              <div className="ms-assets-tabs">
-                <button className="ms-asset-tab active">Library</button>
-                <button className="ms-asset-tab">Unsplash</button>
-              </div>
+              
+              
               <div className="ms-assets-section">
-                <div className="ms-assets-title">Folders <span>0</span></div>
-                <div className="ms-assets-grid">
-                  <button className="ms-asset-card">
-                    <span className="ms-asset-icon">{Icons.FolderPlus}</span>
-                    <span className="ms-asset-label">Create Folder</span>
-                  </button>
-                </div>
-              </div>
-              <div className="ms-assets-section">
-                <div className="ms-assets-title">Unorganized <span>0</span></div>
+                <div className="ms-assets-title">Library <span>{assets.length}</span></div>
                 <div className="ms-assets-grid">
                   <button className="ms-asset-card" onClick={() => { setIsOpen(false); setShowAssetModal(true); }}>
                     <span className="ms-asset-icon" style={{ width: 24, height: 24, padding: 6 }}>{Icons.Plus}</span>
                     <span className="ms-asset-label">Upload Asset</span>
                   </button>
+                  {assets.map((asset) => (
+                    <button 
+                      key={asset.id} 
+                      className="ms-asset-card"
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('application/reactflow', 'assetNode');
+                        e.dataTransfer.setData('application/reactflow-defaults', JSON.stringify({
+                          images: asset.images || [],
+                          label: asset.name || 'Asset'
+                        }));
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onClick={() => {
+                        onAddNode('assetNode', {
+                          images: asset.images || [],
+                          label: asset.name || 'Asset'
+                        });
+                        setSearchQuery('');
+                        setIsOpen(false);
+                      }}
+                    >
+                      <span className="ms-asset-icon" style={{ padding: 0, overflow: 'hidden' }}>
+                        {asset.images && asset.images.length > 0 ? (
+                          <img src={asset.images[0]} alt={asset.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          Icons.Hash
+                        )}
+                      </span>
+                      <span className="ms-asset-label">{asset.name || 'Asset'}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -518,7 +539,9 @@ export default function GooeyNodesMenu({ nodeMenu, templates = [], onAddNode, on
       </div>
       {/* Profile Modal */}
       {/* Asset Modal */}
-      <AssetModal isOpen={showAssetModal} onClose={() => setShowAssetModal(false)} onUpload={onAddNode} />
+      <UpdateAssetModal isOpen={showAssetModal} onClose={() => setShowAssetModal(false)} onCreateAsset={(data) => {
+        if (onCreateAsset) onCreateAsset(data);
+      }} />
       {/* Search History Modal */}
       <SearchHistoryMenu
         isOpen={showHistoryModal}

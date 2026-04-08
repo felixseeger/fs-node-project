@@ -18,6 +18,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirebaseAuth, initializeFirebase, enableOfflinePersistence } from './config/firebase';
 import { useFirebaseWorkflows } from './hooks/useFirebaseWorkflows';
 import { useFirebaseTemplates } from './hooks/useFirebaseTemplates';
+import { useFirebaseAssets } from './hooks/useFirebaseAssets';
 import { saveTemplate as saveLocalTemplate } from './templates/templateStore';
 
 import InputNode from './nodes/InputNode';
@@ -233,6 +234,7 @@ export default function App() {
   }, [theme]);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const firebaseTemplates = useFirebaseTemplates(currentUserId);
+  const firebaseAssets = useFirebaseAssets(currentUserId);
 
   // sessionStorage key: set after loading completes, cleared on logout.
   // This handles both popup (no reload) and redirect (page reload) Google auth,
@@ -928,7 +930,7 @@ export default function App() {
           menuItems.push({ type: 'divider' });
         }
 
-        menuItems.push({ label: 'Create Element', action: 'create_element' });
+        menuItems.push({ label: 'Save as Asset', action: 'create_element' });
       }
 
       // Always allow paste if clipboard has something
@@ -1013,6 +1015,9 @@ export default function App() {
             },
           };
           setNodes((nds) => [...nds, newAssetNode]);
+          if (firebaseAssets.create) {
+            firebaseAssets.create(newAssetNode.data).catch(console.error);
+          }
         }
         break;
       case 'duplicate':
@@ -2251,7 +2256,11 @@ export default function App() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', background: '#1a1a1a' }}>
         {/* Canvas */}
         <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }} onDrop={onDrop} onDragOver={onDragOver}>
-          <GooeyNodesMenu nodeMenu={NODE_MENU} templates={firebaseTemplates.templates} onAddNode={addNode} onOpenProfile={() => setIsProfileModalOpen(true)} />
+          <GooeyNodesMenu nodeMenu={NODE_MENU} templates={firebaseTemplates.templates} assets={firebaseAssets.assets} onCreateAsset={(data) => {
+            if (firebaseAssets.create) {
+              firebaseAssets.create(data).catch(console.error);
+            }
+          }} onAddNode={addNode} onOpenProfile={() => setIsProfileModalOpen(true)} />
 
           {/* Layout Helper Toolbar */}
           <LayoutHelper
