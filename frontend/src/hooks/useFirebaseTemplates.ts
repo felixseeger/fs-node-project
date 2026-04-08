@@ -3,8 +3,6 @@ import type { Unsubscribe } from 'firebase/firestore';
 import { isFirebaseConfigured } from '../config/firebase';
 import {
   createTemplate,
-  getTemplate,
-  updateTemplate,
   deleteTemplate,
   subscribeToUserTemplates,
 } from '../services/templateService';
