@@ -56,7 +56,7 @@ export default function GroupEditingNode({ id, data, selected }) {
   };
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Group Editor (Wan-VACE)'}
       dotColor="#0ea5e9"
       selected={selected}

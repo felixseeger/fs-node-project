@@ -95,8 +95,11 @@ export default function TemplateBuilderModal({
   const wasOpenRef = useRef(false);
   useEffect(() => {
     if (isOpen && !wasOpenRef.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName('');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDescription('');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError('');
       const initIns = {};
       candidatesRef.current.inputs.forEach((c) => {

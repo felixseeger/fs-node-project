@@ -185,7 +185,7 @@ export default function KlingO1Node({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Kling O1'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'Kling O1'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{

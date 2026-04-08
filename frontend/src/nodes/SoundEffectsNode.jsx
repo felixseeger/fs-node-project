@@ -53,18 +53,21 @@ export default function SoundEffectsNode({ id, data, selected }) {
       }
 
       const taskId = result.task_id || result.data?.task_id;
+      let finalAudio = null;
       if (taskId) {
         const status = await pollSoundEffectsStatus(taskId);
         const generated = status.data?.generated || [];
+        finalAudio = generated[0] || null;
         update({
-          outputAudio: generated[0] || null,
+          outputAudio: finalAudio,
           isLoading: false,
           outputError: null,
         });
         complete();
       } else if (result.data?.generated?.length) {
+        finalAudio = result.data.generated[0];
         update({
-          outputAudio: result.data.generated[0],
+          outputAudio: finalAudio,
           isLoading: false,
           outputError: null,
         });
@@ -72,6 +75,16 @@ export default function SoundEffectsNode({ id, data, selected }) {
       } else {
         update({ isLoading: false });
         complete();
+      }
+
+      // Spawn and connect SoundOutputNode
+      if (finalAudio && data.onCreateNode) {
+        data.onCreateNode(
+          'soundOutput',
+          { outputAudio: finalAudio },
+          'output-audio',
+          'audio-in'
+        );
       }
     } catch (err) {
       console.error('Sound effects error:', err);
@@ -154,7 +167,7 @@ export default function SoundEffectsNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell 
+    <NodeShell data={data} 
       label={data.label || 'ElevenLabs Sound Effects'} 
       dotColor={ACCENT} 
       selected={selected}

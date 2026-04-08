@@ -182,7 +182,7 @@ export default function RunwayGen4TurboNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Runway Gen4 Turbo'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'Runway Gen4 Turbo'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{

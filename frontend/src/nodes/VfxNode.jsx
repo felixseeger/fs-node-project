@@ -191,7 +191,7 @@ export default function VfxNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Video FX'}
       dotColor={ACCENT}
       selected={selected}

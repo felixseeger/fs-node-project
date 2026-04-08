@@ -189,18 +189,18 @@ function ProjectContextMenu({ x, y, onClose, onAction, project }) {
           <>
             <button className="menu-item" onClick={() => { onAction('open', project); onClose(); }}>Open</button>
             <button className="menu-item" onClick={() => { onAction('open-new-tab', project); onClose(); }}>Open in new tab</button>
-            <button className="menu-item" onClick={() => { onAction('rename', project); onClose(); }}>Rename</button>
-            <button className="menu-item" onClick={() => { onAction('duplicate', project); onClose(); }}>Duplicate</button>
+            <button className="menu-item" onClick={() => { onAction('rename', project); onClose(); }}>Rename board</button>
+            <button className="menu-item" onClick={() => { onAction('duplicate', project); onClose(); }}>Duplicate board</button>
             <button className="menu-item disabled" disabled>Remove from folder</button>
             <div className="menu-separator" />
             <button className="menu-item" onClick={() => { onAction('favorite', project); onClose(); }}>
               {project.favorite ? 'Remove from favorites' : 'Favorite'}
             </button>
             <button className="menu-item" onClick={() => { onAction('private', project); onClose(); }}>
-              {project.private ? 'Make project public' : 'Make project private'}
+              {project.private ? 'Make board public' : 'Make board private'}
             </button>
             <div className="menu-separator" />
-            <button className="menu-item danger" onClick={() => { onAction('delete', project); onClose(); }}>Delete</button>
+            <button className="menu-item danger" onClick={() => { onAction('delete', project); onClose(); }}>Delete board</button>
           </>
         )}
       </div>
@@ -255,7 +255,7 @@ function TrashEmptyState({ onBack }) {
           margin: '0 0 32px 0',
         }}
       >
-        Recently deleted projects will appear here. Items are permanently deleted after 30 days.
+        Recently deleted boards will appear here. Items are permanently deleted after 30 days.
       </p>
       <button
         onClick={onBack}
@@ -279,7 +279,7 @@ function TrashEmptyState({ onBack }) {
           e.currentTarget.style.borderColor = 'var(--color-border)';
         }}
       >
-        Back to my projects
+        Back to my boards
       </button>
     </div>
   );
@@ -354,7 +354,7 @@ export default function ProjectsDashboard({
         break;
 
       case 'rename': {
-        const newName = prompt('Rename project:', projectName);
+        const newName = prompt('Rename board:', projectName);
         if (newName && newName.trim()) {
           onUpdateProject?.(project.id, { name: newName.trim() });
         }
@@ -375,7 +375,7 @@ export default function ProjectsDashboard({
         break;
 
       case 'delete':
-        if (confirm(`Move project "${projectName}" to trash?`)) {
+        if (confirm(`Move board "${projectName}" to trash?`)) {
           onUpdateProject?.(project.id, { deleted: true, deletedAt: Date.now() });
         }
         break;
@@ -383,7 +383,7 @@ export default function ProjectsDashboard({
         onUpdateProject?.(project.id, { deleted: false });
         break;
       case 'permanent-delete':
-        if (confirm(`Permanently delete project "${projectName}"? This cannot be undone.`)) {
+        if (confirm(`Permanently delete board "${project.name || project.title}"? This cannot be undone.`)) {
           onDeleteProject?.(project.id);
         }
         break;
@@ -484,6 +484,26 @@ export default function ProjectsDashboard({
           zIndex: 10,
         }}
       >
+        {/* Brand */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border-subtle)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img src="/logo-light.svg" alt="Logo" style={{ height: 24, width: 'auto' }} />
+            <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>Nodespace</span>
+            <span
+              style={{
+                padding: '2px 6px',
+                background: 'var(--color-success)',
+                borderRadius: 4,
+                fontSize: 9,
+                fontWeight: 600,
+                color: 'var(--color-bg)',
+              }}
+            >
+              New
+            </span>
+          </div>
+        </div>
+
         {/* User Header */}
         <div
           style={{
@@ -560,26 +580,6 @@ export default function ProjectsDashboard({
           )}
         </div>
 
-        {/* Brand */}
-        <div style={{ padding: '16px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src="/logo-light.svg" alt="Logo" style={{ height: 24, width: 'auto' }} />
-            <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>Nodespace</span>
-            <span
-              style={{
-                padding: '2px 6px',
-                background: 'var(--color-success)',
-                borderRadius: 4,
-                fontSize: 9,
-                fontWeight: 600,
-                color: 'var(--color-bg)',
-              }}
-            >
-              New
-            </span>
-          </div>
-        </div>
-
         {/* Navigation */}
         <div style={{ padding: '0 12px' }}>
           <SidebarItem
@@ -609,7 +609,7 @@ export default function ProjectsDashboard({
           <EmptyState message="No favorites yet" />
 
           {/* Recent Projects */}
-          <SectionHeader title="Recent Projects" />
+          <SectionHeader title="Recent Boards" />
           {projects.filter(p => !p.deleted).slice(0, 3).map(p => (
             <SidebarItem
               key={p.id}
@@ -732,7 +732,7 @@ export default function ProjectsDashboard({
             startIcon={Icons.Plus}
             style={{ padding: '8px 16px', borderRadius: 8 }}
           >
-            New project
+            New board
           </DecodeTextButton>
 
           {/* Center: Search */}
@@ -852,7 +852,7 @@ export default function ProjectsDashboard({
                 }}
               >
                 {filteredProjects.length === 0 ? (
-                  <EmptyState message="No projects found" />
+                  <EmptyState message="No boards found" />
                 ) : (
                   filteredProjects.map((project) => (
                     <ProjectCard

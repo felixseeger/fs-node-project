@@ -100,7 +100,7 @@ export default function FluxImageExpandNode({ id, data, selected }) {
   useNodeExecution(data, handleExpand);
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Flux Image Expand'}
       dotColor={ACCENT}
       selected={selected}

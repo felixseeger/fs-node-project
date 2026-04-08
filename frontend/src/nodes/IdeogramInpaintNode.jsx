@@ -196,7 +196,7 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Ideogram Inpaint'} dotColor={ACCENT} selected={selected} onGenerate={handleInpaint} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'Ideogram Inpaint'} dotColor={ACCENT} selected={selected} onGenerate={handleInpaint} isGenerating={isActive}>
 
       {/* ── 1. Image ── */}
       {sectionHeader('Image', 'image-in', 'target', getHandleColor('image-in'),

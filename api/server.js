@@ -51,7 +51,7 @@ app.get('/api/generate-name', (req, res) => {
   try {
     const projectName = generateProjectName();
     res.json({ name: projectName });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'Failed to generate name' });
   }
 });
@@ -67,6 +67,7 @@ const hasFreepikKey = !!process.env.FREEPIK_API_KEY;
 const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
 const hasElevenLabsKey = !!process.env.ELEVENLABS_API_KEY;
 const hasLtxKey = !!process.env.LTXV_API_KEY;
+const hasGeminiKey = !!process.env.GOOGLE_GEMINI_API_KEY;
 
 // Start server
 const PORT = process.env.PORT || 3001;
@@ -81,7 +82,8 @@ app.listen(PORT, () => {
 ║   ${hasFreepikKey ? '✅' : '❌'} Freepik API (images, video, audio)               ║
 ║   ${hasAnthropicKey ? '✅' : '❌'} Anthropic API (Claude Vision)                 ║
 ║   ${hasElevenLabsKey ? '✅' : '❌'} ElevenLabs API (Voiceover)                    ║
-║   ${hasLtxKey ? '✅' : '❌'} LTX Video API (direct)              ║
+║   ${hasLtxKey ? '✅' : '❌'} LTX Video API (direct)                      ║
+║   ${hasGeminiKey ? '✅' : '❌'} Google Gemini API (Imagen 3)                 ║
 ║                                                            ║
 ║   Available endpoints:                                     ║
 ║   • Image Generation: /api/generate-image                  ║
@@ -104,6 +106,9 @@ app.listen(PORT, () => {
   }
   if (!hasLtxKey) {
     console.warn('⚠️  WARNING: LTXV_API_KEY not set. Direct LTX Video API will fail.');
+  }
+  if (!hasGeminiKey) {
+    console.warn('⚠️  WARNING: GOOGLE_GEMINI_API_KEY not set. Nano Banana 2 (Google) integration will use Freepik fallback.');
   }
 });
 

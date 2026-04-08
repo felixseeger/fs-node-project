@@ -143,7 +143,7 @@ export default function QuiverImageToVectorGenerationNode({ id, data, selected }
   );
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Quiver Image to Vector'}
       dotColor={primaryColor}
       selected={selected}

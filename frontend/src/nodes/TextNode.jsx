@@ -14,7 +14,7 @@ export default function TextNode({ id, data, selected }) {
   );
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Text'}
       dotColor="#f97316"
       selected={selected}

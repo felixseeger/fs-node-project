@@ -162,7 +162,7 @@ export default function TextToIconNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'AI Icon Generation'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'AI Icon Generation'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Image Output Handle (top) ── */}
       <div style={{

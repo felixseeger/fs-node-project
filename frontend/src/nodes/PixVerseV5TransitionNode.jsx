@@ -186,7 +186,7 @@ export default function PixVerseV5TransitionNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'PixVerse V5 Transition'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'PixVerse V5 Transition'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Video Output Handle (top) ── */}
       <div style={{

@@ -41,7 +41,7 @@ export default function RecraftRemoveBackgroundNode({ id, data, selected }) {
   }, [id, data, update]);
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label="Recraft Remove BG"
       dotColor={CATEGORY_COLORS.imageEditing}
       selected={selected}

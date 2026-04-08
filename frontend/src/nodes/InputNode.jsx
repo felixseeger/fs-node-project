@@ -98,7 +98,7 @@ export default function InputNode({ id, data, selected }) {
   }, [handleImageUpload]);
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Request - Inputs'}
       dotColor="#3b82f6"
       selected={selected}

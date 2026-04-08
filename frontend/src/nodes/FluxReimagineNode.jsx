@@ -176,7 +176,7 @@ export default function FluxReimagineNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell 
+    <NodeShell data={data} 
       label={data.label || 'Flux Reimagine'} 
       dotColor="#10b981" 
       selected={selected}

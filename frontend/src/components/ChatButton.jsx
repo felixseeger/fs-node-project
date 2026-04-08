@@ -113,7 +113,7 @@ const chatButtonStyles = `
     position: absolute;
     right: 24px;
     bottom: 24px;
-    z-index: 10;
+    z-index: 2000;
     width: 56px;
     height: 56px;
     padding: 0;

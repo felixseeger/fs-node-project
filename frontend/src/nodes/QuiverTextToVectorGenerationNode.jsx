@@ -79,7 +79,7 @@ export default function QuiverTextToVectorGenerationNode({ id, data, selected })
   const primaryColor = CATEGORY_COLORS.imageGeneration;
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Quiver Text to Vector'}
       dotColor={primaryColor}
       selected={selected}

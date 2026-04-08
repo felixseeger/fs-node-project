@@ -76,7 +76,7 @@ export default function RecraftGenerateNode({ id, data, selected }) {
   }, [data.triggerGenerate, handleGenerate]);
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label="Recraft Gen"
       dotColor={CATEGORY_COLORS.imageGeneration}
       selected={selected}

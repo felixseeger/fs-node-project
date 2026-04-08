@@ -131,7 +131,7 @@ export default function ImageToPromptNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Image to Prompt'}
       dotColor={ACCENT}
       selected={selected}

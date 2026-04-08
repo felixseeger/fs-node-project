@@ -46,33 +46,47 @@ export function Pill({ label, isActive, onClick, accentColor = '#5ee7df' }) {
  * Toggle switch (boolean on/off).
  * Replaces the duplicated toggle() helper across all nodes.
  */
-export function Toggle({ label, value, onChange, accentColor = '#5ee7df' }) {
+export function Toggle({ label, value, checked, onChange, accentColor = '#5ee7df', plain = false, size = 'md' }) {
+  const isChecked = checked !== undefined ? checked : value;
+  const width = size === 'sm' ? 24 : 32;
+  const height = size === 'sm' ? 14 : 18;
+  const circleSize = size === 'sm' ? 10 : 12;
+  const circleTop = size === 'sm' ? 2 : 3;
+  const circleLeft = isChecked ? (size === 'sm' ? 12 : 17) : (size === 'sm' ? 2 : 3);
+
+  const toggleBtn = (
+    <button
+      onClick={() => onChange(!isChecked)}
+      onMouseDown={e => e.stopPropagation()}
+      role="switch"
+      aria-checked={isChecked}
+      aria-label={label}
+      style={{
+        width, height, borderRadius: height / 2, border: 'none', cursor: 'pointer',
+        background: isChecked ? accentColor : 'rgba(255, 255, 255, 0.1)', position: 'relative',
+        transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+        boxShadow: isChecked ? `0 0 12px ${accentColor}40` : 'inset 0 1px 4px rgba(0,0,0,0.2)',
+      }}
+    >
+      <span style={{
+        width: circleSize, height: circleSize, borderRadius: '50%',
+        background: isChecked ? '#000' : 'rgba(255,255,255,0.4)',
+        position: 'absolute', top: circleTop, left: circleLeft,
+        transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+      }} />
+    </button>
+  );
+
+  if (plain) return toggleBtn;
+
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      marginBottom: sp[3], padding: '4px 0',
+      marginBottom: sp[3], padding: '4px 0', width: '100%',
     }}>
-      <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>{label}</span>
-      <button
-        onClick={() => onChange(!value)}
-        role="switch"
-        aria-checked={value}
-        aria-label={label}
-        style={{
-          width: 32, height: 18, borderRadius: 9, border: 'none', cursor: 'pointer',
-          background: value ? accentColor : 'rgba(255, 255, 255, 0.1)', position: 'relative',
-          transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-          boxShadow: value ? `0 0 12px ${accentColor}40` : 'inset 0 1px 4px rgba(0,0,0,0.2)',
-        }}
-      >
-        <span style={{
-          width: 12, height: 12, borderRadius: '50%', 
-          background: value ? '#000' : 'rgba(255,255,255,0.4)',
-          position: 'absolute', top: 3, left: value ? 17 : 3, 
-          transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-        }} />
-      </button>
+      {label && <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>{label}</span>}
+      {toggleBtn}
     </div>
   );
 }

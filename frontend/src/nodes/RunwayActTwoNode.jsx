@@ -180,7 +180,7 @@ export default function RunwayActTwoNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Runway Act Two'}
       dotColor={ACCENT}
       selected={selected}

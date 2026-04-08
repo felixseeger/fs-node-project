@@ -46,7 +46,7 @@ export default function ReferenceSelection({ selectedImage, onImageSelect }) {
     <div
       style={{
         position: 'absolute',
-        bottom: 24,
+        bottom: 80,
         left: 24,
         zIndex: 10,
         pointerEvents: 'auto',

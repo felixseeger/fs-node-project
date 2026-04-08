@@ -204,7 +204,7 @@ export default function AudioIsolationNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'SAM Audio Isolation'}
       dotColor={ACCENT}
       selected={selected}

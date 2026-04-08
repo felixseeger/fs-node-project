@@ -170,7 +170,7 @@ export default function KlingElementsProNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Kling Elements Pro'}
       dotColor={ACCENT}
       selected={selected}

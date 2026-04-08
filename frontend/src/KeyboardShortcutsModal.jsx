@@ -2,12 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 export default function KeyboardShortcutsModal({ isOpen, onClose }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  const [mounted, setMounted] = useState(typeof window !== 'undefined');
 
   if (!isOpen || !mounted) return null;
 

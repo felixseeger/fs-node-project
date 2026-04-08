@@ -951,6 +951,7 @@ export default function LandingPage({ onCreateWorkflow, onDeleteWorkflows, workf
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
+    // eslint-disable-next-line react-hooks/purity
     a.download = `workflows_export_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
@@ -982,6 +983,7 @@ export default function LandingPage({ onCreateWorkflow, onDeleteWorkflows, workf
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
+    // eslint-disable-next-line react-hooks/purity
     a.download = `templates_export_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
@@ -1010,7 +1012,20 @@ export default function LandingPage({ onCreateWorkflow, onDeleteWorkflows, workf
   };
 
   const handleModalSelect = async (type, aiPrompt, aiMode) => {
-    const name = `Workflow ${workflows.length + 1}`;
+    const getNextBoardName = () => {
+      const boards = workflows.filter(w => (w.name || w.title || '').startsWith('Board '));
+      let maxNum = 0;
+      boards.forEach(b => {
+        const match = (b.name || b.title).match(/Board (\d+)/);
+        if (match) {
+          const num = parseInt(match[1]);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+      return `Board ${(maxNum + 1).toString().padStart(2, '0')}`;
+    };
+
+    const name = getNextBoardName();
     if (type === 'ai') {
       await onCreateWorkflow(name, null, { type, aiPrompt, aiMode });
     } else {

@@ -614,7 +614,7 @@ const generatorExecutor: NodeExecutor = async (node, context) => {
     throw new Error('No task ID returned');
   }
 
-  const pollResult = await api.pollStatus(taskId);
+  const pollResult = await api.pollStatus(taskId, isKora ? 'realism' : 'fluid');
   return { outputImage: pollResult.data?.output };
 };
 

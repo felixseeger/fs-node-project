@@ -44,7 +44,7 @@ function App() {
       { label: 'Loading', value: 'Assets' },
       { label: 'Connecting', value: 'Server' },
     ],
-    code: 'V2.0',
+    code: 'V1.0',
     engageText: 'Enter',
     successText: 'Welcome',
     backdropTop: [

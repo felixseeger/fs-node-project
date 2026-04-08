@@ -37,6 +37,7 @@ const ChatUI = forwardRef(({
   useEffect(() => {
     let interval;
     if (isGenerating || isChatting) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setThinkingIndex(0);
       interval = setInterval(() => {
         setThinkingIndex((prev) => (prev + 1) % THINKING_PHRASES.length);

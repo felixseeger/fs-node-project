@@ -67,7 +67,7 @@ export default function FacialEditingNode({ id, data, selected }) {
   };
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Facial Editor (PixelSmile)'}
       dotColor="#ec4899"
       selected={selected}

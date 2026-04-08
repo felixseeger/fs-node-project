@@ -113,7 +113,7 @@ export default function SourceMediaNode({ id, data, selected }) {
   const hasAudio = mediaFiles.some(m => m.type === 'audio');
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Source Media'}
       dotColor={CATEGORY_COLORS.input}
       selected={selected}
@@ -221,12 +221,9 @@ export default function SourceMediaNode({ id, data, selected }) {
               position={Position.Right}
               id="image-out"
               style={{
-                width: 10,
-                height: 10,
                 borderRadius: '50%',
                 background: getHandleColor('image-out'),
                 border: 'none',
-                right: -12,
               }}
             />
           </div>
@@ -239,12 +236,9 @@ export default function SourceMediaNode({ id, data, selected }) {
               position={Position.Right}
               id="video-out"
               style={{
-                width: 10,
-                height: 10,
                 borderRadius: '50%',
                 background: getHandleColor('video-out'),
                 border: 'none',
-                right: -12,
               }}
             />
           </div>
@@ -257,12 +251,9 @@ export default function SourceMediaNode({ id, data, selected }) {
               position={Position.Right}
               id="audio-out"
               style={{
-                width: 10,
-                height: 10,
                 borderRadius: '50%',
                 background: getHandleColor('audio-out'),
                 border: 'none',
-                right: -12,
               }}
             />
           </div>
@@ -275,12 +266,9 @@ export default function SourceMediaNode({ id, data, selected }) {
               position={Position.Right}
               id="output"
               style={{
-                width: 10,
-                height: 10,
                 borderRadius: '50%',
                 background: getHandleColor('output'),
                 border: 'none',
-                right: -12,
               }}
             />
           </div>

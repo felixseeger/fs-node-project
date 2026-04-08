@@ -49,6 +49,7 @@ export default function MusicGenerationNode({ id, data, selected }) {
       }
 
       const taskId = result.task_id || result.data?.task_id;
+      let finalAudio = null;
       if (taskId) {
         setProgress(20, 'Waiting for music generation...');
         const status = await pollMusicStatus(taskId, 90, 2000, (p, msg) => {
@@ -56,18 +57,30 @@ export default function MusicGenerationNode({ id, data, selected }) {
         });
         const generated = status.data?.generated || [];
         complete('Music generation complete');
+        finalAudio = generated[0] || null;
         update({
-          outputAudio: generated[0] || null,
+          outputAudio: finalAudio,
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
         complete('Music generation complete');
+        finalAudio = result.data.generated[0];
         update({
-          outputAudio: result.data.generated[0],
+          outputAudio: finalAudio,
           outputError: null,
         });
       } else {
         fail('No music generated');
+      }
+
+      // Spawn and connect SoundOutputNode
+      if (finalAudio && data.onCreateNode) {
+        data.onCreateNode(
+          'soundOutput',
+          { outputAudio: finalAudio },
+          'output-audio',
+          'audio-in'
+        );
       }
     } catch (err) {
       console.error('Music generation error:', err);
@@ -132,7 +145,7 @@ export default function MusicGenerationNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'ElevenLabs Music'}
       dotColor={ACCENT}
       selected={selected}

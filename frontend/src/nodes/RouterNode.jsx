@@ -34,7 +34,7 @@ export default function RouterNode({ id, data, selected }) {
   };
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Router'}
       dotColor="#64748b"
       selected={selected}

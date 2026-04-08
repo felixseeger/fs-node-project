@@ -225,7 +225,7 @@ export default function PrecisionUpScaleNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Precision Upscale'}
       dotColor="#22c55e"
       selected={selected}

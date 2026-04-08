@@ -776,16 +776,7 @@ export default function AuthPage({ initialScreen = 'login', onNavigate: onExtern
       {/* Global Logo Overlay (Optional: only if centered or always visible) */}
       {/* For now, just making sure LogoMark gets the prop if it's rendered inside Screens */}
 
-      {/* Debug info - remove in production */}
-      {false && (
-        <div style={{
-          position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
-          padding: '8px 12px', background: 'rgba(0,0,0,0.5)', borderRadius: 4,
-          color: '#666', fontSize: 11, fontFamily: 'monospace'
-        }}>
-          Domain: {window.location.hostname} | Firebase: {isFirebaseConfigured() ? '✓' : '✗'}
-        </div>
-      )}
+      {/* Debug info - removed for production */}
 
       {/* Bottom branding */}
       <div style={{

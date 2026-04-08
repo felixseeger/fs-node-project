@@ -4,7 +4,7 @@ import { getHandleColor } from '../utils/handleTypes';
 
 export default function AdaptedPromptNode({ data, selected }) {
   return (
-    <NodeShell label="Adapted Prompt" dotColor="#f97316" selected={selected}>
+    <NodeShell data={data} label="Adapted Prompt" dotColor="#f97316" selected={selected}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <Handle
           type="target"

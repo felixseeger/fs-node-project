@@ -14,8 +14,8 @@ export default function EditorTopBar({ onSave, onApiExport, onExportJSON, onImpo
       <div
         style={{
           height: 48,
-          background: 'var(--color-bg)',
-          borderBottom: '1px solid var(--color-border)',
+          background: 'transparent',
+          borderBottom: 'none',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',

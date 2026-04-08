@@ -103,7 +103,7 @@ export default function AssetNode({ id, data, selected }) {
 
   return (
     <>
-      <NodeShell
+      <NodeShell data={data}
         label={data.label || 'Asset'}
         dotColor={CATEGORY_COLORS.input}
         selected={selected}

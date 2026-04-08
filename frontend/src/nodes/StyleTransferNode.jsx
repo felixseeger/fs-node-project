@@ -258,7 +258,7 @@ export default function StyleTransferNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Style Transfer'} dotColor="#ec4899" selected={selected} onGenerate={handleTransfer} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'Style Transfer'} dotColor="#ec4899" selected={selected} onGenerate={handleTransfer} isGenerating={isActive}>
 
       {/* ── Image Output Handle (top, aligned with image-in) ── */}
       <div style={{

@@ -76,6 +76,9 @@ import VideoImproveNode from './nodes/VideoImproveNode';
 import QuiverTextToVectorGenerationNode from './nodes/QuiverTextToVectorGenerationNode';
 import QuiverImageToVectorGenerationNode from './nodes/QuiverImageToVectorGenerationNode';
 import TextElementNode from './nodes/TextElementNode';
+import ImageOutputNode from './nodes/ImageOutputNode';
+import VideoOutputNode from './nodes/VideoOutputNode';
+import SoundOutputNode from './nodes/SoundOutputNode';
 import LandingPage from './LandingPage';
 import ProjectsDashboard from './ProjectsDashboard';
 import WorkflowsPage from './WorkflowsPage';
@@ -103,6 +106,7 @@ import NodePropertyEditor from './nodes/NodePropertyEditor';
 const GridIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>);
 const CollageIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 22H4a2 2 0 0 1-2-2V6"></path><path d="M22 18H8a2 2 0 0 0-2 2v-12a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z"></path><circle cx="13.5" cy="8.5" r="1.5"></circle><polyline points="22 13 18 10 11 15"></polyline></svg>);
 const CopyLinksIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>);
+const DisconnectIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-7.07-7.07l-4.57 4.57 1.41 1.41"></path><path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 7.07 7.07l4.57-4.57-1.41-1.41"></path><line x1="15.18" y1="8.82" x2="8.82" y2="15.18"></line></svg>);
 
 function CanvasNavigation() {
   const { zoom } = useViewport();
@@ -549,6 +553,9 @@ export default function App() {
       quiverTextToVector: QuiverTextToVectorGenerationNode,
       quiverImageToVector: QuiverImageToVectorGenerationNode,
       textElement: TextElementNode,
+      imageOutput: ImageOutputNode,
+      videoOutput: VideoOutputNode,
+      soundOutput: SoundOutputNode,
     }),
     []
   );
@@ -791,6 +798,37 @@ export default function App() {
             eds.filter((e) => e.source !== nodeId && e.target !== nodeId)
           );
         },
+        onCreateNode: (type, dataPatch, sourceHandle, targetHandle) => {
+          const newId = nextId();
+          const sourceNode = nodesRef.current.find(nd => nd.id === n.id);
+          const position = sourceNode 
+            ? { x: sourceNode.position.x + 450, y: sourceNode.position.y }
+            : { x: 400, y: 400 };
+
+          const newNode = {
+            id: newId,
+            type,
+            position,
+            data: { ...dataPatch },
+          };
+
+          setNodes((nds) => [...nds, newNode]);
+
+          if (sourceHandle && targetHandle) {
+            const edgeColor = getHandleColor(sourceHandle);
+            const newEdge = {
+              id: `e-${n.id}-${sourceHandle}-${newId}-${targetHandle}`,
+              source: n.id,
+              sourceHandle,
+              target: newId,
+              targetHandle,
+              style: { stroke: edgeColor, strokeWidth: 2 },
+            };
+            setTimeout(() => {
+              setEdges((eds) => addEdge(newEdge, eds));
+            }, 50); // Small delay to ensure node is in state
+          }
+        },
       },
     }));
   }, [nodes, edges, updateNodeData, resolveInput, hasConnection, getConnectionInfo, setEdges]);
@@ -835,78 +873,53 @@ export default function App() {
     [rfInstance, saveHistory, setNodes]
   );
 
-  const onPaneContextMenu = useCallback(
-    (event) => {
+  const showContextMenu = useCallback(
+    (event, nodes) => {
       event.preventDefault();
-
-      if (!rfInstance) return;
-
-      const selectedNodes = rfInstance.getNodes().filter(n => n.selected);
-      const hasClipboard = clipboardRef.current || clipboardNodes;
-
+      
       const pane = reactFlowWrapper.current.getBoundingClientRect();
+      const hasClipboard = clipboardRef.current || (clipboardNodes && clipboardNodes.length > 0);
 
       // Build menu items dynamically based on context
-      const menuItems = [];
+      let menuItems = [];
 
-      // Selection-based actions
-      if (selectedNodes.length > 0) {
+      if (nodes && nodes.length > 0) {
         menuItems.push({ label: 'Cut', action: 'cut', shortcut: '⌘X' });
         menuItems.push({ label: 'Copy', action: 'copy', shortcut: '⌘C' });
         menuItems.push({ label: 'Duplicate', action: 'duplicate', shortcut: '⌘D' });
         menuItems.push({ label: 'Clear node contents', action: 'clear_contents', shortcut: '⌘⇧X' });
+        menuItems.push({ label: 'Disconnect Nodes', action: 'disconnect_nodes', icon: <DisconnectIcon /> });
         menuItems.push({ type: 'divider' });
 
-        // Alignment options for multiple nodes
-        if (selectedNodes.length > 1) {
-          menuItems.push({ label: 'Grid Nodes', action: 'grid_nodes' });
+        // Multi-node specific options
+        if (nodes.length > 1) {
+          menuItems.push({ label: 'Grid Nodes', action: 'grid_nodes', icon: <GridIcon /> });
           menuItems.push({ label: 'Stack Nodes', action: 'stack_nodes' });
           menuItems.push({ label: 'Align Left', action: 'align_left' });
           menuItems.push({ label: 'Align Center', action: 'align_center' });
           menuItems.push({ label: 'Align Right', action: 'align_right' });
+          menuItems.push({ label: 'Compose collage', action: 'compose_collage', icon: <CollageIcon /> });
           menuItems.push({ type: 'divider' });
         }
-      }
 
-      // Always show Paste if clipboard has content
-      if (hasClipboard) {
-        menuItems.push({ label: 'Paste', action: 'paste', shortcut: '⌘V' });
-      }
-
-      // Actions that work on selection or create new
-      if (selectedNodes.length > 0) {
         menuItems.push({ label: 'Create Element', action: 'create_element' });
       }
 
-      setMenu({
-        x: event.clientX - pane.left,
-        y: event.clientY - pane.top,
-        items: menuItems,
-        selectedNodes: selectedNodes,
-      });
-    },
-    [rfInstance, setMenu, clipboardNodes]
-  );
-
-  const onSelectionContextMenu = useCallback(
-    (event, nodes) => {
-      event.preventDefault();
-
-      const pane = reactFlowWrapper.current.getBoundingClientRect();
-      const hasClipboard = clipboardRef.current || clipboardNodes;
-
-      const menuItems = [
-        { label: 'Cut', action: 'cut', shortcut: '⌘X' },
-        { label: 'Copy', action: 'copy', shortcut: '⌘C' },
-        { label: 'Duplicate', action: 'duplicate', shortcut: '⌘D' },
-        { type: 'divider' },
-        { label: 'Grid', action: 'grid_nodes', icon: <GridIcon /> },
-        { label: 'Compose collage', action: 'compose_collage', icon: <CollageIcon /> },
-        { label: 'Copy links', action: 'copy_links', icon: <CopyLinksIcon /> },
-      ];
-
+      // Always allow paste if clipboard has something
       if (hasClipboard) {
-        menuItems.splice(2, 0, { label: 'Paste', action: 'paste', shortcut: '⌘V' });
+        // If we already have items (node selection), add paste near top or after divider
+        const pasteItem = { label: 'Paste', action: 'paste', shortcut: '⌘V' };
+        if (menuItems.length > 0) {
+          // Add paste after Duplicate
+          const dupIndex = menuItems.findIndex(i => i.action === 'duplicate');
+          if (dupIndex !== -1) {
+            menuItems.splice(dupIndex + 1, 0, pasteItem);
+          } else {
+            menuItems.unshift(pasteItem);
+          }
+        } else {
+          menuItems.push(pasteItem);
+        }
       }
 
       setMenu({
@@ -916,7 +929,38 @@ export default function App() {
         selectedNodes: nodes,
       });
     },
-    [setMenu, clipboardNodes]
+    [clipboardNodes, setMenu]
+  );
+
+  const onPaneContextMenu = useCallback(
+    (event) => {
+      const selectedNodes = rfInstance?.getNodes().filter(n => n.selected) || [];
+      showContextMenu(event, selectedNodes);
+    },
+    [rfInstance, showContextMenu]
+  );
+
+  const onNodeContextMenu = useCallback(
+    (event, node) => {
+      // If the node we clicked on isn't selected, select it (exclusive click)
+      // or if it IS part of a selection, keep the current selection.
+      let nodesToShow = [node];
+      const selectedNodes = rfInstance?.getNodes().filter(n => n.selected) || [];
+      
+      if (selectedNodes.some(n => n.id === node.id)) {
+        nodesToShow = selectedNodes;
+      }
+      
+      showContextMenu(event, nodesToShow);
+    },
+    [rfInstance, showContextMenu]
+  );
+
+  const onSelectionContextMenu = useCallback(
+    (event, nodes) => {
+      showContextMenu(event, nodes);
+    },
+    [showContextMenu]
   );
 
   const handleMenuAction = (action, data) => {
@@ -1002,6 +1046,12 @@ export default function App() {
             if (newData.outputVideo) newData.outputVideo = null;
             return { ...n, data: newData };
           }));
+        }
+        break;
+      case 'disconnect_nodes':
+        if (selectedNodes && selectedNodes.length > 0) {
+          const selectedNodeIds = new Set(selectedNodes.map(n => n.id));
+          setEdges(eds => eds.filter(e => !selectedNodeIds.has(e.source) && !selectedNodeIds.has(e.target)));
         }
         break;
       case 'align_left':
@@ -1134,7 +1184,7 @@ export default function App() {
         }
         break;
 
-      case 'paste':
+      case 'paste': {
         // Try to paste from system clipboard first (for cross-workflow copying)
         const pasteFromClipboard = async () => {
           let nodesToPaste = clipboardRef.current || clipboardNodes;
@@ -1206,6 +1256,7 @@ export default function App() {
 
         pasteFromClipboard();
         break;
+      }
 
       case 'autoformat':
       case 'download':
@@ -1657,6 +1708,19 @@ export default function App() {
     setTimeout(() => setIsRunning(false), 2000);
   }, [updateNodeData]);
 
+  const getNextBoardName = useCallback(() => {
+    const boards = workflows.filter(w => (w.name || w.title || '').startsWith('Board '));
+    let maxNum = 0;
+    boards.forEach(b => {
+      const match = (b.name || b.title).match(/Board (\d+)/);
+      if (match) {
+        const num = parseInt(match[1]);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+    return `Board ${(maxNum + 1).toString().padStart(2, '0')}`;
+  }, [workflows]);
+
   const handleCreateWorkflow = useCallback(async (name, existingId, aiOptions = null) => {
     console.log('[App] handleCreateWorkflow called:', { name, existingId, aiOptions });
 
@@ -1995,7 +2059,7 @@ export default function App() {
       <>
         <ProjectsDashboard
           projects={workflows}
-          onCreateProject={(name) => handleCreateWorkflow(name || 'New Project')}
+          onCreateProject={(name) => handleCreateWorkflow(name || getNextBoardName())}
           onOpenProject={(project) => {
             // Open existing project in editor
             handleCreateWorkflow(project.name || project.title, project.id);
@@ -2200,7 +2264,7 @@ export default function App() {
             bottom: 32,
             left: '50%',
             transform: 'translateX(-50%)',
-            zIndex: 50,
+            zIndex: 2000,
             display: 'flex',
             alignItems: 'center',
             gap: 16
@@ -2257,11 +2321,13 @@ export default function App() {
                 if (response.success && response.content) {
                   setChatMessages([...updatedMessages, { role: 'assistant', content: response.content }]);
                 } else {
-                  setChatMessages([...updatedMessages, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+                  const errorMsg = response.error || response.message || 'Sorry, I encountered an error. Please try again.';
+                  setChatMessages([...updatedMessages, { role: 'assistant', content: errorMsg }]);
                 }
               } catch (err) {
                 console.error('[ChatUI] Error sending message:', err);
-                setChatMessages([...updatedMessages, { role: 'assistant', content: 'Connection error. Please check your network and try again.' }]);
+                const errorMsg = err.response?.data?.error || err.message || 'Connection error. Please check your network and try again.';
+                setChatMessages([...updatedMessages, { role: 'assistant', content: `Error: ${errorMsg}` }]);
               } finally {
                 setIsChatting(false);
               }
@@ -2344,9 +2410,9 @@ export default function App() {
             fitViewOptions={{ padding: 0.1, minZoom: 0.1, maxZoom: 2 }}
             minZoom={0.1}
             maxZoom={2}
-            panOnDrag={isLocked ? false : [1, 2]}
+            panOnDrag={isLocked ? false : [0, 1, 2]}
             panOnScroll={false}
-            selectionOnDrag={!isLocked}
+            selectionOnDrag={false}
             selectionMode="partial"
             selectionKeyCode="Shift"
             multiSelectionKeyCode="Meta"
@@ -2362,9 +2428,11 @@ export default function App() {
             elementsSelectable={!isLocked}
             autoPanOnConnect={true}
             autoPanOnNodeDrag={true}
+            connectionRadius={40}
             deleteKeyCode={['Backspace', 'Delete']}
             style={{ background: '#1a1a1a' }}
             onPaneContextMenu={onPaneContextMenu}
+            onNodeContextMenu={onNodeContextMenu}
             onSelectionContextMenu={onSelectionContextMenu}
             onPaneClick={() => setMenu(null)}
           >

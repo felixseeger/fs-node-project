@@ -165,7 +165,7 @@ export default function ChangeCameraNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell 
+    <NodeShell data={data} 
       label={data.label || 'Change Camera'} 
       dotColor={ACCENT} 
       selected={selected}

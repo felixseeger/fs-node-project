@@ -195,7 +195,7 @@ export default function OmniHumanNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'OmniHuman 1.5'}
       dotColor={ACCENT}
       selected={selected}

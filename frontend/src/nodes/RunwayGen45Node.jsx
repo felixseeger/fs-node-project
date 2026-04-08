@@ -175,7 +175,7 @@ export default function RunwayGen45Node({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Runway Gen 4.5'}
       dotColor={ACCENT}
       selected={selected}

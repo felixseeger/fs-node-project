@@ -174,7 +174,7 @@ export default function PrecisionVideoUpscaleNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Precision Video Upscaler'}
       dotColor={ACCENT}
       selected={selected}

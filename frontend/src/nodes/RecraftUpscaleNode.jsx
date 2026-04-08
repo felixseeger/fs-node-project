@@ -44,7 +44,7 @@ export default function RecraftUpscaleNode({ id, data, selected }) {
   }, [id, data, update, localType]);
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label="Recraft Upscale"
       dotColor={CATEGORY_COLORS.imageEditing}
       selected={selected}

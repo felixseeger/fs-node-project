@@ -178,7 +178,7 @@ export default function SkinEnhancerNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Skin Enhancer'} dotColor={ACCENT} selected={selected}>
+    <NodeShell data={data} label={data.label || 'Skin Enhancer'} dotColor={ACCENT} selected={selected}>
 
       {/* ── 1. Image ── */}
       {sectionHeader('Image', 'image-in', 'target', getHandleColor('image-in'),
@@ -259,7 +259,7 @@ export default function SkinEnhancerNode({ id, data, selected }) {
         minHeight: 80, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {isLoading ? (
+        {data.isLoading ? (
           <div style={{
             width: 28, height: 28, border: '3px solid #3a3a3a',
             borderTop: `3px solid ${ACCENT}`, borderRadius: '50%',

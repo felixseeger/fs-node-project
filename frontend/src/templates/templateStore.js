@@ -23,7 +23,9 @@ function write(all) {
   localStorage.setItem(KEY, JSON.stringify(all));
   try {
     window.dispatchEvent(new CustomEvent(EVENT));
-  } catch {}
+  } catch {
+    // Ignore error
+  }
 }
 
 export function listTemplates() {

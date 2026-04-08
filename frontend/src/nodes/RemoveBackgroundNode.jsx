@@ -133,7 +133,7 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Remove Background'}
       dotColor="#06b6d4"
       selected={selected}

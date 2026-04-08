@@ -67,25 +67,38 @@ export default function VoiceoverNode({ id, data, selected }) {
       }
 
       const taskId = result.task_id || result.data?.task_id;
+      let finalAudio = null;
       if (taskId) {
         const status = await pollVoiceoverStatus(taskId);
         const generated = status.data?.generated || [];
         complete('Voiceover generated');
+        finalAudio = generated[0] || null;
         update({
-          outputAudio: generated[0] || null,
+          outputAudio: finalAudio,
           isLoading: false,
           outputError: null,
         });
       } else if (result.data?.generated?.length) {
         complete('Voiceover generated');
+        finalAudio = result.data.generated[0];
         update({
-          outputAudio: result.data.generated[0],
+          outputAudio: finalAudio,
           isLoading: false,
           outputError: null,
         });
       } else {
         complete('Voiceover generated');
         update({ isLoading: false });
+      }
+
+      // Spawn and connect SoundOutputNode
+      if (finalAudio && data.onCreateNode) {
+        data.onCreateNode(
+          'soundOutput',
+          { outputAudio: finalAudio },
+          'output-audio',
+          'audio-in'
+        );
       }
     } catch (err) {
       console.error('Voiceover error:', err);
@@ -168,7 +181,7 @@ export default function VoiceoverNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'ElevenLabs Voiceover'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'ElevenLabs Voiceover'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
       {/* ── Audio Output Handle (top) ── */}
       <div style={{

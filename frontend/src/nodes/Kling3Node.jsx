@@ -149,7 +149,7 @@ export default function Kling3Node({ id, data, selected }) {
   }, [data.triggerGenerate, handleGenerate]);
 
   return (
-    <NodeShell 
+    <NodeShell data={data} 
       label={data.label || 'Kling 3 Video'} 
       dotColor={ACCENT} 
       selected={selected}

@@ -127,7 +127,7 @@ export default function AIImageClassifierNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'AI Image Classifier'} dotColor={ACCENT} selected={selected}>
+    <NodeShell data={data} label={data.label || 'AI Image Classifier'} dotColor={ACCENT} selected={selected}>
 
       {/* ── Text Output Handle (top) ── */}
       <div style={{

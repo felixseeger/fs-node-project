@@ -10,7 +10,7 @@ export default function ResponseNode({ id, data, selected }) {
   const fields = data.responseFields || [];
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Response · Output'}
       dotColor="#8b5cf6"
       selected={selected}

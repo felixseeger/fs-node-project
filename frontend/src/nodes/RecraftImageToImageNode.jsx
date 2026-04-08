@@ -76,7 +76,7 @@ export default function RecraftImageToImageNode({ id, data, selected }) {
   }, [data.triggerGenerate, handleGenerate]);
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label="Recraft Img2Img"
       dotColor={CATEGORY_COLORS.imageEditing}
       selected={selected}

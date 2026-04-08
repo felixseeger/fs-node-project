@@ -146,7 +146,7 @@ export default function ImageAnalyzerNode({ id, data, selected }) {
   const emptySlots = Math.max(0, maxSlots - localImages.length);
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Claude Sonnet Vision'}
       dotColor="#f97316"
       selected={selected}

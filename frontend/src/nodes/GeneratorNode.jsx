@@ -94,7 +94,7 @@ export default function GeneratorNode({ id, data, selected }) {
       if (result.data?.task_id) {
         // Poll with progress tracking
         let lastProgress = 10;
-        const statusResult = await pollStatus(result.data.task_id, 90, 2000, (attempt, maxAttempts) => {
+        const statusResult = await pollStatus(result.data.task_id, isKora ? 'realism' : 'fluid', 90, 2000, (attempt, maxAttempts) => {
           // Calculate progress based on polling attempt
           lastProgress = 10 + Math.min(85, (attempt / maxAttempts) * 85);
           setProgress(lastProgress, `Generating... (${attempt}/${maxAttempts})`);
@@ -107,13 +107,34 @@ export default function GeneratorNode({ id, data, selected }) {
           outputImages: generated,
           inputPrompt: prompt,
         });
+
+        // Spawn and connect ImageOutputNode
+        if (generated.length > 0 && data.onCreateNode) {
+          data.onCreateNode(
+            'imageOutput',
+            { outputImage: generated[0] },
+            'output',
+            'image-in'
+          );
+        }
       } else if (result.data?.generated?.length) {
         complete('Done');
+        const generated = result.data.generated;
         update({
-          outputImage: result.data.generated[0],
-          outputImages: result.data.generated,
+          outputImage: generated[0],
+          outputImages: generated,
           inputPrompt: prompt,
         });
+
+        // Spawn and connect ImageOutputNode
+        if (generated.length > 0 && data.onCreateNode) {
+          data.onCreateNode(
+            'imageOutput',
+            { outputImage: generated[0] },
+            'output',
+            'image-in'
+          );
+        }
       } else {
         complete('No images generated');
       }
@@ -231,7 +252,7 @@ export default function GeneratorNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || (isKora ? 'Kora Reality' : 'Nano Banana 2 Edit')}
       dotColor={isKora ? '#8b5cf6' : '#ec4899'}
       selected={selected}

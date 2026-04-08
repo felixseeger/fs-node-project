@@ -32,16 +32,21 @@ export default function TextElementNode({ id, data, selected }) {
         if (!isEditing && data.text) {
             // Only update html from server if it differs significantly from our local state
             if (contentRef.current && contentRef.current.innerHTML !== data.text) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setHtml(data.text);
             } else if (!contentRef.current && data.text !== html) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setHtml(data.text);
             }
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data.text, isEditing]);
 
     useEffect(() => {
         if (!selected) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsEditing(false);
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setShowToolbar(false);
             if (contentRef.current && data.onUpdate) {
                 const currentText = contentRef.current.innerHTML;

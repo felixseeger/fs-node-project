@@ -253,7 +253,7 @@ export default function CreativeUpScaleNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={data.label || 'Creative Upscale'}
       dotColor="#8b5cf6"
       selected={selected}

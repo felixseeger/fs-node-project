@@ -60,6 +60,8 @@ export const NODE_MENU: NodeMenuSection[] = [
           inputPrompt: '', outputImage: null, isLoading: false,
           models: ['Auto'], aspectRatio: '1:1', numOutputs: 1,
           editSettings: {},
+          autoSelect: true,
+          useMultiple: true,
         },
       },
       {

@@ -1,6 +1,8 @@
 import { surface, border, sp, radius, font, text } from './nodeTokens';
 import NodeGenerateButton from './NodeGenerateButton';
 import NodeDownloadButton from './NodeDownloadButton';
+import { Handle, Position } from '@xyflow/react';
+import { getHandleColor } from '../utils/handleTypes';
 
 /**
  * Node wrapper shell with category-aware visual identity.
@@ -16,8 +18,13 @@ import NodeDownloadButton from './NodeDownloadButton';
  *  - isGenerating:  Whether generation is in progress
  *  - downloadUrl:   URL for download button (shows download button if provided)
  *  - downloadType:  Type for download: 'image' | 'video' | 'audio' | 'svg'
+ *  - data:          Node data (optional, for dynamic handles)
  */
-export default function NodeShell({ label, dotColor, selected, children, onDisconnect, onEdit, onGenerate, isGenerating, downloadUrl, downloadType = 'image' }) {
+export default function NodeShell({ 
+  label, dotColor, selected, children, onDisconnect, onEdit, 
+  onGenerate, isGenerating, downloadUrl, downloadType = 'image',
+  data 
+}) {
   const accentAlpha = dotColor ? `${dotColor}14` : 'transparent'; // 8% opacity hex
 
   return (
@@ -166,8 +173,51 @@ export default function NodeShell({ label, dotColor, selected, children, onDisco
         padding: `${sp[5]}px ${sp[6]}px`, // Increased padding
         color: text.secondary,
         fontSize: 13,
-        lineHeight: 1.6
-      }}>{children}</div>
+        lineHeight: 1.6,
+        position: 'relative'
+      }}>
+        {/* Dynamic Published Input Handles (Left) */}
+        {data?.publishedPoints?.map((key, idx) => {
+          if (key.startsWith('output')) return null;
+          return (
+            <div key={`in-${key}`} style={{ position: 'absolute', left: 0, top: 40 + (idx * 24), display: 'flex', alignItems: 'center' }}>
+              <Handle
+                type="target"
+                position={Position.Left}
+                id={`published-${key}`}
+                style={{
+                  background: getHandleColor(key),
+                  width: 10, height: 10, border: 'none',
+                  left: -5
+                }}
+              />
+              <span style={{ fontSize: 9, color: '#666', marginLeft: 8, whiteSpace: 'nowrap', opacity: 0.8 }}>{key}</span>
+            </div>
+          );
+        })}
+
+        {/* Dynamic Published Output Handles (Right) */}
+        {data?.publishedPoints?.map((key, idx) => {
+          if (!key.startsWith('output')) return null;
+          return (
+            <div key={`out-${key}`} style={{ position: 'absolute', right: 0, top: 40 + (idx * 24), display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <span style={{ fontSize: 9, color: '#666', marginRight: 8, whiteSpace: 'nowrap', opacity: 0.8 }}>{key}</span>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id={`published-${key}`}
+                style={{
+                  background: getHandleColor(key),
+                  width: 10, height: 10, border: 'none',
+                  right: -5
+                }}
+              />
+            </div>
+          );
+        })}
+
+        {children}
+      </div>
     </div>
   );
 }

@@ -68,8 +68,9 @@ export async function generateKora(params) {
   return postToApi('/api/generate-kora', params);
 }
 
-export async function pollStatus(taskId, maxAttempts = 90, intervalMs = 2000, onProgress) {
-  return pollGenericStatus('/api/status', taskId, { maxAttempts, intervalMs, onProgress, errorLabel: 'Generation' });
+export async function pollStatus(taskId, model, maxAttempts = 90, intervalMs = 2000, onProgress) {
+  const endpointSuffix = model ? `?model=${model}` : '';
+  return pollGenericStatus('/api/status', taskId, { maxAttempts, intervalMs, onProgress, errorLabel: 'Generation', endpointSuffix });
 }
 
 export async function analyzeImage(params) {

@@ -168,7 +168,7 @@ export default function IdeogramExpandNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Ideogram Expand'} dotColor={ACCENT} selected={selected} onGenerate={handleExpand} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'Ideogram Expand'} dotColor={ACCENT} selected={selected} onGenerate={handleExpand} isGenerating={isActive}>
 
       {/* ── 1. Image ── */}
       {sectionHeader('Image', 'image-in', 'target', getHandleColor('image-in'),

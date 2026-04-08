@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
@@ -6,6 +7,7 @@ import {
   CATEGORY_COLORS, sp, font, text, surface, border, radius,
   useNodeConnections, OutputPreview, OutputHandle
 } from './shared';
+import useNodeProgress from '../hooks/useNodeProgress';
 import {
   // Generation
   generateImage, generateKora, pollStatus,
@@ -157,6 +159,25 @@ const PROMPT_DISABLED = new Set(['remove-bg', 'precision-upscale', 'skin-enhance
 export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const { update } = useNodeConnections(id, data);
 
+  const {
+    progress,
+    status: executionStatus,
+    message: executionMessage,
+    start,
+    setProgress,
+    complete,
+    fail,
+    isActive,
+  } = useNodeProgress({
+    onProgress: (state) => {
+      update({
+        executionProgress: state.progress,
+        executionStatus: state.status,
+        executionMessage: state.message,
+      });
+    },
+  });
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isImprovingPrompt, setIsImprovingPrompt] = useState(false);
   const [isImageToPrompting, setIsImageToPrompting] = useState(false);
@@ -172,8 +193,8 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const lastTrigger = useRef(null);
 
   // Settings from data with defaults
-  const autoSelect = data.autoSelect ?? false;
-  const useMultiple = data.useMultiple ?? false;
+  const autoSelect = data.autoSelect ?? true;
+  const useMultiple = data.useMultiple ?? true;
   const pinnedModels = data.pinnedModels || [];
 
   const locked = data.locked || false;
@@ -243,10 +264,15 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     if (model === 'Auto') {
       effectiveModel = selectAutoImageModel(prompt);
     }
-    // Map display-name keys to API keys
-    if (effectiveModel === 'Nano Banana 2' || effectiveModel === 'freepik-mystic') {
-      effectiveModel = 'freepik-mystic';
-    }
+    
+    const modelMap = {
+      'Flux': 'freepik-mystic', // Map Flux to Mystic as they are compatible in this context
+      'Nano Banana 2': 'freepik-mystic',
+      'Kora Reality': 'freepik-kora',
+      'Google Imagen 3': 'google-imagen-3'
+    };
+    
+    const apiModel = modelMap[effectiveModel] || effectiveModel;
 
     if (effectiveModel === 'recraftv4' || effectiveModel === 'recraftv3') {
       const result = await generateRecraftImage({
@@ -259,7 +285,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     if (effectiveModel === 'kora') {
       const result = await generateKora({ prompt, num_images: numOutputs, aspect_ratio: aspectRatio });
       if (result.error) throw new Error(result.error?.message || 'Kora generation failed');
-      if (result.data?.task_id) return (await pollStatus(result.data.task_id)).data?.generated || [];
+      if (result.data?.task_id) return (await pollStatus(result.data.task_id, 'realism')).data?.generated || [];
       return result.data?.generated || [];
     }
     if (effectiveModel === 'quiver-text-to-vector') {
@@ -270,11 +296,11 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       return [`data:image/svg+xml;utf8,${encodeURIComponent(generatedData.svg)}`];
     }
     // freepik-mystic (Nano Banana 2), flux, Auto
-    const params = { prompt, num_images: numOutputs, aspect_ratio: aspectRatio };
+    const params = { prompt, num_images: numOutputs, aspect_ratio: aspectRatio, model: apiModel };
     if (structureImageUrl) params.image_urls = [structureImageUrl];
     const result = await generateImage(params);
     if (result.error) throw new Error(result.error?.message || 'Generation failed');
-    if (result.data?.task_id) return (await pollStatus(result.data.task_id)).data?.generated || [];
+    if (result.data?.task_id) return (await pollStatus(result.data.task_id, apiModel)).data?.generated || [];
     return result.data?.generated || [];
   }, [numOutputs, aspectRatio, selectAutoImageModel]);
 
@@ -403,13 +429,16 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       const refImages = data.resolveInput?.(id, 'reference-in') || [];
 
       setIsGenerating(true);
+      start('Submitting editing request...');
       update({ outputImage: null, outputImages: [], outputError: null });
       try {
         const results = await runEditingModelFn(activeEditingModel, prompt, inputImages[0], refImages[0] || null);
         update({ outputImage: results[0] || null, outputImages: results });
+        complete('Editing complete');
       } catch (err) {
         console.error('Universal image editing error:', err);
         update({ outputError: err.message });
+        fail(err);
       } finally {
         setIsGenerating(false);
       }
@@ -424,6 +453,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
         return;
       }
       setIsGenerating(true);
+      start('Submitting generation request...');
       update({ outputImage: null, outputImages: [], outputError: null });
       try {
         const nbImage = data.nanoBananaImage || image1 || null;
@@ -444,19 +474,33 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
           update({
             outputImage: allImages[0],
             outputImages: allImages,
-            outputError: failures.length ? `Some models failed: ${failures.join('; ')}` : null,
+            isLoading: false,
+            outputError: null,
           });
+          complete('Generation complete');
+
+          // Spawn and connect ImageOutputNode
+          if (data.onCreateNode) {
+            data.onCreateNode(
+              'imageOutput',
+              { outputImage: allImages[0] },
+              'output',
+              'image-in'
+            );
+          }
         } else {
           update({ outputError: failures.join('; ') || 'All models failed to generate' });
+          fail(new Error(failures.join('; ')));
         }
       } catch (err) {
         console.error('Universal image generation error:', err);
         update({ outputError: err.message });
+        fail(err);
       } finally {
         setIsGenerating(false);
       }
     }
-  }, [id, data, update, models, activeEditingModel, isGenerating, runGenerationModel, runEditingModelFn]);
+  }, [id, data, update, models, activeEditingModel, isGenerating, runGenerationModel, runEditingModelFn, start, complete, fail]);
 
   const handleImprovePrompt = useCallback(async () => {
     const prompt = data.inputPrompt || '';
@@ -870,7 +914,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                 <div style={{ padding: '8px 12px', borderBottom: `1px solid ${border.subtle}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <span style={{ ...font.xs, color: text.primary }}>Auto select model</span>
-                    <Toggle checked={autoSelect} onChange={setAutoSelect} />
+                    <Toggle checked={autoSelect} onChange={setAutoSelect} plain />
                   </div>
                   {autoSelect && (
                     <div style={{ 
@@ -906,7 +950,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ ...font.xs, color: text.primary }}>Use multiple models</span>
-                    <Toggle checked={useMultiple} onChange={setUseMultiple} />
+                    <Toggle checked={useMultiple} onChange={setUseMultiple} plain />
                   </div>
                 </div>
 
@@ -1049,6 +1093,18 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Quick Toggles */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title="Auto Model Selection">
+            <span style={{ fontSize: 10, color: text.muted, textTransform: 'uppercase', fontWeight: 600 }}>Auto</span>
+            <Toggle checked={autoSelect} onChange={setAutoSelect} size="sm" plain />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title="Use Multiple Models">
+            <span style={{ fontSize: 10, color: text.muted, textTransform: 'uppercase', fontWeight: 600 }}>Multi</span>
+            <Toggle checked={useMultiple} onChange={setUseMultiple} size="sm" plain />
+          </div>
         </div>
 
         {/* Aspect ratio — hide for editing models (they use input image dimensions) */}
@@ -1340,7 +1396,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                     border: `2px dashed ${dragOverImage === '1' ? CATEGORY_COLORS.imageGeneration : border.subtle}`,
                     borderRadius: radius.sm, height: 70,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', background: dragOverImage === '1' ? `${CATEGORY_COLORS.imageGeneration}11` : surface.base,
+                    cursor: 'pointer', background: dragOverImage === '1' ? `${CATEGORY_COLORS.imageGeneration}11` : surface.deep,
                     transition: 'all 0.15s ease',
                   }}
                 >
@@ -1398,7 +1454,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                     border: `2px dashed ${dragOverImage === '2' ? CATEGORY_COLORS.imageGeneration : border.subtle}`,
                     borderRadius: radius.sm, height: 70,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', background: dragOverImage === '2' ? `${CATEGORY_COLORS.imageGeneration}11` : surface.base,
+                    cursor: 'pointer', background: dragOverImage === '2' ? `${CATEGORY_COLORS.imageGeneration}11` : surface.deep,
                     transition: 'all 0.15s ease',
                   }}
                 >
@@ -1456,7 +1512,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                     border: `2px dashed ${dragOverImage === '3' ? CATEGORY_COLORS.imageGeneration : border.subtle}`,
                     borderRadius: radius.sm, height: 70,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', background: dragOverImage === '3' ? `${CATEGORY_COLORS.imageGeneration}11` : surface.base,
+                    cursor: 'pointer', background: dragOverImage === '3' ? `${CATEGORY_COLORS.imageGeneration}11` : surface.deep,
                     transition: 'all 0.15s ease',
                   }}
                 >
@@ -1495,7 +1551,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                   {/* Hover annotation hint */}
                   <div style={{
                     position: 'absolute', inset: 0,
-                    background: 'rgba(0,0,0,0.35)',
+                    background: 'rgba(0,0,0,0.55)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     opacity: 0, transition: 'opacity 0.15s',
                     borderRadius: radius.md,
@@ -1621,15 +1677,18 @@ function ModelCard({ modelKey, isSelected, onToggle, onPin, isPinned, showDescri
   const accent = def.type === 'editing' ? (CATEGORY_COLORS.imageEditing || '#a78bfa') : CATEGORY_COLORS.imageGeneration;
 
   return (
-    <button
+    <div
       onClick={onToggle}
       onMouseDown={e => e.stopPropagation()}
+      onMouseEnter={e => { e.currentTarget.style.background = isSelected ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.03)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'rgba(249,115,22,0.08)' : surface.base; }}
       className="nodrag nopan"
       style={{
         width: '100%', display: 'flex', alignItems: 'flex-start', gap: 10,
         padding: '10px 12px', background: isSelected ? 'rgba(249,115,22,0.08)' : surface.base,
         border: `1px solid ${isSelected ? accent : border.subtle}`,
         borderRadius: radius.md, cursor: 'pointer', textAlign: 'left',
+        transition: 'all 0.2s ease',
       }}
     >
       {logo && (
@@ -1673,7 +1732,7 @@ function ModelCard({ modelKey, isSelected, onToggle, onPin, isPinned, showDescri
           </svg>
         )}
       </div>
-    </button>
+    </div>
   );
 }
 

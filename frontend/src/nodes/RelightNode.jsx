@@ -303,7 +303,7 @@ export default function RelightNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Relight'} dotColor="#f59e0b" selected={selected} onGenerate={handleRelight} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'Relight'} dotColor="#f59e0b" selected={selected} onGenerate={handleRelight} isGenerating={isActive}>
 
       {/* ── Image Output Handle (top, aligned with image-in) ── */}
       <div style={{

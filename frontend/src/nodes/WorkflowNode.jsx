@@ -32,7 +32,7 @@ export default function WorkflowNode({ id, data, selected }) {
   const missing = data.templateId && !tpl;
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label={name}
       dotColor={ACCENT}
       selected={selected}

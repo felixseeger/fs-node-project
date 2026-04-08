@@ -167,7 +167,7 @@ export default function SeedreamExpandNode({ id, data, selected }) {
   // ── Render ──
 
   return (
-    <NodeShell label={data.label || 'Seedream Expand'} dotColor="#a855f7" selected={selected} onGenerate={handleExpand} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'Seedream Expand'} dotColor="#a855f7" selected={selected} onGenerate={handleExpand} isGenerating={isActive}>
 
       {/* ── Image Output Handle (top, aligned with image-in) ── */}
       <div style={{

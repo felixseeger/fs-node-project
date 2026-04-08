@@ -151,7 +151,7 @@ export default function VideoImproveNode({ id, data, selected }) {
     const ACCENT = '#14b8a6'; // Teal for Video
 
     return (
-        <NodeShell label={data.label || 'Astrolabe Video Improve'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
+        <NodeShell data={data} label={data.label || 'Astrolabe Video Improve'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
 
             {/* ── Video Output Handle ── */}
             <div style={{

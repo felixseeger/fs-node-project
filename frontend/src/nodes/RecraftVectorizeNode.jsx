@@ -41,7 +41,7 @@ export default function RecraftVectorizeNode({ id, data, selected }) {
   }, [id, data, update]);
 
   return (
-    <NodeShell
+    <NodeShell data={data}
       label="Recraft Vectorize"
       dotColor={CATEGORY_COLORS.imageEditing}
       selected={selected}
