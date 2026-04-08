@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
 
 const THINKING_PHRASES = [
   'Analyzing request...',
@@ -8,13 +8,15 @@ const THINKING_PHRASES = [
   'Finalizing workflow...'
 ];
 
+const DEFAULT_TAGS = ['Portrait', '10s'];
+
 const ChatUI = forwardRef(({
   isOpen,
   onClose,
   onSendMessage,
   onGenerate,
   isGenerating,
-  tags = [],
+  tags = DEFAULT_TAGS,
   disabled = false,
 }, ref) => {
   const [inputValue, setInputValue] = useState('');
@@ -26,14 +28,14 @@ const ChatUI = forwardRef(({
       timestamp: new Date(),
     },
   ]);
-  const [activeTags, setActiveTags] = useState(new Set(['Portrait', '10s']));
+  const [activeTags, setActiveTags] = useState(() => new Set(tags));
   const [thinkingIndex, setThinkingIndex] = useState(0);
   const textareaRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll to bottom of messages
+  // Auto-scroll to bottom of messages (scrollIntoView may be absent in test env)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
   }, [messages, isGenerating]);
 
   // Cycle thinking phrases
@@ -57,13 +59,7 @@ const ChatUI = forwardRef(({
     }
   }, [inputValue]);
 
-  useImperativeHandle(ref, () => ({
-    submitGeneration: () => {
-      handleGenerate();
-    }
-  }));
-
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     if (!inputValue.trim() || isGenerating) return;
 
     const userMessage = {
@@ -76,28 +72,38 @@ const ChatUI = forwardRef(({
     setMessages((prev) => [...prev, userMessage]);
     onSendMessage?.(inputValue.trim());
     setInputValue('');
-  };
+  }, [inputValue, isGenerating, onSendMessage]);
 
-  const handleGenerate = () => {
+  const handleGenerate = useCallback(() => {
     if (isGenerating || disabled) return;
-    // Pass the current input value to generate workflow from
     const messageToGenerate = inputValue.trim();
-    if (messageToGenerate) {
-      // Add user message to chat first
-      const userMessage = {
+    if (!messageToGenerate) return;
+
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      content: messageToGenerate,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue('');
+    onGenerate?.(messageToGenerate);
+  }, [inputValue, isGenerating, disabled, onGenerate]);
+
+  useImperativeHandle(ref, () => ({
+    submitGeneration: () => {
+      handleGenerate();
+    },
+    addMessage: (message) => {
+      const msg = {
         id: Date.now(),
-        type: 'user',
-        content: messageToGenerate,
+        type: message.type || 'assistant',
+        content: message.content,
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, userMessage]);
-
-      setInputValue('');
-
-      // Call onGenerate with the message
-      onGenerate?.(messageToGenerate);
+      setMessages((prev) => [...prev, msg]);
     }
-  };
+  }), [handleGenerate]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -122,14 +128,14 @@ const ChatUI = forwardRef(({
 
   return (
     <div
+      data-testid="chat-ui"
       style={{
         position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 720,
-        height: 480,
-        zIndex: 10,
+        top: 24,
+        right: 24,
+        bottom: 112,
+        width: 320,
+        zIndex: 200,
         display: 'flex',
         flexDirection: 'column',
         background: '#1a1a1a',
@@ -137,6 +143,7 @@ const ChatUI = forwardRef(({
         border: '1px solid #333',
         overflow: 'hidden',
         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        pointerEvents: 'auto',
       }}
     >
       {/* Header */}
@@ -178,6 +185,7 @@ const ChatUI = forwardRef(({
 
         {/* Close Button */}
         <button
+          data-testid="chat-close"
           onClick={onClose}
           style={{
             width: 24,
@@ -289,6 +297,7 @@ const ChatUI = forwardRef(({
           }}
         >
           <textarea
+            data-testid="chat-input"
             ref={textareaRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
@@ -312,6 +321,8 @@ const ChatUI = forwardRef(({
             }}
           />
           <button
+            data-testid="chat-send"
+            type="button"
             onClick={handleSend}
             disabled={!inputValue.trim() || isGenerating}
             style={{
@@ -336,6 +347,29 @@ const ChatUI = forwardRef(({
           </button>
         </div>
 
+        {/* Generate workflow — primary action for AI graph generation */}
+        <div style={{ marginTop: 10 }}>
+          <button
+            data-testid="chat-generate"
+            type="button"
+            onClick={handleGenerate}
+            disabled={!inputValue.trim() || isGenerating || disabled}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: '1px solid #2563eb',
+              background: inputValue.trim() && !isGenerating && !disabled ? '#2563eb' : '#2a2a2a',
+              color: inputValue.trim() && !isGenerating && !disabled ? '#fff' : '#666',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: inputValue.trim() && !isGenerating && !disabled ? 'pointer' : 'not-allowed',
+            }}
+          >
+            {isGenerating ? 'Generating workflow…' : 'Generate workflow'}
+          </button>
+        </div>
+
         {/* Tags Row */}
         <div
           style={{
@@ -348,6 +382,7 @@ const ChatUI = forwardRef(({
         >
           {/* History icon */}
           <button
+            type="button"
             style={{
               width: 24,
               height: 24,
@@ -367,7 +402,7 @@ const ChatUI = forwardRef(({
           </button>
 
           {/* Tags */}
-          {['Portrait', '10s'].map((tag) => (
+          {tags.map((tag) => (
             <button
               key={tag}
               onClick={() => toggleTag(tag)}

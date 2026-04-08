@@ -13,7 +13,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { generateAIWorkflow, suggestNodes } from './utils/api';
+import { generateAIWorkflow, suggestNodes, sendChat } from './utils/api';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirebaseAuth, initializeFirebase, enableOfflinePersistence } from './config/firebase';
 import { useFirebaseWorkflows } from './hooks/useFirebaseWorkflows';
@@ -2159,12 +2159,6 @@ export default function App() {
             }}
           />
 
-          {/* Chat Button - Bottom Left */}
-          <ChatButton
-            isOpen={isChatOpen}
-            onClick={() => setIsChatOpen(!isChatOpen)}
-          />
-
           {/* Action Buttons (Generate) - Bottom Center */}
           <div style={{
             position: 'absolute',
@@ -2211,58 +2205,6 @@ export default function App() {
               )}
             </button>
           </div>
-
-          {/* Chat UI - Right Side */}
-          <ChatUI
-            ref={chatUIRef}
-            isOpen={isChatOpen}
-            onClose={() => setIsChatOpen(false)}
-            onSendMessage={(message) => {
-              console.log('[ChatUI] Message sent:', message);
-              // Message is handled in the chat UI, generation happens on Generate button
-            }}
-            onGenerate={async (message) => {
-              if (!message || message.trim() === '') {
-                console.log('[ChatUI] No message to generate workflow from');
-                return;
-              }
-
-              setIsRunning(true);
-              try {
-                console.log('[ChatUI] Generating workflow from:', message);
-                const result = await generateAIWorkflow(message.trim(), 'standard');
-
-                if (result.success && result.workflow) {
-                  // Save the generated workflow
-                  const newWf = await createFirebaseWorkflow(
-                    result.workflow.name || 'AI Generated Workflow',
-                    result.workflow.nodes,
-                    result.workflow.edges
-                  );
-
-                  if (newWf) {
-                    setActiveWorkflowId(newWf.id);
-                    setNodes(result.workflow.nodes);
-                    setEdges(result.workflow.edges);
-                    subscribe(newWf.id);
-                    console.log('[ChatUI] Workflow generated and saved:', newWf.id);
-                  } else {
-                    // Fallback: just update current workflow
-                    setNodes(result.workflow.nodes);
-                    setEdges(result.workflow.edges);
-                  }
-                } else {
-                  console.error('[ChatUI] Failed to generate workflow:', result.error);
-                }
-              } catch (error) {
-                console.error('[ChatUI] Error generating workflow:', error);
-              } finally {
-                setIsRunning(false);
-              }
-            }}
-            isGenerating={isRunning}
-            disabled={isRunning}
-          />
 
           {/* Queue - Bottom Right, below Chat UI */}
           <div style={{
@@ -2384,6 +2326,91 @@ export default function App() {
             <Background variant="dots" gap={20} size={1} color="#333" />
             <CanvasNavigation />
           </ReactFlow>
+
+          {/* Chat toggle + panel — after React Flow so the canvas does not capture clicks */}
+          <ChatButton
+            isOpen={isChatOpen}
+            onClick={() => setIsChatOpen(!isChatOpen)}
+          />
+          <ChatUI
+            ref={chatUIRef}
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+            onSendMessage={async (message) => {
+              console.log('[App] ChatUI onSendMessage triggered:', message);
+              setIsRunning(true);
+              try {
+                console.log('[App] Calling sendChat utility...');
+                const result = await sendChat(message);
+                console.log('[App] sendChat result received:', JSON.stringify(result));
+                if (result.success && result.response) {
+                  console.log('[App] Adding assistant message to UI');
+                  chatUIRef.current?.addMessage({
+                    type: 'assistant',
+                    content: result.response
+                  });
+                } else {
+                  console.error('[App] Chat failed with result:', JSON.stringify(result));
+                  chatUIRef.current?.addMessage({
+                    type: 'assistant',
+                    content: 'Sorry, I encountered an error. ' + (result.error?.message || result.message || 'Please try again.')
+                  });
+                }
+              } catch (error) {
+                console.error('[App] Exception in sendChat:', error.message);
+                chatUIRef.current?.addMessage({
+                  type: 'assistant',
+                  content: 'Sorry, there was a connection error. Is the backend server running?'
+                });
+              } finally {
+                setIsRunning(false);
+                console.log('[App] sendChat flow finished');
+              }
+            }}
+            onGenerate={async (message) => {
+              console.log('[App] ChatUI onGenerate called with:', message);
+              if (!message || message.trim() === '') {
+                console.log('[App] ChatUI No message to generate workflow from');
+                return;
+              }
+
+              setIsRunning(true);
+              try {
+                console.log('[App] ChatUI calling generateAIWorkflow...');
+                const result = await generateAIWorkflow(message.trim(), 'standard');
+                console.log('[App] ChatUI generateAIWorkflow result:', result);
+
+                if (result.success && result.workflow) {
+                  console.log('[App] ChatUI workflow generated successfully');
+                  const newWf = await createFirebaseWorkflow(
+                    result.workflow.name || 'AI Generated Workflow',
+                    result.workflow.nodes,
+                    result.workflow.edges
+                  );
+
+                  if (newWf) {
+                    setActiveWorkflowId(newWf.id);
+                    setNodes(result.workflow.nodes);
+                    setEdges(result.workflow.edges);
+                    subscribe(newWf.id);
+                    console.log('[App] ChatUI Workflow generated and saved:', newWf.id);
+                  } else {
+                    console.log('[App] ChatUI createFirebaseWorkflow returned null, setting nodes/edges locally');
+                    setNodes(result.workflow.nodes);
+                    setEdges(result.workflow.edges);
+                  }
+                } else {
+                  console.error('[App] ChatUI Failed to generate workflow:', result.error);
+                }
+              } catch (error) {
+                console.error('[ChatUI] Error generating workflow:', error);
+              } finally {
+                setIsRunning(false);
+              }
+            }}
+            isGenerating={isRunning}
+            disabled={isRunning}
+          />
         </div>
       </div>
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />

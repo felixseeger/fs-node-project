@@ -58,6 +58,8 @@ export default function ChatButton({ isOpen, onClick, unreadCount = 0 }) {
       <style>{chatButtonStyles}</style>
 
       <button
+        type="button"
+        data-testid="chat-toggle"
         ref={buttonRef}
         className={`chat-btn${isOpen ? ' chat-btn--open' : ''}`}
         onClick={onClick}
@@ -113,7 +115,7 @@ const chatButtonStyles = `
     position: absolute;
     right: 24px;
     bottom: 24px;
-    z-index: 10;
+    z-index: 220;
     width: 56px;
     height: 56px;
     padding: 0;
