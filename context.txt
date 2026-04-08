@@ -1,0 +1,23 @@
+Wake-up text (~810 tokens):
+==================================================
+## L0 — IDENTITY
+No identity configured. Create ~/.mempalace/identity.txt
+
+## L1 — ESSENTIAL STORY
+
+[general]
+  - jsx = """import React, { useState } from 'react'; import './ProfileModal.css';  const Icons = {   Profile: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="...  (make_modal.py)
+  - 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 ...  (make_modal.py)
+  - 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,   Settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLin...  (make_modal.py)
+  - 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>,   People: <svg viewBox="0 0 24 24"...  (make_modal.py)
+  - dth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h4l3-9 5 18 3-9h5"></path></svg>,   Plans: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLineca...  (make_modal.py)
+  - "2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg> };  export default function ProfileModal({ isOpen, onClose }) {   const [activeTab, setActiveTab] =...  (make_modal.py)
+  - ile')}>               <span className="pm-icon">{Icons.Profile}</span> Profile             </button>             <button className={`pm-nav-btn ${activeTab === 'Preferences' ? 'active' : ''}`} onCl...  (make_modal.py)
+  - <span className="pm-icon">{Icons.Settings}</span> Settings             </button>           </div>            <div className="pm-section">             <div className="pm-section-title">Workspace</di...  (make_modal.py)
+  - sName={`pm-nav-btn ${activeTab === 'Plans' ? 'active' : ''}`} onClick={() => setActiveTab('Plans')}>               <span className="pm-icon">{Icons.Plans}</span> Plans &amp; Pricing             </b...  (make_modal.py)
+  - "pm-close-btn" onClick={onClose}>               {Icons.Close}             </button>           </div>            {activeTab === 'Profile' && (             <div className="pm-profile-body">          ...  (make_modal.py)
+  - pm-avatar-img" />                 <button className="pm-edit-btn">Edit</button>               </div>                <div className="pm-form-row">                 <div className="pm-form-group">    ...  (make_modal.py)
+  - <input type="text" defaultValue="Seeger" />                 </div>               </div>                <div className="pm-form-group pm-form-group-full">                 <label>Email</label>       ...  (make_modal.py)
+  - -btn">Delete account</button>               </div>                <div className="pm-divider"></div>                <div className="pm-security-section">                 <div className="pm-security...  (make_modal.py)
+  - ab} goes here.</p>             </div>           )}         </div>       </div>     </div>   ); } """  css = """ .pm-overlay {   position: fixed;   top: 0;   left: 0;   width: 100vw;   height: 100vh...  (make_modal.py)
+  ... (more in L3 search)

@@ -7,14 +7,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Example: Workflows collection
+    // Workflows collection
     match /workflows/{workflowId} {
       // Any logged-in user can create a workflow
       allow create: if request.auth != null;
       
-      // Users can only read, update, or delete workflows IF the workflow document 
-      // contains a `userId` field that matches their own authentication UID.
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      // Allow reading public workflows or own workflows
+      allow read: if resource.data.isPublic == true || (request.auth != null && request.auth.uid == resource.data.userId);
+      
+      // Only owner can update or delete
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
     
     // Add other collections here...

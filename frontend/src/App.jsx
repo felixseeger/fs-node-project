@@ -285,12 +285,14 @@ export default function App() {
   // Firebase workflow integration
   const {
     workflows: firebaseWorkflows,
+    communityWorkflows,
     currentWorkflow,
     isLoading: isFirebaseLoading,
     error: firebaseError,
     create: createFirebaseWorkflow,
     load: loadFirebaseWorkflow,
     save: saveFirebaseWorkflow,
+    togglePublic: toggleWorkflowPublic,
     remove: deleteFirebaseWorkflow,
     subscribe,
     unsubscribe,
@@ -354,8 +356,14 @@ export default function App() {
   const clipboardRef = useRef(null);
   const pastePositionRef = useRef(null);
   const chatUIRef = useRef(null);
+  const [referenceImage, setReferenceImage] = useState(null);
   const [chatMessages, setChatMessages] = useState([
-    { role: 'assistant', content: 'Hello! I am your AI assistant. How can I help you build your workflow today?' }
+    {
+      id: 'chat-welcome',
+      role: 'assistant',
+      type: 'assistant',
+      content: 'Hello! I am your AI assistant. How can I help you build your workflow today?'
+    }
   ]);
   const [isChatting, setIsChatting] = useState(false);
 
@@ -2097,6 +2105,7 @@ export default function App() {
       <>
         <ProjectsDashboard
           projects={workflows}
+          communityWorkflows={communityWorkflows}
           onCreateProject={(name) => handleCreateWorkflow(name || getNextBoardName())}
           onOpenProject={(project) => {
             // Open existing project in editor
@@ -2108,6 +2117,10 @@ export default function App() {
               await saveFirebaseWorkflow(id, updates);
             }
           }}
+          onTogglePublic={async (id, isPublic) => {
+            const authorName = isAuthenticated ? (getFirebaseAuth().currentUser?.displayName || getFirebaseAuth().currentUser?.email?.split('@')[0]) : 'User';
+            await toggleWorkflowPublic(id, isPublic, authorName);
+          }}
           onDeleteProject={(id) => {
             handleDeleteWorkflows([id]);
           }}
@@ -2117,8 +2130,19 @@ export default function App() {
               await createFirebaseWorkflow(newName, project.nodes || [], project.edges || []);
             }
           }}
+          onCloneProject={async (project) => {
+            const newName = `${project.name || project.title || 'Untitled'} (Cloned)`;
+            if (createFirebaseWorkflow) {
+              const newWf = await createFirebaseWorkflow(newName, project.nodes || [], project.edges || []);
+              if (newWf) {
+                alert(`Successfully cloned "${project.name || project.title}" to your boards.`);
+              }
+            }
+          }}
           onLogout={handleLogout}
           onOpenProfile={() => setIsProfileModalOpen(true)}
+          theme={theme}
+          setTheme={setTheme}
         />
         <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
       </>
@@ -2209,6 +2233,14 @@ export default function App() {
         </div>
       )}
       <EditorTopBar
+        isPublic={workflows.find(w => w.id === activeWorkflowId)?.isPublic || false}
+        onTogglePublic={async (isPublic) => {
+          if (activeWorkflowId) {
+            const authorName = isAuthenticated ? (getFirebaseAuth().currentUser?.displayName || getFirebaseAuth().currentUser?.email?.split('@')[0]) : 'User';
+            await toggleWorkflowPublic(activeWorkflowId, isPublic, authorName);
+            setWorkflows(prev => prev.map(w => w.id === activeWorkflowId ? { ...w, isPublic } : w));
+          }
+        }}
         onSave={() => {
           if (activeWorkflowId) {
             setWorkflows((prev) =>
@@ -2274,9 +2306,9 @@ export default function App() {
 
           {/* Reference Selection - Bottom Left */}
           <ReferenceSelection
+            selectedImage={referenceImage}
             onImageSelect={(imageData) => {
-              // Store selected reference image in app state or pass to workflow
-              console.log('[ReferenceSelection] Image selected:', imageData ? 'yes' : 'no');
+              setReferenceImage(imageData ?? null);
             }}
           />
 
@@ -2352,8 +2384,15 @@ export default function App() {
             ref={chatUIRef}
             isOpen={isChatOpen}
             onClose={() => setIsChatOpen(false)}
+            referenceImage={referenceImage}
+            setReferenceImage={setReferenceImage}
             onSendMessage={async (message) => {
-              const newUserMsg = { role: 'user', content: message };
+              const newUserMsg = {
+                id: `chat-user-${Date.now()}`,
+                role: 'user',
+                type: 'user',
+                content: message
+              };
               const updatedMessages = [...chatMessages, newUserMsg];
               setChatMessages(updatedMessages);
               setIsChatting(true);
@@ -2361,15 +2400,39 @@ export default function App() {
               try {
                 const response = await chatWithAI(updatedMessages);
                 if (response.success && response.content) {
-                  setChatMessages([...updatedMessages, { role: 'assistant', content: response.content }]);
+                  setChatMessages([
+                    ...updatedMessages,
+                    {
+                      id: `chat-assistant-${Date.now()}`,
+                      role: 'assistant',
+                      type: 'assistant',
+                      content: response.content
+                    }
+                  ]);
                 } else {
                   const errorMsg = response.error || response.message || 'Sorry, I encountered an error. Please try again.';
-                  setChatMessages([...updatedMessages, { role: 'assistant', content: errorMsg }]);
+                  setChatMessages([
+                    ...updatedMessages,
+                    {
+                      id: `chat-assistant-error-${Date.now()}`,
+                      role: 'assistant',
+                      type: 'assistant',
+                      content: errorMsg
+                    }
+                  ]);
                 }
               } catch (err) {
                 console.error('[ChatUI] Error sending message:', err);
                 const errorMsg = err.response?.data?.error || err.message || 'Connection error. Please check your network and try again.';
-                setChatMessages([...updatedMessages, { role: 'assistant', content: `Error: ${errorMsg}` }]);
+                setChatMessages([
+                  ...updatedMessages,
+                  {
+                    id: `chat-assistant-exception-${Date.now()}`,
+                    role: 'assistant',
+                    type: 'assistant',
+                    content: `Error: ${errorMsg}`
+                  }
+                ]);
               } finally {
                 setIsChatting(false);
               }

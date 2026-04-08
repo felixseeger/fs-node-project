@@ -15,6 +15,8 @@ import {
   listWorkflows,
   subscribeToWorkflow,
   subscribeToUserWorkflows,
+  subscribeToPublicWorkflows,
+  toggleWorkflowPublic,
   duplicateWorkflow,
   exportWorkflowToJSON,
   importWorkflowFromJSON,
@@ -30,6 +32,7 @@ interface UseFirebaseWorkflowsOptions {
 interface UseFirebaseWorkflowsReturn {
   // State
   workflows: Workflow[];
+  communityWorkflows: Workflow[];
   currentWorkflow: Workflow | null;
   isLoading: boolean;
   error: Error | null;
@@ -39,6 +42,7 @@ interface UseFirebaseWorkflowsReturn {
   create: (name: string, nodes: any[], edges: any[]) => Promise<Workflow | null>;
   load: (workflowId: string) => Promise<Workflow | null>;
   save: (workflowId: string, updates: Partial<Workflow>) => Promise<void>;
+  togglePublic: (workflowId: string, isPublic: boolean, authorName?: string) => Promise<void>;
   remove: (workflowId: string) => Promise<void>;
   duplicate: (workflowId: string) => Promise<string | null>;
   
@@ -65,6 +69,7 @@ export function useFirebaseWorkflows(
   
   // State
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [communityWorkflows, setCommunityWorkflows] = useState<Workflow[]>([]);
   const [currentWorkflow, setCurrentWorkflow] = useState<Workflow | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -74,6 +79,7 @@ export function useFirebaseWorkflows(
   // Refs for pagination and subscriptions
   const lastDocRef = useRef<any>(null);
   const unsubscribeRef = useRef<Unsubscribe | null>(null);
+  const unsubscribePublicRef = useRef<Unsubscribe | null>(null);
   const unsubscribeCurrentRef = useRef<Unsubscribe | null>(null);
   
   // Check if Firebase is available
@@ -84,26 +90,36 @@ export function useFirebaseWorkflows(
   // =============================================================================
   
   useEffect(() => {
-    if (!isAvailable || !userId || !enableRealtime) {
+    if (!isAvailable || !enableRealtime) {
       return;
     }
     
     setIsLoading(true);
     
-    // Subscribe to real-time updates
-    const unsubscribe = subscribeToUserWorkflows(userId, (updatedWorkflows) => {
-      setWorkflows(updatedWorkflows);
-      setIsLoading(false);
-    });
+    // 1. Subscribe to user's private workflows if logged in
+    let unsubscribeUser: Unsubscribe | null = null;
+    if (userId) {
+      unsubscribeUser = subscribeToUserWorkflows(userId, (updatedWorkflows) => {
+        setWorkflows(updatedWorkflows);
+        setIsLoading(false);
+      });
+      unsubscribeRef.current = unsubscribeUser;
+    }
     
-    unsubscribeRef.current = unsubscribe;
+    // 2. Subscribe to public community workflows (always)
+    const unsubscribePublic = subscribeToPublicWorkflows((updatedCommunityWorkflows) => {
+      setCommunityWorkflows(updatedCommunityWorkflows);
+    });
+    unsubscribePublicRef.current = unsubscribePublic;
     
     // Load stats
-    refreshStats();
+    if (userId) refreshStats();
     
     return () => {
-      unsubscribe();
+      if (unsubscribeUser) unsubscribeUser();
+      unsubscribePublic();
       unsubscribeRef.current = null;
+      unsubscribePublicRef.current = null;
     };
   }, [userId, enableRealtime, isAvailable]);
   
@@ -197,7 +213,31 @@ export function useFirebaseWorkflows(
       setError(err instanceof Error ? err : new Error('Failed to save workflow'));
     }
   }, [userId, currentWorkflow, isAvailable]);
-  
+
+  const togglePublic = useCallback(async (
+    workflowId: string,
+    isPublic: boolean,
+    authorName?: string
+  ): Promise<void> => {
+    if (!isAvailable) {
+      setError(new Error('Firebase not configured'));
+      return;
+    }
+
+    setError(null);
+
+    try {
+      await toggleWorkflowPublic(workflowId, isPublic, authorName);
+
+      // Update local state if it's the current workflow
+      if (currentWorkflow?.id === workflowId) {
+        setCurrentWorkflow(prev => prev ? { ...prev, isPublic, authorName: authorName || prev.authorName } : null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to toggle public status'));
+    }
+  }, [currentWorkflow, isAvailable]);
+
   const remove = useCallback(async (workflowId: string): Promise<void> => {
     if (!isAvailable) {
       setError(new Error('Firebase not configured'));
@@ -330,6 +370,7 @@ export function useFirebaseWorkflows(
   
   return {
     workflows,
+    communityWorkflows,
     currentWorkflow,
     isLoading,
     error,
@@ -337,6 +378,7 @@ export function useFirebaseWorkflows(
     create,
     load,
     save,
+    togglePublic,
     remove,
     duplicate,
     subscribe,

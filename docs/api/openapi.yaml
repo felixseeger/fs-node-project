@@ -1,0 +1,1565 @@
+openapi: 3.1.0
+info:
+  title: Nodespace API
+  version: 0.1.0
+  summary: API for the Nodespace AI pipeline editor.
+  description: >
+    First-pass OpenAPI specification generated from the current Express route tree.
+    The API is primarily a proxy/orchestration layer over third-party AI providers
+    for image, video, audio, workflow generation, and LLM-assisted utilities.
+servers:
+  - url: http://localhost:3001
+    description: Local development
+tags:
+  - name: Health
+  - name: Utility
+  - name: Images
+  - name: Image Editing
+  - name: Vision
+  - name: Videos
+  - name: Audio
+  - name: AI Workflow
+  - name: Recraft
+  - name: Quiver
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: Service health
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+
+  /api/generate-name:
+    get:
+      tags: [Utility]
+      summary: Generate a project name
+      responses:
+        '200':
+          description: Generated name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+
+  /api/generate-image:
+    post:
+      tags: [Images]
+      summary: Generate an image
+      description: Starts an image generation job using Google or Freepik-backed services.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          description: Job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncTaskResponse'
+
+  /api/generate-kora:
+    post:
+      tags: [Images]
+      summary: Generate a realism-focused image
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          description: Job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncTaskResponse'
+
+  /api/status/{taskId}:
+    get:
+      tags: [Images]
+      summary: Poll generic image-generation status
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - in: query
+          name: model
+          schema:
+            type: string
+          description: Optional model hint forwarded to provider polling.
+      responses:
+        '200':
+          description: Current task state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncTaskResponse'
+
+  /api/upload-image:
+    post:
+      tags: [Images]
+      summary: Upload one or more images
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                images:
+                  type: array
+                  maxItems: 5
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '200':
+          description: Uploaded images converted to data URLs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  urls:
+                    type: array
+                    items:
+                      type: string
+                  count:
+                    type: integer
+
+  /api/upscale-creative:
+    post:
+      tags: [Image Editing]
+      summary: Start creative upscale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/upscale-creative/{taskId}:
+    get:
+      tags: [Image Editing]
+      summary: Poll creative upscale
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/upscale-precision:
+    post:
+      tags: [Image Editing]
+      summary: Start precision upscale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/upscale-precision/{taskId}:
+    get:
+      tags: [Image Editing]
+      summary: Poll precision upscale
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/relight:
+    post:
+      tags: [Image Editing]
+      summary: Relight an image
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/relight/{taskId}:
+    get:
+      tags: [Image Editing]
+      summary: Poll relight task
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/style-transfer:
+    post:
+      tags: [Image Editing]
+      summary: Start style transfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/style-transfer/{taskId}:
+    get:
+      tags: [Image Editing]
+      summary: Poll style transfer task
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/remove-background:
+    post:
+      tags: [Image Editing]
+      summary: Remove image background
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image_url]
+              properties:
+                image_url:
+                  type: string
+      responses:
+        '200':
+          description: Provider response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/reimagine-flux:
+    post:
+      tags: [Image Editing]
+      summary: Reimagine image with Flux
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/image-expand:
+    post:
+      tags: [Image Editing]
+      summary: Start Flux image expand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/image-expand/{taskId}:
+    get:
+      tags: [Image Editing]
+      summary: Poll Flux image expand
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/seedream-expand:
+    post:
+      tags: [Image Editing]
+      summary: Start Seedream image expand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/seedream-expand/{taskId}:
+    get:
+      tags: [Image Editing]
+      summary: Poll Seedream image expand
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/ideogram-expand:
+    post:
+      tags: [Image Editing]
+      summary: Start Ideogram image expand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/ideogram-expand/{taskId}:
+    get:
+      tags: [Image Editing]
+      summary: Poll Ideogram image expand
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/skin-enhancer/{mode}:
+    post:
+      tags: [Image Editing]
+      summary: Start skin enhancer
+      parameters:
+        - in: path
+          name: mode
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/skin-enhancer/{taskId}:
+    get:
+      tags: [Image Editing]
+      summary: Poll skin enhancer task
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/ideogram-inpaint:
+    post:
+      tags: [Image Editing]
+      summary: Start Ideogram inpaint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/ideogram-inpaint/{taskId}:
+    get:
+      tags: [Image Editing]
+      summary: Poll Ideogram inpaint task
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/change-camera:
+    post:
+      tags: [Image Editing]
+      summary: Start camera-angle change
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/change-camera/{taskId}:
+    get:
+      tags: [Image Editing]
+      summary: Poll change-camera task
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/analyze-image:
+    post:
+      tags: [Vision]
+      summary: Analyze one or more images with Claude
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                prompt:
+                  type: string
+                systemDirections:
+                  type: string
+      responses:
+        '200':
+          description: Analysis response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  analysis:
+                    type: string
+
+  /api/image-to-prompt:
+    post:
+      tags: [Vision]
+      summary: Start image-to-prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                image_url:
+                  type: string
+                image:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/image-to-prompt/{taskId}:
+    get:
+      tags: [Vision]
+      summary: Poll image-to-prompt
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/improve-prompt:
+    post:
+      tags: [Vision]
+      summary: Improve a prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt]
+              properties:
+                prompt:
+                  type: string
+                type:
+                  type: string
+                language:
+                  type: string
+      responses:
+        '200':
+          description: Provider response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/improve-prompt/{taskId}:
+    get:
+      tags: [Vision]
+      summary: Poll improve-prompt compatibility route
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Compatibility response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncTaskResponse'
+
+  /api/classifier/image:
+    post:
+      tags: [Vision]
+      summary: Classify an image
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                image_url:
+                  type: string
+                image:
+                  type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/text-to-icon:
+    post:
+      tags: [Vision]
+      summary: Start text-to-icon generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/text-to-icon/{taskId}:
+    get:
+      tags: [Vision]
+      summary: Poll text-to-icon generation
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/kling-elements-pro:
+    post:
+      tags: [Videos]
+      summary: Start Kling Elements Pro generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/kling-elements-pro/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll Kling Elements Pro
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/kling3/{mode}:
+    post:
+      tags: [Videos]
+      summary: Start Kling 3 generation
+      parameters:
+        - $ref: '#/components/parameters/Mode'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+    get:
+      tags: [Videos]
+      summary: Poll Kling 3 generation
+      parameters:
+        - $ref: '#/components/parameters/TaskIdAsModePath'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/kling3-omni/{mode}:
+    post:
+      tags: [Videos]
+      summary: Start Kling 3 Omni generation
+      parameters:
+        - $ref: '#/components/parameters/Mode'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+    get:
+      tags: [Videos]
+      summary: Poll Kling 3 Omni generation
+      parameters:
+        - $ref: '#/components/parameters/TaskIdAsModePath'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/kling3-motion/{mode}:
+    post:
+      tags: [Videos]
+      summary: Start Kling 3 Motion Control generation
+      parameters:
+        - $ref: '#/components/parameters/Mode'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/kling3-motion/{mode}/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll Kling 3 Motion Control generation
+      parameters:
+        - $ref: '#/components/parameters/Mode'
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/kling-o1/{mode}:
+    post:
+      tags: [Videos]
+      summary: Start Kling O1 generation
+      parameters:
+        - $ref: '#/components/parameters/Mode'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+    get:
+      tags: [Videos]
+      summary: Poll Kling O1 generation
+      parameters:
+        - $ref: '#/components/parameters/TaskIdAsModePath'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/minimax:
+    post:
+      tags: [Videos]
+      summary: Start MiniMax generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/minimax/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll MiniMax generation
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/minimax-live:
+    post:
+      tags: [Videos]
+      summary: Start MiniMax Live generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/minimax-live/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll MiniMax Live generation
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/wan-v2-6/{mode}/{resolution}:
+    post:
+      tags: [Videos]
+      summary: Start WAN 2.6 generation
+      parameters:
+        - $ref: '#/components/parameters/Mode'
+        - $ref: '#/components/parameters/Resolution'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/wan-v2-6/{mode}/{resolution}/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll WAN 2.6 generation
+      parameters:
+        - $ref: '#/components/parameters/Mode'
+        - $ref: '#/components/parameters/Resolution'
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/seedance-1-5-pro/{resolution}:
+    post:
+      tags: [Videos]
+      summary: Start Seedance 1.5 Pro generation
+      parameters:
+        - $ref: '#/components/parameters/Resolution'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/seedance-1-5-pro/{resolution}/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll Seedance 1.5 Pro generation
+      parameters:
+        - $ref: '#/components/parameters/Resolution'
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/ltx-2-pro/{mode}:
+    post:
+      tags: [Videos]
+      summary: Start LTX 2 Pro generation
+      parameters:
+        - $ref: '#/components/parameters/Mode'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/ltx-2-pro/{mode}/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll LTX 2 Pro generation
+      parameters:
+        - $ref: '#/components/parameters/Mode'
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/runway-4-5/{mode}:
+    post:
+      tags: [Videos]
+      summary: Start Runway 4.5 generation
+      parameters:
+        - $ref: '#/components/parameters/Mode'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/runway-4-5/{mode}/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll Runway 4.5 generation
+      parameters:
+        - $ref: '#/components/parameters/Mode'
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/runway-gen4-turbo:
+    post:
+      tags: [Videos]
+      summary: Start Runway Gen4 Turbo generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/runway-gen4-turbo/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll Runway Gen4 Turbo generation
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/runway-act-two:
+    post:
+      tags: [Videos]
+      summary: Start Runway Act Two generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/runway-act-two/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll Runway Act Two generation
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/pixverse-v5:
+    post:
+      tags: [Videos]
+      summary: Start PixVerse V5 generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/pixverse-v5/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll PixVerse V5 generation
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/pixverse-v5-transition:
+    post:
+      tags: [Videos]
+      summary: Start PixVerse V5 transition generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/pixverse-v5-transition/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll PixVerse V5 transition generation
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/omni-human-1-5:
+    post:
+      tags: [Videos]
+      summary: Start OmniHuman generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/omni-human-1-5/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll OmniHuman generation
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/vfx:
+    post:
+      tags: [Videos]
+      summary: Start VFX processing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/vfx/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll VFX processing
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/video-upscale/creative:
+    post:
+      tags: [Videos]
+      summary: Start creative video upscale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/video-upscale/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll creative video upscale
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/video-upscaler-precision:
+    post:
+      tags: [Videos]
+      summary: Start precision video upscale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/video-upscaler-precision/{taskId}:
+    get:
+      tags: [Videos]
+      summary: Poll precision video upscale
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/ltx-direct/{mode}:
+    post:
+      tags: [Videos]
+      summary: Generate LTX video directly and return base64 MP4
+      parameters:
+        - in: path
+          name: mode
+          required: true
+          schema:
+            type: string
+            enum: [text-to-video, image-to-video]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          description: Completed base64 video response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      generated:
+                        type: array
+                        items:
+                          type: string
+                      status:
+                        type: string
+                        example: COMPLETED
+
+  /api/music-generation:
+    post:
+      tags: [Audio]
+      summary: Start music generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/music-generation/{taskId}:
+    get:
+      tags: [Audio]
+      summary: Poll music generation
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/sound-effects:
+    post:
+      tags: [Audio]
+      summary: Start sound effects generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/sound-effects/{taskId}:
+    get:
+      tags: [Audio]
+      summary: Poll sound effects generation
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/audio-isolation:
+    post:
+      tags: [Audio]
+      summary: Start audio isolation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskStarted'
+
+  /api/audio-isolation/{taskId}:
+    get:
+      tags: [Audio]
+      summary: Poll audio isolation
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/voiceover:
+    post:
+      tags: [Audio]
+      summary: Generate voiceover
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                voiceId:
+                  type: string
+                modelId:
+                  type: string
+                settings:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Voiceover generation response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/voiceover/voices:
+    get:
+      tags: [Audio]
+      summary: List available voices
+      responses:
+        '200':
+          description: Voices list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/voiceover/{taskId}:
+    get:
+      tags: [Audio]
+      summary: Poll voiceover compatibility route
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AsyncTaskCurrentState'
+
+  /api/ai-workflow/generate:
+    post:
+      tags: [AI Workflow]
+      summary: Generate a workflow from natural language
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt]
+              properties:
+                prompt:
+                  type: string
+                mode:
+                  type: string
+                  default: standard
+      responses:
+        '200':
+          description: Workflow generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  workflow:
+                    type: object
+                    additionalProperties: true
+
+  /api/ai-workflow/suggest:
+    post:
+      tags: [AI Workflow]
+      summary: Suggest nodes for a prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt]
+              properties:
+                prompt:
+                  type: string
+                currentNodes:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+      responses:
+        '200':
+          description: Node suggestions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/ai-workflow/patterns:
+    get:
+      tags: [AI Workflow]
+      summary: List available workflow patterns
+      responses:
+        '200':
+          description: Workflow patterns
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/ai-workflow/nodes:
+    get:
+      tags: [AI Workflow]
+      summary: List available node types
+      responses:
+        '200':
+          description: Node catalog grouped by category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/ai-chat:
+    post:
+      tags: [AI Workflow]
+      summary: Chat with the Nodespace assistant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+      responses:
+        '200':
+          description: Assistant reply
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  content:
+                    type: string
+
+  /api/recraft/generate:
+    post:
+      tags: [Recraft]
+      summary: Recraft image generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlexibleGenerationRequest'
+      responses:
+        '200':
+          description: Recraft response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/recraft/image-to-image:
+    post:
+      tags: [Recraft]
+      summary: Recraft image-to-image
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image_url]
+              additionalProperties: true
+              properties:
+                image_url:
+                  type: string
+      responses:
+        '200':
+          description: Recraft response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/recraft/vectorize:
+    post:
+      tags: [Recraft]
+      summary: Recraft vectorize
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image_url]
+              properties:
+                image_url:
+                  type: string
+      responses:
+        '200':
+          description: Vectorization response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/recraft/remove-background:
+    post:
+      tags: [Recraft]
+      summary: Recraft remove background
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image_url]
+              properties:
+                image_url:
+                  type: string
+      responses:
+        '200':
+          description: Background removal response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/recraft/upscale:
+    post:
+      tags: [Recraft]
+      summary: Recraft upscale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image_url]
+              properties:
+                image_url:
+                  type: string
+                type:
+                  type: string
+                  default: crisp
+      responses:
+        '200':
+          description: Recraft upscale response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+
+  /api/quiver/svgs/generations:
+    post:
+      tags: [Quiver]
+      summary: Generate SVG with Quiver
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+      responses:
+        '200':
+          description: Quiver generation response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GenericObject'
+
+  /api/quiver/svgs/vectorizations:
+    post:
+      tags: [Quiver]
+      summary: Vectorize SVG with Quiver
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+      responses:
+        '200':
+          description: Quiver vectorization response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GenericObject'
+
+components:
+  parameters:
+    TaskId:
+      in: path
+      name: taskId
+      required: true
+      schema:
+        type: string
+      description: Provider task identifier.
+    TaskIdAsModePath:
+      in: path
+      name: mode
+      required: true
+      schema:
+        type: string
+      description: >
+        This GET path segment is actually the task id for routes whose polling path
+        reuses the same route template as the POST variant.
+    Mode:
+      in: path
+      name: mode
+      required: true
+      schema:
+        type: string
+      description: Provider-specific generation mode.
+    Resolution:
+      in: path
+      name: resolution
+      required: true
+      schema:
+        type: string
+      description: Provider-specific resolution selector.
+  responses:
+    AsyncTaskStarted:
+      description: Asynchronous task was started
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AsyncTaskResponse'
+    AsyncTaskCurrentState:
+      description: Current asynchronous task state
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AsyncTaskResponse'
+  schemas:
+    FlexibleGenerationRequest:
+      type: object
+      additionalProperties: true
+      description: >
+        Provider-specific request body. Common fields include prompt, image_url,
+        images, model, aspect_ratio, resolution, duration, and other node-driven settings.
+      properties:
+        prompt:
+          type: string
+        model:
+          type: string
+        image_url:
+          type: string
+        image:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+    AsyncTaskResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+              examples: [PENDING, IN_PROGRESS, COMPLETED, FAILED]
+            generated:
+              type: array
+              items:
+                type: string
+        error:
+          oneOf:
+            - type: string
+            - type: object
+              additionalProperties: true
+    GenericObject:
+      type: object
+      additionalProperties: true

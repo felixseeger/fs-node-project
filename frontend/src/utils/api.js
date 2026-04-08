@@ -51,7 +51,9 @@ export async function pollGenericStatus(endpoint, taskId, {
 
     if (currentStatus === successValue) return data;
     if (currentStatus === failureValue) {
-      throw new Error(`${errorLabel} failed: ${data.error?.message || 'Unknown error'}`);
+      const errorMsg = data.error?.message || data.data?.error || 'Unknown error';
+      const fullError = data.error?.details ? `${errorMsg} (${data.error.details})` : errorMsg;
+      throw new Error(`${errorLabel} failed: ${fullError}`);
     }
 
     await new Promise((r) => setTimeout(r, intervalMs));

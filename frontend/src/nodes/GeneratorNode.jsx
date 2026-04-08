@@ -139,7 +139,8 @@ export default function GeneratorNode({ id, data, selected }) {
         complete('No images generated');
       }
     } catch (err) {
-      console.error('Generation error:', err);
+      console.error('[GeneratorNode] Generation error:', err);
+      console.error('[GeneratorNode] Error stack:', err.stack);
       fail(err);
       update({ outputError: err.message });
     }
@@ -400,9 +401,14 @@ export default function GeneratorNode({ id, data, selected }) {
             style={{ width: '100%', display: 'block', borderRadius: 6 }}
           />
         ) : data.outputError ? (
-          <span style={{ fontSize: 10, color: '#ef4444', padding: 12, textAlign: 'center' }}>
-            {data.outputError}
-          </span>
+          <div style={{ padding: 12, textAlign: 'center' }}>
+            <div style={{ fontSize: 10, color: '#ef4444', lineHeight: 1.4, wordBreak: 'break-word' }}>
+              {data.outputError}
+            </div>
+            <div style={{ fontSize: 9, color: '#666', marginTop: 6 }}>
+              Check browser console for full error details
+            </div>
+          </div>
         ) : (
           <span style={{ fontSize: 11, color: '#555', padding: 16, textAlign: 'center' }}>
             Output will appear here after running the workflow

@@ -51,6 +51,8 @@ function serializeWorkflow(workflow: Omit<Workflow, 'id'>): DocumentData {
     thumbnail: workflow.thumbnail || null,
     nodeCount: (workflow.nodes || []).length,
     updatedAt: serverTimestamp(),
+    isPublic: workflow.isPublic || false,
+    authorName: workflow.authorName || null,
   };
 }
 
@@ -67,6 +69,8 @@ function deserializeWorkflow(id: string, data: DocumentData): Workflow {
     thumbnail: data.thumbnail,
     createdAt: timestampToString(data.createdAt),
     updatedAt: timestampToString(data.updatedAt),
+    isPublic: data.isPublic || false,
+    authorName: data.authorName,
   };
 }
 
@@ -194,14 +198,38 @@ export async function updateWorkflow(
   // Increment version
   updateData.version = (await getDoc(workflowRef)).data()?.version || 1;
   updateData.version += 1;
+await updateDoc(workflowRef, updateData);
 
-  await updateDoc(workflowRef, updateData);
-  
-  console.log('[WorkflowService] Updated workflow:', workflowId);
+console.log('[WorkflowService] Updated workflow:', workflowId);
 }
 
 /**
- * Soft delete a workflow
+* Toggle workflow public status
+*/
+export async function toggleWorkflowPublic(
+workflowId: string,
+isPublic: boolean,
+authorName?: string
+): Promise<void> {
+if (!isFirebaseConfigured()) {
+  throw new Error('Firebase not configured');
+}
+
+const db = getDb();
+const workflowRef = doc(db, WORKFLOWS_COLLECTION, workflowId);
+
+await updateDoc(workflowRef, {
+  isPublic,
+  authorName: authorName || null,
+  updatedAt: serverTimestamp(),
+});
+
+console.log('[WorkflowService] Toggled public status for:', workflowId, isPublic);
+}
+
+/**
+* Soft delete a workflow
+...
  * @param workflowId - Workflow ID
  * @param userId - User making the delete (for permissions)
  */
@@ -437,6 +465,39 @@ export function subscribeToUserWorkflows(
     callback(workflows);
   }, (error) => {
     console.error('[WorkflowService] Subscription error:', error);
+    callback([]);
+  });
+}
+
+/**
+ * Subscribe to public (community) workflows
+ * @param callback - Function called when workflows change
+ * @returns Unsubscribe function
+ */
+export function subscribeToPublicWorkflows(
+  callback: (workflows: Workflow[]) => void
+): Unsubscribe {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase not configured');
+  }
+
+  const db = getDb();
+  const workflowsRef = collection(db, WORKFLOWS_COLLECTION);
+  const q = query(
+    workflowsRef,
+    where('isPublic', '==', true),
+    where('isDeleted', '==', false),
+    orderBy('updatedAt', 'desc'),
+    limit(100)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const workflows = snapshot.docs.map(doc => 
+      deserializeWorkflow(doc.id, doc.data())
+    );
+    callback(workflows);
+  }, (error) => {
+    console.error('[WorkflowService] Public subscription error:', error);
     callback([]);
   });
 }

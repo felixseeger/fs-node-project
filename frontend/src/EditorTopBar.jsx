@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import ApiExportModal from './ApiExportModal';
 
-export default function EditorTopBar({ onSave, onApiExport, onExportJSON, onImportJSON, onSaveAsTemplate }) {
+export default function EditorTopBar({ 
+  isPublic, 
+  onTogglePublic, 
+  onSave, 
+  onApiExport, 
+  onExportJSON, 
+  onImportJSON, 
+  onSaveAsTemplate 
+}) {
   const [showApiModal, setShowApiModal] = useState(false);
 
   return (
@@ -27,6 +35,38 @@ export default function EditorTopBar({ onSave, onApiExport, onExportJSON, onImpo
       >
         {/* Left side */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Public status toggle */}
+          <button
+            onClick={() => onTogglePublic?.(!isPublic)}
+            title={isPublic ? "Make board private" : "Make board public"}
+            style={{
+              padding: '4px 8px',
+              fontSize: 10,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
+              background: isPublic ? 'var(--color-accent-soft)' : 'transparent',
+              border: '1px solid',
+              borderColor: isPublic ? 'var(--color-accent)' : 'var(--color-border)',
+              borderRadius: 6,
+              color: isPublic ? 'var(--color-accent)' : 'var(--color-text-dim)',
+              cursor: 'pointer',
+              marginRight: 8,
+              transition: 'all 0.15s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <div style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: isPublic ? 'var(--color-accent)' : 'var(--color-text-dim)',
+            }} />
+            {isPublic ? 'Public' : 'Private'}
+          </button>
+
           {/* Ready status */}
           <span style={{ fontSize: 12, color: 'var(--color-text-dim)', marginRight: 8 }}>Ready</span>
 

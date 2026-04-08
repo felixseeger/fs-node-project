@@ -257,6 +257,54 @@ export default function NodePropertyEditor({ node, onUpdate, onDelete, isChatOpe
 
           <div style={{ height: '1px', backgroundColor: '#3a3a3a', margin: '4px 0' }} />
 
+          {/* Text Element Content Section (only for TextElementNode) */}
+          {node.type === 'TextElementNode' && (
+            <div>
+              <div
+                onClick={() => setIsDataExpanded(!isDataExpanded)}
+                style={{
+                  ...styles.titleText,
+                  marginBottom: isDataExpanded ? '10px' : '0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  userSelect: 'none'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ChevronDownIcon expanded={isDataExpanded} style={{ color: '#666' }} />
+                  TEXT CONTENT
+                </div>
+              </div>
+
+              {isDataExpanded && (
+                <div style={{ marginTop: '8px' }}>
+                  <div style={{ ...styles.labelText, marginBottom: '6px' }}>
+                    HTML Source
+                  </div>
+                  <textarea
+                    style={{
+                      ...styles.input,
+                      minHeight: '100px',
+                      maxHeight: '200px',
+                      fontFamily: 'monospace',
+                      fontSize: '10px',
+                      lineHeight: '1.4',
+                      resize: 'vertical'
+                    }}
+                    value={node.data.text || ''}
+                    onChange={(e) => onUpdate(node.id, { text: e.target.value })}
+                    placeholder="HTML content..."
+                  />
+                  <div style={{ ...styles.labelText, marginTop: '6px', fontStyle: 'italic' }}>
+                    Tip: Double-click the node on canvas for rich text editing
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* API In-Out Points Section */}
           <div>
             <div 

@@ -761,13 +761,13 @@ function NewWorkflowModal({ onClose, onSelect }) {
           padding: 6,
           border: '1px solid var(--color-border-subtle)'
         }}>
-          <NewWorkflowItem 
+          <NewWorkflowItem
+            dataTestId="blank-canvas-btn"
             title="Visual Editor"
             desc="Start from a blank canvas and build node by node"
             icon="+"
             onClick={() => onSelect('scratch')}
-          />
-          <div style={{ height: 1, background: 'var(--color-border-subtle)', margin: '0 16px' }} />
+          />          <div style={{ height: 1, background: 'var(--color-border-subtle)', margin: '0 16px' }} />
           <NewWorkflowItem 
             title="Browse Templates"
             desc="Choose from our library of pre-built pipelines"
@@ -780,9 +780,10 @@ function NewWorkflowModal({ onClose, onSelect }) {
   );
 }
 
-function NewWorkflowItem({ title, desc, icon, onClick }) {
+function NewWorkflowItem({ title, desc, icon, onClick, dataTestId }) {
   return (
     <button
+      data-testid={dataTestId}
       onClick={onClick}
       style={{
         width: '100%',

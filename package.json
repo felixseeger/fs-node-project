@@ -7,6 +7,7 @@
     "build": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix api && rm -rf public && cp -R frontend/dist public"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@anthropic-ai/sdk": "^0.80.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",

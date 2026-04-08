@@ -9,7 +9,7 @@
  * - Vision analysis (Claude Sonnet)
  */
 
-import 'dotenv/config';
+import './env.js';
 import express from 'express';
 import cors from 'cors';
 import routes from '../lib/api/routes/index.js';

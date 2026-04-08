@@ -1,0 +1,59 @@
+{
+  "cookies": [
+    {
+      "name": "_ga_TZWFY20XY2",
+      "value": "GS2.1.s1775617394$o1$g0$t1775617394$j60$l0$h0",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1810177394.613355,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_ga",
+      "value": "GA1.1.1402787627.1775617395",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1810177394.6136,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "app_theme",
+          "value": "dark"
+        },
+        {
+          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_4",
+          "value": "{\"state\":\"rejected\",\"updateTimeMs\":1775617398645,\"error\":{\"code\":\"failed-precondition\",\"message\":\"The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/fs-nodes-project/firestore/indexes?create_composite=Ck9wcm9qZWN0cy9mcy1ub2Rlcy1wcm9qZWN0L2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9hc3NldHMvaW5kZXhlcy9fEAEaDQoJaXNEZWxldGVkEAEaCgoGdXNlcklkEAEaDQoJdXBkYXRlZEF0EAIaDAoIX19uYW1lX18QAg\"}}"
+        },
+        {
+          "name": "firestore_online_state_firestore/[DEFAULT]/fs-nodes-project/",
+          "value": "{\"clientId\":\"LOrPK7wHZV4ifalyJS35\",\"onlineState\":\"Online\"}"
+        },
+        {
+          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_2",
+          "value": "{\"state\":\"rejected\",\"updateTimeMs\":1775617398646,\"error\":{\"code\":\"failed-precondition\",\"message\":\"The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/fs-nodes-project/firestore/indexes?create_composite=ClJwcm9qZWN0cy9mcy1ub2Rlcy1wcm9qZWN0L2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy90ZW1wbGF0ZXMvaW5kZXhlcy9fEAEaDQoJaXNEZWxldGVkEAEaCgoGdXNlcklkEAEaDQoJdXBkYXRlZEF0EAIaDAoIX19uYW1lX18QAg\"}}"
+        },
+        {
+          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_6",
+          "value": "{\"state\":\"current\",\"updateTimeMs\":1775617398662}"
+        },
+        {
+          "name": "firestore_sequence_number_firestore/[DEFAULT]/fs-nodes-project/",
+          "value": "22"
+        },
+        {
+          "name": "firestore_clients_firestore/[DEFAULT]/fs-nodes-project/_LOrPK7wHZV4ifalyJS35",
+          "value": "{\"activeTargetIds\":[6],\"updateTimeMs\":1775617398661}"
+        }
+      ]
+    }
+  ]
+}

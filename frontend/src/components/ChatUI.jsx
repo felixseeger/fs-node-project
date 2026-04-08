@@ -87,6 +87,12 @@ const ChatUI = forwardRef(({
   };
 
   const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleGenerate();
+      return;
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -209,27 +215,31 @@ const ChatUI = forwardRef(({
           gap: 12,
         }}
       >
-        {messages.map((msg, idx) => (
+        {messages.map((msg, idx) => {
+          const messageRole = msg.role ?? msg.type ?? 'assistant';
+          const isUser = messageRole === 'user';
+
+          return (
           <div
-            key={msg.id}
+            key={msg.id ?? `${messageRole}-${idx}`}
             style={{
-              alignSelf: msg.type === 'user' ? 'flex-end' : 'flex-start',
+              alignSelf: isUser ? 'flex-end' : 'flex-start',
               maxWidth: '85%',
               padding: '10px 14px',
-              borderRadius: msg.type === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
-              background: msg.type === 'user' ? '#3b82f6' : '#2a2a2a',
-              color: msg.type === 'user' ? '#fff' : '#e0e0e0',
+              borderRadius: isUser ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
+              background: isUser ? '#3b82f6' : '#2a2a2a',
+              color: isUser ? '#fff' : '#e0e0e0',
               fontSize: 13,
               lineHeight: 1.5,
             }}
           >
-            {msg.type === 'assistant' && idx === messages.length - 1 ? (
+            {!isUser && idx === messages.length - 1 ? (
               <DecodedText text={msg.content} active={true} />
             ) : (
               msg.content
             )}
           </div>
-        ))}
+        )})}
 
         {/* Thinking Indicator */}
         {(isGenerating || isChatting) && (
@@ -495,6 +505,31 @@ const ChatUI = forwardRef(({
               &times;
             </button>
           )}
+
+          <button
+            onClick={handleGenerate}
+            disabled={!inputValue.trim() || isGenerating || isChatting || disabled}
+            style={{
+              marginLeft: 'auto',
+              height: 28,
+              padding: '0 12px',
+              borderRadius: 8,
+              background: inputValue.trim() && !isGenerating && !isChatting && !disabled ? '#22c55e' : '#2a2a2a',
+              border: `1px solid ${inputValue.trim() && !isGenerating && !isChatting && !disabled ? '#22c55e' : '#333'}`,
+              color: inputValue.trim() && !isGenerating && !isChatting && !disabled ? '#04130a' : '#666',
+              cursor: inputValue.trim() && !isGenerating && !isChatting && !disabled ? 'pointer' : 'not-allowed',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.02em',
+              transition: 'all 0.2s',
+            }}
+            title="Generate a workflow from this prompt"
+          >
+            Generate
+          </button>
         </div>
 
       </div>

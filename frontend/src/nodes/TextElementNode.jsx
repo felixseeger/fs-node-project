@@ -27,24 +27,16 @@ export default function TextElementNode({ id, data, selected }) {
     const [showToolbar, setShowToolbar] = useState(false);
     const [toolbarPos, setToolbarPos] = useState({ x: 0, y: -45 });
     const contentRef = useRef(null);
-    const [html, setHtml] = useState(data.text || '');
-
-    // Initialize content from data.text only once or when not editing
+    // Sync content to DOM directly
     useEffect(() => {
-        if (!isEditing && data.text !== undefined && data.text !== html) {
-            setHtml(data.text);
+        if (!isEditing && data.text !== undefined && contentRef.current) {
+            if (contentRef.current.innerHTML !== data.text) {
+                contentRef.current.innerHTML = data.text || '';
+            }
         }
     }, [data.text, isEditing]);
 
-    const handleInput = (e) => {
-        const newHtml = e.currentTarget.innerHTML;
-        // Update local state without re-rendering if possible, or just keep it in sync
-        // We don't setHtml(newHtml) here to avoid cursor jump bugs
-        if (data.onUpdate) {
-            data.onUpdate(id, { text: newHtml });
-        }
-    };
-
+    
     useEffect(() => {
         if (!selected && isEditing) {
             setIsEditing(false);
@@ -155,8 +147,9 @@ export default function TextElementNode({ id, data, selected }) {
                     <label style={{ cursor: 'pointer', padding: '0 4px', display: 'flex', alignItems: 'center' }} title="Text Color">
                         <input
                             type="color"
-                            defaultValue="#e0e0e0"
-                            onChange={e => {
+                            value={data.textColor || '#e0e0e0'}
+                            onInput={e => {
+                                contentRef.current?.focus();
                                 document.execCommand('foreColor', false, e.target.value);
                                 if (contentRef.current && data.onUpdate) data.onUpdate(id, { text: contentRef.current.innerHTML });
                             }}
@@ -171,8 +164,7 @@ export default function TextElementNode({ id, data, selected }) {
                 contentEditable={isEditing}
                 suppressContentEditableWarning={true}
                 className={isEditing ? 'nodrag nopan nowheel' : ''}
-                onInput={handleInput}
-                onBlur={() => {
+                                onBlur={() => {
                     setIsEditing(false);
                     setShowToolbar(false);
                     if (data.onUpdate) data.onUpdate(id, { text: contentRef.current.innerHTML });
@@ -202,9 +194,9 @@ export default function TextElementNode({ id, data, selected }) {
                 onMouseDown={(e) => { 
                     if (isEditing) e.stopPropagation(); 
                 }}
-                dangerouslySetInnerHTML={{ __html: html }}
+                
             />
-            {!html && !isEditing && (
+            {!data.text && !isEditing && (
                 <div style={{ 
                     position: 'absolute', 
                     top: 16, 

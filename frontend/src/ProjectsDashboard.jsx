@@ -57,6 +57,8 @@ function ProjectCard({ project, onClick, onContextMenu }) {
   const title = project.name || project.title || 'Untitled';
   const updatedAt = project.updatedAt || 'Just now';
   const thumbnail = project.thumbnail;
+  const authorName = project.authorName;
+
   return (
     <div
       onClick={onClick}
@@ -79,11 +81,25 @@ function ProjectCard({ project, onClick, onContextMenu }) {
         )}
       </div>
       <div className="project-card-content">
-        <div className="project-card-title">
-          {title}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div className="project-card-title" style={{ flex: 1 }}>
+            {title}
+          </div>
+          {project.isPublic && (
+            <span style={{ fontSize: 10, background: 'var(--color-accent-soft)', color: 'var(--color-accent)', padding: '2px 6px', borderRadius: 4, marginLeft: 8 }}>
+              Public
+            </span>
+          )}
         </div>
-        <div className="project-card-date">
-          {updatedAt instanceof Date ? updatedAt.toLocaleDateString() : (typeof updatedAt === 'number' ? new Date(updatedAt).toLocaleDateString() : updatedAt)}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+          <div className="project-card-date">
+            {updatedAt instanceof Date ? updatedAt.toLocaleDateString() : (typeof updatedAt === 'number' ? new Date(updatedAt).toLocaleDateString() : updatedAt)}
+          </div>
+          {authorName && (
+            <div style={{ fontSize: 11, color: 'var(--color-text-dim)', fontStyle: 'italic' }}>
+              by {authorName}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -109,7 +125,7 @@ function EmptyState({ message }) {
 }
 
 // Project Context Menu Component
-function ProjectContextMenu({ x, y, onClose, onAction, project }) {
+function ProjectContextMenu({ x, y, onClose, onAction, project, user }) {
   return (
     <>
       <div
@@ -189,15 +205,17 @@ function ProjectContextMenu({ x, y, onClose, onAction, project }) {
           <>
             <button className="menu-item" onClick={() => { onAction('open', project); onClose(); }}>Open</button>
             <button className="menu-item" onClick={() => { onAction('open-new-tab', project); onClose(); }}>Open in new tab</button>
-            <button className="menu-item" onClick={() => { onAction('rename', project); onClose(); }}>Rename board</button>
             <button className="menu-item" onClick={() => { onAction('duplicate', project); onClose(); }}>Duplicate board</button>
+            {project.userId !== (user?.uid) && (
+              <button className="menu-item" onClick={() => { onAction('clone', project); onClose(); }}>Clone to my boards</button>
+            )}
             <button className="menu-item disabled" disabled>Remove from folder</button>
             <div className="menu-separator" />
             <button className="menu-item" onClick={() => { onAction('favorite', project); onClose(); }}>
               {project.favorite ? 'Remove from favorites' : 'Favorite'}
             </button>
-            <button className="menu-item" onClick={() => { onAction('private', project); onClose(); }}>
-              {project.private ? 'Make board public' : 'Make board private'}
+            <button className="menu-item" onClick={() => { onAction('public', project); onClose(); }}>
+              {project.isPublic ? 'Make board private' : 'Make board public'}
             </button>
             <div className="menu-separator" />
             <button className="menu-item danger" onClick={() => { onAction('delete', project); onClose(); }}>Delete board</button>
@@ -287,11 +305,14 @@ function TrashEmptyState({ onBack }) {
 
 export default function ProjectsDashboard({
   projects = [],
+  communityWorkflows = [],
   onCreateProject,
   onOpenProject,
   onUpdateProject,
+  onTogglePublic,
   onDeleteProject,
   onDuplicateProject,
+  onCloneProject,
   onLogout,
   onOpenProfile,
   theme,
@@ -366,12 +387,17 @@ export default function ProjectsDashboard({
         break;
       }
 
+      case 'clone': {
+        onCloneProject?.(project);
+        break;
+      }
+
       case 'favorite':
         onUpdateProject?.(project.id, { favorite: !project.favorite });
         break;
 
-      case 'private':
-        onUpdateProject?.(project.id, { private: !project.private });
+      case 'public':
+        onTogglePublic?.(project.id, !project.isPublic);
         break;
 
       case 'delete':
@@ -405,18 +431,25 @@ export default function ProjectsDashboard({
     user?.email?.[0].toUpperCase() || 'U';
   const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
 
-  const filteredProjects = projects.filter(p => {
-    const pName = p.name || p.title || '';
-    const matchesSearch = pName.toLowerCase().includes(searchQuery.toLowerCase());
-    if (!matchesSearch) return false;
+  const getFilteredProjects = () => {
+    const baseList = activeSection === 'community' ? communityWorkflows : projects;
+    
+    return baseList.filter(p => {
+      const pName = p.name || p.title || '';
+      const matchesSearch = pName.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!matchesSearch) return false;
 
-    if (activeSection === 'trash') return p.deleted;
-    if (p.deleted) return false; // Hide from other views
+      if (activeSection === 'trash') return p.deleted;
+      if (p.deleted) return false; // Hide from other views
 
-    if (activeSection === 'favorites') return p.favorite;
-    if (activeSection === 'private') return p.private;
-    return true;
-  });
+      if (activeSection === 'favorites') return p.favorite;
+      if (activeSection === 'private') return !p.isPublic;
+      if (activeSection === 'community') return true; // communityWorkflows are already public
+      return true;
+    });
+  };
+
+  const filteredProjects = getFilteredProjects();
 
 
   return (
@@ -584,15 +617,16 @@ export default function ProjectsDashboard({
         <div style={{ padding: '0 12px' }}>
           <SidebarItem
             icon={Icons.Workflows}
-            label="Workflows"
-            onClick={() => setActiveSection('workflows')}
-            active={activeSection === 'workflows'}
+            label="My Workflows"
+            onClick={() => setActiveSection('all')}
+            active={activeSection === 'all' || activeSection === 'workflows'}
           />
           <SidebarItem
             icon={Icons.Community}
             label="Community"
             onClick={() => setActiveSection('community')}
             active={activeSection === 'community'}
+            count={communityWorkflows.length}
           />
           <SidebarItem
             icon={Icons.Share}
@@ -727,6 +761,7 @@ export default function ProjectsDashboard({
         >
           {/* Left: New Project Button */}
           <DecodeTextButton
+            data-testid="new-board-btn"
             onClick={() => onCreateProject()}
             variant="primary"
             startIcon={Icons.Plus}
@@ -812,7 +847,7 @@ export default function ProjectsDashboard({
         <div style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
           {/* Filter Tabs */}
           <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
-            {['All', 'Favorites', 'Recent', 'Shared'].map((tab) => (
+            {['All', 'Community', 'Favorites', 'Recent', 'Shared'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveSection(tab.toLowerCase())}
@@ -852,7 +887,15 @@ export default function ProjectsDashboard({
                 }}
               >
                 {filteredProjects.length === 0 ? (
-                  <EmptyState message="No boards found" />
+                  <EmptyState 
+                    message={
+                      activeSection === 'community' 
+                        ? "Be the first to share a workflow with the community!" 
+                        : activeSection === 'shared'
+                        ? "Workflows shared with you will appear here."
+                        : "No boards found"
+                    } 
+                  />
                 ) : (
                   filteredProjects.map((project) => (
                     <ProjectCard
@@ -872,11 +915,11 @@ export default function ProjectsDashboard({
               x={contextMenu.x}
               y={contextMenu.y}
               project={contextMenu.project}
+              user={user}
               onClose={() => setContextMenu(null)}
               onAction={handleContextAction}
             />
           )}
-
           {filteredProjects.length === 0 && activeSection !== 'trash' && (
             <div
               style={{
