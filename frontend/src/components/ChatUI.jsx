@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
 import DecodedText from './DecodedText';
+
 
 const THINKING_PHRASES = [
   'Analyzing request...',
@@ -9,6 +10,8 @@ const THINKING_PHRASES = [
   'Finalizing workflow...'
 ];
 
+const DEFAULT_TAGS = ['Portrait', '10s'];
+
 const ChatUI = forwardRef(({
   isOpen,
   onClose,
@@ -16,21 +19,31 @@ const ChatUI = forwardRef(({
   onGenerate,
   isGenerating = false,
   isChatting = false,
-  messages = [],
+  tags = DEFAULT_TAGS,
+
   disabled = false,
   referenceImage = null,
   setReferenceImage,
 }, ref) => {
   const [inputValue, setInputValue] = useState('');
-  const [activeTags, setActiveTags] = useState(new Set(['Portrait', '10s']));
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      type: 'assistant',
+      content: "Hi! I'm here to help you build your AI workflow. Describe what you'd like to create, and I'll guide you through it.",
+      timestamp: new Date(),
+    },
+  ]);
+  const [activeTags, setActiveTags] = useState(() => new Set(tags));
+
   const [thinkingIndex, setThinkingIndex] = useState(0);
   const textareaRef = useRef(null);
   const messagesEndRef = useRef(null);
   const imageInputRef = useRef(null);
 
-  // Auto-scroll to bottom of messages
+  // Auto-scroll to bottom of messages (scrollIntoView may be absent in test env)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
   }, [messages, isGenerating]);
 
   // Cycle thinking phrases
@@ -55,21 +68,6 @@ const ChatUI = forwardRef(({
     }
   }, [inputValue]);
 
-  const handleGenerate = () => {
-    if (isGenerating || disabled) return;
-    const messageToGenerate = inputValue.trim();
-    if (messageToGenerate) {
-      setInputValue('');
-      onGenerate?.(messageToGenerate);
-    }
-  };
-
-  useImperativeHandle(ref, () => ({
-    submitGeneration: () => {
-      handleGenerate();
-    }
-  }));
-
   const toggleTag = (tag) => {
     setActiveTags((prev) => {
       const next = new Set(prev);
@@ -79,12 +77,50 @@ const ChatUI = forwardRef(({
     });
   };
 
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     if (!inputValue.trim() || isGenerating || isChatting) return;
 
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      content: inputValue.trim(),
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
     onSendMessage?.(inputValue.trim());
     setInputValue('');
-  };
+  }, [inputValue, isGenerating, isChatting, onSendMessage]);
+
+  const handleGenerate = useCallback(() => {
+    if (isGenerating || disabled) return;
+    const messageToGenerate = inputValue.trim();
+    if (!messageToGenerate) return;
+
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      content: messageToGenerate,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue('');
+    onGenerate?.(messageToGenerate);
+  }, [inputValue, isGenerating, disabled, onGenerate]);
+
+  useImperativeHandle(ref, () => ({
+    submitGeneration: () => {
+      handleGenerate();
+    },
+    addMessage: (message) => {
+      const msg = {
+        id: Date.now(),
+        type: message.type || 'assistant',
+        content: message.content,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, msg]);
+    }
+  }), [handleGenerate]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -119,14 +155,15 @@ const ChatUI = forwardRef(({
 
   return (
     <div
+      data-testid="chat-ui"
       style={{
         position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 720,
-        height: 480,
+        top: 24,
+        right: 24,
+        bottom: 112,
+        width: 320,
         zIndex: 2100,
+
         display: 'flex',
         flexDirection: 'column',
         background: '#1a1a1a',
@@ -134,6 +171,7 @@ const ChatUI = forwardRef(({
         border: '1px solid #333',
         overflow: 'hidden',
         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        pointerEvents: 'auto',
       }}
     >
       {/* Header */}
@@ -175,6 +213,7 @@ const ChatUI = forwardRef(({
 
         {/* Close Button */}
         <button
+          data-testid="chat-close"
           onClick={onClose}
           style={{
             width: 24,
@@ -348,6 +387,7 @@ const ChatUI = forwardRef(({
           }}
         >
           <textarea
+            data-testid="chat-input"
             ref={textareaRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
@@ -371,6 +411,8 @@ const ChatUI = forwardRef(({
             }}
           />
           <button
+            data-testid="chat-send"
+            type="button"
             onClick={handleSend}
             disabled={!inputValue.trim() || isGenerating || isChatting || disabled}
             style={{
@@ -432,6 +474,29 @@ const ChatUI = forwardRef(({
           </button>
         </div>
 
+        {/* Generate workflow — primary action for AI graph generation */}
+        <div style={{ marginTop: 10 }}>
+          <button
+            data-testid="chat-generate"
+            type="button"
+            onClick={handleGenerate}
+            disabled={!inputValue.trim() || isGenerating || disabled}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: '1px solid #2563eb',
+              background: inputValue.trim() && !isGenerating && !disabled ? '#2563eb' : '#2a2a2a',
+              color: inputValue.trim() && !isGenerating && !disabled ? '#fff' : '#666',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: inputValue.trim() && !isGenerating && !disabled ? 'pointer' : 'not-allowed',
+            }}
+          >
+            {isGenerating ? 'Generating workflow…' : 'Generate workflow'}
+          </button>
+        </div>
+
         {/* Tags Row */}
         <div
           style={{
@@ -444,6 +509,7 @@ const ChatUI = forwardRef(({
         >
           {/* History icon */}
           <button
+            type="button"
             style={{
               width: 24,
               height: 24,
@@ -463,7 +529,7 @@ const ChatUI = forwardRef(({
           </button>
 
           {/* Tags */}
-          {['Portrait', '10s'].map((tag) => (
+          {tags.map((tag) => (
             <button
               key={tag}
               onClick={() => toggleTag(tag)}

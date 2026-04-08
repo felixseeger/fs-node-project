@@ -479,6 +479,21 @@ export async function generateAIWorkflow(prompt, mode = 'standard') {
 }
 
 /**
+ * Send a chat message to the AI
+ * @param {string} message - User message
+ * @param {Array} history - Message history
+ * @returns {Promise<{success: boolean, response: string}>}
+ */
+export async function sendChat(message, history = []) {
+  const res = await fetch(`${API_BASE}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, history }),
+  });
+  return safeJson(res);
+}
+
+/**
  * Get node suggestions based on partial prompt
  * @param {string} prompt - Partial natural language prompt
  * @param {Array} currentNodes - Currently placed nodes (optional)

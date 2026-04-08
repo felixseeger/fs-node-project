@@ -58,6 +58,8 @@ export default function ChatButton({ isOpen, onClick, unreadCount = 0 }) {
       <style>{chatButtonStyles}</style>
 
       <button
+        type="button"
+        data-testid="chat-toggle"
         ref={buttonRef}
         className={`chat-btn${isOpen ? ' chat-btn--open' : ''}`}
         onClick={onClick}
