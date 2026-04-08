@@ -2073,7 +2073,6 @@ export default function App() {
     );
   }
 
-  // Landing page for non-authenticated users OR when explicitly navigated to landing
   if (!isAuthenticated || currentPage === 'landing') {
     return (
       <div className="app-container">
@@ -2098,6 +2097,7 @@ export default function App() {
       </div>
     );
   }
+
 
   // Projects Dashboard for authenticated users (default home)
   if (currentPage === 'home') {
