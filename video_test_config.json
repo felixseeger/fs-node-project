@@ -1,0 +1,156 @@
+{
+  "test_settings": {
+    "gemini_model": "gemini-2.5-pro",
+    "max_attempts": 3,
+    "timeout_seconds": 60,
+    "screenshot_delay_ms": 1000,
+    "analysis_depth": "detailed"
+  },
+  
+  "video_nodes": [
+    {
+      "name": "OmniHumanNode",
+      "category": "video_generation",
+      "description": "AI avatar video generation",
+      "expected_outputs": ["video"],
+      "expected_inputs": ["prompt", "image", "settings"]
+    },
+    {
+      "name": "RunwayGen4TurboNode",
+      "category": "video_generation",
+      "description": "Runway Gen-4 Turbo video generation",
+      "expected_outputs": ["video"],
+      "expected_inputs": ["prompt", "settings"]
+    },
+    {
+      "name": "VideoImproveNode",
+      "category": "video_editing",
+      "description": "Video quality improvement and alignment",
+      "expected_outputs": ["video"],
+      "expected_inputs": ["video", "settings"]
+    },
+    {
+      "name": "Kling3Node",
+      "category": "video_generation",
+      "description": "Kling 3 video generation",
+      "expected_outputs": ["video"],
+      "expected_inputs": ["prompt", "settings"]
+    },
+    {
+      "name": "PixVerseV5Node",
+      "category": "video_generation",
+      "description": "PixVerse V5 video generation",
+      "expected_outputs": ["video"],
+      "expected_inputs": ["prompt", "settings"]
+    },
+    {
+      "name": "SeedanceNode",
+      "category": "video_generation",
+      "description": "Seedance video generation",
+      "expected_outputs": ["video"],
+      "expected_inputs": ["prompt", "settings"]
+    }
+  ],
+  
+  "test_scenarios": [
+    {
+      "name": "basic_video_generation",
+      "description": "Test basic video generation from prompt",
+      "validation_criteria": [
+        "node_visible",
+        "input_handles_correct",
+        "output_handles_correct",
+        "generation_completes",
+        "video_preview_visible"
+      ]
+    },
+    {
+      "name": "video_upscaling",
+      "description": "Test video quality improvement",
+      "validation_criteria": [
+        "input_video_connected",
+        "output_video_higher_quality",
+        "processing_completes",
+        "quality_improvement_visible"
+      ]
+    },
+    {
+      "name": "video_style_transfer",
+      "description": "Test video style transfer capabilities",
+      "validation_criteria": [
+        "style_reference_connected",
+        "style_applied_correctly",
+        "output_maintains_structure",
+        "visual_consistency"
+      ]
+    },
+    {
+      "name": "video_inpainting",
+      "description": "Test video inpainting/editing",
+      "validation_criteria": [
+        "mask_input_connected",
+        "inpainting_applied",
+        "seamless_integration",
+        "no_artifacts"
+      ]
+    },
+    {
+      "name": "video_to_video",
+      "description": "Test video-to-video transformation",
+      "validation_criteria": [
+        "input_video_connected",
+        "transformation_applied",
+        "output_video_generated",
+        "content_preserved"
+      ]
+    },
+    {
+      "name": "multi_node_workflow",
+      "description": "Test complex multi-node video workflows",
+      "validation_criteria": [
+        "nodes_properly_connected",
+        "data_flow_correct",
+        "final_output_generated",
+        "workflow_executes_completely"
+      ]
+    }
+  ],
+  
+  "quality_metrics": {
+    "ui_consistency": {
+      "weight": 0.3,
+      "criteria": [
+        "handle_color_consistency",
+        "label_clarity",
+        "layout_consistency",
+        "visual_hierarchy"
+      ]
+    },
+    "functionality": {
+      "weight": 0.4,
+      "criteria": [
+        "generation_success",
+        "connection_validation",
+        "error_handling",
+        "performance"
+      ]
+    },
+    "output_quality": {
+      "weight": 0.3,
+      "criteria": [
+        "video_resolution",
+        "visual_fidelity",
+        "artifact_free",
+        "format_compliance"
+      ]
+    }
+  },
+  
+  "reporting": {
+    "output_directory": "test_results",
+    "screenshot_directory": "test_screenshots",
+    "report_format": "markdown",
+    "include_screenshots": true,
+    "verbose_logging": true
+  }
+}
