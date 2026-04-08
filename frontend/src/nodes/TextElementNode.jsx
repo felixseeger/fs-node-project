@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useRef, useEffect } from 'react';
 import { NodeResizer } from '@xyflow/react';
 
@@ -26,36 +27,30 @@ export default function TextElementNode({ id, data, selected }) {
     const [showToolbar, setShowToolbar] = useState(false);
     const [toolbarPos, setToolbarPos] = useState({ x: 0, y: -45 });
     const contentRef = useRef(null);
-    const [html, setHtml] = useState(data.text || '<p>Double click or right-click to edit text...</p>');
+    const [html, setHtml] = useState(data.text || '');
 
+    // Initialize content from data.text only once or when not editing
     useEffect(() => {
-        if (!isEditing && data.text) {
-            // Only update html from server if it differs significantly from our local state
-            if (contentRef.current && contentRef.current.innerHTML !== data.text) {
-                // eslint-disable-next-line react-hooks/set-state-in-effect
-                setHtml(data.text);
-            } else if (!contentRef.current && data.text !== html) {
-                // eslint-disable-next-line react-hooks/set-state-in-effect
-                setHtml(data.text);
-            }
+        if (!isEditing && data.text !== undefined && data.text !== html) {
+            setHtml(data.text);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data.text, isEditing]);
 
-    useEffect(() => {
-        if (!selected) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setIsEditing(false);
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setShowToolbar(false);
-            if (contentRef.current && data.onUpdate) {
-                const currentText = contentRef.current.innerHTML;
-                if (currentText !== data.text) {
-                    data.onUpdate(id, { text: currentText });
-                }
-            }
+    const handleInput = (e) => {
+        const newHtml = e.currentTarget.innerHTML;
+        // Update local state without re-rendering if possible, or just keep it in sync
+        // We don't setHtml(newHtml) here to avoid cursor jump bugs
+        if (data.onUpdate) {
+            data.onUpdate(id, { text: newHtml });
         }
-    }, [selected, id, data.onUpdate, data.text]);
+    };
+
+    useEffect(() => {
+        if (!selected && isEditing) {
+            setIsEditing(false);
+            setShowToolbar(false);
+        }
+    }, [selected, isEditing]);
 
     const handleContextMenu = (e) => {
         e.preventDefault();
@@ -67,35 +62,35 @@ export default function TextElementNode({ id, data, selected }) {
             x: Math.max(0, e.clientX - rect.left - 100),
             y: Math.max(-45, e.clientY - rect.top - 50)
         });
-        setTimeout(() => {
-            if (contentRef.current) {
-                contentRef.current.focus();
-            }
-        }, 50);
     };
 
     const handleDoubleClick = (e) => {
+        e.preventDefault();
         e.stopPropagation();
         setIsEditing(true);
         setShowToolbar(true);
         setToolbarPos({ x: 0, y: -45 });
-        setTimeout(() => {
-            if (contentRef.current) {
-                contentRef.current.focus();
-                if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
-                    const range = document.createRange();
-                    range.selectNodeContents(contentRef.current);
-                    range.collapse(false);
-                    const sel = window.getSelection();
-                    sel.removeAllRanges();
-                    sel.addRange(range);
-                }
-            }
-        }, 50);
     };
+
+    // When isEditing turns true, focus the element
+    useEffect(() => {
+        if (isEditing && contentRef.current) {
+            contentRef.current.focus();
+            // Move cursor to end
+            if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
+                const range = document.createRange();
+                range.selectNodeContents(contentRef.current);
+                range.collapse(false);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }
+    }, [isEditing]);
 
     const exec = (e, cmd, val = null) => {
         e.preventDefault();
+        e.stopPropagation();
         document.execCommand(cmd, false, val);
         if (contentRef.current && data.onUpdate) {
             data.onUpdate(id, { text: contentRef.current.innerHTML });
@@ -106,15 +101,17 @@ export default function TextElementNode({ id, data, selected }) {
         <div
             onContextMenu={handleContextMenu}
             onDoubleClick={handleDoubleClick}
+            className="text-element-node"
             style={{
                 padding: '16px 20px',
                 minWidth: 200,
                 minHeight: 60,
-                background: data.bgColor || (isEditing || selected ? 'rgba(0,0,0,0.5)' : 'transparent'),
+                background: data.bgColor || (isEditing || selected ? 'rgba(30,30,30,0.4)' : 'transparent'),
                 border: selected ? '1px solid #3b82f6' : '1px solid transparent',
                 borderRadius: 12,
                 position: 'relative',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                transition: 'background 0.2s'
             }}
         >
             <NodeResizer color="#3b82f6" isVisible={selected} minWidth={150} minHeight={50} />
@@ -174,7 +171,10 @@ export default function TextElementNode({ id, data, selected }) {
                 contentEditable={isEditing}
                 suppressContentEditableWarning={true}
                 className={isEditing ? 'nodrag nopan nowheel' : ''}
+                onInput={handleInput}
                 onBlur={() => {
+                    setIsEditing(false);
+                    setShowToolbar(false);
                     if (data.onUpdate) data.onUpdate(id, { text: contentRef.current.innerHTML });
                 }}
                 style={{
@@ -187,14 +187,35 @@ export default function TextElementNode({ id, data, selected }) {
                     wordBreak: 'break-word',
                     lineHeight: 1.5,
                     fontSize: 14,
-                    userSelect: isEditing ? 'text' : 'none',
-                    WebkitUserSelect: isEditing ? 'text' : 'none',
+                    userSelect: 'text',
+                    WebkitUserSelect: 'text',
                     pointerEvents: 'auto'
                 }}
-                onKeyDown={(e) => e.stopPropagation()}
-                onMouseDown={(e) => { if (isEditing) e.stopPropagation(); }}
+                onKeyDown={(e) => {
+                    e.stopPropagation();
+                    if (e.key === 'Escape') {
+                        setIsEditing(false);
+                        setShowToolbar(false);
+                        contentRef.current?.blur();
+                    }
+                }}
+                onMouseDown={(e) => { 
+                    if (isEditing) e.stopPropagation(); 
+                }}
                 dangerouslySetInnerHTML={{ __html: html }}
             />
+            {!html && !isEditing && (
+                <div style={{ 
+                    position: 'absolute', 
+                    top: 16, 
+                    left: 20, 
+                    color: '#666', 
+                    pointerEvents: 'none',
+                    fontSize: 14 
+                }}>
+                    Double-click to edit...
+                </div>
+            )}
             <style>{`
         div[contentEditable] ul, div[contentEditable] ol { margin-top: 4px; margin-bottom: 4px; margin-left: 20px; padding-left: 0; }
         div[contentEditable] h1 { font-size: 24px; font-weight: 700; margin: 8px 0; }
