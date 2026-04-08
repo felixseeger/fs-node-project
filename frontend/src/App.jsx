@@ -1930,12 +1930,6 @@ export default function App() {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <AuthPage />
-    );
-  }
-
   if (showSystemLoading) {
     const totalModels = IMAGE_MODELS.length + VIDEO_MODELS.length;
     const totalNodes = Object.keys(nodeTypes).length;
@@ -1967,18 +1961,26 @@ export default function App() {
 
   // Landing page for non-authenticated users
   if (!isAuthenticated) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
-        <TopBar currentPage="landing" onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={false} />
-        <div style={{ flex: 1, overflow: 'hidden' }}>
-          <LandingPage
-            onCreateWorkflow={handleCreateWorkflow}
-            onDeleteWorkflows={handleDeleteWorkflows}
-            workflows={workflows}
-          />
+    if (currentPage === 'landing' || !currentPage) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
+          <TopBar currentPage="landing" onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={false} />
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <LandingPage
+              onCreateWorkflow={handleCreateWorkflow}
+              onDeleteWorkflows={handleDeleteWorkflows}
+              workflows={workflows}
+              onNavigate={setCurrentPage}
+            />
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+
+    // Handle authentication screens
+    const authScreen = currentPage === 'auth-signup' ? 'signup' : 
+                      currentPage === 'auth-forgot' ? 'forgot' : 'login';
+    return <AuthPage initialScreen={authScreen} />;
   }
 
   // Projects Dashboard for authenticated users (default home)
