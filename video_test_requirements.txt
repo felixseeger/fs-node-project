@@ -1,0 +1,11 @@
+# Video Test Requirements
+# Install with: pip install -r video_test_requirements.txt
+
+google-genai>=0.3.0
+pillow>=10.0.0
+playwright>=1.40.0
+
+# For development/testing
+pytest>=7.0.0
+black>=23.0.0
+flake8>=6.0.0
