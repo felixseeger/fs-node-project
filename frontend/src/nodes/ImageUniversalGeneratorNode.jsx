@@ -194,14 +194,14 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const promptRef = useRef(null);
 
   // Settings from data with defaults
-  const autoSelect = data.autoSelect ?? true;
-  const useMultiple = data.useMultiple ?? true;
+  const autoSelect = data.autoSelect ?? false;
+  const useMultiple = data.useMultiple ?? false;
   const pinnedModels = data.pinnedModels || [];
 
   const locked = data.locked || false;
   const numOutputs = data.numOutputs || 1;
   const aspectRatio = data.aspectRatio || '1:1';
-  const models = data.models || ['Auto'];
+  const models = data.models || ['Nano Banana 2'];
   const editSettings = data.editSettings || {};
 
   const activeEditingModel = models.find(m => isEditingModel(m)) || null;
@@ -633,8 +633,8 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
   // ── Model selection ─────────────────────────────────────────────────────────
 
-  const setAutoSelect = (val) => update({ autoSelect: val, models: val ? ['Auto'] : [] });
-  const setUseMultiple = (val) => update({ useMultiple: val, models: val ? [] : ['Auto'] });
+  const setAutoSelect = (val) => update({ autoSelect: val, useMultiple: false, models: val ? ['Auto'] : [models.find(m => m !== 'Auto') || 'Nano Banana 2'] });
+  const setUseMultiple = (val) => update({ useMultiple: val, autoSelect: false, models: val ? models.filter(m => m !== 'Auto') : [models.find(m => m !== 'Auto') || 'Nano Banana 2'] });
   const togglePinModel = (m) => {
     const newPinned = pinnedModels.includes(m)
       ? pinnedModels.filter(x => x !== m)
@@ -686,6 +686,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
         </div>
       );
     }
+    if (models.length === 0) return <div key="none" style={{ animation: 'swapFade 0.15s ease-out' }}>Select Model</div>;
     if (models.length === 1) {
       const m = models[0];
       const logo = getModelLogo(m);

@@ -1,30 +1,28 @@
-# Task: Refactor and stabilize FS Node Project
+# Task: Implement Firebase Templates and Inject into NodesMenu
 
 ## Phases
 
-- [x] **Phase 1: Fix Critical Frontend Lint Errors**
-  - [x] Fix impure function (`Date.now()`) during render in `frontend/src/LandingPage.jsx`.
-  - [x] Fix cascading render issues (`setState` synchronously within effect) in `frontend/src/KeyboardShortcutsModal.jsx`, `frontend/src/TemplateBuilderModal.jsx`, `frontend/src/components/ChatUI.jsx`, and `frontend/src/nodes/TextElementNode.jsx`.
-  - [x] Fix undefined variable (`isLoading`) in `frontend/src/nodes/SkinEnhancerNode.jsx`.
-  - [x] Fix `react-refresh/only-export-components` by separating non-components into other files for `ImageUniversalGeneratorNode.jsx` and `VideoUniversalGeneratorNode.jsx`.
-  - [x] Clear unused variables across `App.jsx`, `AuthPage.jsx`, and various nodes to reduce noise (changed `no-unused-vars` to warnings for faster cleanup without breaking runtime references).
-  - [x] Handled missing jsx brackets from git merge artifacts in VideoUniversalGeneratorNode.jsx.
+- [ ] **Phase 1: Research & Strategy**
+  - [ ] Understand `useFirebaseWorkflows.ts` to see how it interacts with Firebase.
+  - [ ] Check how `GooeyNodesMenu.jsx` and `NODE_MENU` render categories and items.
+  - [ ] Understand how custom nodes (like templates) can be instantiated on the canvas.
 
-- [x] **Phase 2: Fix JavaScript Tests for ESM Compatibility**
-  - [x] Update `test_wf.js` and `test_delete.js` using CommonJS `require` to be ESM compatible.
+- [ ] **Phase 2: Update Firebase Hooks**
+  - [ ] Update or create a new hook (`useFirebaseTemplates`) to sync templates with a `templates` collection in Firestore.
+  - [ ] Modify `TemplateBuilderModal` to use the Firebase save function instead of `templateStore.js` (or use it in addition to local storage).
 
-- [x] **Phase 3: Backend Modularization & Linting**
-  - [x] Add basic ESLint configuration to the `api` folder.
-  - [x] Review `api/server.js` and extract any remaining large inline routes to `lib/api/routes/` (Already modularized!).
-  - [x] Fixed `catch(error)` warning in `api/server.js` and verified API codebase linting runs smoothly.
+- [ ] **Phase 3: Inject Templates into NodesMenu**
+  - [ ] In `App.jsx`, fetch the saved templates.
+  - [ ] Dynamically append a "Templates" or "My Workflows" category to `NODE_MENU`.
+  - [ ] Create a `WorkflowNode` or reuse the existing node wrapper so that when dragged onto the canvas, the template operates properly.
+
+- [ ] **Phase 4: Handle Template Instantiation**
+  - [ ] Update `App.jsx` `onDrop` or `addNode` logic so that when a template is added from the menu, it generates the encapsulated nodes (or a specialized `WorkflowNode`).
 
 ## Decisions
 | Decision | Rationale | Date |
 |----------|-----------|------|
-| Start with frontend stability | Critical rendering issues (cascading renders/impure renders) cause immediate UI bugs and degrade performance. | 2026-04-08 |
-| Reduce unused variables to warning | Attempting to aggressively strip ~120 variables could result in subtle regressions due to object destructuring. | 2026-04-08 |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
-| `Parsing error: Expected corresponding JSX closing tag` in VideoUniversalGeneratorNode | Attempted to blindly use sed which corrupted the JSX structure | Carefully restored the backup, verified what caused the issue, and used `replace` instead to safely apply the `eslint-disable` rule. |

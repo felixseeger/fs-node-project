@@ -99,7 +99,7 @@ const QUICK_ADD_SECTIONS = [
   }
 ];
 
-export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
+export default function GooeyNodesMenu({ nodeMenu, templates = [], onAddNode, onOpenProfile }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeSubMenu, setActiveSubMenu] = useState(null);
@@ -174,7 +174,12 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
     }
 
     if (activeCategory === 'Workflows') {
-      return [];
+      return templates.map(t => ({
+        type: 'workflowTemplate',
+        label: t.name,
+        description: t.description || 'Custom Template',
+        defaults: { templateData: t },
+      }));
     }
 
     const section = nodeMenu.find(s => s.section === activeCategory);
@@ -355,6 +360,9 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
                     onDragStart={(e) => {
                       if (item.type) {
                         e.dataTransfer.setData('application/reactflow', item.type);
+                        if (item.defaults) {
+                          e.dataTransfer.setData('application/reactflow-defaults', JSON.stringify(item.defaults));
+                        }
                         e.dataTransfer.effectAllowed = 'move';
                       }
                     }}
@@ -396,6 +404,9 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
                         onDragStart={(e) => {
                           if (item.type) {
                             e.dataTransfer.setData('application/reactflow', item.type);
+                            if (item.defaults) {
+                              e.dataTransfer.setData('application/reactflow-defaults', JSON.stringify(item.defaults));
+                            }
                             e.dataTransfer.effectAllowed = 'move';
                           }
                         }}
@@ -445,6 +456,9 @@ export default function GooeyNodesMenu({ nodeMenu, onAddNode, onOpenProfile }) {
                   onDragStart={(e) => {
                     if (item.type) {
                       e.dataTransfer.setData('application/reactflow', item.type);
+                      if (item.defaults) {
+                        e.dataTransfer.setData('application/reactflow-defaults', JSON.stringify(item.defaults));
+                      }
                       e.dataTransfer.effectAllowed = 'move';
                     }
                   }}

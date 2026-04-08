@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import ThemeToggle from './ThemeToggle';
 import './MobileNavigation.css';
 
 /**
@@ -127,11 +126,6 @@ export default function MobileNavigation({ isOpen, onClose, onNavigate, theme, s
 
       {/* Fixed Header Strip: Logo left */}
       <div className="mob-nav-header">
-        
-        {/* Theme Toggle aligned to right (before the close button which is in LandingPage) */}
-        <div style={{ marginRight: 48 }}>
-          <ThemeToggle theme={theme} setTheme={setTheme} />
-        </div>
       </div>
 
       {/* Scrollable Menu Content */}

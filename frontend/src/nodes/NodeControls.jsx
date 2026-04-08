@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import { text, surface, border, radius, sp, font } from './nodeTokens';
 
 /**
@@ -157,8 +158,18 @@ export function DirectionSlider({ label, value, onChange, max = 2048, step = 64,
  * Prompt textarea with consistent styling.
  */
 export function PromptInput({ value, onChange, placeholder, rows = 3 }) {
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [value]);
+
   return (
     <textarea
+      ref={textareaRef}
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
@@ -166,7 +177,7 @@ export function PromptInput({ value, onChange, placeholder, rows = 3 }) {
       style={{
         width: '100%', background: surface.sunken, border: `1px solid ${border.input}`,
         borderRadius: radius.md, color: text.primary, fontSize: 12, padding: sp[3],
-        resize: 'vertical', outline: 'none', boxSizing: 'border-box',
+        resize: 'none', outline: 'none', boxSizing: 'border-box', overflow: 'hidden'
       }}
     />
   );

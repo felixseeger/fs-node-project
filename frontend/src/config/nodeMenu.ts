@@ -58,10 +58,10 @@ export const NODE_MENU: NodeMenuSection[] = [
         defaults: {
           label: 'Universal Image',
           inputPrompt: '', outputImage: null, isLoading: false,
-          models: ['Auto'], aspectRatio: '1:1', numOutputs: 1,
+          models: ['Nano Banana 2'], aspectRatio: '1:1', numOutputs: 1,
           editSettings: {},
-          autoSelect: true,
-          useMultiple: true,
+          autoSelect: false,
+          useMultiple: false,
         },
       },
       {
@@ -91,7 +91,9 @@ export const NODE_MENU: NodeMenuSection[] = [
         defaults: {
           label: 'Universal Video',
           inputPrompt: '', outputVideo: null, isLoading: false,
-          models: ['Auto'], aspectRatio: '16:9', numOutputs: 1
+          models: ['kling3'], aspectRatio: '16:9', numOutputs: 1,
+          autoSelect: false,
+          useMultiple: false,
         },
       },
     ],

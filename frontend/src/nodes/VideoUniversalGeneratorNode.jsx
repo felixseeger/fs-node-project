@@ -151,6 +151,7 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
   const [dragOverFrame, setDragOverFrame] = useState(null); // 'start', 'end', or null
   const modelMenuRef = useRef(null);
   const lastTrigger = useRef(null);
+  const promptRef = useRef(null);
 
   // Settings from data with defaults
   const autoSelect = data.autoSelect ?? false;
@@ -160,7 +161,7 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
   const locked = data.locked || false;
   const numOutputs = data.numOutputs || 1;
   const aspectRatio = data.aspectRatio || '16:9';
-  const models = data.models || ['Auto'];
+  const models = data.models || ['kling3'];
 
   // Check if any selected model supports image input (start frame)
   const selectedModelsSupportImage = models.some(m => {
@@ -403,6 +404,14 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
     }
   }, [data.triggerGenerate, handleGenerate]);
 
+  // Auto-resize prompt textarea
+  useEffect(() => {
+    if (promptRef.current) {
+      promptRef.current.style.height = 'auto';
+      promptRef.current.style.height = `${promptRef.current.scrollHeight}px`;
+    }
+  }, [data.inputPrompt]);
+
   const toggleModel = (m) => {
     if (autoSelect) return; // Don't allow manual selection in auto mode
     
@@ -416,11 +425,11 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
     if (m === 'Auto') {
       update({ models: ['Auto'] });
     } else {
-      const prev = data.models || ['Auto'];
+      const prev = data.models || ['kling3'];
       const newModels = prev.filter(x => x !== 'Auto');
       if (newModels.includes(m)) {
         const removed = newModels.filter(x => x !== m);
-        update({ models: removed.length === 0 ? ['Auto'] : removed });
+        update({ models: removed });
       } else {
         update({ models: [...newModels, m] });
       }
@@ -443,15 +452,15 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
     if (value) {
       update({ autoSelect: true, useMultiple: false, models: ['Auto'] });
     } else {
-      update({ autoSelect: false, models: ['Auto'] });
+      update({ autoSelect: false, models: [models.find(m => m !== 'Auto') || 'kling3'] });
     }
   };
 
   const setUseMultiple = (value) => {
     if (value) {
-      update({ useMultiple: true, autoSelect: false, models: models.length > 1 ? models.filter(m => m !== 'Auto') : ['kling3'] });
+      update({ useMultiple: true, autoSelect: false, models: models.length > 1 ? models.filter(m => m !== 'Auto') : [models.find(m => m !== 'Auto') || 'kling3'] });
     } else {
-      update({ useMultiple: false, models: [models[0] || 'kling3'] });
+      update({ useMultiple: false, models: [models.find(m => m !== 'Auto') || 'kling3'] });
     }
   };
 
@@ -505,21 +514,49 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
   }, [models, data, id, selectAutoModel]);
 
   const getDropdownLabel = () => {
-    if (models.length === 0) return 'Select Model';
+    if (models.length === 0) return <div key="none" style={{ animation: 'swapFade 0.15s ease-out' }}>Select Model</div>;
     if (models.length === 1) {
       if (models[0] === 'Auto') {
         const effective = getEffectiveModel();
-        return `Auto → ${MODEL_DEFS[effective]?.name || effective}`;
+            const displayName = MODEL_DEFS[effective]?.name || effective;
+            const logo = getModelLogo(effective);
+            return (
+          <div key={`auto-${effective}`} style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'swapFade 0.15s ease-out' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={CATEGORY_COLORS.videoGeneration} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                <span style={{ color: text.muted }}>→</span>
+                {logo && <img src={logo} alt="" style={{ width: 14, height: 14, objectFit: 'contain', borderRadius: 2 }} />}
+                <span>{displayName}</span>
+              </div>
+            );
       }
-      return models[0];
+          const m = models[0];
+          const logo = getModelLogo(m);
+          const displayName = MODEL_DEFS[m]?.name || m;
+          return (
+        <div key={`single-${m}`} style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'swapFade 0.15s ease-out' }}>
+              {logo && <img src={logo} alt="" style={{ width: 14, height: 14, objectFit: 'contain', borderRadius: 2 }} />}
+              <span>{displayName}</span>
+            </div>
+          );
     }
-    return `${models.length} Models`;
+        return (
+      <div key={`multi-${models.length}`} style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'swapFade 0.15s ease-out' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={CATEGORY_COLORS.videoGeneration} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            <span>{models.length} Models</span>
+          </div>
+        );
   };
 
   const filteredModels = MODELS.filter(m => m.toLowerCase().includes(modelSearch.toLowerCase()));
 
   return (
     <div style={{ position: 'relative', paddingTop: 44 }}>
+      <style>{`
+        @keyframes swapFade {
+          0% { opacity: 0; transform: translateY(-2px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
       {/* Model Settings Bar — sits in the paddingTop area, inside the node's bounding rect */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0,
@@ -682,9 +719,9 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
                     </svg>
                   </div>
                   {pinnedModels.length === 0 ? (
-                    <div style={{ ...font.xs, color: text.muted, fontStyle: 'italic' }}>Models you favorite will appear here</div>
+                  <div key="empty" style={{ ...font.xs, color: text.muted, fontStyle: 'italic', animation: 'swapFade 0.15s ease-out' }}>Models you favorite will appear here</div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div key={`list-${pinnedModels.length}`} style={{ display: 'flex', flexDirection: 'column', gap: 4, animation: 'swapFade 0.15s ease-out' }}>
                       {pinnedModels.filter(m => MODEL_DEFS[m]).map(m => (
                         <ModelCard key={m} modelKey={m} isSelected={models.includes(m)} onToggle={() => toggleModel(m)} onPin={(e) => togglePin(m, e)} isPinned={true} />
                       ))}
@@ -702,8 +739,11 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
                       <path d="M12 8h.01" />
                     </svg>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {MODELS.filter(m => MODEL_DEFS[m]?.featured).map(m => (
+                  <div key={modelSearch} style={{ display: 'flex', flexDirection: 'column', gap: 6, animation: 'swapFade 0.15s ease-out' }}>
+                    {MODELS.filter(m => MODEL_DEFS[m]?.featured).filter(m => {
+                      const def = MODEL_DEFS[m];
+                      return def && (def.name?.toLowerCase().includes(modelSearch.toLowerCase()) || m.toLowerCase().includes(modelSearch.toLowerCase()));
+                    }).map(m => (
                       <ModelCard key={m} modelKey={m} isSelected={models.includes(m)} onToggle={() => toggleModel(m)} onPin={(e) => togglePin(m, e)} isPinned={pinnedModels.includes(m)} showDescription={false} />
                     ))}
                   </div>
@@ -720,10 +760,13 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
                     </svg>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {Object.entries(PROVIDERS).map(([provider, providerModels]) => (
-                      <div key={provider}>
+                    {Object.entries(PROVIDERS).map(([provider, providerModels]) => {
+                      const filtered = providerModels.filter(m => MODEL_DEFS[m] && (MODEL_DEFS[m].name?.toLowerCase().includes(modelSearch.toLowerCase()) || m.toLowerCase().includes(modelSearch.toLowerCase())));
+                      if (filtered.length === 0) return null;
+                      return (
+                        <div key={`${provider}-${modelSearch}`} style={{ animation: 'swapFade 0.15s ease-out' }}>
                         <div style={{ padding: '4px 0', ...font.xs, color: text.muted }}>{provider}</div>
-                        {providerModels.map(m => {
+                          {filtered.map(m => {
                           const logo = getModelLogo(m);
                           return (
                             <button
@@ -773,10 +816,15 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
                             </button>
                           );
                         })}
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
+
+                {Object.values(PROVIDERS).flat().filter(m => (MODEL_DEFS[m]?.name || m).toLowerCase().includes(modelSearch.toLowerCase())).length === 0 && (
+                  <div key={`empty-${modelSearch}`} style={{ padding: '12px 16px', ...font.xs, color: text.muted, animation: 'swapFade 0.15s ease-out' }}>No models found</div>
+                )}
               </div>
             </div>
           )}
@@ -858,6 +906,7 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
             display: 'flex', flexDirection: 'column', gap: sp[2],
           }}>
             <textarea
+              ref={promptRef}
               value={data.inputPrompt || ''}
               onChange={e => update({ inputPrompt: e.target.value })}
               placeholder="e.g. A cinematic shot of a neon cyberpunk city..."
@@ -865,7 +914,7 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
               className="nodrag nopan nowheel"
               style={{
                 background: 'transparent', border: 'none', color: text.primary,
-                ...font.sm, resize: 'none', outline: 'none', width: '100%',
+                ...font.sm, resize: 'none', outline: 'none', width: '100%', overflow: 'hidden',
               }}
             />
 

@@ -17,12 +17,15 @@ import { generateAIWorkflow, suggestNodes, chatWithAI } from './utils/api';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirebaseAuth, initializeFirebase, enableOfflinePersistence } from './config/firebase';
 import { useFirebaseWorkflows } from './hooks/useFirebaseWorkflows';
+import { useFirebaseTemplates } from './hooks/useFirebaseTemplates';
+import { saveTemplate as saveLocalTemplate } from './templates/templateStore';
 
 import InputNode from './nodes/InputNode';
 import TextNode from './nodes/TextNode';
 import ImageNode from './nodes/ImageNode';
 import AssetNode from './nodes/AssetNode';
 import SourceMediaNode from './nodes/SourceMediaNode';
+import WorkflowNode from './nodes/WorkflowNode';
 import ImageAnalyzerNode from './nodes/ImageAnalyzerNode';
 import GeneratorNode from './nodes/GeneratorNode';
 import CreativeUpScaleNode from './nodes/CreativeUpScaleNode';
@@ -148,6 +151,7 @@ function CanvasNavigation() {
         borderRadius: '8px',
         padding: '4px',
       }}>
+        {/* eslint-disable-next-line react-compiler/react-compiler */}
         <button onClick={() => zoomOut()} style={buttonStyle} title="Zoom Out">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -221,6 +225,7 @@ export default function App() {
   const [authError, setAuthError] = useState(null);
   const [showSystemLoading, setShowSystemLoading] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const firebaseTemplates = useFirebaseTemplates(currentUserId);
 
   // sessionStorage key: set after loading completes, cleared on logout.
   // This handles both popup (no reload) and redirect (page reload) Google auth,
@@ -502,6 +507,7 @@ export default function App() {
       imageNode: ImageNode,
       assetNode: AssetNode,
       sourceMediaNode: SourceMediaNode,
+      workflowTemplate: WorkflowNode,
       imageAnalyzer: ImageAnalyzerNode,
       generator: GeneratorNode,
       creativeUpscale: CreativeUpScaleNode,
@@ -854,11 +860,21 @@ export default function App() {
       });
 
       let defaults = { label: type };
-      for (const section of NODE_MENU) {
-        const item = section.items.find(i => i.type === type);
-        if (item && item.defaults) {
-          defaults = item.defaults;
-          break;
+      
+      const draggedDefaults = event.dataTransfer.getData('application/reactflow-defaults');
+      if (draggedDefaults) {
+        try {
+          defaults = JSON.parse(draggedDefaults);
+        } catch (e) {
+          console.error("Failed to parse dragged defaults", e);
+        }
+      } else {
+        for (const section of NODE_MENU) {
+          const item = section.items.find(i => i.type === type);
+          if (item && item.defaults) {
+            defaults = item.defaults;
+            break;
+          }
         }
       }
 
@@ -937,7 +953,7 @@ export default function App() {
 
   const onPaneContextMenu = useCallback(
     (event) => {
-      const selectedNodes = rfInstance?.getNodes().filter(n => n.selected) || [];
+      const selectedNodes = nodes.filter(n => n.selected);
       showContextMenu(event, selectedNodes);
     },
     [rfInstance, showContextMenu]
@@ -948,7 +964,7 @@ export default function App() {
       // If the node we clicked on isn't selected, select it (exclusive click)
       // or if it IS part of a selection, keep the current selection.
       let nodesToShow = [node];
-      const selectedNodes = rfInstance?.getNodes().filter(n => n.selected) || [];
+      const selectedNodes = nodes.filter(n => n.selected);
       
       if (selectedNodes.some(n => n.id === node.id)) {
         nodesToShow = selectedNodes;
@@ -2226,7 +2242,7 @@ export default function App() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', background: '#1a1a1a' }}>
         {/* Canvas */}
         <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }} onDrop={onDrop} onDragOver={onDragOver}>
-          <GooeyNodesMenu nodeMenu={NODE_MENU} onAddNode={addNode} onOpenProfile={() => setIsProfileModalOpen(true)} />
+          <GooeyNodesMenu nodeMenu={NODE_MENU} templates={firebaseTemplates.templates} onAddNode={addNode} onOpenProfile={() => setIsProfileModalOpen(true)} />
 
           {/* Layout Helper Toolbar */}
           <LayoutHelper
@@ -2518,7 +2534,12 @@ export default function App() {
         edges={edges}
         onCreated={({ template }) => {
           setShowTemplateModal(false);
-          // Template logic is already handled by templateStore, so just close
+          // Save locally as fallback
+          saveLocalTemplate(template);
+          // Save to Firebase if available
+          if (firebaseTemplates.create) {
+            firebaseTemplates.create(template).catch(console.error);
+          }
         }}
       />
       <BottomBar

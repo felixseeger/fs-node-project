@@ -76,8 +76,47 @@ const InEndPointSearch = ({ value, onChange, placeholder = "Search parameters...
   </div>
 );
 
+const highlightJSON = (obj) => {
+  const getCleanData = (data) => {
+    const clean = { ...data };
+    const internalKeys = [
+      'onUpdate', 'onDisconnect', 'onGenerate', 'onEdit', 
+      'hasConnection', 'getConnectionInfo', 'resolveInput', 'isGenerating', 
+      'executionProgress', 'executionStatus', 'executionMessage', 'publishedPoints',
+      'triggerGenerate', 'outputError', 'isLoading', 'onAnalyzeComplete',
+      'onAddToInput', 'onUnlink', 'onDisconnectNode', 'onCreateNode'
+    ];
+    for (const key of internalKeys) {
+      delete clean[key];
+    }
+    return clean;
+  };
+  
+  const sanitize = (val) => {
+    if (typeof val === 'string' && val.length > 100) return val.substring(0, 100) + '... [truncated]';
+    if (Array.isArray(val)) return val.map(sanitize);
+    if (val !== null && typeof val === 'object') {
+      const res = {};
+      for (const k in val) res[k] = sanitize(val[k]);
+      return res;
+    }
+    return val;
+  };
+  
+  const json = JSON.stringify(sanitize(getCleanData(obj)), null, 2) || '';
+  return json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+      let color = '#f59e0b'; // Number (amber)
+      if (/^"/.test(match)) color = /:$/.test(match) ? '#93b4f5' : '#a8f08a'; // Key (light blue) / String (green)
+      else if (/true|false/.test(match)) color = '#ec4899'; // Boolean (pink)
+      else if (/null/.test(match)) color = '#ef4444'; // Null (red)
+      return `<span style="color: ${color}">${match}</span>`;
+    });
+};
+
 export default function NodePropertyEditor({ node, onUpdate, onDelete, isChatOpen }) {
   const [isPointsExpanded, setIsPointsExpanded] = useState(false);
+  const [isDataExpanded, setIsDataExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   if (!node) return null;

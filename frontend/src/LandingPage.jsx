@@ -951,7 +951,6 @@ export default function LandingPage({ onCreateWorkflow, onDeleteWorkflows, workf
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    // eslint-disable-next-line react-hooks/purity
     a.download = `workflows_export_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
@@ -983,7 +982,6 @@ export default function LandingPage({ onCreateWorkflow, onDeleteWorkflows, workf
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    // eslint-disable-next-line react-hooks/purity
     a.download = `templates_export_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
@@ -1055,35 +1053,39 @@ export default function LandingPage({ onCreateWorkflow, onDeleteWorkflows, workf
 
       {/* Fixed Burger / Close Trigger — Mobile Only, always on top */}
       {isMobile && (
-        <button
-          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen(!menuOpen)}
-          className={`mobile-hamburger ${menuOpen ? 'mobile-hamburger-open' : 'mobile-hamburger-closed'}`}
-        >
-          {/* Top bar */}
-          <span 
-            className="hamburger-line"
-            style={{
-              transform: menuOpen ? 'translateY(6.5px) rotate(45deg)' : 'none',
-            }} 
-          />
-          {/* Middle bar */}
-          <span 
-            className="hamburger-line"
-            style={{
-              opacity: menuOpen ? 0 : 1,
-              transform: menuOpen ? 'scaleX(0)' : 'none',
-            }} 
-          />
-          {/* Bottom bar */}
-          <span 
-            className="hamburger-line"
-            style={{
-              transform: menuOpen ? 'translateY(-6.5px) rotate(-45deg)' : 'none',
-            }} 
-          />
-        </button>
+        <div style={{ position: 'fixed', top: 24, right: 24, zIndex: 9999, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <ThemeToggle theme={theme} setTheme={setTheme} />
+          <button
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(!menuOpen)}
+            className={`mobile-hamburger ${menuOpen ? 'mobile-hamburger-open' : 'mobile-hamburger-closed'}`}
+            style={{ position: 'relative', top: 'auto', right: 'auto', margin: 0 }}
+          >
+            {/* Top bar */}
+            <span 
+              className="hamburger-line"
+              style={{
+                transform: menuOpen ? 'translateY(6.5px) rotate(45deg)' : 'none',
+              }} 
+            />
+            {/* Middle bar */}
+            <span 
+              className="hamburger-line"
+              style={{
+                opacity: menuOpen ? 0 : 1,
+                transform: menuOpen ? 'scaleX(0)' : 'none',
+              }} 
+            />
+            {/* Bottom bar */}
+            <span 
+              className="hamburger-line"
+              style={{
+                transform: menuOpen ? 'translateY(-6.5px) rotate(-45deg)' : 'none',
+              }} 
+            />
+          </button>
+        </div>
       )}
 
       {showNewModal && (

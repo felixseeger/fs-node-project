@@ -1,3 +1,4 @@
+/* eslint-disable react-compiler/react-compiler */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { saveTemplate } from './templates/templateStore';
 
@@ -158,7 +159,7 @@ export default function TemplateBuilderModal({
       outputs,
     };
 
-    saveTemplate(template);
+    // saveTemplate(template); // Let parent handle saving to Firebase and/or local storage
     onCreated?.({ template, placeOnCanvas });
     onClose();
   };
