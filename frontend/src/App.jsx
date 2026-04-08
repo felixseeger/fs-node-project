@@ -212,6 +212,7 @@ function CanvasNavigation() {
   );
 }
 
+// eslint-disable-next-line react-compiler/react-compiler
 const nextId = () => `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 export default function App() {
@@ -249,8 +250,8 @@ export default function App() {
         if (user) {
           setIsAuthenticated(true);
           setCurrentUserId(user.uid);
-          // Redirect to home (Projects Dashboard) when authenticated
-          setCurrentPage('home');
+          // Redirect to home (Projects Dashboard) when authenticated from landing or auth
+          setCurrentPage((prev) => (prev === 'landing' || prev.startsWith('auth-') ? 'home' : prev));
           // Show loading screen once per session (cleared on logout or first completion)
           if (!sessionStorage.getItem(SLP_KEY)) {
             setShowSystemLoading(true);
