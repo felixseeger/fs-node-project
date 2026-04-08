@@ -149,18 +149,19 @@ export default function MobileNavigation({ isOpen, onClose, onNavigate, theme, s
         {/* Auth CTAs */}
         <div className="mob-nav-cta-row" style={{ marginTop: 24, marginBottom: 40, padding: '0 24px' }}>
           <button 
-            className="mob-nav-cta mob-nav-cta--outline"
-            onClick={() => { onNavigate?.('auth-login'); onClose(); }}
-            style={{ flex: 1 }}
-          >
-            Log in
-          </button>
-          <button 
             className="mob-nav-cta"
-            onClick={() => { onNavigate?.('auth-signup'); onClose(); }}
-            style={{ flex: 1 }}
+            onClick={() => { onNavigate?.('auth-login'); onClose(); }}
+            title="Log in"
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
           >
-            Sign up
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+              <g style={{ animation: 'pulse-x 1.5s ease-in-out infinite' }}>
+                <polyline points="10 17 15 12 10 7"></polyline>
+                <line x1="15" y1="12" x2="3" y2="12"></line>
+              </g>
+            </svg>
+            Log in
           </button>
         </div>
 

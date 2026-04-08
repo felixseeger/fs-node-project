@@ -4,7 +4,6 @@ import ScrambledHeroText from './components/ScrambledHeroText';
 import DotMatrixDisplay from './components/DotMatrixDisplay';
 import MobileNavigation from './components/MobileNavigation';
 import Nodes3DScroll from './components/Nodes3DScroll';
-import ThemeToggle from './components/ThemeToggle';
 import heroWorkflowImg from './assets/workflows/try-on_workflow_img.png';
 import './LandingPage.css';
 
@@ -883,22 +882,22 @@ function DesktopNavbar({ onNavigate, theme, setTheme }) {
         ))}
       </div>
 
-      <div className="desktop-nav-divider" />
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
         <button
           className="desktop-nav-login"
+          title="Log in"
           onClick={() => onNavigate?.('auth-login')}
+          style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <g style={{ animation: 'pulse-x 1.5s ease-in-out infinite' }}>
+              <polyline points="10 17 15 12 10 7"></polyline>
+              <line x1="15" y1="12" x2="3" y2="12"></line>
+            </g>
+          </svg>
           Log in
         </button>
-        <button
-          className="desktop-nav-cta"
-          onClick={() => onNavigate?.('auth-signup')}
-        >
-          Sign up
-        </button>
-        
         <div style={{ marginLeft: 8, paddingLeft: 8, borderLeft: '1px solid var(--color-border)' }}>
           <ThemeToggle theme={theme} setTheme={setTheme} />
         </div>
@@ -1042,8 +1041,6 @@ export default function LandingPage({ onCreateWorkflow, onDeleteWorkflows, workf
         <MobileNavigation 
           isOpen={menuOpen} 
           onClose={() => setMenuOpen(false)} 
-          theme={theme}
-          setTheme={setTheme}
           onNavigate={onNavigate}
         />
       )}
@@ -1053,39 +1050,35 @@ export default function LandingPage({ onCreateWorkflow, onDeleteWorkflows, workf
 
       {/* Fixed Burger / Close Trigger — Mobile Only, always on top */}
       {isMobile && (
-        <div style={{ position: 'fixed', top: 24, right: 24, zIndex: 9999, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <ThemeToggle theme={theme} setTheme={setTheme} />
-          <button
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen(!menuOpen)}
-            className={`mobile-hamburger ${menuOpen ? 'mobile-hamburger-open' : 'mobile-hamburger-closed'}`}
-            style={{ position: 'relative', top: 'auto', right: 'auto', margin: 0 }}
-          >
-            {/* Top bar */}
-            <span 
-              className="hamburger-line"
-              style={{
-                transform: menuOpen ? 'translateY(6.5px) rotate(45deg)' : 'none',
-              }} 
-            />
-            {/* Middle bar */}
-            <span 
-              className="hamburger-line"
-              style={{
-                opacity: menuOpen ? 0 : 1,
-                transform: menuOpen ? 'scaleX(0)' : 'none',
-              }} 
-            />
-            {/* Bottom bar */}
-            <span 
-              className="hamburger-line"
-              style={{
-                transform: menuOpen ? 'translateY(-6.5px) rotate(-45deg)' : 'none',
-              }} 
-            />
-          </button>
-        </div>
+        <button
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(!menuOpen)}
+          className={`mobile-hamburger ${menuOpen ? 'mobile-hamburger-open' : 'mobile-hamburger-closed'}`}
+        >
+          {/* Top bar */}
+          <span 
+            className="hamburger-line"
+            style={{
+              transform: menuOpen ? 'translateY(6.5px) rotate(45deg)' : 'none',
+            }} 
+          />
+          {/* Middle bar */}
+          <span 
+            className="hamburger-line"
+            style={{
+              opacity: menuOpen ? 0 : 1,
+              transform: menuOpen ? 'scaleX(0)' : 'none',
+            }} 
+          />
+          {/* Bottom bar */}
+          <span 
+            className="hamburger-line"
+            style={{
+              transform: menuOpen ? 'translateY(-6.5px) rotate(-45deg)' : 'none',
+            }} 
+          />
+        </button>
       )}
 
       {showNewModal && (

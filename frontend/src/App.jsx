@@ -224,6 +224,12 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [showSystemLoading, setShowSystemLoading] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('app_theme') || 'dark');
+
+  useEffect(() => {
+    localStorage.setItem('app_theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const firebaseTemplates = useFirebaseTemplates(currentUserId);
 
@@ -2067,6 +2073,8 @@ export default function App() {
         />
         <div className="app-content">
           <LandingPage
+            theme={theme}
+            setTheme={setTheme}
             onCreateWorkflow={handleCreateWorkflow}
             onDeleteWorkflows={handleDeleteWorkflows}
             workflows={workflows}

@@ -62,11 +62,12 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
         flexShrink: 0,
         position: 'relative',
         color: 'var(--color-text)',
-        zIndex: 1300
+        zIndex: 1300,
+        pointerEvents: currentPage === 'landing' ? 'none' : 'auto'
       }}
     >
       {/* Left — Logo + Breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: currentPage === 'home' ? 40 : 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: currentPage === 'home' ? 40 : 0, pointerEvents: 'auto' }}>
         {/* Logo with Dropdown */}
         <div ref={menuRef} style={{ position: 'relative' }}>
           {isAuthenticated ? (
@@ -220,7 +221,7 @@ export default function TopBar({ currentPage, onNavigate, workflowName, editorMo
 
       {/* Right side for Authenticated Users */}
       {isAuthenticated && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, pointerEvents: 'auto' }}>
           {/* ThemeToggle removed by user request */}
 
 
