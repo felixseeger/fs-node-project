@@ -3,35 +3,7 @@ import { createPortal } from 'react-dom';
 import { NodeResizer, Handle, Position } from '@xyflow/react';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
-
-const InfoIcon = ({ style }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <circle cx="12" cy="12" r="10"></circle>
-    <line x1="12" y1="16" x2="12" y2="12"></line>
-    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-  </svg>
-);
-
-const ChevronDownIcon = ({ style }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <polyline points="6 9 12 15 18 9"></polyline>
-  </svg>
-);
-
-const MagicIcon = ({ style }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <path d="M18.8 3.3a3.5 3.5 0 0 0-5 0l-9 9a3.5 3.5 0 0 0 0 5l5 5a3.5 3.5 0 0 0 5 0l9-9a3.5 3.5 0 0 0 0-5z"></path>
-    <path d="m2 22 5.5-1.5L9 22"></path>
-    <path d="m15 2.5 3 3"></path>
-  </svg>
-);
-
-const LinkIcon = ({ style }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path>
-    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path>
-  </svg>
-);
+import { InfoIcon, ChevronDownIcon, MagicIcon, LinkIcon } from './NodeIcons';
 
 function LayerEditorMenu({ width, height, isLinked, onClose, onDisconnect }) {
   const styles = {

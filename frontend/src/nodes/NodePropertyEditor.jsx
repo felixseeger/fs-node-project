@@ -1,202 +1,116 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { InfoIcon, PublishIcon, ChevronDownIcon } from './NodeIcons';
+import { text as textStyles, surface, border, radius, sp, font } from './nodeTokens';
 
-const InfoIcon = ({ style }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <circle cx="12" cy="12" r="10"></circle>
-    <line x1="12" y1="16" x2="12" y2="12"></line>
-    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-  </svg>
-);
+/**
+ * Modern Node Property Editor Panel
+ * Slides in from the right when a node is selected.
+ */
 
-const TrashIcon = ({ style }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <polyline points="3 6 5 6 21 6"></polyline>
-    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-  </svg>
-);
-
-const ChevronDownIcon = ({ style, expanded }) => (
-  <svg 
-    width="14" 
-    height="14" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2.5" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    style={{ ...style, transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}
-  >
-    <polyline points="6 9 12 15 18 9"></polyline>
-  </svg>
-);
-
-const SearchIcon = ({ style }) => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <circle cx="11" cy="11" r="8"></circle>
-    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-  </svg>
-);
-
-const PublishIcon = ({ style, active }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={active ? "#3b82f6" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <path d="M15 3h6v6"></path>
-    <path d="M10 14 21 3"></path>
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-  </svg>
-);
-
-const InEndPointSearch = ({ value, onChange, placeholder = "Search parameters..." }) => (
-  <div style={{
+const styles = {
+  panelContainer: {
+    position: 'fixed',
+    top: '20px',
+    right: '20px',
+    bottom: '20px',
+    width: '320px',
+    backgroundColor: 'rgba(15, 15, 20, 0.85)',
+    backdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: '16px',
+    zIndex: 1000,
+    color: '#fff',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
+    overflow: 'hidden',
+    animation: 'slideIn 0.3s ease-out'
+  },
+  wrapper: {
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    height: '100%',
+    overflowY: 'auto'
+  },
+  sectionHeader: {
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
-    backgroundColor: '#0a0a0a',
-    border: '1px solid #333',
-    borderRadius: '4px',
-    padding: '4px 8px',
+    justifyContent: 'space-between',
+    paddingBottom: '12px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+  },
+  titleText: {
+    fontSize: '12px',
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase'
+  },
+  sectionBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px'
+  },
+  labelText: {
+    fontSize: '10px',
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.4)',
+    letterSpacing: '0.05em',
+    textTransform: 'uppercase',
     marginBottom: '8px'
-  }}>
-    <SearchIcon style={{ color: '#666' }} />
+  },
+  valueText: {
+    fontSize: '12px',
+    color: '#ccc',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    padding: '8px 12px',
+    borderRadius: '8px',
+    border: '1px solid rgba(255, 255, 255, 0.05)'
+  },
+  input: {
+    width: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '8px',
+    color: '#fff',
+    padding: '10px 12px',
+    fontSize: '12px',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    boxSizing: 'border-box'
+  },
+  row: {
+    display: 'flex',
+    gap: '12px'
+  }
+};
+
+const InEndPointSearch = ({ value, onChange }) => (
+  <div style={{ position: 'relative', marginBottom: '12px' }}>
     <input 
+      style={{ ...styles.input, paddingLeft: '32px' }}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        background: 'transparent',
-        border: 'none',
-        color: '#fff',
-        fontSize: '11px',
-        outline: 'none',
-        flex: 1
-      }}
+      placeholder="Search properties..."
     />
+    <svg 
+      style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }}
+      width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+    >
+      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
   </div>
 );
 
-const highlightJSON = (obj) => {
-  const getCleanData = (data) => {
-    const clean = { ...data };
-    const internalKeys = [
-      'onUpdate', 'onDisconnect', 'onGenerate', 'onEdit', 
-      'hasConnection', 'getConnectionInfo', 'resolveInput', 'isGenerating', 
-      'executionProgress', 'executionStatus', 'executionMessage', 'publishedPoints',
-      'triggerGenerate', 'outputError', 'isLoading', 'onAnalyzeComplete',
-      'onAddToInput', 'onUnlink', 'onDisconnectNode', 'onCreateNode'
-    ];
-    for (const key of internalKeys) {
-      delete clean[key];
-    }
-    return clean;
-  };
-  
-  const sanitize = (val) => {
-    if (typeof val === 'string' && val.length > 100) return val.substring(0, 100) + '... [truncated]';
-    if (Array.isArray(val)) return val.map(sanitize);
-    if (val !== null && typeof val === 'object') {
-      const res = {};
-      for (const k in val) res[k] = sanitize(val[k]);
-      return res;
-    }
-    return val;
-  };
-  
-  const json = JSON.stringify(sanitize(getCleanData(obj)), null, 2) || '';
-  return json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
-      let color = '#f59e0b'; // Number (amber)
-      if (/^"/.test(match)) color = /:$/.test(match) ? '#93b4f5' : '#a8f08a'; // Key (light blue) / String (green)
-      else if (/true|false/.test(match)) color = '#ec4899'; // Boolean (pink)
-      else if (/null/.test(match)) color = '#ef4444'; // Null (red)
-      return `<span style="color: ${color}">${match}</span>`;
-    });
-};
-
-export default function NodePropertyEditor({ node, onUpdate, onDelete, isChatOpen }) {
-  const [isPointsExpanded, setIsPointsExpanded] = useState(false);
-  const [isDataExpanded, setIsDataExpanded] = useState(false);
+export default function NodePropertyEditor({ node, onUpdate }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDataExpanded, setIsDataExpanded] = useState(true);
+  const [isPointsExpanded, setIsPointsExpanded] = useState(false);
 
   if (!node) return null;
-
-  const styles = {
-    panelContainer: {
-      position: 'absolute',
-      top: '350px',
-      right: '25px',
-      fontFamily: 'Inter, system-ui, sans-serif',
-      color: '#E0E0E0',
-      width: '260px',
-      zIndex: 1000,
-      transition: 'right 0.3s ease, top 0.3s ease',
-    },
-    wrapper: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px',
-    },
-    sectionHeader: {
-      backgroundColor: '#2a2a2a',
-      borderRadius: '8px',
-      padding: '10px 14px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      border: '1px solid #3a3a3a',
-    },
-    sectionBody: {
-      backgroundColor: '#1a1a1a',
-      borderRadius: '8px',
-      padding: '12px 14px',
-      border: '1px solid #3a3a3a',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px',
-    },
-    row: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    titleText: {
-      fontSize: '12px',
-      fontWeight: '600',
-      color: '#E0E0E0',
-    },
-    labelText: {
-      fontSize: '11px',
-      color: '#999',
-      marginBottom: '4px',
-    },
-    valueText: {
-      fontSize: '12px',
-      color: '#E0E0E0',
-    },
-    input: {
-      width: '100%',
-      background: '#2a2a2a',
-      border: '1px solid #3a3a3a',
-      borderRadius: '4px',
-      padding: '6px 8px',
-      color: '#fff',
-      fontSize: '12px',
-      outline: 'none',
-      boxSizing: 'border-box',
-    },
-    button: {
-      background: 'transparent',
-      border: 'none',
-      color: '#999',
-      cursor: 'pointer',
-      padding: '4px',
-      display: 'flex',
-      alignItems: 'center',
-      borderRadius: '4px',
-      transition: 'background 0.2s, color 0.2s',
-    }
-  };
 
   const availablePoints = Object.keys(node.data)
     .filter(key => {
@@ -258,7 +172,7 @@ export default function NodePropertyEditor({ node, onUpdate, onDelete, isChatOpe
           <div style={{ height: '1px', backgroundColor: '#3a3a3a', margin: '4px 0' }} />
 
           {/* Text Element Content Section (only for TextElementNode) */}
-          {node.type === 'TextElementNode' && (
+          {node.type === 'textElement' && (
             <div>
               <div
                 onClick={() => setIsDataExpanded(!isDataExpanded)}
@@ -274,30 +188,73 @@ export default function NodePropertyEditor({ node, onUpdate, onDelete, isChatOpe
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <ChevronDownIcon expanded={isDataExpanded} style={{ color: '#666' }} />
-                  TEXT CONTENT
+                  TEXT ELEMENT SETTINGS
                 </div>
               </div>
 
               {isDataExpanded && (
-                <div style={{ marginTop: '8px' }}>
-                  <div style={{ ...styles.labelText, marginBottom: '6px' }}>
-                    HTML Source
+                <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <div style={{ ...styles.labelText, marginBottom: '6px' }}>
+                      Base Text Color
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="color"
+                        value={node.data.textColor || '#e0e0e0'}
+                        onChange={(e) => onUpdate(node.id, { textColor: e.target.value })}
+                        style={{ width: '30px', height: '24px', padding: 0, border: '1px solid #333', background: 'transparent', cursor: 'pointer' }}
+                      />
+                      <input
+                        type="text"
+                        value={node.data.textColor || '#e0e0e0'}
+                        onChange={(e) => onUpdate(node.id, { textColor: e.target.value })}
+                        style={{ ...styles.input, flex: 1, fontSize: '11px', padding: '4px 8px' }}
+                      />
+                    </div>
                   </div>
-                  <textarea
-                    style={{
-                      ...styles.input,
-                      minHeight: '100px',
-                      maxHeight: '200px',
-                      fontFamily: 'monospace',
-                      fontSize: '10px',
-                      lineHeight: '1.4',
-                      resize: 'vertical'
-                    }}
-                    value={node.data.text || ''}
-                    onChange={(e) => onUpdate(node.id, { text: e.target.value })}
-                    placeholder="HTML content..."
-                  />
-                  <div style={{ ...styles.labelText, marginTop: '6px', fontStyle: 'italic' }}>
+
+                  <div>
+                    <div style={{ ...styles.labelText, marginBottom: '6px' }}>
+                      Background Color
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="color"
+                        value={node.data.bgColor || '#00000000'}
+                        onChange={(e) => onUpdate(node.id, { bgColor: e.target.value })}
+                        style={{ width: '30px', height: '24px', padding: 0, border: '1px solid #333', background: 'transparent', cursor: 'pointer' }}
+                      />
+                      <input
+                        type="text"
+                        value={node.data.bgColor || 'transparent'}
+                        onChange={(e) => onUpdate(node.id, { bgColor: e.target.value })}
+                        style={{ ...styles.input, flex: 1, fontSize: '11px', padding: '4px 8px' }}
+                        placeholder="transparent or hex..."
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ ...styles.labelText, marginBottom: '6px' }}>
+                      HTML Source
+                    </div>
+                    <textarea
+                      style={{
+                        ...styles.input,
+                        minHeight: '100px',
+                        maxHeight: '200px',
+                        fontFamily: 'monospace',
+                        fontSize: '10px',
+                        lineHeight: '1.4',
+                        resize: 'vertical'
+                      }}
+                      value={node.data.text || ''}
+                      onChange={(e) => onUpdate(node.id, { text: e.target.value })}
+                      placeholder="HTML content..."
+                    />
+                  </div>
+                  <div style={{ ...styles.labelText, marginTop: '2px', fontStyle: 'italic' }}>
                     Tip: Double-click the node on canvas for rich text editing
                   </div>
                 </div>
