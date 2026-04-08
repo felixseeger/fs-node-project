@@ -327,6 +327,7 @@ export default function App() {
   const [isLocked, setIsLocked] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(true); // Chat UI open by default
+  const [lastGeneratedWorkflow, setLastGeneratedWorkflow] = useState(null); // Track last generated workflow for export
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [menu, setMenu] = useState(null);
   const [clipboardNodes, setClipboardNodes] = useState(null);
@@ -2233,6 +2234,9 @@ export default function App() {
                 const result = await generateAIWorkflow(message.trim(), 'standard');
 
                 if (result.success && result.workflow) {
+                  // Save to state for export functionality
+                  setLastGeneratedWorkflow(result);
+                  
                   // Save the generated workflow
                   const newWf = await createFirebaseWorkflow(
                     result.workflow.name || 'AI Generated Workflow',
@@ -2262,6 +2266,14 @@ export default function App() {
             }}
             isGenerating={isRunning}
             disabled={isRunning}
+            // Import/Export props
+            lastGeneratedWorkflow={null} // TODO: Track last generated workflow in state
+            onSetNodes={setNodes}
+            onSetEdges={setEdges}
+            onNotify={(message, type) => {
+              console.log(`[ChatUI Notify] ${type.toUpperCase()}:`, message);
+              // Could integrate with toast/notification system
+            }}
           />
 
           {/* Queue - Bottom Right, below Chat UI */}

@@ -1,4 +1,14 @@
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import {
+  exportWorkflowToFile,
+  openFilePicker,
+  importWorkflowFromFile,
+  prepareWorkflowForExport,
+  handleImportedWorkflow,
+  generateTestWorkflow,
+  testRoundTrip,
+  getWorkflowSummary,
+} from '../utils/workflowJSON';
 
 const THINKING_PHRASES = [
   'Analyzing request...',
@@ -16,6 +26,11 @@ const ChatUI = forwardRef(({
   isGenerating,
   tags = [],
   disabled = false,
+  // Import/Export callbacks
+  lastGeneratedWorkflow = null,
+  onSetNodes,
+  onSetEdges,
+  onNotify,
 }, ref) => {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState([
@@ -28,8 +43,98 @@ const ChatUI = forwardRef(({
   ]);
   const [activeTags, setActiveTags] = useState(new Set(['Portrait', '10s']));
   const [thinkingIndex, setThinkingIndex] = useState(0);
+  const [showImportExport, setShowImportExport] = useState(false);
   const textareaRef = useRef(null);
   const messagesEndRef = useRef(null);
+
+  // Handle workflow export
+  const handleExportWorkflow = () => {
+    if (!lastGeneratedWorkflow) {
+      onNotify?.('No workflow to export. Generate a workflow first!', 'info');
+      return;
+    }
+
+    try {
+      const workflow = prepareWorkflowForExport(lastGeneratedWorkflow);
+      if (!workflow) {
+        onNotify?.('Failed to prepare workflow for export', 'error');
+        return;
+      }
+
+      exportWorkflowToFile(workflow);
+      const summary = getWorkflowSummary(workflow);
+      onNotify?.(`Exported: ${summary}`, 'success');
+      
+      // Add system message to chat
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        type: 'assistant',
+        content: `✅ Workflow exported successfully! ${summary}`,
+        timestamp: new Date(),
+      }]);
+    } catch (error) {
+      console.error('[ChatUI] Export error:', error);
+      onNotify?.('Failed to export workflow', 'error');
+    }
+  };
+
+  // Handle workflow import
+  const handleImportWorkflow = async () => {
+    try {
+      const file = await openFilePicker();
+      if (!file) return;
+
+      const workflow = await importWorkflowFromFile(file);
+      
+      handleImportedWorkflow(workflow, {
+        onSetNodes,
+        onSetEdges,
+        onNotify: (message, type) => {
+          onNotify?.(message, type);
+          
+          // Add message to chat
+          setMessages(prev => [...prev, {
+            id: Date.now(),
+            type: type === 'success' ? 'assistant' : type === 'error' ? 'user' : 'assistant',
+            content: `${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'} ${message}`,
+            timestamp: new Date(),
+          }]);
+        },
+      });
+    } catch (error) {
+      console.error('[ChatUI] Import error:', error);
+      onNotify?.('Failed to import workflow', 'error');
+    }
+  };
+
+  // Test round-trip import/export
+  const handleTestRoundTrip = () => {
+    try {
+      const testWorkflow = generateTestWorkflow();
+      const result = testRoundTrip(testWorkflow);
+      
+      if (result.success) {
+        onNotify?.('Round-trip test passed! ✅', 'success');
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          type: 'assistant',
+          content: '✅ Round-trip test passed! Import/export is working correctly.',
+          timestamp: new Date(),
+        }]);
+      } else {
+        onNotify?.(`Round-trip test failed: ${result.errors.join(', ')}`, 'error');
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          type: 'assistant',
+          content: `❌ Round-trip test failed:\n${result.errors.join('\n')}`,
+          timestamp: new Date(),
+        }]);
+      }
+    } catch (error) {
+      console.error('[ChatUI] Round-trip test error:', error);
+      onNotify?.('Round-trip test failed', 'error');
+    }
+  };
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
@@ -176,36 +281,148 @@ const ChatUI = forwardRef(({
           </span>
         </div>
 
-        {/* Close Button */}
-        <button
-          onClick={onClose}
+        {/* Header Actions */}
+        <div
           style={{
-            width: 24,
-            height: 24,
-            borderRadius: 6,
-            background: 'transparent',
-            border: 'none',
-            color: '#888',
-            cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 14,
-            transition: 'all 0.2s',
+            gap: 6,
           }}
-          onMouseEnter={(e) => {
-            e.target.style.color = '#e0e0e0';
-            e.target.style.background = '#333';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.color = '#888';
-            e.target.style.background = 'transparent';
-          }}
-          title="Close chat"
         >
-          &#10005;
-        </button>
+          {/* Import/Export Toggle */}
+          <button
+            onClick={() => setShowImportExport(!showImportExport)}
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 6,
+              background: showImportExport ? '#3b82f6' : 'transparent',
+              border: 'none',
+              color: showImportExport ? '#fff' : '#888',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 12,
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              if (!showImportExport) {
+                e.target.style.color = '#e0e0e0';
+                e.target.style.background = '#333';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!showImportExport) {
+                e.target.style.color = '#888';
+                e.target.style.background = 'transparent';
+              }
+            }}
+            title="Import/Export workflows"
+          >
+            &#128190;
+          </button>
+
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 6,
+              background: 'transparent',
+              border: 'none',
+              color: '#888',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 14,
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.color = '#e0e0e0';
+              e.target.style.background = '#333';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.color = '#888';
+              e.target.style.background = 'transparent';
+            }}
+            title="Close chat"
+          >
+            &#10005;
+          </button>
+        </div>
       </div>
+
+      {/* Import/Export Panel */}
+      {showImportExport && (
+        <div
+          style={{
+            padding: '10px 16px',
+            borderBottom: '1px solid #333',
+            background: '#1a1a1a',
+            display: 'flex',
+            gap: 8,
+            flexWrap: 'wrap',
+          }}
+        >
+          <button
+            onClick={handleExportWorkflow}
+            disabled={!lastGeneratedWorkflow}
+            style={{
+              padding: '6px 12px',
+              borderRadius: 6,
+              background: lastGeneratedWorkflow ? '#22c55e' : '#333',
+              border: 'none',
+              color: lastGeneratedWorkflow ? '#fff' : '#666',
+              fontSize: 11,
+              fontWeight: 500,
+              cursor: lastGeneratedWorkflow ? 'pointer' : 'not-allowed',
+              transition: 'all 0.2s',
+            }}
+            title="Export current workflow to JSON"
+          >
+            📤 Export Workflow
+          </button>
+
+          <button
+            onClick={handleImportWorkflow}
+            style={{
+              padding: '6px 12px',
+              borderRadius: 6,
+              background: '#3b82f6',
+              border: 'none',
+              color: '#fff',
+              fontSize: 11,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            title="Import workflow from JSON file"
+          >
+            📥 Import Workflow
+          </button>
+
+          <button
+            onClick={handleTestRoundTrip}
+            style={{
+              padding: '6px 12px',
+              borderRadius: 6,
+              background: '#8b5cf6',
+              border: 'none',
+              color: '#fff',
+              fontSize: 11,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            title="Test import/export round-trip"
+          >
+            🧪 Test Round-Trip
+          </button>
+        </div>
+      )}
 
       {/* Messages Area */}
       <div
