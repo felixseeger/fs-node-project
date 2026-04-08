@@ -94,6 +94,7 @@ import ChatButton from './components/ChatButton';
 import MatrixDot from './components/MatrixDot';
 import TopBar from './TopBar';
 import EditorTopBar from './EditorTopBar';
+import TemplateBuilderModal from './TemplateBuilderModal';
 import BottomBar from './BottomBar';
 import GooeyNodesMenu from './GooeyNodesMenu';
 import Queue from './Queue';
@@ -219,6 +220,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [showSystemLoading, setShowSystemLoading] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
 
   // sessionStorage key: set after loading completes, cleared on logout.
   // This handles both popup (no reload) and redirect (page reload) Google auth,
@@ -899,6 +901,7 @@ export default function App() {
           menuItems.push({ label: 'Align Center', action: 'align_center' });
           menuItems.push({ label: 'Align Right', action: 'align_right' });
           menuItems.push({ label: 'Compose collage', action: 'compose_collage', icon: <CollageIcon /> });
+          menuItems.push({ label: 'Save as Template', action: 'save_as_template' });
           menuItems.push({ type: 'divider' });
         }
 
@@ -1137,6 +1140,11 @@ export default function App() {
               return { ...n, position: { x, y: currentY } };
             });
           });
+        }
+        break;
+      case 'save_as_template':
+        if (selectedNodes && selectedNodes.length > 0) {
+          setShowTemplateModal(true);
         }
         break;
       case 'grid_nodes':
@@ -2502,6 +2510,17 @@ export default function App() {
         </div>
       </div>
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+      <TemplateBuilderModal
+        isOpen={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+        selectedNodes={nodes.filter(n => n.selected)}
+        nodes={nodes}
+        edges={edges}
+        onCreated={({ template }) => {
+          setShowTemplateModal(false);
+          // Template logic is already handled by templateStore, so just close
+        }}
+      />
       <BottomBar
         workflows={workflows}
         activeWorkflowId={activeWorkflowId}

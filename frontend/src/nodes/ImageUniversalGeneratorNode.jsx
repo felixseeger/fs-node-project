@@ -191,6 +191,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const nbFileRef = useRef();
   const modelMenuRef = useRef(null);
   const lastTrigger = useRef(null);
+  const promptRef = useRef(null);
 
   // Settings from data with defaults
   const autoSelect = data.autoSelect ?? true;
@@ -622,6 +623,14 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     }
   }, [data.triggerGenerate, handleGenerate]);
 
+  // Auto-resize prompt textarea
+  useEffect(() => {
+    if (promptRef.current) {
+      promptRef.current.style.height = 'auto';
+      promptRef.current.style.height = `${promptRef.current.scrollHeight}px`;
+    }
+  }, [data.inputPrompt]);
+
   // ── Model selection ─────────────────────────────────────────────────────────
 
   const setAutoSelect = (val) => update({ autoSelect: val, models: val ? ['Auto'] : [] });
@@ -667,10 +676,33 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       const effective = getEffectiveModel();
       const def = MODEL_DEFS[effective];
       const displayName = def?.name || MODEL_DEFS['Nano Banana 2']?.name || 'Auto';
-      return `Auto → ${effective ? displayName : 'Auto'}`;
+      const logo = getModelLogo(effective);
+      return (
+        <div key={`auto-${effective}`} style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'swapFade 0.15s ease-out' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={CATEGORY_COLORS.imageGeneration} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+          <span style={{ color: text.muted }}>→</span>
+          {logo && <img src={logo} alt="" style={{ width: 14, height: 14, objectFit: 'contain', borderRadius: 2 }} />}
+          <span>{effective ? displayName : 'Auto'}</span>
+        </div>
+      );
     }
-    if (models.length === 1) return MODEL_DEFS[models[0]]?.name || models[0];
-    return `${models.length} Models`;
+    if (models.length === 1) {
+      const m = models[0];
+      const logo = getModelLogo(m);
+      const displayName = MODEL_DEFS[m]?.name || m;
+      return (
+        <div key={`single-${m}`} style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'swapFade 0.15s ease-out' }}>
+          {logo && <img src={logo} alt="" style={{ width: 14, height: 14, objectFit: 'contain', borderRadius: 2 }} />}
+          <span>{displayName}</span>
+        </div>
+      );
+    }
+    return (
+      <div key={`multi-${models.length}`} style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'swapFade 0.15s ease-out' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={CATEGORY_COLORS.imageGeneration} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        <span>{models.length} Models</span>
+      </div>
+    );
   };
 
   const genCost = models.filter(m => !isEditingModel(m))
@@ -856,6 +888,12 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
   return (
     <div style={{ position: 'relative', paddingTop: 44 }}>
+      <style>{`
+        @keyframes swapFade {
+          0% { opacity: 0; transform: translateY(-2px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
       {/* Model Settings Bar — inside node bounding rect via paddingTop */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0,
@@ -965,9 +1003,9 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                     </svg>
                   </div>
                   {pinnedModels.length === 0 ? (
-                    <div style={{ ...font.xs, color: text.muted, fontStyle: 'italic' }}>Models you favorite will appear here</div>
+                  <div key="empty" style={{ ...font.xs, color: text.muted, fontStyle: 'italic', animation: 'swapFade 0.15s ease-out' }}>Models you favorite will appear here</div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div key={`list-${pinnedModels.length}`} style={{ display: 'flex', flexDirection: 'column', gap: 4, animation: 'swapFade 0.15s ease-out' }}>
                       {pinnedModels.filter(m => MODEL_DEFS[m]).map(m => (
                         <ModelCard key={m} modelKey={m} isSelected={models.includes(m)} onToggle={() => toggleModel(m)} onPin={(e) => togglePinModel(m)} isPinned={true} />
                       ))}
@@ -985,7 +1023,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                       <path d="M12 8h.01" />
                     </svg>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div key={modelSearch} style={{ display: 'flex', flexDirection: 'column', gap: 6, animation: 'swapFade 0.15s ease-out' }}>
                     {MODELS.filter(m => MODEL_DEFS[m]?.featured).filter(m => {
                       const def = MODEL_DEFS[m];
                       return def && (def.name?.toLowerCase().includes(modelSearch.toLowerCase()) || m.toLowerCase().includes(modelSearch.toLowerCase()));
@@ -1010,7 +1048,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                       const filtered = providerModels.filter(m => MODEL_DEFS[m] && (MODEL_DEFS[m].name?.toLowerCase().includes(modelSearch.toLowerCase()) || m.toLowerCase().includes(modelSearch.toLowerCase())));
                       if (filtered.length === 0) return null;
                       return (
-                        <div key={provider}>
+                        <div key={`${provider}-${modelSearch}`} style={{ animation: 'swapFade 0.15s ease-out' }}>
                           <div style={{ padding: '4px 0', ...font.xs, color: text.muted }}>{provider}</div>
                           {filtered.map(m => {
                             const logo = getModelLogo(m);
@@ -1079,7 +1117,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                         <path d="M12 8h.01" />
                       </svg>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div key={modelSearch} style={{ display: 'flex', flexDirection: 'column', gap: 4, animation: 'swapFade 0.15s ease-out' }}>
                       {EDITING_MODELS.filter(m => (MODEL_DEFS[m]?.name || m).toLowerCase().includes(modelSearch.toLowerCase())).map(m => (
                         <ModelCard key={m} modelKey={m} isSelected={models.includes(m)} onToggle={() => toggleModel(m)} onPin={(e) => togglePinModel(m)} isPinned={pinnedModels.includes(m)} />
                       ))}
@@ -1088,7 +1126,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                 )}
 
                 {Object.values(PROVIDERS).flat().filter(m => (MODEL_DEFS[m]?.name || m).toLowerCase().includes(modelSearch.toLowerCase())).length === 0 && (
-                  <div style={{ padding: '12px 16px', ...font.xs, color: text.muted }}>No models found</div>
+                  <div key={`empty-${modelSearch}`} style={{ padding: '12px 16px', ...font.xs, color: text.muted, animation: 'swapFade 0.15s ease-out' }}>No models found</div>
                 )}
               </div>
             </div>
@@ -1098,11 +1136,15 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
         {/* Quick Toggles */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title="Auto Model Selection">
-            <span style={{ fontSize: 10, color: text.muted, textTransform: 'uppercase', fontWeight: 600 }}>Auto</span>
+            <span style={{ display: 'flex', alignItems: 'center', color: autoSelect ? CATEGORY_COLORS.imageGeneration : text.muted }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+            </span>
             <Toggle checked={autoSelect} onChange={setAutoSelect} size="sm" plain />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title="Use Multiple Models">
-            <span style={{ fontSize: 10, color: text.muted, textTransform: 'uppercase', fontWeight: 600 }}>Multi</span>
+            <span style={{ display: 'flex', alignItems: 'center', color: useMultiple ? CATEGORY_COLORS.imageGeneration : text.muted }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            </span>
             <Toggle checked={useMultiple} onChange={setUseMultiple} size="sm" plain />
           </div>
         </div>
@@ -1191,6 +1233,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
             display: 'flex', flexDirection: 'column', gap: sp[2],
           }}>
             <textarea
+              ref={promptRef}
               value={data.inputPrompt || ''}
               onChange={e => update({ inputPrompt: e.target.value })}
               disabled={promptDisabled}
@@ -1201,6 +1244,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                 background: 'transparent', border: 'none', color: promptDisabled ? text.muted : text.primary,
                 ...font.sm, resize: 'none', outline: 'none', width: '100%',
                 opacity: promptDisabled ? 0.5 : 1,
+                overflow: 'hidden'
               }}
             />
 
@@ -1735,4 +1779,3 @@ function ModelCard({ modelKey, isSelected, onToggle, onPin, isPinned, showDescri
     </div>
   );
 }
-
