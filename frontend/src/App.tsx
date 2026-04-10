@@ -55,7 +55,7 @@ import BottomBar from './BottomBar';
 import GooeyNodesMenu from './GooeyNodesMenu';
 import Queue from './Queue';
 import WorkflowInterface from './WorkflowInterface';
-import { alignmentFunctions } from './LayoutHelper';
+import LayoutHelper from './components/LayoutHelper';
 // @ts-ignore
 import CanvasRunToolbar from './components/CanvasRunToolbar';
 // @ts-ignore
