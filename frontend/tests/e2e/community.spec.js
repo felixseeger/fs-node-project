@@ -32,13 +32,14 @@ test.describe('Community Features', () => {
     // Create a new board if none exists, or use the first one
     let projectCard = page.locator('.project-card').first();
     if (await projectCard.count() === 0) {
-      await page.locator('text=New board').first().click();
+      await page.getByTestId('new-project-btn').first().click();
+      await page.getByTestId('new-project-modal-confirm-new').click();
       // Wait for editor
       await page.waitForSelector('.react-flow');
       // Go back to dashboard
       await page.goto('/');
       await page.waitForSelector('.slp-ready', { timeout: 15000 }).then(el => el.click()).catch(() => {});
-      await page.waitForSelector('text=New board');
+      await page.getByTestId('new-project-btn').waitFor({ state: 'visible', timeout: 15000 });
     }
     
     projectCard = page.locator('.project-card').first();

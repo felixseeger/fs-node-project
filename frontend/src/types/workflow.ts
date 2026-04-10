@@ -16,6 +16,8 @@ export interface Workflow {
   thumbnail?: string;
   isPublic?: boolean;
   authorName?: string;
+  sharedWith?: string[];
+  userId?: string;
 }
 
 // Extended edge type with our custom properties

@@ -3,6 +3,7 @@
  * Helper functions for testing the AI Pipeline Editor
  */
 
+import { vi, expect } from 'vitest';
 import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import type { Node, Edge } from '@xyflow/react';
@@ -76,7 +77,7 @@ export function createInputNode(overrides: Partial<Node<NodeData>> = {}): Node<N
       fieldLabels: { prompt: 'Prompt', image: 'Image' },
       imagesByField: {},
       ...overrides.data,
-    },
+    } as NodeData,
     ...overrides,
   });
 }
@@ -92,7 +93,7 @@ export function createGeneratorNode(overrides: Partial<Node<NodeData>> = {}): No
       inputImagePreview: null,
       outputImage: null,
       ...overrides.data,
-    },
+    } as NodeData,
     ...overrides,
   });
 }
@@ -109,7 +110,7 @@ export function createImageAnalyzerNode(overrides: Partial<Node<NodeData>> = {})
       analysisResult: '',
       localImages: [],
       ...overrides.data,
-    },
+    } as NodeData,
     ...overrides,
   });
 }
@@ -122,7 +123,7 @@ export function createResponseNode(overrides: Partial<Node<NodeData>> = {}): Nod
     data: {
       label: 'Response',
       ...overrides.data,
-    },
+    } as NodeData,
     ...overrides,
   });
 }
@@ -139,14 +140,20 @@ export function createEdge(
   target: string,
   overrides: Partial<Edge> = {}
 ): Edge {
-  return {
-    id: `e-${source}-${target}`,
+  const sourceHandle = (overrides.sourceHandle ?? 'output') as string;
+  const targetHandle = (overrides.targetHandle ?? 'prompt-in') as string;
+  const merged: Edge = {
+    id: `e-${source}-${sourceHandle}-${target}-${targetHandle}`,
     source,
     target,
-    sourceHandle: 'output',
-    targetHandle: 'prompt-in',
+    sourceHandle,
+    targetHandle,
     ...overrides,
   };
+  if (!overrides.id) {
+    merged.id = `e-${merged.source}-${String(merged.sourceHandle)}-${merged.target}-${String(merged.targetHandle)}`;
+  }
+  return merged;
 }
 
 /**
@@ -232,9 +239,27 @@ export function buildCircularWorkflow(): { nodes: Node<NodeData>[]; edges: Edge[
  * Build a complex multi-level workflow
  */
 export function buildComplexWorkflow(): { nodes: Node<NodeData>[]; edges: Edge[] } {
-  // Level 0: Inputs
-  const input1 = createInputNode({ id: 'input-1' });
-  const input2 = createInputNode({ id: 'input-2' });
+  // Level 0: Inputs (HTTPS image URLs so imageAnalyzerExecutor can analyze)
+  const input1 = createInputNode({
+    id: 'input-1',
+    data: {
+      fieldValues: {
+        prompt: 'Describe scene A',
+        image: 'https://example.com/fixture-a.png',
+      },
+      imagesByField: { image: ['https://example.com/fixture-a.png'] },
+    } as unknown as NodeData,
+  });
+  const input2 = createInputNode({
+    id: 'input-2',
+    data: {
+      fieldValues: {
+        prompt: 'Describe scene B',
+        image: 'https://example.com/fixture-b.png',
+      },
+      imagesByField: { image: ['https://example.com/fixture-b.png'] },
+    } as unknown as NodeData,
+  });
 
   // Level 1: Analyzers
   const analyzer1 = createImageAnalyzerNode({ id: 'analyzer-1' });
@@ -249,9 +274,11 @@ export function buildComplexWorkflow(): { nodes: Node<NodeData>[]; edges: Edge[]
 
   const nodes = [input1, input2, analyzer1, analyzer2, generator1, generator2, output];
   const edges = [
-    // Level 0 -> Level 1
+    // Level 0 -> Level 1 (prompt + image per analyzer)
     createPromptEdge('input-1', 'analyzer-1'),
+    createImageEdge('input-1', 'analyzer-1'),
     createPromptEdge('input-2', 'analyzer-2'),
+    createImageEdge('input-2', 'analyzer-2'),
     // Level 1 -> Level 2
     createPromptEdge('analyzer-1', 'generator-1'),
     createPromptEdge('analyzer-2', 'generator-2'),

@@ -1,10 +1,18 @@
 import { Position, Handle } from '@xyflow/react';
-import NodeShell from './NodeShell';
+import BaseNode from './BaseNode';
+import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
 
-export default function AdaptedPromptNode({ data, selected }) {
+export default function AdaptedPromptNode({ id, data, selected }) {
+  const { disconnectNode } = useNodeConnections(id, data);
   return (
-    <NodeShell data={data} label="Adapted Prompt" dotColor="#f97316" selected={selected}>
+    <BaseNode
+      id={id}
+      label="Adapted Prompt"
+      dotColor="#f97316"
+      selected={selected}
+      onDisconnect={disconnectNode}
+    >
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <Handle
           type="target"
@@ -43,6 +51,6 @@ export default function AdaptedPromptNode({ data, selected }) {
           }}
         />
       </div>
-    </NodeShell>
+    </BaseNode>
   );
 }

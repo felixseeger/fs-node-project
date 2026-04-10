@@ -38,16 +38,17 @@ export const test = base.extend({
     } catch(e) {}
     
     // Verify dashboard
-    await page.waitForSelector('text=New board', { timeout: 10000 });
+    await page.getByTestId('new-project-btn').waitFor({ state: 'visible', timeout: 10000 });
 
     await use(page);
   },
   
   editorPage: async ({ page }, use) => {
-    const newBoardBtn = page.locator('text=New board').first();
-    await expect(newBoardBtn).toBeVisible({ timeout: 15000 });
-    await newBoardBtn.click();
-    
+    const newProjectBtn = page.getByTestId('new-project-btn').first();
+    await expect(newProjectBtn).toBeVisible({ timeout: 15000 });
+    await newProjectBtn.click();
+    await page.getByTestId('new-project-modal-confirm-new').click();
+
     const flowWrapper = page.locator('.react-flow').first();
     await expect(flowWrapper).toBeVisible({ timeout: 10000 });
     

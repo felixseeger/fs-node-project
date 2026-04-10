@@ -94,9 +94,9 @@ export function useWorkflow({
     }
 
     // Set loading state
-    setNodes(prev => prev.map(n => 
-      n.id === nodeId 
-        ? { ...n, data: { ...n.data, isLoading: true } }
+    setNodes(prev => prev.map(n =>
+      n.id === nodeId
+        ? { ...n, data: { ...n.data, isLoading: true } as NodeData }
         : n
     ));
 
@@ -112,9 +112,9 @@ export function useWorkflow({
       const result = await executeNodeByType(node, abortControllerRef.current?.signal);
       
       // Update node with result
-      setNodes(prev => prev.map(n => 
-        n.id === nodeId 
-          ? { ...n, data: { ...n.data, isLoading: false, ...result } }
+      setNodes(prev => prev.map(n =>
+        n.id === nodeId
+          ? { ...n, data: { ...n.data, isLoading: false, ...result } as NodeData }
           : n
       ));
       
@@ -123,9 +123,16 @@ export function useWorkflow({
     } catch (error) {
       console.error(`Error executing node ${nodeId}:`, error);
       
-      setNodes(prev => prev.map(n => 
-        n.id === nodeId 
-          ? { ...n, data: { ...n.data, isLoading: false, error: error instanceof Error ? error.message : 'Unknown error' } }
+      setNodes(prev => prev.map(n =>
+        n.id === nodeId
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                isLoading: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              } as NodeData,
+            }
           : n
       ));
       

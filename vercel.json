@@ -1,8 +1,26 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "api/server.js",
+      "use": "@vercel/node"
+    }
+  ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/server.js" },
-    { "src": "/(.*\\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot|mp3|mp4|webm|wav))", "dest": "/$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+    {
+      "src": "/api/(.*)",
+      "dest": "api/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "regions": ["iad1"],
+  "experiments": {
+    "webAssembly": true
+  }
 }

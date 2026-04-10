@@ -3,7 +3,7 @@ import { test, expect } from './fixtures.js';
 test.describe('Authentication and Dashboard', () => {
   test('User is logged in and dashboard loads', async ({ page }) => {
     // The `page` fixture already logs in and waits for the dashboard
-    const newBoardBtn = page.getByTestId('new-board-btn').first();
+    const newBoardBtn = page.getByTestId('new-project-btn').first();
     await expect(newBoardBtn).toBeVisible({ timeout: 10000 });
   });
   

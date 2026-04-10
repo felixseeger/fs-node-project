@@ -13,6 +13,12 @@ build/
 # Vercel
 .vercel
 
+
+FIREBASE_INTEGRATION_SUMMARY.md
+AGENT.md
+GEMINI.md
+CLAUDE.md
+
 # Environment variables
 .env
 .env.local
@@ -81,3 +87,21 @@ dev_pid.txt
 dev_log.txt
 lint-errors.txt
 test-screenshots/
+
+# Local / generated noise
+.playwright-mcp/
+debug-storybook.log
+*.backup
+frontend/stats.html
+downloads/
+awesome-design-md/
+degit/
+handoff/
+taskbox/
+frontend/design-md/
+
+# Accidental empty files from mis-typed CLI
+/npm
+/tsc
+/frontend@0.0.0
+/fs-node-project-root@1.0.0

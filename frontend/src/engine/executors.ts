@@ -6,6 +6,12 @@
 import type { NodeExecutor, NodeTypeMetadata } from './types';
 import { NodeCategory } from './types';
 import * as api from '../utils/api';
+import {
+  collectImageUrls,
+  extractPrimaryImageUrl,
+  extractPromptFromUpstream,
+  isProbablyImageUrl,
+} from './executorInputs';
 
 /** Registry of node type metadata */
 /** Node type metadata registry */
@@ -98,6 +104,14 @@ export const NODE_TYPE_METADATA: Record<string, NodeTypeMetadata> = {
     outputs: ['output'],
     isAsync: true,
     estimatedDuration: 20000,
+  },
+  tripo3d: {
+    category: NodeCategory.IMAGE_GENERATION,
+    displayName: 'Tripo3D',
+    inputs: ['prompt-in'],
+    outputs: ['model-out'],
+    isAsync: true,
+    estimatedDuration: 120000,
   },
 
   // Image editing nodes
@@ -469,19 +483,26 @@ const imageAnalyzerExecutor: NodeExecutor = async (node, context) => {
   const data = node.data as Record<string, unknown>;
   const inputs = context.getInputs(node.id);
 
-  const image = (inputs['image-in'] as string) || (data.localImages as string[])?.[0];
-  const prompt = (inputs['prompt-in'] as string) || (data.localPrompt as string);
+  const fromHandle = collectImageUrls(inputs['image-in']);
+  const local = Array.isArray(data.localImages)
+    ? (data.localImages as unknown[]).filter((x): x is string => typeof x === 'string')
+    : [];
+  const images = [...fromHandle, ...local.filter(isProbablyImageUrl)];
 
-  if (!image) {
+  const prompt =
+    extractPromptFromUpstream(inputs['prompt-in'], (data.localPrompt as string) || '') ||
+    'Describe this image in detail';
+
+  if (!images.length) {
     throw new Error('No image provided for analysis');
   }
 
   context.updateNodeState(node.id, { message: 'Analyzing image...' });
 
   const result = await api.analyzeImage({
-    image,
-    prompt: prompt || 'Describe this image in detail',
-    systemDirections: data.systemDirections as string,
+    images,
+    prompt,
+    systemDirections: (data.systemDirections as string) || '',
   });
 
   if (result.error) {
@@ -496,7 +517,9 @@ const imageToPromptExecutor: NodeExecutor = async (node, context) => {
   const data = node.data as Record<string, unknown>;
   const inputs = context.getInputs(node.id);
 
-  const image = (inputs['image-in'] as string) || (data.inputImagePreview as string);
+  const image =
+    extractPrimaryImageUrl(inputs['image-in']) ||
+    (typeof data.inputImagePreview === 'string' ? data.inputImagePreview : undefined);
 
   if (!image) {
     throw new Error('No image provided');
@@ -525,7 +548,10 @@ const improvePromptExecutor: NodeExecutor = async (node, context) => {
   const data = node.data as Record<string, unknown>;
   const inputs = context.getInputs(node.id);
 
-  const prompt = (inputs['prompt-in'] as string) || (data.inputPrompt as string);
+  const prompt = extractPromptFromUpstream(
+    inputs['prompt-in'],
+    (data.inputPrompt as string) || ''
+  );
 
   if (!prompt) {
     throw new Error('No prompt provided');
@@ -557,7 +583,9 @@ const aiImageClassifierExecutor: NodeExecutor = async (node, context) => {
   const data = node.data as Record<string, unknown>;
   const inputs = context.getInputs(node.id);
 
-  const image = (inputs['image-in'] as string) || (data.inputImagePreview as string);
+  const image =
+    extractPrimaryImageUrl(inputs['image-in']) ||
+    (typeof data.inputImagePreview === 'string' ? data.inputImagePreview : undefined);
 
   if (!image) {
     throw new Error('No image provided');
@@ -588,8 +616,11 @@ const generatorExecutor: NodeExecutor = async (node, context) => {
   const data = node.data as Record<string, unknown>;
   const inputs = context.getInputs(node.id);
 
-  const prompt = (inputs['prompt-in'] as string) || (data.inputPrompt as string);
-  const image = inputs['image-in'] as string | undefined;
+  const prompt = extractPromptFromUpstream(
+    inputs['prompt-in'],
+    (data.inputPrompt as string) || ''
+  );
+  const image = extractPrimaryImageUrl(inputs['image-in']);
 
   if (!prompt) {
     throw new Error('No prompt provided');
@@ -602,7 +633,7 @@ const generatorExecutor: NodeExecutor = async (node, context) => {
 
   const result = await generateFn({
     prompt,
-    image,
+    image: image || undefined,
   });
 
   if (result.error) {
@@ -623,8 +654,13 @@ const creativeUpscaleExecutor: NodeExecutor = async (node, context) => {
   const data = node.data as Record<string, unknown>;
   const inputs = context.getInputs(node.id);
 
-  const image = (inputs['image-in'] as string) || (data.inputImagePreview as string);
-  const prompt = (inputs['prompt-in'] as string) || (data.inputPrompt as string);
+  const image =
+    extractPrimaryImageUrl(inputs['image-in']) ||
+    (typeof data.inputImagePreview === 'string' ? data.inputImagePreview : undefined);
+  const prompt = extractPromptFromUpstream(
+    inputs['prompt-in'],
+    (data.inputPrompt as string) || ''
+  );
 
   if (!image) {
     throw new Error('No image provided');
@@ -662,7 +698,9 @@ const precisionUpscaleExecutor: NodeExecutor = async (node, context) => {
   const data = node.data as Record<string, unknown>;
   const inputs = context.getInputs(node.id);
 
-  const image = (inputs['image-in'] as string) || (data.inputImagePreview as string);
+  const image =
+    extractPrimaryImageUrl(inputs['image-in']) ||
+    (typeof data.inputImagePreview === 'string' ? data.inputImagePreview : undefined);
 
   if (!image) {
     throw new Error('No image provided');
@@ -697,7 +735,9 @@ const removeBackgroundExecutor: NodeExecutor = async (node, context) => {
   const data = node.data as Record<string, unknown>;
   const inputs = context.getInputs(node.id);
 
-  const image = (inputs['image-in'] as string) || (data.inputImagePreview as string);
+  const image =
+    extractPrimaryImageUrl(inputs['image-in']) ||
+    (typeof data.inputImagePreview === 'string' ? data.inputImagePreview : undefined);
 
   if (!image) {
     throw new Error('No image provided');

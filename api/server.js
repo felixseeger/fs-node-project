@@ -68,6 +68,10 @@ const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
 const hasElevenLabsKey = !!process.env.ELEVENLABS_API_KEY;
 const hasLtxKey = !!process.env.LTXV_API_KEY;
 const hasGeminiKey = !!process.env.GOOGLE_GEMINI_API_KEY;
+const hasCloudinaryCloudName = !!process.env.CLOUDINARY_CLOUD_NAME;
+const hasCloudinaryApiKey = !!process.env.CLOUDINARY_API_KEY;
+const hasCloudinaryApiSecret = !!process.env.CLOUDINARY_API_SECRET;
+const hasCloudinaryConfig = hasCloudinaryCloudName && hasCloudinaryApiKey && hasCloudinaryApiSecret;
 
 // Start server
 const PORT = process.env.PORT || 3001;
@@ -84,6 +88,7 @@ app.listen(PORT, () => {
 ║   ${hasElevenLabsKey ? '✅' : '❌'} ElevenLabs API (Voiceover)                    ║
 ║   ${hasLtxKey ? '✅' : '❌'} LTX Video API (direct)                      ║
 ║   ${hasGeminiKey ? '✅' : '❌'} Google Gemini API (Imagen 3)                 ║
+║   ${hasCloudinaryConfig ? '✅' : '❌'} Cloudinary API (workflow thumbnails)         ║
 ║                                                            ║
 ║   Available endpoints:                                     ║
 ║   • Image Generation: /api/generate-image                  ║
@@ -91,6 +96,7 @@ app.listen(PORT, () => {
 ║   • Video Generation: /api/kling3, /api/runway             ║
 ║   • Audio Generation: /api/music, /api/voiceover           ║
 ║   • Vision: /api/analyze-image                             ║
+║   • Workflow: /api/embed-workflow, /api/extract-workflow   ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
   `);
@@ -109,6 +115,9 @@ app.listen(PORT, () => {
   }
   if (!hasGeminiKey) {
     console.warn('⚠️  WARNING: GOOGLE_GEMINI_API_KEY not set. Nano Banana 2 (Google) integration will use Freepik fallback.');
+  }
+  if (!hasCloudinaryConfig) {
+    console.warn('⚠️  WARNING: CLOUDINARY_* env vars not fully set. Workflow thumbnail uploads will be skipped.');
   }
 });
 

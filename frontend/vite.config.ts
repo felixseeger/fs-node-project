@@ -1,12 +1,35 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    visualizer({
+      open: true,
+      gzipSize: true,
+      brotliSize: true,
+    })
+  ],
+  server: {
+    proxy: {
+      // Same-origin embed for shrimbly/node-banana (npm run dev on :3000). See NodeBananaLab.jsx.
+      '/node-banana-dev': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        ws: true,
+        rewrite: (p) => p.replace(/^\/node-banana-dev/, '') || '/',
+      },
+    },
+  },
   resolve: {
+    // Extensionless imports: .jsx before .tsx so co-located JSX twins keep winning (e.g. InspectorPanel.jsx over .tsx).
+    extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
     alias: {
+      // Linked blue-ether sources import gsap; Rolldown/Vite may not walk up to app node_modules.
+      gsap: path.resolve(__dirname, 'node_modules/gsap'),
       '@': path.resolve(__dirname, './src'),
       '@config': path.resolve(__dirname, './src/config'),
       '@hooks': path.resolve(__dirname, './src/hooks'),

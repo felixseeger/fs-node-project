@@ -1,55 +1,18 @@
-/**
- * Barrel export for all shared node infrastructure.
- *
- * Usage:
- *   import { SectionHeader, LinkedBadges, ConnectionInfo, ConnectedOrLocal } from './shared';
- *   import { Pill, Toggle, Slider, PromptInput, SettingsPanel, PillGroup } from './shared';
- *   import { OutputHandle, OutputPreview, SecondaryOutputHandle } from './shared';
- *   import { surface, border, text, sp, radius, font, ... } from './shared';
- */
+// Backward compatibility barrel export for JavaScript files
+// Re-exports TypeScript components
 
-// Design tokens
-export {
-  CATEGORY_COLORS,
-  surface, border, text, ui, sp, radius, font,
-  inputStyle, textareaStyle, settingsPanelStyle, settingsTitleStyle,
-  outputBoxStyle, summaryRowStyle,
-} from './nodeTokens';
-
-// Section & connection components
-export {
-  SectionHeader,
-  LinkedBadges,
-  ConnectionInfo,
-  ConnectedOrLocal,
-} from './NodeSection';
-
-// Control components
-export {
-  Pill,
-  Toggle,
-  Slider,
-  DirectionSlider,
-  PromptInput,
-  TextInput,
-  SettingsPanel,
-  PillGroup,
-} from './NodeControls';
-
-// Output components
-export {
-  OutputHandle,
-  SecondaryOutputHandle,
-  OutputPreview,
-} from './NodeOutput';
-
-// Hooks
 export { default as useNodeConnections } from './useNodeConnections';
 export { default as useNodeExecution } from './useNodeExecution';
+export { default as NodeShell } from './NodeShell';
+export { Pill, Toggle, Slider, DirectionSlider, PromptInput, TextInput, SettingsPanel, PillGroup } from './NodeControls';
+export { SectionHeader, LinkedBadges, ConnectionInfo, ConnectedOrLocal } from './NodeSection';
+export { OutputHandle, SecondaryOutputHandle, OutputPreview } from './NodeOutput';
+export { default as UniversalSimplifiedNodeChrome } from './UniversalSimplifiedNodeChrome';
+export { default as NodeGenerateButton } from './NodeGenerateButton';
+export { default as NodeDownloadButton } from './NodeDownloadButton';
 
-// Utility: strip base64 data URI prefix
-export function stripBase64Prefix(str) {
-  if (!str) return str;
-  if (str.startsWith('data:')) return str.split(',')[1];
-  return str;
-}
+// Re-export design tokens
+export { CATEGORY_COLORS, summaryRowStyle } from './nodeTokens';
+export { surface, border, radius, sp, font, text, ui, control } from './nodeTokens';
+
+export { stripBase64Prefix } from '../utils/imageUtils';

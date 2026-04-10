@@ -53,6 +53,7 @@ function serializeWorkflow(workflow: Omit<Workflow, 'id'>): DocumentData {
     updatedAt: serverTimestamp(),
     isPublic: workflow.isPublic || false,
     authorName: workflow.authorName || null,
+    sharedWith: workflow.sharedWith || [],
   };
 }
 
@@ -71,6 +72,8 @@ function deserializeWorkflow(id: string, data: DocumentData): Workflow {
     updatedAt: timestampToString(data.updatedAt),
     isPublic: data.isPublic || false,
     authorName: data.authorName,
+    sharedWith: data.sharedWith || [],
+    userId: data.userId,
   };
 }
 
@@ -498,6 +501,103 @@ export function subscribeToPublicWorkflows(
     callback(workflows);
   }, (error) => {
     console.error('[WorkflowService] Public subscription error:', error);
+    callback([]);
+  });
+}
+
+// =============================================================================
+// Sharing Operations
+// =============================================================================
+
+/**
+ * Share a workflow with a user by email
+ */
+export async function shareWorkflow(
+  workflowId: string,
+  ownerUserId: string,
+  email: string
+): Promise<void> {
+  if (!isFirebaseConfigured()) throw new Error('Firebase not configured');
+
+  const db = getDb();
+  const workflowRef = doc(db, WORKFLOWS_COLLECTION, workflowId);
+  const snapshot = await getDoc(workflowRef);
+
+  if (!snapshot.exists()) throw new Error('Workflow not found');
+  const data = snapshot.data();
+  if (data.userId !== ownerUserId) throw new Error('Permission denied: not workflow owner');
+
+  const current: string[] = data.sharedWith || [];
+  const normalized = email.trim().toLowerCase();
+  if (current.includes(normalized)) return;
+
+  await updateDoc(workflowRef, {
+    sharedWith: [...current, normalized],
+    updatedAt: serverTimestamp(),
+  });
+
+  console.log('[WorkflowService] Shared workflow', workflowId, 'with', normalized);
+}
+
+/**
+ * Unshare a workflow (remove a user's email)
+ */
+export async function unshareWorkflow(
+  workflowId: string,
+  ownerUserId: string,
+  email: string
+): Promise<void> {
+  if (!isFirebaseConfigured()) throw new Error('Firebase not configured');
+
+  const db = getDb();
+  const workflowRef = doc(db, WORKFLOWS_COLLECTION, workflowId);
+  const snapshot = await getDoc(workflowRef);
+
+  if (!snapshot.exists()) throw new Error('Workflow not found');
+  const data = snapshot.data();
+  if (data.userId !== ownerUserId) throw new Error('Permission denied: not workflow owner');
+
+  const current: string[] = data.sharedWith || [];
+  const normalized = email.trim().toLowerCase();
+
+  await updateDoc(workflowRef, {
+    sharedWith: current.filter(e => e !== normalized),
+    updatedAt: serverTimestamp(),
+  });
+
+  console.log('[WorkflowService] Unshared workflow', workflowId, 'from', normalized);
+}
+
+/**
+ * Subscribe to workflows shared with a specific email
+ */
+export function subscribeToSharedWorkflows(
+  email: string,
+  callback: (workflows: Workflow[]) => void
+): Unsubscribe {
+  if (!isFirebaseConfigured()) throw new Error('Firebase not configured');
+
+  const db = getDb();
+  const workflowsRef = collection(db, WORKFLOWS_COLLECTION);
+  const normalized = email.trim().toLowerCase();
+  const q = query(
+    workflowsRef,
+    where('sharedWith', 'array-contains', normalized),
+    where('isDeleted', '==', false),
+    limit(100)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const workflows = snapshot.docs
+      .map(d => deserializeWorkflow(d.id, d.data()))
+      .sort((a, b) => {
+        const aTime = a.updatedAt ? Date.parse(a.updatedAt) : 0;
+        const bTime = b.updatedAt ? Date.parse(b.updatedAt) : 0;
+        return bTime - aTime;
+      });
+    callback(workflows);
+  }, (error) => {
+    console.error('[WorkflowService] Shared subscription error:', error);
     callback([]);
   });
 }

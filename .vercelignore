@@ -3,7 +3,11 @@ api/node_modules/
 downloads
 test-screenshots
 .claude
+.agents
 .DS_Store
 *.log
 api/.env
 lib/api/test_*.js
+TASKS.md
+PLAN.md
+TASK_STATUS.md

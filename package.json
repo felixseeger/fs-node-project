@@ -4,19 +4,32 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix api && rm -rf public && cp -R frontend/dist public"
+    "design-system:sync": "npx --yes degit felixseeger/blue_ether#main blue-ether --force",
+    "build": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix api && rm -rf public && cp -R frontend/dist public",
+    "type-check": "cd frontend && tsc --noEmit",
+    "build:ts": "cd frontend && tsc --noEmit && cd .. && npm run build",
+    "build-storybook": "npm install --prefix taskbox && npm run build-storybook --prefix taskbox",
+    "chromatic": "chromatic --storybook-build-dir=taskbox/storybook-static"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.87.0",
     "@google/generative-ai": "^0.24.1",
-    "@anthropic-ai/sdk": "^0.80.0",
-    "@google/generative-ai": "^0.24.1",
+    "cloudinary": "^2.9.0",
     "cors": "^2.8.6",
+    "dom-to-image-more": "^3.7.2",
     "dotenv": "^17.4.1",
+    "drawflow": "^0.0.60",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.2",
     "firebase": "^12.11.0",
     "multer": "^2.1.1",
     "p-queue": "^9.1.2",
     "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "@types/react": "^19.2.14",
+    "chromatic": "^16.2.0",
+    "typescript": "^6.0.2"
   }
 }

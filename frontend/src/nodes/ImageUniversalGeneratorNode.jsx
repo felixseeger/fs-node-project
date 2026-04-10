@@ -1,11 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import { getHandleColor } from '../utils/handleTypes';
 import {
-  CATEGORY_COLORS, sp, font, text, surface, border, radius,
-  useNodeConnections, OutputPreview, OutputHandle
+  CATEGORY_COLORS, sp, font, text, surface, border, radius, ui,
+  useNodeConnections, OutputHandle, OutputPreview,
 } from './shared';
 import useNodeProgress from '../hooks/useNodeProgress';
 import {
@@ -24,10 +23,7 @@ import {
   ideogramExpand, pollIdeogramExpandStatus,
   styleTransfer as styleTransferApi, pollStyleTransferStatus,
   // Utilities
-  improvePromptGenerate, pollImprovePromptStatus,
-  imageToPromptGenerate, pollImageToPromptStatus,
   quiverTextToSvg, quiverImageToSvg,
-  uploadImages,
 } from '../utils/api';
 import { compressImageBase64 } from '../utils/imageUtils';
 
@@ -48,25 +44,6 @@ async function urlToBase64(url) {
   }
 }
 
-import qwenLogo from '../assets/icons/qwen.png';
-import bflLogo from '../assets/icons/black-forest-labs.svg';
-import bytedanceLogo from '../assets/icons/bytedance-logo.svg';
-import googleLogo from '../assets/icons/google.svg';
-import recraftLogo from '../assets/icons/recraft_logo.png';
-import koraLogo from '../assets/icons/kora.png';
-
-const getModelLogo = (m) => {
-  const lower = m.toLowerCase();
-  if (lower.includes('flux')) return bflLogo;
-  if (lower.includes('recraft')) return recraftLogo;
-  if (lower.includes('seedance')) return bytedanceLogo;
-  if (lower.includes('veo') || lower.includes('gemini') || lower.includes('google') || lower.includes('nano banana')) return googleLogo;
-  if (lower.includes('qwen')) return qwenLogo;
-  if (lower.includes('kora')) return koraLogo;
-  if (lower.includes('quiver')) return null; // no logo asset yet
-  return null;
-};
-
 // ── Model lists ──────────────────────────────────────────────────────────────
 
 const GENERATION_MODELS = ['Auto', 'Nano Banana 2', 'recraftv4', 'recraftv3', 'kora', 'flux', 'quiver-text-to-vector'];
@@ -78,14 +55,14 @@ const EDITING_MODELS = [
 ];
 const isEditingModel = (m) => EDITING_MODELS.includes(m);
 
-// Model definitions with metadata
-const MODEL_DEFS = {
+// Model definitions with metadata (exported for canvas Browse Models modal)
+export const IMAGE_UNIVERSAL_MODEL_DEFS = {
   // Generation
   'Auto': { name: 'Auto', provider: 'System', featured: false, tags: [], description: 'Automatically select the best model', type: 'generation' },
-  'Nano Banana 2': { name: 'Nano Banana 2', provider: 'Freepik', featured: true, tags: ['New', '80s', '15s'], description: 'State-of-the-art image generation model', type: 'generation' },
+  'Nano Banana 2': { name: 'Nano Banana 2', provider: 'Freepik', featured: true, tags: ['New', '80', '15s'], description: 'State-of-the-art image generation model', type: 'generation' },
   'recraftv4': { name: 'Recraft V4', provider: 'Recraft', featured: true, tags: ['Vector', 'Fast'], description: 'Professional vector and raster generation', type: 'generation' },
   'recraftv3': { name: 'Recraft V3', provider: 'Recraft', featured: false, tags: ['Classic'], description: 'Reliable image generation', type: 'generation' },
-  'kora': { name: 'Kora', provider: 'Kora', featured: false, tags: ['Artistic'], description: 'Artistic style generation', type: 'generation' },
+  'kora': { name: 'Kora Reality', provider: 'Kora', featured: false, tags: ['Artistic'], description: 'Artistic style generation', type: 'generation' },
   'flux': { name: 'Flux', provider: 'Black Forest Labs', featured: true, tags: ['Pro', '4K'], description: 'High-fidelity image generation', type: 'generation' },
   // Editing
   'remove-bg': { name: 'Remove Background', provider: 'Editing', featured: false, tags: ['Instant'], description: 'Remove image background automatically', type: 'editing' },
@@ -103,15 +80,7 @@ const MODEL_DEFS = {
   'quiver-image-to-vector': { name: 'Image to Vector', provider: 'Quiver', featured: false, tags: ['SVG', 'Vectorize'], description: 'Vectorize raster images to SVG', type: 'editing' },
 };
 
-// Providers for grouping
-const PROVIDERS = {
-  'Freepik': ['Nano Banana 2'],
-  'Recraft': ['recraftv4', 'recraftv3'],
-  'Kora': ['kora'],
-  'Black Forest Labs': ['flux'],
-  'Editing Tools': ['remove-bg', 'creative-upscale', 'precision-upscale', 'relight', 'skin-enhancer', 'change-camera', 'flux-expand', 'seedream-expand', 'ideogram-expand', 'style-transfer'],
-  'Quiver': ['quiver-text-to-vector'],
-};
+const MODEL_DEFS = IMAGE_UNIVERSAL_MODEL_DEFS;
 
 // Featured models (displayed at top)
 export const MODELS = Object.keys(MODEL_DEFS);
@@ -119,11 +88,6 @@ export const MODELS = Object.keys(MODEL_DEFS);
 const ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
 const SCALE_FACTORS_CREATIVE = ['2x', '4x', '8x', '16x'];
 const SCALE_FACTORS_PRECISION = ['2', '4', '8', '16'];
-
-const RECRAFT_SIZES = {
-  '1:1': '1024x1024', '16:9': '1820x1024', '9:16': '1024x1820',
-  '4:3': '1365x1024', '3:4': '1024x1365', '3:2': '1536x1024', '2:3': '1024x1536',
-};
 
 const COST_MAP = {
   // Generation
@@ -137,38 +101,17 @@ const COST_MAP = {
   'quiver-text-to-vector': 0.02, 'quiver-image-to-vector': 0.02,
 };
 
-const PROMPT_PLACEHOLDER = {
-  'remove-bg': 'No prompt needed for background removal',
-  'precision-upscale': 'No prompt needed for precision upscale',
-  'skin-enhancer': 'No prompt needed for skin enhancement',
-  'change-camera': 'No prompt needed for camera change',
-  'creative-upscale': 'Optional: guide the enhancement style...',
-  'relight': 'Describe the lighting (e.g. golden hour, studio light)...',
-  'flux-expand': 'Optional: describe the expanded area content...',
-  'seedream-expand': 'Optional: describe the expanded area content...',
-  'ideogram-expand': 'Optional: describe the expanded area content...',
-  'style-transfer': 'Optional: guide the style transfer direction...',
-  'quiver-text-to-vector': 'Describe the vector/SVG to generate...',
-  'quiver-image-to-vector': 'No prompt needed for vectorization',
+const RECRAFT_SIZES = {
+  '1:1': '1024x1024', '16:9': '1820x1024', '9:16': '1024x1820',
+  '4:3': '1365x1024', '3:4': '1024x1365', '3:2': '1536x1024', '2:3': '1024x1536',
 };
-
-const PROMPT_DISABLED = new Set(['remove-bg', 'precision-upscale', 'skin-enhancer', 'change-camera', 'quiver-image-to-vector']);
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const { update } = useNodeConnections(id, data);
 
-  const {
-    progress,
-    status: executionStatus,
-    message: executionMessage,
-    start,
-    setProgress,
-    complete,
-    fail,
-    isActive,
-  } = useNodeProgress({
+  const { start, complete, fail } = useNodeProgress({
     onProgress: (state) => {
       update({
         executionProgress: state.progress,
@@ -182,15 +125,11 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const [isImprovingPrompt, setIsImprovingPrompt] = useState(false);
   const [isImageToPrompting, setIsImageToPrompting] = useState(false);
   const [isHoveringRun, setIsHoveringRun] = useState(false);
-  const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const [showReferenceMenu, setShowReferenceMenu] = useState(false);
-  const [modelSearch, setModelSearch] = useState('');
   const [annotationOpen, setAnnotationOpen] = useState(false);
   const [isUploadingNB, setIsUploadingNB] = useState(false);
-  const [expandedProviders, setExpandedProviders] = useState({});
   const [dragOverImage, setDragOverImage] = useState(null); // '1', '2', '3', or null
   const nbFileRef = useRef();
-  const modelMenuRef = useRef(null);
   const lastTrigger = useRef(null);
   const promptRef = useRef(null);
 
@@ -207,20 +146,6 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
   const activeEditingModel = models.find(m => isEditingModel(m)) || null;
   const isNanoBanana = !activeEditingModel && models.length === 1 && models[0] === 'Nano Banana 2';
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (modelMenuRef.current && !modelMenuRef.current.contains(event.target)) {
-        setIsModelMenuOpen(false);
-      }
-    }
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (locked) setIsModelMenuOpen(false);
-  }, [locked]);
 
   // ── Smart Auto Model Selection ──────────────────────────────────────────────
 
@@ -632,88 +557,10 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     }
   }, [data.inputPrompt]);
 
-  // ── Model selection ─────────────────────────────────────────────────────────
-
-  const setAutoSelect = (val) => update({ autoSelect: val, useMultiple: false, models: val ? ['Auto'] : [models.find(m => m !== 'Auto') || 'Nano Banana 2'] });
-  const setUseMultiple = (val) => update({ useMultiple: val, autoSelect: false, models: val ? models.filter(m => m !== 'Auto') : [models.find(m => m !== 'Auto') || 'Nano Banana 2'] });
-  const togglePinModel = (m) => {
-    const newPinned = pinnedModels.includes(m)
-      ? pinnedModels.filter(x => x !== m)
-      : [...pinnedModels, m];
-    update({ pinnedModels: newPinned });
-  };
-  const toggleProvider = (p) => setExpandedProviders(prev => ({ ...prev, [p]: !prev[p] }));
-
-  const toggleModel = (m) => {
-    if (m === 'Auto') {
-      setAutoSelect(true);
-      if (!useMultiple) setIsModelMenuOpen(false);
-      return;
-    }
-    const prev = models.filter(x => x !== 'Auto');
-    if (useMultiple) {
-      const already = prev.includes(m);
-      update({
-        models: already ? prev.filter(x => x !== m) : [...prev, m],
-        autoSelect: false
-      });
-    } else {
-      update({ models: [m], autoSelect: false });
-      setIsModelMenuOpen(false);
-    }
-  };
-
-  // Get effective model (resolving Auto)
-  const getEffectiveModel = useCallback(() => {
-    if (autoSelect || models[0] === 'Auto') {
-      const prompt = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt || '';
-      return selectAutoImageModel(prompt);
-    }
-    return models[0];
-  }, [autoSelect, models, data, id, selectAutoImageModel]);
-
-  const getDropdownLabel = () => {
-    if (autoSelect || models.length === 0) {
-      const effective = getEffectiveModel();
-      const def = MODEL_DEFS[effective];
-      const displayName = def?.name || MODEL_DEFS['Nano Banana 2']?.name || 'Auto';
-      const logo = getModelLogo(effective);
-      return (
-        <div key={`auto-${effective}`} style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'swapFade 0.15s ease-out' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={CATEGORY_COLORS.imageGeneration} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-          <span style={{ color: text.muted }}>→</span>
-          {logo && <img src={logo} alt="" style={{ width: 14, height: 14, objectFit: 'contain', borderRadius: 2 }} />}
-          <span>{effective ? displayName : 'Auto'}</span>
-        </div>
-      );
-    }
-    if (models.length === 0) return <div key="none" style={{ animation: 'swapFade 0.15s ease-out' }}>Select Model</div>;
-    if (models.length === 1) {
-      const m = models[0];
-      const logo = getModelLogo(m);
-      const displayName = MODEL_DEFS[m]?.name || m;
-      return (
-        <div key={`single-${m}`} style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'swapFade 0.15s ease-out' }}>
-          {logo && <img src={logo} alt="" style={{ width: 14, height: 14, objectFit: 'contain', borderRadius: 2 }} />}
-          <span>{displayName}</span>
-        </div>
-      );
-    }
-    return (
-      <div key={`multi-${models.length}`} style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'swapFade 0.15s ease-out' }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={CATEGORY_COLORS.imageGeneration} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-        <span>{models.length} Models</span>
-      </div>
-    );
-  };
-
   const genCost = models.filter(m => !isEditingModel(m))
     .reduce((acc, m) => acc + (COST_MAP[m] || 0.04), 0) * numOutputs;
   const editCost = activeEditingModel ? (COST_MAP[activeEditingModel] || 0.03) : 0;
   const totalCost = activeEditingModel ? editCost : genCost;
-
-  const genFiltered = GENERATION_MODELS.filter(m => m.toLowerCase().includes(modelSearch.toLowerCase()));
-  const editFiltered = EDITING_MODELS.filter(m => m.toLowerCase().includes(modelSearch.toLowerCase()));
 
   const promptDisabled = activeEditingModel && PROMPT_DISABLED.has(activeEditingModel);
   const promptPlaceholder = activeEditingModel
@@ -890,268 +737,21 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
   return (
     <div style={{ position: 'relative', paddingTop: 44 }}>
-      <style>{`
-        @keyframes swapFade {
-          0% { opacity: 0; transform: translateY(-2px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
       {/* Model Settings Bar — inside node bounding rect via paddingTop */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
         background: surface.deep, border: `1px solid ${border.subtle}`,
         borderRadius: radius.md, padding: '4px 8px', gap: 8,
         boxShadow: '0 4px 6px rgba(0,0,0,0.3)', zIndex: 10,
       }}>
-        {/* Model Dropdown */}
-        <div style={{ position: 'relative' }} ref={modelMenuRef}>
-          <button
-            onClick={() => !locked && setIsModelMenuOpen(!isModelMenuOpen)}
-            onMouseDown={e => e.stopPropagation()}
-            disabled={locked}
-            className="nodrag nopan"
-            style={{
-              background: 'transparent', color: text.primary, border: 'none',
-              ...font.sm, outline: 'none', cursor: locked ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', gap: 4,
-            }}
-          >
-            {getDropdownLabel()}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-
-          {isModelMenuOpen && (
-            <div
-              onMouseDown={e => e.stopPropagation()}
-              style={{
-                position: 'absolute', top: '100%', left: 0, marginTop: 4,
-                background: surface.deep, border: `1px solid ${border.default}`,
-                borderRadius: radius.md, minWidth: 210,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.5)', zIndex: 20,
-                overflow: 'hidden', display: 'flex', flexDirection: 'column',
-              }}>
-              <div style={{ padding: 8, borderBottom: `1px solid ${border.subtle}` }}>
-                <input
-                  type="text" placeholder="Search models..."
-                  value={modelSearch}
-                  onChange={e => setModelSearch(e.target.value)}
-                  onClick={e => e.stopPropagation()}
-                  onMouseDown={e => e.stopPropagation()}
-                  className="nodrag nopan"
-                  style={{
-                    width: '100%', padding: '4px 8px', borderRadius: radius.sm,
-                    background: surface.base, border: `1px solid ${border.subtle}`,
-                    color: text.primary, ...font.xs, outline: 'none', boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              <div className="nowheel nodrag" style={{ maxHeight: 320, overflowY: 'auto' }}>
-                {/* Toggles */}
-                <div style={{ padding: '8px 12px', borderBottom: `1px solid ${border.subtle}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ ...font.xs, color: text.primary }}>Auto select model</span>
-                    <Toggle checked={autoSelect} onChange={setAutoSelect} plain />
-                  </div>
-                  {autoSelect && (
-                    <div style={{ 
-                      ...font.xs, 
-                      color: text.muted, 
-                      marginBottom: 8, 
-                      padding: '6px 8px', 
-                      background: `${CATEGORY_COLORS.imageGeneration}11`,
-                      borderRadius: radius.sm,
-                      border: `1px solid ${CATEGORY_COLORS.imageGeneration}33`,
-                    }}>
-                      {(() => {
-                        const prompt = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt || '';
-                        const analysis = analyzePromptForModel(prompt);
-                        const modelName = MODEL_DEFS[analysis.recommended]?.name || analysis.recommended;
-                        return (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={CATEGORY_COLORS.imageGeneration} strokeWidth="2">
-                              <circle cx="12" cy="12" r="10"/>
-                              <path d="M12 16v-4"/>
-                              <path d="M12 8h.01"/>
-                            </svg>
-                            <span>
-                              Will use <strong style={{ color: CATEGORY_COLORS.imageGeneration }}>{modelName}</strong>
-                              {analysis.type !== 'general' && (
-                                <span> for {analysis.type}</span>
-                              )}
-                            </span>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ ...font.xs, color: text.primary }}>Use multiple models</span>
-                    <Toggle checked={useMultiple} onChange={setUseMultiple} plain />
-                  </div>
-                </div>
-
-                {/* Pinned Models */}
-                <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border.subtle}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <span style={{ ...font.xs, color: text.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pinned models</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={text.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M12 16v-4" />
-                      <path d="M12 8h.01" />
-                    </svg>
-                  </div>
-                  {pinnedModels.length === 0 ? (
-                  <div key="empty" style={{ ...font.xs, color: text.muted, fontStyle: 'italic', animation: 'swapFade 0.15s ease-out' }}>Models you favorite will appear here</div>
-                  ) : (
-                  <div key={`list-${pinnedModels.length}`} style={{ display: 'flex', flexDirection: 'column', gap: 4, animation: 'swapFade 0.15s ease-out' }}>
-                      {pinnedModels.filter(m => MODEL_DEFS[m]).map(m => (
-                        <ModelCard key={m} modelKey={m} isSelected={models.includes(m)} onToggle={() => toggleModel(m)} onPin={(e) => togglePinModel(m)} isPinned={true} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Featured Models */}
-                <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border.subtle}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <span style={{ ...font.xs, color: text.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Featured models</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={text.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M12 16v-4" />
-                      <path d="M12 8h.01" />
-                    </svg>
-                  </div>
-                  <div key={modelSearch} style={{ display: 'flex', flexDirection: 'column', gap: 6, animation: 'swapFade 0.15s ease-out' }}>
-                    {MODELS.filter(m => MODEL_DEFS[m]?.featured).filter(m => {
-                      const def = MODEL_DEFS[m];
-                      return def && (def.name?.toLowerCase().includes(modelSearch.toLowerCase()) || m.toLowerCase().includes(modelSearch.toLowerCase()));
-                    }).map(m => (
-                      <ModelCard key={m} modelKey={m} isSelected={models.includes(m)} onToggle={() => toggleModel(m)} onPin={(e) => togglePinModel(m)} isPinned={pinnedModels.includes(m)} showDescription={false} />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Providers - Flat List */}
-                <div style={{ padding: '12px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <span style={{ ...font.xs, color: text.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Providers</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={text.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M12 16v-4" />
-                      <path d="M12 8h.01" />
-                    </svg>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {Object.entries(PROVIDERS).filter(([provider]) => provider !== 'Editing Tools').map(([provider, providerModels]) => {
-                      const filtered = providerModels.filter(m => MODEL_DEFS[m] && (MODEL_DEFS[m].name?.toLowerCase().includes(modelSearch.toLowerCase()) || m.toLowerCase().includes(modelSearch.toLowerCase())));
-                      if (filtered.length === 0) return null;
-                      return (
-                        <div key={`${provider}-${modelSearch}`} style={{ animation: 'swapFade 0.15s ease-out' }}>
-                          <div style={{ padding: '4px 0', ...font.xs, color: text.muted }}>{provider}</div>
-                          {filtered.map(m => {
-                            const logo = getModelLogo(m);
-                            return (
-                              <button
-                                key={m}
-                                onClick={() => toggleModel(m)}
-                                onMouseDown={e => e.stopPropagation()}
-                                className="nodrag nopan"
-                                style={{
-                                  width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                                  padding: '8px 10px', background: models.includes(m) ? 'rgba(249,115,22,0.08)' : surface.base,
-                                  border: `1px solid ${models.includes(m) ? CATEGORY_COLORS.imageGeneration : border.subtle}`,
-                                  borderRadius: radius.sm, cursor: 'pointer', textAlign: 'left', marginBottom: 4,
-                                }}
-                              >
-                                {logo && (
-                                  <img src={logo} alt="" style={{ width: 20, height: 20, objectFit: 'contain', borderRadius: radius.sm, flexShrink: 0 }} />
-                                )}
-                                <span style={{ flex: 1, ...font.sm, color: models.includes(m) ? CATEGORY_COLORS.imageGeneration : text.primary }}>{MODEL_DEFS[m]?.name || m}</span>
-                                {/* Pin button */}
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); togglePinModel(m); }}
-                                  onMouseDown={e => e.stopPropagation()}
-                                  className="nodrag nopan"
-                                  style={{
-                                    width: 20, height: 20, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                                    background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  }}
-                                  title={pinnedModels.includes(m) ? 'Unpin model' : 'Pin model'}
-                                >
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill={pinnedModels.includes(m) ? CATEGORY_COLORS.imageGeneration : 'none'} stroke={pinnedModels.includes(m) ? CATEGORY_COLORS.imageGeneration : text.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M12 2v8" />
-                                    <path d="m4.93 10.93 1.41 1.41" />
-                                    <path d="M2 18h2" />
-                                    <path d="M20 18h2" />
-                                    <path d="m19.07 10.93-1.41 1.41" />
-                                    <path d="M22 22H2" />
-                                    <path d="m16 6-4 4-4-4" />
-                                    <path d="M16 18a4 4 0 0 0-8 0" />
-                                  </svg>
-                                </button>
-                                {/* Checkmark for selected */}
-                                {models.includes(m) && (
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={CATEGORY_COLORS.imageGeneration} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="20 6 9 17 4 12" />
-                                  </svg>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Editing Tools */}
-                {EDITING_MODELS.filter(m => (MODEL_DEFS[m]?.name || m).toLowerCase().includes(modelSearch.toLowerCase())).length > 0 && (
-                  <div style={{ padding: '12px 16px', borderTop: `1px solid ${border.subtle}` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                      <span style={{ ...font.xs, color: text.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Editing Tools</span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={text.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M12 16v-4" />
-                        <path d="M12 8h.01" />
-                      </svg>
-                    </div>
-                    <div key={modelSearch} style={{ display: 'flex', flexDirection: 'column', gap: 4, animation: 'swapFade 0.15s ease-out' }}>
-                      {EDITING_MODELS.filter(m => (MODEL_DEFS[m]?.name || m).toLowerCase().includes(modelSearch.toLowerCase())).map(m => (
-                        <ModelCard key={m} modelKey={m} isSelected={models.includes(m)} onToggle={() => toggleModel(m)} onPin={(e) => togglePinModel(m)} isPinned={pinnedModels.includes(m)} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {Object.values(PROVIDERS).flat().filter(m => (MODEL_DEFS[m]?.name || m).toLowerCase().includes(modelSearch.toLowerCase())).length === 0 && (
-                  <div key={`empty-${modelSearch}`} style={{ padding: '12px 16px', ...font.xs, color: text.muted, animation: 'swapFade 0.15s ease-out' }}>No models found</div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Quick Toggles */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title="Auto Model Selection">
-            <span style={{ display: 'flex', alignItems: 'center', color: autoSelect ? CATEGORY_COLORS.imageGeneration : text.muted }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-            </span>
-            <Toggle checked={autoSelect} onChange={setAutoSelect} size="sm" plain />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title="Use Multiple Models">
-            <span style={{ display: 'flex', alignItems: 'center', color: useMultiple ? CATEGORY_COLORS.imageGeneration : text.muted }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-            </span>
-            <Toggle checked={useMultiple} onChange={setUseMultiple} size="sm" plain />
-          </div>
-        </div>
-
-        {/* Aspect ratio — hide for editing models (they use input image dimensions) */}
+        <span
+          style={{ marginRight: 'auto', ...font.xs, color: text.muted }}
+          title="Configure models, auto-select, and pins in the Inspector"
+        >
+          Models · Inspector
+        </span>
+        {/* Aspect ratio — hide for editing models */}
         {!activeEditingModel && (
           <select
             value={aspectRatio}
@@ -1736,95 +1336,6 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
         />,
         document.body
       )}
-    </div>
-  );
-}
-
-// ── Toggle component for model settings ───────────────────────────────────────
-
-function Toggle({ checked, onChange }) {
-  return (
-    <button
-      onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
-      onMouseDown={e => e.stopPropagation()}
-      style={{
-        width: 32, height: 18, borderRadius: 9,
-        background: checked ? CATEGORY_COLORS.imageGeneration : border.subtle,
-        border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
-      }}
-    >
-      <div style={{
-        position: 'absolute', top: 2, left: checked ? 16 : 2,
-        width: 14, height: 14, borderRadius: '50%', background: '#fff',
-        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-      }} />
-    </button>
-  );
-}
-
-// ── ModelCard component for featured/pinned models ────────────────────────────
-
-function ModelCard({ modelKey, isSelected, onToggle, onPin, isPinned, showDescription = true }) {
-  const def = MODEL_DEFS[modelKey] || {};
-  const logo = getModelLogo(modelKey);
-  const accent = def.type === 'editing' ? (CATEGORY_COLORS.imageEditing || '#a78bfa') : CATEGORY_COLORS.imageGeneration;
-
-  return (
-    <div
-      onClick={onToggle}
-      onMouseDown={e => e.stopPropagation()}
-      onMouseEnter={e => { e.currentTarget.style.background = isSelected ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.03)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'rgba(249,115,22,0.08)' : surface.base; }}
-      className="nodrag nopan"
-      style={{
-        width: '100%', display: 'flex', alignItems: 'flex-start', gap: 10,
-        padding: '10px 12px', background: isSelected ? 'rgba(249,115,22,0.08)' : surface.base,
-        border: `1px solid ${isSelected ? accent : border.subtle}`,
-        borderRadius: radius.md, cursor: 'pointer', textAlign: 'left',
-        transition: 'all 0.2s ease',
-      }}
-    >
-      {logo && (
-        <img src={logo} alt="" style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: radius.sm, flexShrink: 0 }} />
-      )}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-          <span style={{ ...font.sm, color: text.primary, fontWeight: 600 }}>{def.name || modelKey}</span>
-        </div>
-        {showDescription && def?.description && (
-          <div style={{ ...font.xs, color: text.muted, lineHeight: 1.4 }}>{def.description}</div>
-        )}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-        {/* Pin button */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onPin(e); }}
-          onMouseDown={e => e.stopPropagation()}
-          className="nodrag nopan"
-          style={{
-            width: 24, height: 24, borderRadius: '50%', border: 'none', cursor: 'pointer',
-            background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-          title={isPinned ? 'Unpin model' : 'Pin model'}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill={isPinned ? accent : 'none'} stroke={isPinned ? accent : text.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2v8" />
-            <path d="m4.93 10.93 1.41 1.41" />
-            <path d="M2 18h2" />
-            <path d="M20 18h2" />
-            <path d="m19.07 10.93-1.41 1.41" />
-            <path d="M22 22H2" />
-            <path d="m16 6-4 4-4-4" />
-            <path d="M16 18a4 4 0 0 0-8 0" />
-          </svg>
-        </button>
-        {/* Checkmark for selected */}
-        {isSelected && (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        )}
-      </div>
     </div>
   );
 }

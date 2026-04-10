@@ -1,350 +1,574 @@
 /**
- * Core node type definitions
+ * Node Types for FS Node Project
+ * 
+ * Comprehensive type system for workflow nodes including all node data interfaces,
+ * handle types, and workflow node definitions. Inspired by NodeBanana but adapted
+ * for FS Node Project's architecture and 63+ node types.
  */
 
-// Base node data shared across all node types
-export interface BaseNodeData {
+import { Node } from "@xyflow/react";
+
+/**
+ * Base interface for all node data
+ * Common properties shared across all node types
+ * Extends Record<string, unknown> for @xyflow/react Node<Data> generic constraint.
+ */
+export interface BaseNodeData extends Record<string, unknown> {
+  id: string;
   label: string;
-  isLoading?: boolean;
+  status?: NodeStatus;
   error?: string | null;
-  // Allow additional properties for flexible node data
-  [key: string]: unknown;
+  progress?: number; // 0-100
+  createdAt?: string;
+  updatedAt?: string;
+  metadata?: Record<string, unknown>;
+  _settingsPanelHeight?: number; // Internal: tracked height for settings panel
 }
 
-// Input node types
-export interface InputNodeData extends BaseNodeData {
-  initialFields: string[];
-  fieldValues: Record<string, string | string[]>;
-  fieldLabels: Record<string, string>;
-  imagesByField: Record<string, string[]>;
+/**
+ * Creative UpScale Node
+ */
+export interface CreativeUpScaleNodeData extends BaseNodeData {
+  type: "creativeUpScale";
+  image: string | null;
+  scaleFactor?: number;
+  algorithm?: "esrgan" | "waifu2x" | "realesrgan";
+  output?: string | null;
+  originalDimensions?: { width: number; height: number };
+  upscaledDimensions?: { width: number; height: number };
 }
 
-export interface TextNodeData extends BaseNodeData {
-  text: string;
-}
-
-export interface ImageNodeData extends BaseNodeData {
-  images: string[];
-}
-
-export interface AssetNodeData extends BaseNodeData {
-  images: string[];
-}
-
-// LLM/Vision nodes
-export interface ImageAnalyzerNodeData extends BaseNodeData {
-  systemDirections: string;
-  localPrompt: string;
-  analysisResult: string;
-  localImages: string[];
-}
-
-export interface ImageToPromptNodeData extends BaseNodeData {
-  inputImagePreview: string | null;
-  outputPrompt: string | null;
-}
-
-export interface ImprovePromptNodeData extends BaseNodeData {
-  inputPrompt: string;
-  outputPrompt: string | null;
-  localType: 'image' | 'video';
-  localLanguage: string;
-}
-
-export interface AIImageClassifierNodeData extends BaseNodeData {
-  inputImagePreview: string | null;
-  outputText: string | null;
-  rawResult: unknown;
-}
-
-// Image generation nodes
-export interface GeneratorNodeData extends BaseNodeData {
-  generatorType?: 'default' | 'kora';
-  inputImagePreview: string | null;
-  inputPrompt: string;
-  outputImage: string | null;
-}
-
+/**
+ * Flux Reimagine Node
+ */
 export interface FluxReimagineNodeData extends BaseNodeData {
-  inputImagePreview: string | null;
-  inputPrompt: string;
-  outputImage: string | null;
-  localImagination: 'vivid' | 'subtle';
-  localAspect: string;
+  type: "fluxReimagine";
+  image: string | null;
+  prompt?: string;
+  output?: string | null;
 }
 
+/**
+ * Text to Icon Node
+ */
 export interface TextToIconNodeData extends BaseNodeData {
-  inputPrompt: string;
-  outputImage: string | null;
-  localStyle: string;
-  localFormat: 'png' | 'svg';
-  localNumInferenceSteps: number;
-  localGuidanceScale: number;
+  type: "textToIcon";
+  prompt: string;
+  output?: string | null;
 }
 
-// Image editing nodes
-export interface CreativeUpscaleNodeData extends BaseNodeData {
-  inputImagePreview: string | null;
-  inputPrompt: string;
-  outputImage: string | null;
-  localScaleFactor: string;
-  localOptimizedFor: string;
-  localEngine: string;
-  localCreativity: number;
-  localHdr: number;
-  localResemblance: number;
-  localFractality: number;
-}
-
-export interface PrecisionUpscaleNodeData extends BaseNodeData {
-  inputImagePreview: string | null;
-  outputImage: string | null;
-  localScaleFactor: string;
-  localFlavor: string;
-  localSharpen: number;
-  localSmartGrain: number;
-  localUltraDetail: number;
-}
-
-export interface RelightNodeData extends BaseNodeData {
-  inputImagePreview: string | null;
-  inputPrompt: string;
-  outputImage: string | null;
-  localLightMode: string;
-  localStrength: number;
-  localInterpolate: boolean;
-  localChangeBg: boolean;
-  localStyle: string;
-  localPreserveDetails: boolean;
-  localWhites: number;
-  localBlacks: number;
-  localBrightness: number;
-  localContrast: number;
-  localSaturation: number;
-  localEngine: string;
-  localTransferA: string;
-  localTransferB: string;
-  localFixedGen: boolean;
-}
-
-export interface RemoveBackgroundNodeData extends BaseNodeData {
-  inputImagePreview: string | null;
-  outputImage: string | null;
-  outputHighRes: string | null;
-  outputPreview: string | null;
-  outputUrl: string | null;
-  originalUrl: string | null;
-}
-
-export interface StyleTransferNodeData extends BaseNodeData {
-  inputImagePreview: string | null;
-  referenceImagePreview: string | null;
-  inputPrompt: string;
-  outputImage: string | null;
-  localStyleStrength: number;
-  localStructureStrength: number;
-  localIsPortrait: boolean;
-  localPortraitStyle: string;
-  localPortraitBeautifier: string;
-  localFlavor: string;
-  localEngine: string;
-  localFixedGen: boolean;
-}
-
-export interface ImageExpandNodeData extends BaseNodeData {
-  inputImagePreview: string | null;
-  inputPrompt: string;
-  outputImage: string | null;
-  localLeft: number;
-  localRight: number;
-  localTop: number;
-  localBottom: number;
-  localSeed?: string;
-}
-
-export interface SkinEnhancerNodeData extends BaseNodeData {
-  inputImagePreview: string | null;
-  outputImage: string | null;
-  localMode: string;
-  localSharpen: number;
-  localSmartGrain: number;
-  localSkinDetail: number;
-  localOptimizedFor: string;
-}
-
-export interface ChangeCameraNodeData extends BaseNodeData {
-  inputImagePreview: string | null;
-  outputImage: string | null;
-  localHorizontalAngle: number;
-  localVerticalAngle: number;
-  localZoom: number;
-  localSeed: string;
-}
-
-// Video generation nodes
-export interface VideoNodeData extends BaseNodeData {
-  inputImagePreview: string | null;
-  inputPrompt: string;
-  inputNegativePrompt?: string;
-  outputVideo: string | null;
-  localModel?: string;
-  localDuration: number | string;
-  localAspectRatio?: string;
-  localCfgScale?: number;
-  localGenerateAudio?: boolean;
-  localResolution?: string;
-  localSeed?: number;
-  // Additional properties for specific video nodes
-  localOrientation?: string;
-  localCameraMovement?: string;
-  localRatio?: string;
-  localCameraFixed?: boolean;
-}
-
-export interface PixVerseV5TransitionNodeData extends BaseNodeData {
-  localStartImage: string | null;
-  localEndImage: string | null;
-  inputPrompt: string;
-  outputVideo: string | null;
-  localResolution: string;
-  localDuration: number;
-  localSeed: number;
-}
-
-export interface OmniHumanNodeData extends BaseNodeData {
-  inputImagePreview: string | null;
-  inputAudioUrl: string;
-  inputPrompt: string;
-  outputVideo: string | null;
-  localResolution: string;
-  localTurboMode: boolean;
-}
-
-// Video editing nodes
-export interface VfxNodeData extends BaseNodeData {
-  outputVideo: string | null;
-  localFilterType: number;
-  localFps: number;
-  localBloomContrast: number;
-  localMotionKernelSize: number;
-  localMotionDecayFactor: number;
-}
-
-export interface VideoUpscaleNodeData extends BaseNodeData {
-  outputVideo: string | null;
-  localMode?: string;
-  localResolution: string;
-  localFlavor?: string;
-  localCreativity?: number;
-  localSharpen: number;
-  localSmartGrain: number;
-  localFpsBoost: boolean;
-  localStrength?: number;
-}
-
-// Audio generation nodes
-export interface MusicGenerationNodeData extends BaseNodeData {
-  inputPrompt: string;
-  outputAudio: string | null;
-  localDuration: number;
-}
-
-export interface SoundEffectsNodeData extends BaseNodeData {
-  inputPrompt: string;
-  outputAudio: string | null;
-  localDuration: number;
-  localLoop: boolean;
-  localPromptInfluence: number;
-}
-
-export interface AudioIsolationNodeData extends BaseNodeData {
-  inputPrompt: string;
-  localAudio: string;
-  localVideo: string;
-  outputAudio: string | null;
-  localInputType: 'audio' | 'video';
-  localRerankingCandidates: number;
-  localPredictSpans: boolean;
-  localSampleFps: number;
-  localX1: number;
-  localY1: number;
-  localX2: number;
-  localY2: number;
-}
-
-export interface VoiceoverNodeData extends BaseNodeData {
-  inputPrompt: string;
-  outputAudio: string | null;
-  localVoiceId: string;
-  localStability: number;
-  localSimilarityBoost: number;
-  localSpeed: number;
-  localUseSpeakerBoost: boolean;
-}
-
-// Utility nodes
-export interface LayerEditorNodeData extends BaseNodeData {
-  // Layer editor specific data
-}
-
-export interface RouterNodeData extends BaseNodeData {
-  outputs: Array<{ id: string; label: string }>;
-}
-
-export interface CommentNodeData extends BaseNodeData {
-  text: string;
-  isDone: boolean;
-}
-
-export interface ResponseNodeData extends BaseNodeData {
-  outputImage: string | null;
-  responseFields: string[];
-}
-
-// Union type for all node data
+/**
+ * Union type for all possible node data types
+ */
 export type NodeData =
-  | InputNodeData
+  | ImageInputNodeData
+  | VideoInputNodeData
+  | AudioInputNodeData
   | TextNodeData
-  | ImageNodeData
-  | AssetNodeData
+  | PromptNodeData
+  | GeneratorNodeData
   | ImageAnalyzerNodeData
   | ImageToPromptNodeData
-  | ImprovePromptNodeData
-  | AIImageClassifierNodeData
-  | GeneratorNodeData
+  | CreativeUpScaleNodeData
   | FluxReimagineNodeData
   | TextToIconNodeData
-  | CreativeUpscaleNodeData
-  | PrecisionUpscaleNodeData
-  | RelightNodeData
-  | RemoveBackgroundNodeData
-  | StyleTransferNodeData
-  | ImageExpandNodeData
-  | SkinEnhancerNodeData
-  | ChangeCameraNodeData
-  | VideoNodeData
-  | PixVerseV5TransitionNodeData
-  | OmniHumanNodeData
-  | VfxNodeData
-  | VideoUpscaleNodeData
-  | MusicGenerationNodeData
-  | SoundEffectsNodeData
-  | AudioIsolationNodeData
-  | VoiceoverNodeData
-  | LayerEditorNodeData
+  | UpScaleNodeData
+  | VideoGenerationNodeData
+  | AudioGenerationNodeData
+  | OutputNodeData
   | RouterNodeData
-  | CommentNodeData
-  | ResponseNodeData;
+  | SwitchNodeData
+  | ConditionalSwitchNodeData
+  | ArrayNodeData
+  | GroupNodeData
+  | AnnotationNodeData
+  | WorkflowNodeData;
 
-// Node menu item
-export interface NodeMenuItem {
-  type: string;
-  label: string;
-  defaults: Partial<NodeData>;
+/**
+ * Node execution status
+ * Represents the current state of a node during workflow execution
+ */
+export type NodeStatus = "idle" | "loading" | "complete" | "error" | "skipped" | "paused";
+
+/**
+ * All available node types in the FS Node Project workflow editor
+ * Comprehensive list covering all 63+ node types
+ */
+export type NodeType =
+  | "input" | "text" | "image" | "video" | "audio" | "asset"
+  | "generator" | "fluxReimagine" | "textToIcon"
+  | "creativeUpScale" | "precisionUpScale" | "relight" | "styleTransfer"
+  | "removeBackground" | "fluxImageExpand" | "seedreamExpand" | "ideogramExpand"
+  | "skinEnhancer" | "changeCamera" | "ideogramInpaint"
+  | "kling3" | "kling3Omni" | "kling3MotionControl" | "klingElementsPro"
+  | "klingO1" | "miniMaxLive" | "wan26Video" | "seedance"
+  | "ltxVideo2Pro" | "runwayGen45" | "runwayGen4Turbo" | "runwayActTwo"
+  | "pixVerseV5" | "pixVerseV5Transition" | "omniHuman"
+  | "vfx" | "creativeVideoUpScale" | "precisionVideoUpScale"
+  | "musicGeneration" | "soundEffects" | "audioIsolation" | "voiceover"
+  | "imageAnalyzer" | "imageToPrompt" | "improvePrompt" | "aiImageClassifier"
+  | "adaptedPrompt" | "promptConstructor" | "autoPrompt"
+  | "response" | "output" | "soundOutput" | "videoOutput"
+  | "layerEditor" | "router" | "comment" | "annotation"
+  | "groupEditing" | "sourceMedia" | "updateAsset" | "quiverTextToVector"
+  | "quiverImageToVector" | "tripo3D" | "glbViewer" | "easeCurve"
+  | "splitGrid" | "switch" | "conditionalSwitch" | "array"
+  | "workflow" | "workflowSettings" | "projectSettings";
+
+/**
+ * Image Input Node - Loads/uploads images into the workflow
+ */
+export interface ImageInputNodeData extends BaseNodeData {
+  type: "image";
+  image: string | null; // Base64 data URL or blob URL
+  imageRef?: string; // External image reference for storage optimization
+  filename: string | null;
+  dimensions: { width: number; height: number } | null;
+  aspectRatio?: string; // e.g., "16:9", "1:1"
+  isOptional?: boolean;
+  mimeType?: string;
 }
 
-// Node menu section
-export interface NodeMenuSection {
-  section: string;
-  items: NodeMenuItem[];
+/**
+ * Video Input Node - Loads/uploads video files into the workflow
+ */
+export interface VideoInputNodeData extends BaseNodeData {
+  type: "video";
+  video: string | null; // Base64 data URL or blob URL
+  videoRef?: string; // External video reference
+  filename: string | null;
+  duration: number | null; // Duration in seconds
+  dimensions: { width: number; height: number } | null;
+  format: string | null; // MIME type (video/mp4, video/webm, etc.)
+  isOptional?: boolean;
+  thumbnail?: string; // Base64 thumbnail
+}
+
+/**
+ * Audio Input Node - Loads/uploads audio files into the workflow
+ */
+export interface AudioInputNodeData extends BaseNodeData {
+  type: "audio";
+  audioFile: string | null; // Base64 data URL of the audio file
+  audioFileRef?: string; // External audio reference
+  filename: string | null;
+  duration: number | null; // Duration in seconds
+  format: string | null; // MIME type (audio/mp3, audio/wav, etc.)
+  isOptional?: boolean;
+  waveform?: string; // Base64 waveform visualization
+}
+
+/**
+ * Text Input Node - Text input for prompts and other text data
+ */
+export interface TextNodeData extends BaseNodeData {
+  type: "text";
+  text: string;
+  variableName?: string; // Optional variable name for templating
+  isOptional?: boolean;
+  multiline?: boolean;
+  maxLength?: number;
+}
+
+/**
+ * Prompt Node - Specialized text input for AI generation prompts
+ */
+export interface PromptNodeData extends BaseNodeData {
+  type: "prompt";
+  prompt: string;
+  variableName?: string; // For use in PromptConstructor templates
+  isOptional?: boolean;
+  template?: string; // Optional prompt template
+  parameters?: Record<string, string>; // Template parameters
+}
+
+/**
+ * Generator Node - Core image generation node
+ */
+export interface GeneratorNodeData extends BaseNodeData {
+  type: "generator";
+  prompt: string;
+  negativePrompt?: string;
+  model?: string; // e.g., "nano-banana-2", "kora-reality"
+  aspectRatio?: string;
+  resolution?: string;
+  numImages?: number;
+  seed?: number | null;
+  guidanceScale?: number;
+  steps?: number;
+  output?: string[]; // Generated image URLs
+  generationId?: string; // For tracking generations
+}
+
+/**
+ * Image Analysis Node - AI-powered image analysis
+ */
+export interface ImageAnalyzerNodeData extends BaseNodeData {
+  type: "imageAnalyzer";
+  image: string | null; // Input image to analyze
+  analysis?: string; // Analysis result
+  model?: string; // Analysis model (e.g., "claude-sonnet-vision")
+  analysisType?: "general" | "technical" | "aesthetic" | "content";
+  confidence?: number; // Confidence score 0-1
+}
+
+/**
+ * Image to Prompt Node - Reverse image to prompt generation
+ */
+export interface ImageToPromptNodeData extends BaseNodeData {
+  type: "imageToPrompt";
+  image: string | null; // Input image
+  prompt?: string; // Generated prompt
+  model?: string; // Model used for generation
+  style?: string; // Target style (e.g., "photorealistic", "anime")
+  confidence?: number; // Confidence score 0-1
+}
+
+/**
+ * Upscale Nodes - Image upscaling with different algorithms
+ */
+export interface UpScaleNodeData extends BaseNodeData {
+  type: "creativeUpScale" | "precisionUpScale";
+  image: string | null; // Input image
+  scaleFactor?: number; // 2x, 4x, etc.
+  algorithm?: "esrgan" | "waifu2x" | "realesrgan";
+  output?: string | null; // Upscaled image
+  originalDimensions?: { width: number; height: number };
+  upscaledDimensions?: { width: number; height: number };
+}
+
+/**
+ * Video Generation Nodes - Various video generation models
+ */
+export interface VideoGenerationNodeData extends BaseNodeData {
+  type: "kling3" | "kling3Omni" | "kling3MotionControl" | "klingElementsPro" |
+        "klingO1" | "miniMaxLive" | "wan26Video" | "seedance" |
+        "ltxVideo2Pro" | "runwayGen45" | "runwayGen4Turbo" | "runwayActTwo" |
+        "pixVerseV5" | "pixVerseV5Transition" | "omniHuman";
+  
+  prompt: string;
+  negativePrompt?: string;
+  model?: string; // Specific model variant
+  aspectRatio?: string;
+  duration?: number; // Video duration in seconds
+  motionIntensity?: number; // 0-1 for motion control
+  cameraMovement?: string; // For motion control
+  output?: string | null; // Generated video URL
+  thumbnail?: string; // Base64 thumbnail
+}
+
+/**
+ * Callbacks injected by the canvas for node runtime behavior
+ */
+export interface NodeCanvasCallbacks {
+  onUpdate?: (nodeId: string, patch: Record<string, unknown>) => void;
+  resolveInput?: (nodeId: string, handleId: string) => unknown;
+  hasConnection?: (nodeId: string, handleId: string) => boolean;
+  getConnectionInfo?: (
+    nodeId: string,
+    handleId: string
+  ) => { nodeLabel?: string; handle?: string } | null | undefined;
+  onUnlink?: (nodeId: string, handleId: string) => void;
+  onDisconnectNode?: (nodeId: string) => void;
+  onCreateNode?: (
+    nodeType: string,
+    dataPatch: Record<string, unknown>,
+    sourceHandle?: string,
+    targetHandle?: string
+  ) => void;
+}
+
+/**
+ * Audio Generation Nodes
+ */
+export interface AudioGenerationNodeData extends BaseNodeData {
+  type: "musicGeneration" | "soundEffects" | "voiceover";
+  
+  prompt: string;
+  duration?: number; // Duration in seconds
+  style?: string; // Musical style or sound effect category
+  mood?: string; // Mood/emotion for music
+  voice?: string; // Voice type for voiceover
+  language?: string; // Language code
+  output?: string | null; // Generated audio URL
+  waveform?: string; // Base64 waveform
+  /** Runtime: completed audio URL (music / effects nodes) */
+  outputAudio?: string | null;
+  /** Runtime: last error message */
+  outputError?: string | null;
+  /** Local prompt when not fully wired from InputNode */
+  inputPrompt?: string;
+  /** Local duration override (e.g. music slider) */
+  localDuration?: number;
+  /** Change to trigger generate from parent/workflow */
+  triggerGenerate?: string | number | null;
+}
+
+/**
+ * Output Nodes - Display and output nodes
+ */
+export interface OutputNodeData extends BaseNodeData {
+  type: "response" | "output" | "soundOutput" | "videoOutput";
+  
+  inputs?: any[]; // Array of input values
+  displayMode?: "grid" | "list" | "single";
+  showLabels?: boolean;
+  autoScroll?: boolean;
+  maxItems?: number;
+  /** Audio URL for sound output node */
+  outputAudio?: string | null;
+  /** Runtime error */
+  outputError?: string | null;
+  /** Loading state */
+  isLoading?: boolean;
+  /** Embedded workflow metadata (Node Banana) */
+  nodeBananaWorkflow?: {
+    version?: string;
+    nodes?: unknown[];
+    edges?: unknown[];
+    providers?: string[];
+    timestamp?: string;
+    metadata?: Record<string, unknown>;
+  };
+}
+
+/**
+ * Router Node - Conditional routing
+ */
+export interface RouterNodeData extends BaseNodeData {
+  type: "router";
+  
+  condition?: string; // Condition expression
+  routes: Array<{
+    id: string;
+    condition: string;
+    label: string;
+    active: boolean;
+  }>;
+  defaultRoute?: string;
+}
+
+/**
+ * Switch Node - Multi-way branching
+ */
+export interface SwitchNodeData extends BaseNodeData {
+  type: "switch";
+  
+  inputValue?: any;
+  cases: Array<{
+    id: string;
+    value: any;
+    label: string;
+    active: boolean;
+  }>;
+  defaultCase?: string;
+}
+
+/**
+ * Conditional Switch Node - Advanced conditional logic
+ */
+export interface ConditionalSwitchNodeData extends BaseNodeData {
+  type: "conditionalSwitch";
+  
+  conditions: Array<{
+    id: string;
+    expression: string;
+    label: string;
+    active: boolean;
+  }>;
+  defaultCondition?: string;
+  evaluationMode?: "first-match" | "best-match";
+}
+
+/**
+ * Array Node - Collection and iteration
+ */
+export interface ArrayNodeData extends BaseNodeData {
+  type: "array";
+  
+  items: any[];
+  itemType?: string;
+  maxItems?: number;
+  allowDuplicates?: boolean;
+  currentIndex?: number;
+  iterationMode?: "sequential" | "parallel" | "random";
+}
+
+/**
+ * Group Node - Node grouping
+ */
+export interface GroupNodeData extends BaseNodeData {
+  type: "group";
+  
+  label: string;
+  collapsed?: boolean;
+  color?: string;
+  nodeIds: string[]; // IDs of nodes in this group
+  position?: { x: number; y: number };
+  dimensions?: { width: number; height: number };
+}
+
+/**
+ * Annotation/Comment Node - Documentation
+ */
+export interface AnnotationNodeData extends BaseNodeData {
+  type: "annotation" | "comment";
+  
+  content: string;
+  color?: string;
+  size?: "small" | "medium" | "large";
+  position?: "top" | "bottom" | "left" | "right";
+}
+
+/**
+ * Workflow Node - Top-level workflow container
+ */
+export interface WorkflowNodeData extends BaseNodeData {
+  type: "workflow";
+  
+  name: string;
+  description?: string;
+  version: string;
+  author?: string;
+  createdAt: string;
+  updatedAt: string;
+  nodeCount: number;
+  connectionCount: number;
+  thumbnail?: string;
+  tags?: string[];
+  isPublic?: boolean;
+}
+
+/**
+ * Extended Node type that includes React Flow node properties
+ */
+export interface WorkflowNode<T extends BaseNodeData = BaseNodeData> extends Node<T> {
+  type: NodeType;
+  data: T;
+  style?: React.CSSProperties;
+  className?: string;
+  selected?: boolean;
+  draggable?: boolean;
+  connectable?: boolean;
+  deletable?: boolean;
+}
+
+/**
+ * Type guard for checking node types
+ */
+export function isNodeType<T extends NodeType>(node: Node, type: T): node is WorkflowNode<BaseNodeData> & { type: T } {
+  return node.type === type;
+}
+
+/**
+ * Get node status with proper type inference
+ */
+export function getNodeStatus(node: Node): NodeStatus {
+  return (node.data as BaseNodeData)?.status ?? "idle";
+}
+
+/**
+ * Set node status with proper typing
+ */
+export function setNodeStatus(node: Node, status: NodeStatus): Node {
+  return {
+    ...node,
+    data: {
+      ...node.data,
+      status
+    }
+  };
+}
+
+/**
+ * Node execution context
+ */
+export interface NodeExecutionContext {
+  nodeId: string;
+  workflowId: string;
+  executionId: string;
+  timestamp: number;
+  inputs: Record<string, any>;
+  outputs: Record<string, any>;
+  status: NodeStatus;
+  error?: Error;
+  progress: number; // 0-100
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Node execution result
+ */
+export interface NodeExecutionResult {
+  success: boolean;
+  outputs?: Record<string, any>;
+  error?: Error;
+  durationMs: number;
+  timestamp: string;
+  nodeId: string;
+  executionId: string;
+}
+
+/**
+ * Workflow template interface
+ */
+export interface WorkflowTemplate {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  author: string;
+  createdAt: string;
+  updatedAt: string;
+  nodes: WorkflowNode[];
+  edges: any[];
+  thumbnail?: string;
+  tags: string[];
+  category: string;
+  isPublic: boolean;
+  downloadCount: number;
+  likeCount: number;
+}
+
+/**
+ * Node dimension utilities
+ */
+export interface NodeDimensions {
+  width: number;
+  height: number;
+  aspectRatio: number;
+}
+
+/**
+ * Calculate aspect ratio from dimensions
+ */
+export function calculateAspectRatio(width: number, height: number): number {
+  return width / height;
+}
+
+/**
+ * Format aspect ratio as string (e.g., "16:9")
+ */
+export function formatAspectRatio(width: number, height: number): string {
+  const ratio = calculateAspectRatio(width, height);
+  // Simplify to common ratios
+  if (Math.abs(ratio - 1) < 0.01) return "1:1";
+  if (Math.abs(ratio - 1.777) < 0.05) return "16:9";
+  if (Math.abs(ratio - 1.333) < 0.05) return "4:3";
+  if (Math.abs(ratio - 2.333) < 0.1) return "7:3";
+  if (Math.abs(ratio - 0.5625) < 0.05) return "9:16";
+  
+  // Calculate simplified ratio
+  const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+  const simplified = gcd(Math.round(width), Math.round(height));
+  return `${Math.round(width / simplified)}:${Math.round(height / simplified)}`;
+}
+
+/**
+ * Parse aspect ratio string to number
+ */
+export function parseAspectRatio(ratioString: string): number {
+  if (!ratioString.includes(':')) return 1;
+  const [width, height] = ratioString.split(':').map(Number);
+  return width / height;
 }

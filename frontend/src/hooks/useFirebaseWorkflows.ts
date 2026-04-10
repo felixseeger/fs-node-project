@@ -16,7 +16,10 @@ import {
   subscribeToWorkflow,
   subscribeToUserWorkflows,
   subscribeToPublicWorkflows,
+  subscribeToSharedWorkflows,
   toggleWorkflowPublic,
+  shareWorkflow,
+  unshareWorkflow,
   duplicateWorkflow,
   exportWorkflowToJSON,
   importWorkflowFromJSON,
@@ -26,6 +29,7 @@ import {
 
 interface UseFirebaseWorkflowsOptions {
   userId?: string;
+  userEmail?: string;
   enableRealtime?: boolean;
 }
 
@@ -33,6 +37,7 @@ interface UseFirebaseWorkflowsReturn {
   // State
   workflows: Workflow[];
   communityWorkflows: Workflow[];
+  sharedWorkflows: Workflow[];
   currentWorkflow: Workflow | null;
   isLoading: boolean;
   error: Error | null;
@@ -45,6 +50,10 @@ interface UseFirebaseWorkflowsReturn {
   togglePublic: (workflowId: string, isPublic: boolean, authorName?: string) => Promise<void>;
   remove: (workflowId: string) => Promise<void>;
   duplicate: (workflowId: string) => Promise<string | null>;
+  
+  // Sharing
+  share: (workflowId: string, email: string) => Promise<void>;
+  unshare: (workflowId: string, email: string) => Promise<void>;
   
   // Real-time
   subscribe: (workflowId: string) => void;
@@ -65,11 +74,12 @@ interface UseFirebaseWorkflowsReturn {
 export function useFirebaseWorkflows(
   options: UseFirebaseWorkflowsOptions = {}
 ): UseFirebaseWorkflowsReturn {
-  const { userId, enableRealtime = true } = options;
+  const { userId, userEmail, enableRealtime = true } = options;
   
   // State
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [communityWorkflows, setCommunityWorkflows] = useState<Workflow[]>([]);
+  const [sharedWorkflows, setSharedWorkflows] = useState<Workflow[]>([]);
   const [currentWorkflow, setCurrentWorkflow] = useState<Workflow | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -80,6 +90,7 @@ export function useFirebaseWorkflows(
   const lastDocRef = useRef<any>(null);
   const unsubscribeRef = useRef<Unsubscribe | null>(null);
   const unsubscribePublicRef = useRef<Unsubscribe | null>(null);
+  const unsubscribeSharedRef = useRef<Unsubscribe | null>(null);
   const unsubscribeCurrentRef = useRef<Unsubscribe | null>(null);
   
   // Check if Firebase is available
@@ -111,6 +122,15 @@ export function useFirebaseWorkflows(
       setCommunityWorkflows(updatedCommunityWorkflows);
     });
     unsubscribePublicRef.current = unsubscribePublic;
+
+    // 3. Subscribe to workflows shared with this user's email
+    let unsubscribeShared: Unsubscribe | null = null;
+    if (userEmail) {
+      unsubscribeShared = subscribeToSharedWorkflows(userEmail, (updatedSharedWorkflows) => {
+        setSharedWorkflows(updatedSharedWorkflows);
+      });
+      unsubscribeSharedRef.current = unsubscribeShared;
+    }
     
     // Load stats
     if (userId) refreshStats();
@@ -118,10 +138,12 @@ export function useFirebaseWorkflows(
     return () => {
       if (unsubscribeUser) unsubscribeUser();
       unsubscribePublic();
+      if (unsubscribeShared) unsubscribeShared();
       unsubscribeRef.current = null;
       unsubscribePublicRef.current = null;
+      unsubscribeSharedRef.current = null;
     };
-  }, [userId, enableRealtime, isAvailable]);
+  }, [userId, userEmail, enableRealtime, isAvailable]);
   
   // =============================================================================
   // Cleanup subscriptions on unmount
@@ -276,6 +298,36 @@ export function useFirebaseWorkflows(
       setIsLoading(false);
     }
   }, [userId, isAvailable]);
+
+  // =============================================================================
+  // Sharing
+  // =============================================================================
+
+  const share = useCallback(async (workflowId: string, email: string): Promise<void> => {
+    if (!isAvailable || !userId) {
+      setError(new Error('Firebase not configured or user not authenticated'));
+      return;
+    }
+    setError(null);
+    try {
+      await shareWorkflow(workflowId, userId, email);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to share workflow'));
+    }
+  }, [userId, isAvailable]);
+
+  const unshare = useCallback(async (workflowId: string, email: string): Promise<void> => {
+    if (!isAvailable || !userId) {
+      setError(new Error('Firebase not configured or user not authenticated'));
+      return;
+    }
+    setError(null);
+    try {
+      await unshareWorkflow(workflowId, userId, email);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to unshare workflow'));
+    }
+  }, [userId, isAvailable]);
   
   // =============================================================================
   // Real-time Subscription
@@ -371,6 +423,7 @@ export function useFirebaseWorkflows(
   return {
     workflows,
     communityWorkflows,
+    sharedWorkflows,
     currentWorkflow,
     isLoading,
     error,
@@ -381,6 +434,8 @@ export function useFirebaseWorkflows(
     togglePublic,
     remove,
     duplicate,
+    share,
+    unshare,
     subscribe,
     unsubscribe,
     exportJSON,

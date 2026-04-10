@@ -26,6 +26,22 @@ async function postToApi(endpoint, params) {
   return safeJson(res);
 }
 
+export async function uploadWorkflowThumbnail(imageDataUrl, workflowId) {
+  const res = await fetch(`${API_BASE}/api/workflow-thumbnail`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageDataUrl, workflowId }),
+  });
+
+  const data = await safeJson(res);
+  if (!res.ok || data?.success === false || !data?.url) {
+    const message = data?.error || data?.message || `Failed to upload workflow thumbnail (HTTP ${res.status})`;
+    throw new Error(message);
+  }
+
+  return data;
+}
+
 /**
  * Generic status polling helper
  */
@@ -376,8 +392,21 @@ export async function musicGenerate(params) {
   return postToApi('/api/music-generation', params);
 }
 
-export async function pollMusicStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
-  return pollGenericStatus('/api/music-generation', taskId, { maxAttempts, intervalMs, errorLabel: 'Music generation' });
+export async function pollMusicStatus(taskId, maxAttempts = 120, intervalMs = 3000, onProgress) {
+  return pollGenericStatus('/api/music-generation', taskId, {
+    maxAttempts,
+    intervalMs,
+    errorLabel: 'Music generation',
+    ...(onProgress
+      ? {
+          onProgress: (attempt, total, data) =>
+            onProgress(
+              attempt / total,
+              data.data?.message || 'Waiting for music generation...'
+            ),
+        }
+      : {}),
+  });
 }
 
 export async function soundEffectsGenerate(params) {
@@ -568,6 +597,24 @@ export async function quiverImageToSvg(params) {
   return postToApi('/api/quiver/svgs/vectorizations', params);
 }
 
+// ============================================================================
+// Tripo3D Operations
+// ============================================================================
+
+export async function tripoCreateTask(params) {
+  return postToApi('/api/tripo/task', params);
+}
+
+export async function tripoGetTask(taskId) {
+  if (!taskId) throw new Error('taskId is required');
+  const res = await fetch(`${API_BASE}/api/tripo/task/${encodeURIComponent(taskId)}`);
+  const data = await safeJson(res);
+  if (!res.ok) {
+    throw new Error(data?.error || `Failed to fetch Tripo task: ${res.status}`);
+  }
+  return data;
+}
+
 export async function fetchGeneratedProjectName() {
   try {
     const res = await fetch(`${API_BASE}/api/generate-name`);
@@ -577,4 +624,81 @@ export async function fetchGeneratedProjectName() {
     console.error("Failed to fetch board name, falling back to default:", error);
     return "Untitled-Board-001";
   }
+}
+
+/**
+ * Workflow analysis API
+ */
+export async function analyzeWorkflow(workflow) {
+  return postToApi('/api/analyze-workflow', workflow);
+}
+
+/**
+ * Workflow creation API
+ */
+export async function createWorkflow(name, nodes, edges) {
+  return postToApi('/api/create-workflow', { name, nodes, edges });
+}
+
+/**
+ * Voice input API
+ */
+export async function processVoiceInput(audioData, language = 'en-US') {
+  const formData = new FormData();
+  formData.append('audio', audioData, 'voice-input.webm');
+  formData.append('language', language);
+
+  const res = await fetch(`${API_BASE}/api/process-voice`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  return safeJson(res);
+}
+
+/**
+ * Chat API
+ */
+export async function sendChatMessage(message, context = '') {
+  return postToApi('/api/chat', { message, context });
+}
+
+/**
+ * Node execution API
+ */
+export async function executeNode(nodeId, inputs) {
+  return postToApi(`/api/execute-node/${nodeId}`, inputs);
+}
+
+/**
+ * Workflow execution API
+ */
+export async function executeWorkflow(workflowId) {
+  return postToApi(`/api/execute-workflow/${workflowId}`, {});
+}
+
+/**
+ * Status polling for workflow execution
+ */
+export async function pollWorkflowStatus(taskId, onProgress) {
+  return pollGenericStatus('/api/status', taskId, {
+    maxAttempts: 180,
+    intervalMs: 2000,
+    onProgress,
+    errorLabel: 'Workflow execution',
+  });
+}
+
+/**
+ * API Error handling
+ */
+export function isApiError(response) {
+  return response && typeof response === 'object' && response.error;
+}
+
+export function getApiErrorMessage(response) {
+  if (isApiError(response)) {
+    return response.error.message || 'Unknown API error';
+  }
+  return 'Unknown error';
 }

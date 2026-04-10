@@ -1,0 +1,35 @@
+/**
+ * Blue Ether — design tokens (edit here first; Storybook hot-reloads).
+ */
+:root {
+  --be-color-bg: #0b0f14;
+  --be-color-surface: #121a24;
+  --be-color-border: #243042;
+  --be-color-text: #e6edf5;
+  --be-color-text-muted: #8b9eb0;
+  --be-color-accent: #3d8bfd;
+  --be-color-accent-hover: #5ca3ff;
+  --be-color-accent-muted: rgba(61, 139, 253, 0.15);
+
+  --be-radius-sm: 6px;
+  --be-radius-md: 10px;
+
+  --be-space-xs: 4px;
+  --be-space-sm: 8px;
+  --be-space-md: 16px;
+  --be-space-lg: 24px;
+
+  --be-font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --be-font-size-sm: 0.8125rem;
+  --be-font-size-md: 0.9375rem;
+
+  --be-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+
+  /* CRT chromatic aberration (e.g. avatar initials) */
+  --pink: #f472b6;
+  --darker-cyan: #0e7490;
+
+  /* CRT animated scanlines (Avatar / full-screen overlays); override per context */
+  --scanline-color: rgba(0, 0, 0, 0.16);
+}

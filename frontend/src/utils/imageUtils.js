@@ -39,3 +39,10 @@ export function compressImageBase64(base64Str, maxSizeMB = 2.5) {
     img.src = base64Str;
   });
 }
+
+/** Strip `data:image/...;base64,` prefix; return raw base64 or pass through URLs/plain strings. */
+export function stripBase64Prefix(str) {
+  if (!str || typeof str !== 'string') return str;
+  const m = str.match(/^data:image\/[^;]+;base64,(.+)$/i);
+  return m ? m[1] : str;
+}

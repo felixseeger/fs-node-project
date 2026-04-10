@@ -12,8 +12,10 @@ service cloud.firestore {
       // Any logged-in user can create a workflow
       allow create: if request.auth != null;
       
-      // Allow reading public workflows or own workflows
-      allow read: if resource.data.isPublic == true || (request.auth != null && request.auth.uid == resource.data.userId);
+      // Allow reading public workflows, own workflows, or workflows shared with the user's email
+      allow read: if resource.data.isPublic == true
+                  || (request.auth != null && request.auth.uid == resource.data.userId)
+                  || (request.auth != null && request.auth.token.email in resource.data.sharedWith);
       
       // Only owner can update or delete
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;

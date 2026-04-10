@@ -1,0 +1,211 @@
+/* Task / TaskList inbox styles (taskbox-derived; no icon font — check/star use glyphs). */
+
+@keyframes glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.checkbox {
+  display: inline-block;
+  height: 3rem;
+  position: relative;
+  vertical-align: middle;
+  width: 44px;
+}
+
+.checkbox input[type="checkbox"] {
+  font-size: 1em;
+  visibility: hidden;
+}
+
+.checkbox input[type="checkbox"] + .checkbox-custom::before {
+  position: absolute;
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  width: 0.85em;
+  height: 0.85em;
+  transform: translate3d(-50%, -50%, 0);
+  background: transparent;
+  box-shadow: #2cc5d2 0 0 0 1px inset;
+  content: "";
+  display: block;
+}
+
+.checkbox input[type="checkbox"]:checked + .checkbox-custom::before {
+  box-shadow: none;
+  background-color: #2cc5d2;
+  color: #fff;
+  font-family: "Nunito Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 800;
+  font-size: 12px;
+  line-height: 0.85em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  content: "✓";
+}
+
+.list-item {
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  height: 3rem;
+  width: 100%;
+  background: white;
+  transition: all ease-out 150ms;
+}
+
+.list-item .title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.list-item input[type="text"] {
+  background: transparent;
+  width: 100%;
+  border: none;
+  font-size: 14px;
+  line-height: 20px;
+  font-family: "Nunito Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #333;
+  outline: none;
+}
+
+.list-item input[type="text"]:focus {
+  cursor: text;
+}
+
+.pin-button {
+  width: 3rem;
+  height: 3rem;
+  background: transparent;
+  border: none;
+  text-align: center;
+  transition: all 200ms ease-in;
+  color: #eee;
+  font-size: 16px;
+  line-height: 3rem;
+  outline: none;
+}
+
+.pin-button:hover {
+  color: #2cc5d2;
+}
+
+.pin-button:focus {
+  outline-color: transparent;
+}
+
+.pin-button:active {
+  color: #555;
+}
+
+.list-item.TASK_PINNED .icon-star::before {
+  color: #2cc5d2;
+}
+
+.list-item.TASK_ARCHIVED input[type="text"] {
+  color: #a0aec0;
+  text-decoration: line-through;
+}
+
+.list-item:hover {
+  background-image: linear-gradient(to bottom, #e5f9f7 0%, #f0fffd 100%);
+}
+
+.list-item:hover .checkbox {
+  cursor: pointer;
+}
+
+.list-item + .list-item {
+  border-top: 1px solid #f0f9fb;
+}
+
+.icon-star::before {
+  content: "★";
+  font-family: "Nunito Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.loading-item {
+  height: 3rem;
+  width: 100%;
+  background: white;
+  display: flex;
+  align-items: center;
+  line-height: 1rem;
+  padding-left: 16px;
+}
+
+.loading-item .glow-checkbox,
+.loading-item .glow-text span {
+  animation: glow 1.5s ease-in-out infinite;
+  background: #eee;
+  color: transparent;
+  cursor: progress;
+  display: inline-block;
+}
+
+.loading-item .glow-checkbox {
+  margin-right: 16px;
+  width: 12px;
+  height: 12px;
+}
+
+.loading-item + .loading-item {
+  border-top: 1px solid #f0f9fb;
+}
+
+.list-items {
+  position: relative;
+  background: white;
+  min-height: 288px;
+}
+
+.wrapper-message {
+  position: absolute;
+  top: 45%;
+  right: 0;
+  bottom: auto;
+  left: 0;
+  width: auto;
+  height: auto;
+  transform: translate3d(0, -50%, 0);
+  text-align: center;
+}
+
+.wrapper-message .icon-check::before {
+  content: "✓";
+  font-size: 48px;
+  line-height: 56px;
+  color: #2cc5d2;
+  display: block;
+  font-weight: 800;
+  font-family: "Nunito Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.wrapper-message .title-message {
+  font-size: 16px;
+  line-height: 24px;
+  font-family: "Nunito Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 800;
+  color: #4a5568;
+}
+
+.wrapper-message .subtitle-message {
+  font-size: 14px;
+  line-height: 20px;
+  color: #4a5568;
+}

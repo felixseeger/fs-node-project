@@ -41,7 +41,7 @@ export default async function globalSetup(config) {
       await page.click('button:has-text("Sign In"), button:has-text("Log in")');
       
       // Wait for dashboard to ensure auth cookies are written
-      await page.waitForSelector('text=New board', { timeout: 15000 });
+      await page.getByTestId('new-project-btn').waitFor({ state: 'visible', timeout: 15000 });
     }
     
     // Save storage state into the file specified in config

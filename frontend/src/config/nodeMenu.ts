@@ -65,11 +65,15 @@ export const NODE_MENU: NodeMenuSection[] = [
         },
       },
       {
-        type: 'quiverTextToVector',
-        label: 'Quiver Text to Vector',
+        type: 'tripo3d',
+        label: 'Tripo3D',
         defaults: {
-          label: 'Quiver Text to Vector',
-          inputPrompt: '', outputImage: null, isLoading: false,
+          label: 'Tripo3D',
+          localPrompt: '',
+          localNegativePrompt: '',
+          outputModelUrl: null,
+          outputPreviewImage: null,
+          isLoading: false,
         },
       },
       {
