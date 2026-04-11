@@ -715,7 +715,6 @@ export default function App() {
       runwayGen45: createDynamicNodeWrapper(dynamicNodes.RunwayGen45Node),
       runwayGen4Turbo: createDynamicNodeWrapper(dynamicNodes.RunwayGen4TurboNode),
       runwayActTwo: createDynamicNodeWrapper(dynamicNodes.RunwayActTwoNode),
-      pixVerseV5: createDynamicNodeWrapper(dynamicNodes.PixVerseV5Node),
       pixVerseV5Transition: createDynamicNodeWrapper(dynamicNodes.PixVerseV5TransitionNode),
       omniHuman: createDynamicNodeWrapper(dynamicNodes.OmniHumanNode),
       vfx: createDynamicNodeWrapper(dynamicNodes.VfxNode),
@@ -876,13 +875,7 @@ export default function App() {
         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
       } else if (sourceNode.type === 'runwayActTwo' && sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-      else if (sourceNode.type === 'pixVerseV5') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'pixVerseV5Transition') {
-        if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
-        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
-      } else if (sourceNode.type === 'omniHuman') {
+      else if (sourceNode.type === 'omniHuman') {
         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
       } else if (sourceNode.type === 'vfx' && sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
@@ -1407,7 +1400,7 @@ export default function App() {
         'facialEditing', 'groupEditing', 'changeCamera', 'kling3', 'kling3Omni',
         'kling3Motion', 'klingElementsPro', 'klingO1', 'minimaxLive', 'wan26',
         'seedance', 'ltxVideo2Pro', 'runwayGen45', 'runwayGen4Turbo', 'runwayActTwo',
-        'pixVerseV5', 'pixVerseV5Transition', 'omniHuman', 'vfx', 'creativeVideoUpscale',
+        'pixVerseV5Transition', 'omniHuman', 'vfx', 'creativeVideoUpscale',
         'precisionVideoUpscale', 'musicGeneration', 'soundEffects', 'audioIsolation',
         'voiceover', 'videoImprove',
         'universalGeneratorImage', 'universalGeneratorVideo', 'tripo3d',

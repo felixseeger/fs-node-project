@@ -241,25 +241,12 @@ const RunwayActTwoNode = lazy(() => import('../nodes/RunwayActTwoNode').catch(er
   throw error;
 }));
 
-const PixVerseV5Node = lazy(() => import('../nodes/PixVerseV5Node').catch(error => {
-  console.error('Failed to load PixVerseV5Node:', error);
-  throw error;
-}));
-
 const PixVerseV5TransitionNode = lazy(() => import('../nodes/PixVerseV5TransitionNode').catch(error => {
   console.error('Failed to load PixVerseV5TransitionNode:', error);
   throw error;
 }));
 
-const PixVerseTextToVideoNode = lazy(() => import('../nodes/PixVerseTextToVideoNode').catch(error => {
-  console.error('Failed to load PixVerseTextToVideoNode:', error);
-  throw error;
-}));
 
-const PixVerseImageToVideoNode = lazy(() => import('../nodes/PixVerseImageToVideoNode').catch(error => {
-  console.error('Failed to load PixVerseImageToVideoNode:', error);
-  throw error;
-}));
 
 const PixVerseSoundEffectNode = lazy(() => import('../nodes/PixVerseSoundEffectNode').catch(error => {
   console.error('Failed to load PixVerseSoundEffectNode:', error);
@@ -427,10 +414,7 @@ export const dynamicNodes = {
   RunwayGen45Node,
   RunwayGen4TurboNode,
   RunwayActTwoNode,
-  PixVerseV5Node,
   PixVerseV5TransitionNode,
-  PixVerseTextToVideoNode,
-  PixVerseImageToVideoNode,
   PixVerseSoundEffectNode,
   OmniHumanNode,
   VfxNode,
@@ -510,10 +494,7 @@ export const prefetchFunctions = {
   prefetchRunwayGen45Node: () => prefetchNode(() => import('../nodes/RunwayGen45Node')),
   prefetchRunwayGen4TurboNode: () => prefetchNode(() => import('../nodes/RunwayGen4TurboNode')),
   prefetchRunwayActTwoNode: () => prefetchNode(() => import('../nodes/RunwayActTwoNode')),
-  prefetchPixVerseV5Node: () => prefetchNode(() => import('../nodes/PixVerseV5Node')),
   prefetchPixVerseV5TransitionNode: () => prefetchNode(() => import('../nodes/PixVerseV5TransitionNode')),
-  prefetchPixVerseTextToVideoNode: () => prefetchNode(() => import('../nodes/PixVerseTextToVideoNode')),
-  prefetchPixVerseImageToVideoNode: () => prefetchNode(() => import('../nodes/PixVerseImageToVideoNode')),
   prefetchPixVerseSoundEffectNode: () => prefetchNode(() => import('../nodes/PixVerseSoundEffectNode')),
   prefetchOmniHumanNode: () => prefetchNode(() => import('../nodes/OmniHumanNode')),
   prefetchVfxNode: () => prefetchNode(() => import('../nodes/VfxNode')),

@@ -301,14 +301,6 @@ export const NODE_TYPE_METADATA: Record<string, NodeTypeMetadata> = {
     isAsync: true,
     estimatedDuration: 180000,
   },
-  pixVerseV5: {
-    category: NodeCategory.VIDEO_GENERATION,
-    displayName: 'PixVerse V5',
-    inputs: ['prompt-in', 'image-in'],
-    outputs: ['video-out'],
-    isAsync: true,
-    estimatedDuration: 150000,
-  },
   pixVerseV5Transition: {
     category: NodeCategory.VIDEO_GENERATION,
     displayName: 'PixVerse V5 Transition',

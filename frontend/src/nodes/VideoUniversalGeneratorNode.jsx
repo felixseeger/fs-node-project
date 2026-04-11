@@ -126,7 +126,7 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
       },
       pixverse: async () => {
         // Pixverse supports start and end frames
-        if (startFrameUrl) params.image = startFrameUrl;
+        if (startFrameUrl) params.start_image = startFrameUrl;
         if (endFrameUrl && MODEL_DEFS['pixverse']?.supportsEndFrame) {
           params.end_image = endFrameUrl;
         }

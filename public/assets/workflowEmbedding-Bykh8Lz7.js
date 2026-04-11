@@ -1,1 +1,0 @@
-function e(e){return!!e?.nodeBananaWorkflow}function t(t){return e(t)&&t.nodeBananaWorkflow.providers||[]}function n(n){if(!e(n))return null;let r=t(n);return{type:`embeddedWorkflowBadge`,label:`Embedded Workflow`,providers:r.join(`, `),ariaLabel:`This output contains an embedded workflow with ${r.length} provider reference(s)`}}export{e as n,n as t};

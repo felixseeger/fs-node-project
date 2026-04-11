@@ -29,7 +29,7 @@ const EXECUTION_PHASES = [
   // Phase 6: Video generation
   { types: ['kling3', 'kling3Omni', 'kling3Motion', 'klingElementsPro', 'klingO1',
            'minimaxLive', 'wan26', 'seedance', 'ltxVideo2Pro', 'runwayGen45',
-           'runwayGen4Turbo', 'runwayActTwo', 'pixVerseV5', 'pixVerseV5Transition',
+           'runwayGen4Turbo', 'runwayActTwo', 'pixVerseV5Transition',
            'omniHuman'], name: 'video_generation' },
   
   // Phase 7: Video editing

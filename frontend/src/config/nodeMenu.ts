@@ -100,27 +100,6 @@ export const NODE_MENU: NodeMenuSection[] = [
           useMultiple: false,
         },
       },
-      {
-        type: 'pixVerseTextToVideo',
-        label: 'PixVerse Text-to-Video',
-        defaults: {
-          label: 'PixVerse Text-to-Video',
-          inputPrompt: '', outputVideo: null, isLoading: false,
-          localModel: 'v5.6', localQuality: '720p', localAspectRatio: '16:9',
-          localDuration: 5, localMotionMode: 'medium', localEnableSound: false,
-        },
-      },
-      {
-        type: 'pixVerseImageToVideo',
-        label: 'PixVerse Image-to-Video',
-        defaults: {
-          label: 'PixVerse Image-to-Video',
-          inputPrompt: '', outputVideo: null, isLoading: false,
-          localImageIn: null, localModel: 'v5.6', localQuality: '720p',
-          localAspectRatio: '16:9', localDuration: 5, localMotionMode: 'medium',
-          localEnableSound: false,
-        },
-      },
     ],
   },
   {

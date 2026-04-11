@@ -103,7 +103,7 @@ export type NodeType =
   | "kling3" | "kling3Omni" | "kling3MotionControl" | "klingElementsPro"
   | "klingO1" | "miniMaxLive" | "wan26Video" | "seedance"
   | "ltxVideo2Pro" | "runwayGen45" | "runwayGen4Turbo" | "runwayActTwo"
-  | "pixVerseV5" | "pixVerseV5Transition" | "omniHuman"
+  | "pixVerseV5Transition" | "omniHuman"
   | "vfx" | "creativeVideoUpScale" | "precisionVideoUpScale"
   | "musicGeneration" | "soundEffects" | "audioIsolation" | "voiceover"
   | "imageAnalyzer" | "imageToPrompt" | "improvePrompt" | "aiImageClassifier"
@@ -244,7 +244,7 @@ export interface VideoGenerationNodeData extends BaseNodeData {
   type: "kling3" | "kling3Omni" | "kling3MotionControl" | "klingElementsPro" |
         "klingO1" | "miniMaxLive" | "wan26Video" | "seedance" |
         "ltxVideo2Pro" | "runwayGen45" | "runwayGen4Turbo" | "runwayActTwo" |
-        "pixVerseV5" | "pixVerseV5Transition" | "omniHuman";
+        "pixVerseV5Transition" | "omniHuman";
   
   prompt: string;
   negativePrompt?: string;
