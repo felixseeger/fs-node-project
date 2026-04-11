@@ -42,10 +42,11 @@ export const VIDEO_UNIVERSAL_MODEL_DEFS = {
     name: 'PixVerse V5',
     provider: 'PixVerse',
     featured: false,
-    tags: ['Motion', '10s'],
-    description: 'Smooth motion and transitions',
+    tags: ['Motion', '10s', 'Sound'],
+    description: 'Smooth motion and transitions with AI sound generation',
     supportsImageInput: true,
     supportsEndFrame: true,
+    supportsSoundGeneration: true,
   },
   seedance: {
     name: 'Seedance',
@@ -69,10 +70,11 @@ export const VIDEO_UNIVERSAL_MODEL_DEFS = {
     name: 'LTX Video',
     provider: 'LTX',
     featured: true,
-    tags: ['4K', '8s'],
+    tags: ['4K', '8s', 'Sound'],
     description: 'Up to 4K resolution with synchronized audio',
     supportsImageInput: true,
     supportsEndFrame: false,
+    supportsSoundGeneration: true,
   },
 } as const;
 

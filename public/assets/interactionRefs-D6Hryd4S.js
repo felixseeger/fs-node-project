@@ -1,0 +1,1 @@
+var e={current:!1},t={current:!1},n={current:!1},r=0;function i(){r++,document.documentElement.classList.add(`canvas-interacting`)}function a(){r=Math.max(0,r-1),r===0&&document.documentElement.classList.remove(`canvas-interacting`)}export{e as a,t as i,a as n,n as r,i as t};

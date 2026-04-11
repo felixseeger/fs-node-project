@@ -59,39 +59,48 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
     return MODEL_DEFS[m]?.supportsEndFrame ?? false;
   });
 
+  // Check if any selected model supports sound generation
+  const selectedModelsSupportSound = models.some(m => {
+    if (m === 'Auto') return true;
+    return MODEL_DEFS[m]?.supportsSoundGeneration ?? false;
+  });
+
   // Calculate handle positions based on what's visible
   const hasImageSection = selectedModelsSupportImage || selectedModelsSupportEndFrame;
 
   // Smart Auto model selection based on inputs and preferences
-  const selectAutoModel = useCallback((hasStartFrame, hasEndFrame) => {
+  const selectAutoModel = useCallback((startFrameUrl, endFrameUrl) => {
+    const hasStartFrame = Boolean(startFrameUrl);
+    const hasEndFrame = Boolean(endFrameUrl);
+
     // If no start frame provided, must use text-to-video model
     if (!hasStartFrame) {
       // LTX and Seedance support text-to-video
       // LTX has better quality, Seedance is faster/cheaper
       return 'ltx-video';
     }
-    
+
     // If end frame provided, need model that supports both
     if (hasEndFrame) {
       // Pixverse and Wan2.6 support both start and end frames
       // Pixverse is more reliable
       return 'pixverse';
     }
-    
+
     // Single image input - use best quality image-to-video
     // Kling3 has best quality but requires public URL
     // Check if image is a data URL - if so, use alternative
-    if (hasStartFrame && hasStartFrame.startsWith('data:image')) {
+    if (typeof startFrameUrl === 'string' && startFrameUrl.startsWith('data:image')) {
       // Use models that work with data URLs or don't require images
       return 'pixverse'; // More flexible with inputs
     }
-    
+
     return 'kling3'; // Best quality for image-to-video
   }, []);
 
   const generateForModel = useCallback(async (model, prompt, startFrameUrl, endFrameUrl) => {
-    const effectiveModel = model === 'Auto' 
-      ? selectAutoModel(Boolean(startFrameUrl), Boolean(endFrameUrl), startFrameUrl)
+    const effectiveModel = model === 'Auto'
+      ? selectAutoModel(startFrameUrl, endFrameUrl)
       : model;
     const params = { prompt, aspect_ratio: aspectRatio };
 
@@ -129,6 +138,13 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
         if (startFrameUrl) params.start_image = startFrameUrl;
         if (endFrameUrl && MODEL_DEFS['pixverse']?.supportsEndFrame) {
           params.end_image = endFrameUrl;
+        }
+        // Add sound generation parameters if enabled
+        if (data.pixverseSoundEnabled) {
+          params.sound_effect_switch = true;
+          if (data.pixverseSoundContent?.trim()) {
+            params.sound_effect_content = data.pixverseSoundContent.trim();
+          }
         }
         const result = await pixVerseV5Generate(params);
         if (result.error) throw new Error(result.error?.message || 'PixVerse generation failed');
@@ -483,6 +499,61 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
             </div>
           </div>
         </div>
+
+        {/* Sound Generation Settings (for models that support it) */}
+        {selectedModelsSupportSound && (
+          <div style={{
+            background: surface.deep, border: `1px solid ${border.default}`,
+            borderRadius: radius.md, padding: sp[3],
+            display: 'flex', flexDirection: 'column', gap: sp[2]
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={CATEGORY_COLORS.videoGeneration} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+              </svg>
+              <span style={{ ...font.sm, color: text.primary, fontWeight: 500 }}>Sound Generation</span>
+              <span style={{ ...font.xs, color: text.muted }}>(AI-generated audio)</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={data.pixverseSoundEnabled || false}
+                  onChange={(e) => update({ pixverseSoundEnabled: e.target.checked })}
+                  className="nodrag nopan"
+                />
+                <span style={{ ...font.xs, color: text.primary }}>Enable AI sound generation</span>
+              </label>
+            </div>
+
+            {data.pixverseSoundEnabled && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ ...font.xs, color: text.muted }}>Sound description (optional)</span>
+                <input
+                  type="text"
+                  value={data.pixverseSoundContent || ''}
+                  onChange={(e) => update({ pixverseSoundContent: e.target.value })}
+                  placeholder="e.g. Epic orchestral music, futuristic synth..."
+                  className="nodrag nopan"
+                  style={{
+                    background: surface.base,
+                    border: `1px solid ${border.divider}`,
+                    borderRadius: radius.sm,
+                    padding: '6px 10px',
+                    color: text.primary,
+                    ...font.xs,
+                    outline: 'none',
+                  }}
+                />
+                <span style={{ ...font.xs, color: text.muted, fontStyle: 'italic' }}>
+                  Leave empty to let AI generate sound based on video content
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Frame Inputs (Moved below Prompt Area) */}
         {hasImageSection && (

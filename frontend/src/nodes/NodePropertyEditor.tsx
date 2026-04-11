@@ -15,6 +15,7 @@ import {
   recraftPixelSizeForAspectAndTier,
   UNIVERSAL_ASPECT_LABELS,
 } from './universalImageSizes';
+import { VIDEO_UNIVERSAL_MODEL_DEFS } from './videoUniversalGeneratorModels';
 // @ts-ignore
 import { text as textStyles, surface, border, radius, sp, font } from './nodeTokens';
 import { getHandleColor, getHandleDataType } from '../utils/handleTypes';
@@ -967,6 +968,40 @@ const EditorContent: FC<EditorContentProps> = ({
               </div>
             </div>
           )}
+
+          {/* PixVerse Sound Settings (only when PixVerse model selected) */}
+          {node.type === 'universalGeneratorVideo' &&
+            ((node.data.models as string[]) || []).includes('pixverse') &&
+            VIDEO_UNIVERSAL_MODEL_DEFS.pixverse?.supportsSoundGeneration && (
+              <div style={{ marginTop: '16px', padding: '12px', backgroundColor: 'rgba(59,130,246,0.08)', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.25)' }}>
+                <div style={{ ...styles.titleText, marginBottom: '10px', color: '#93c5fd' }}>PIXVERSE SOUND</div>
+                
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '10px' }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(node.data.pixverseSoundEnabled)}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { pixverseSoundEnabled: e.target.checked })}
+                  />
+                  <span style={styles.labelText}>Generate Sound Effects</span>
+                </label>
+                
+                {Boolean(node.data.pixverseSoundEnabled) && (
+                  <div>
+                    <div style={{ ...styles.labelText, marginBottom: '6px' }}>Sound Description</div>
+                    <textarea
+                      value={String(node.data.pixverseSoundContent || '')}
+                      onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onUpdate(node.id, { pixverseSoundContent: e.target.value })}
+                      placeholder="Describe the sound effects (e.g., ocean waves, birds chirping, futuristic sci-fi ambience)..."
+                      rows={3}
+                      style={{ ...styles.input, width: '100%', resize: 'vertical', minHeight: '60px' }}
+                    />
+                    <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+                      Leave empty for auto-generated sound based on your prompt
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
           {/* Text Element Content Section (only for TextElementNode) */}
           {node.type === 'textElement' && (
