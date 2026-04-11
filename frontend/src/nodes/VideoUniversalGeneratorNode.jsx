@@ -16,7 +16,7 @@ import {
   pixVerseV5Generate, pollPixVerseV5Status,
   seedanceGenerate, pollSeedanceStatus,
   wan26Generate, pollWan26Status,
-  ltxVideoDirectGenerate,
+  ltxVideoDirectGenerate, pollLtxDirectStatus,
   improvePromptGenerate, pollImprovePromptStatus,
 } from '../utils/api';
 import { VIDEO_UNIVERSAL_MODEL_DEFS } from './videoUniversalGeneratorModels';
@@ -182,7 +182,7 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
           '3:2': '1620x1080',
           '2:3': '1080x1620',
         };
-        
+
         const ltxParams = {
           prompt,
           model: 'ltx-2-3-pro',
@@ -190,15 +190,27 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
           resolution: resolutionMap[aspectRatio] || '1920x1080',
           generate_audio: true,
         };
-        
+
         // If start frame is provided, use image-to-video
         const mode = startFrameUrl ? 'image-to-video' : 'text-to-video';
         if (startFrameUrl) {
           ltxParams.image_uri = startFrameUrl;
         }
-        
+
         const result = await ltxVideoDirectGenerate(mode, ltxParams);
         if (result.error) throw new Error(result.error?.message || 'LTX Video generation failed');
+
+        // LTX API now returns binary video directly with video_url in response
+        if (result.video_url) {
+          return [result.video_url];
+        }
+
+        // Fallback for legacy async response with task_id (if needed in future)
+        const taskId = result.task_id || result.data?.task_id;
+        if (taskId) {
+          const status = await pollLtxDirectStatus(mode, taskId);
+          return status.data?.generated || [];
+        }
         return result.data?.generated || [];
       },
     };
@@ -302,16 +314,28 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
     e.preventDefault();
     e.stopPropagation();
     setDragOverFrame(null);
-    
+
     const files = e.dataTransfer.files;
     if (!files?.length) return;
-    
+
     const file = files[0];
-    if (!file.type.startsWith('image/')) return;
-    
+    if (!file.type.startsWith('image/')) {
+      update({ outputError: 'Please upload an image file' });
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (ev) => {
-      update({ [`${frameType}FrameUrl`]: ev.target.result });
+      try {
+        update({ [`${frameType}FrameUrl`]: ev.target.result });
+      } catch (err) {
+        console.error('Frame upload error:', err);
+        update({ outputError: `Failed to load frame: ${err.message}` });
+      }
+    };
+    reader.onerror = () => {
+      console.error('FileReader error:', reader.error);
+      update({ outputError: 'Failed to read file' });
     };
     reader.readAsDataURL(file);
   }, [update]);

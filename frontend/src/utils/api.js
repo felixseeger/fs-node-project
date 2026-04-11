@@ -275,7 +275,39 @@ export async function pollLtxVideo2ProStatus(mode, taskId, maxAttempts = 120, in
 }
 
 export async function ltxVideoDirectGenerate(mode, params) {
-  return postToApi(`/api/ltx-direct/${mode}`, params);
+  const res = await fetch(`${API_BASE}/api/ltx-direct/${mode}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  if (!res.ok) {
+    const errorData = await safeJson(res);
+    throw new Error(errorData.error?.message || `HTTP ${res.status}`);
+  }
+
+  // Check if response is binary video or JSON
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('video/') || contentType.includes('octet-stream')) {
+    // Binary video response - convert to blob URL
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    return {
+      video_url: url,
+      data: { generated: [url] }
+    };
+  } else {
+    // JSON response (for async task handling if needed in future)
+    return await safeJson(res);
+  }
+}
+
+export async function pollLtxDirectStatus(mode, taskId, maxAttempts = 120, intervalMs = 3000) {
+  return pollGenericStatus(`/api/ltx-direct/${mode}`, taskId, {
+    maxAttempts,
+    intervalMs,
+    errorLabel: 'LTX Video generation'
+  });
 }
 
 

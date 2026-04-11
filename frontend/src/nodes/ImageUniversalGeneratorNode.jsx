@@ -480,10 +480,15 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
   const applyImageFilesToSlots = useCallback(
     async (fileList) => {
-      const files = [...fileList].filter((f) => f.type.startsWith('image/'));
-      if (!files.length) return;
-      const url = await readFileAsDataURL(files[0]);
-      update({ image1Url: url });
+      try {
+        const files = [...fileList].filter((f) => f.type.startsWith('image/'));
+        if (!files.length) return;
+        const url = await readFileAsDataURL(files[0]);
+        update({ image1Url: url });
+      } catch (err) {
+        console.error('Image file upload error:', err);
+        update({ outputError: `Failed to load image: ${err.message}` });
+      }
     },
     [readFileAsDataURL, update]
   );

@@ -66,7 +66,7 @@ app.use(errorHandler);
 const hasFreepikKey = !!process.env.FREEPIK_API_KEY;
 const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
 const hasElevenLabsKey = !!process.env.ELEVENLABS_API_KEY;
-const hasLtxKey = !!process.env.LTXV_API_KEY;
+const hasLtxKey = !!process.env.LTX_API_KEY;
 const hasGeminiKey = !!process.env.GOOGLE_GEMINI_API_KEY;
 const hasCloudinaryCloudName = !!process.env.CLOUDINARY_CLOUD_NAME;
 const hasCloudinaryApiKey = !!process.env.CLOUDINARY_API_KEY;
@@ -111,7 +111,7 @@ app.listen(PORT, () => {
     console.warn('⚠️  WARNING: ELEVENLABS_API_KEY not set. Voiceover API will fail.');
   }
   if (!hasLtxKey) {
-    console.warn('⚠️  WARNING: LTXV_API_KEY not set. Direct LTX Video API will fail.');
+    console.warn('⚠️  WARNING: LTX_API_KEY not set. Direct LTX Video API will fail.');
   }
   if (!hasGeminiKey) {
     console.warn('⚠️  WARNING: GOOGLE_GEMINI_API_KEY not set. Nano Banana 2 (Google) integration will use Freepik fallback.');
