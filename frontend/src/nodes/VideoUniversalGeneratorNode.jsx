@@ -19,26 +19,11 @@ import {
   ltxVideoDirectGenerate,
   improvePromptGenerate, pollImprovePromptStatus,
 } from '../utils/api';
+import { VIDEO_UNIVERSAL_MODEL_DEFS } from './videoUniversalGeneratorModels';
 
 const ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
 
-// Model definitions with metadata
-// supportsImageInput: model supports image-to-video (start frame)
-// supportsEndFrame: model supports specifying an end frame
-export const VIDEO_UNIVERSAL_MODEL_DEFS = {
-  'Auto': { name: 'Auto', provider: 'System', featured: false, tags: [], supportsImageInput: true, supportsEndFrame: true },
-  'kling3': { name: 'Kling 3', provider: 'Kling', featured: true, tags: ['High Quality', '10s'], description: 'Advanced video generation with motion control', supportsImageInput: true, supportsEndFrame: true },
-  'runway': { name: 'Runway Gen-4', provider: 'Runway', featured: true, tags: ['Turbo', '10s'], description: 'Fast generation with cinematic quality', supportsImageInput: true, supportsEndFrame: false },
-  'minimax': { name: 'MiniMax', provider: 'MiniMax', featured: false, tags: ['Live', '6s'], description: 'Real-time video generation', supportsImageInput: true, supportsEndFrame: false },
-  'pixverse': { name: 'PixVerse V5', provider: 'PixVerse', featured: false, tags: ['Motion', '10s'], description: 'Smooth motion and transitions', supportsImageInput: true, supportsEndFrame: true },
-  'seedance': { name: 'Seedance', provider: 'ByteDance', featured: true, tags: ['Pro', '10s'], description: 'Professional dance and movement videos', supportsImageInput: true, supportsEndFrame: false },
-  'wan2.6': { name: 'Wan 2.6', provider: 'Wan', featured: false, tags: ['720p', '10s'], description: 'High-resolution video generation', supportsImageInput: true, supportsEndFrame: true },
-  'ltx-video': { name: 'LTX Video', provider: 'LTX', featured: true, tags: ['4K', '8s'], description: 'Up to 4K resolution with synchronized audio', supportsImageInput: true, supportsEndFrame: false },
-};
-
 const MODEL_DEFS = VIDEO_UNIVERSAL_MODEL_DEFS;
-
-export const MODELS = Object.keys(MODEL_DEFS);
 
 const COST_MAP = {
   'Auto': 0.20, 'kling3': 0.20, 'runway': 0.15, 'minimax': 0.10,
@@ -333,6 +318,11 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
     <BaseNode
       id={id}
       label="Video Universal Generator"
+      editableTitle={{
+        value: String(data.label ?? ''),
+        onCommit: (next) => update({ label: next }),
+        placeholder: 'Generate Video',
+      }}
       selected={selected}
       isExecuting={isGenerating}
       hasError={!!data.outputError}
@@ -494,13 +484,14 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
           </div>
         </div>
 
-        {/* Frame Input Section */}
+        {/* Frame Inputs (Moved below Prompt Area) */}
         {hasImageSection && (
           <div style={{
             background: surface.deep, border: `1px solid ${border.default}`,
-            borderRadius: radius.md, padding: sp[2],
+            borderRadius: radius.md, padding: sp[3],
+            display: 'flex', flexDirection: 'column', gap: sp[2]
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={getHandleColor('image-in')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                 <circle cx="8.5" cy="8.5" r="1.5" />
@@ -512,143 +503,135 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
               </span>
             </div>
 
-            {selectedModelsSupportImage && (
-              <div style={{ marginBottom: selectedModelsSupportEndFrame ? 12 : 0 }}>
-                <div style={{ ...font.xs, color: text.muted, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={text.muted} strokeWidth="2">
-                    <polygon points="5 3 19 12 5 21 5 3" />
-                  </svg>
-                  Start Frame
-                </div>
-                {data.startFrameUrl ? (
-                  <div style={{ position: 'relative' }}>
-                    <img
-                      src={data.startFrameUrl}
-                      alt="Start Frame"
-                      style={{ width: '100%', maxHeight: 100, objectFit: 'cover', borderRadius: radius.sm }}
-                    />
-                    <button
-                      onClick={() => update({ startFrameUrl: null })}
+            <div style={{ display: 'grid', gridTemplateColumns: selectedModelsSupportEndFrame ? '1fr 1fr' : '1fr', gap: sp[2] }}>
+              {selectedModelsSupportImage && (
+                <div>
+                  <div style={{ ...font.xs, color: text.muted, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={text.muted} strokeWidth="2">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    Start Frame
+                  </div>
+                  {data.startFrameUrl ? (
+                    <div style={{ position: 'relative' }}>
+                      <img
+                        src={data.startFrameUrl}
+                        alt="Start Frame"
+                        style={{ width: '100%', maxHeight: 100, objectFit: 'cover', borderRadius: radius.sm }}
+                      />
+                      <button
+                        onClick={() => update({ startFrameUrl: null })}
+                        style={{
+                          position: 'absolute', top: 4, right: 4,
+                          background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: radius.sm,
+                          width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => update({ startFrameUrl: ev.target.result });
+                            reader.readAsDataURL(file);
+                          }
+                        };
+                        input.click();
+                      }}
+                      onDragOver={(e) => handleFrameDragOver(e, 'start')}
+                      onDragLeave={handleFrameDragLeave}
+                      onDrop={(e) => handleFrameDrop(e, 'start')}
                       style={{
-                        position: 'absolute', top: 4, right: 4,
-                        background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: radius.sm,
-                        width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        height: 60, border: `1px dashed ${dragOverFrame === 'start' ? CATEGORY_COLORS.videoGeneration : border.divider}`,
+                        borderRadius: radius.sm, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: text.muted, ...font.xs, background: dragOverFrame === 'start' ? `${CATEGORY_COLORS.videoGeneration}15` : surface.base,
                         cursor: 'pointer',
+                        transition: 'all 0.15s ease',
                       }}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'image/*';
-                      input.onchange = (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (ev) => update({ startFrameUrl: ev.target.result });
-                          reader.readAsDataURL(file);
-                        }
-                      };
-                      input.click();
-                    }}
-                    onDragOver={(e) => handleFrameDragOver(e, 'start')}
-                    onDragLeave={handleFrameDragLeave}
-                    onDrop={(e) => handleFrameDrop(e, 'start')}
-                    style={{
-                      border: `2px dashed ${dragOverFrame === 'start' ? CATEGORY_COLORS.videoGeneration : border.subtle}`,
-                      borderRadius: radius.sm, padding: '12px', textAlign: 'center', cursor: 'pointer',
-                      background: dragOverFrame === 'start' ? `${CATEGORY_COLORS.videoGeneration}11` : surface.base,
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <div style={{
-                      ...font.xs,
-                      color: dragOverFrame === 'start' ? CATEGORY_COLORS.videoGeneration : text.muted,
-                      transition: 'color 0.15s ease',
-                    }}>
-                      {dragOverFrame === 'start' ? 'Drop image here' : 'Upload start frame or connect to handle'}
+                      Drop image
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
 
-            {selectedModelsSupportEndFrame && (
-              <div>
-                <div style={{ ...font.xs, color: text.muted, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={text.muted} strokeWidth="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <line x1="9" y1="9" x2="15" y2="15" />
-                    <line x1="15" y1="9" x2="9" y2="15" />
-                  </svg>
-                  End Frame
-                </div>
-                {data.endFrameUrl ? (
-                  <div style={{ position: 'relative' }}>
-                    <img
-                      src={data.endFrameUrl}
-                      alt="End Frame"
-                      style={{ width: '100%', maxHeight: 100, objectFit: 'cover', borderRadius: radius.sm }}
-                    />
-                    <button
-                      onClick={() => update({ endFrameUrl: null })}
+              {selectedModelsSupportEndFrame && (
+                <div>
+                  <div style={{ ...font.xs, color: text.muted, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={text.muted} strokeWidth="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <line x1="9" y1="9" x2="15" y2="15" />
+                      <line x1="15" y1="9" x2="9" y2="15" />
+                    </svg>
+                    End Frame
+                  </div>
+                  {data.endFrameUrl ? (
+                    <div style={{ position: 'relative' }}>
+                      <img
+                        src={data.endFrameUrl}
+                        alt="End Frame"
+                        style={{ width: '100%', maxHeight: 100, objectFit: 'cover', borderRadius: radius.sm }}
+                      />
+                      <button
+                        onClick={() => update({ endFrameUrl: null })}
+                        style={{
+                          position: 'absolute', top: 4, right: 4,
+                          background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: radius.sm,
+                          width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => update({ endFrameUrl: ev.target.result });
+                            reader.readAsDataURL(file);
+                          }
+                        };
+                        input.click();
+                      }}
+                      onDragOver={(e) => handleFrameDragOver(e, 'end')}
+                      onDragLeave={handleFrameDragLeave}
+                      onDrop={(e) => handleFrameDrop(e, 'end')}
                       style={{
-                        position: 'absolute', top: 4, right: 4,
-                        background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: radius.sm,
-                        width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        height: 60, border: `1px dashed ${dragOverFrame === 'end' ? CATEGORY_COLORS.videoGeneration : border.divider}`,
+                        borderRadius: radius.sm, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: text.muted, ...font.xs, background: dragOverFrame === 'end' ? `${CATEGORY_COLORS.videoGeneration}15` : surface.base,
                         cursor: 'pointer',
+                        transition: 'all 0.15s ease',
                       }}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'image/*';
-                      input.onchange = (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (ev) => update({ endFrameUrl: ev.target.result });
-                          reader.readAsDataURL(file);
-                        }
-                      };
-                      input.click();
-                    }}
-                    onDragOver={(e) => handleFrameDragOver(e, 'end')}
-                    onDragLeave={handleFrameDragLeave}
-                    onDrop={(e) => handleFrameDrop(e, 'end')}
-                    style={{
-                      border: `2px dashed ${dragOverFrame === 'end' ? CATEGORY_COLORS.videoGeneration : border.subtle}`,
-                      borderRadius: radius.sm, padding: '12px', textAlign: 'center', cursor: 'pointer',
-                      background: dragOverFrame === 'end' ? `${CATEGORY_COLORS.videoGeneration}11` : surface.base,
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <div style={{
-                      ...font.xs,
-                      color: dragOverFrame === 'end' ? CATEGORY_COLORS.videoGeneration : text.muted,
-                      transition: 'color 0.15s ease',
-                    }}>
-                      {dragOverFrame === 'end' ? 'Drop image here' : 'Upload end frame or connect to handle'}
+                      Drop image
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

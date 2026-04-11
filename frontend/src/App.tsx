@@ -5,6 +5,7 @@ import {
   useNodesState,
   useEdgesState,
   Background,
+  BackgroundVariant,
   useReactFlow,
   Node,
   Edge,
@@ -26,8 +27,8 @@ import { saveTemplate as saveLocalTemplate } from './templates/templateStore';
 import { dynamicNodes, createDynamicNodeWrapper } from './utils/dynamicNodeImports';
 // @ts-ignore
 import DynamicNodeLoader from './components/DynamicNodeLoader';
-import { MODELS as IMAGE_MODELS } from './nodes/ImageUniversalGeneratorNode';
-import { MODELS as VIDEO_MODELS } from './nodes/VideoUniversalGeneratorNode';
+import { MODELS as IMAGE_MODELS } from './nodes/imageUniversalGeneratorModels';
+import { MODELS as VIDEO_MODELS } from './nodes/videoUniversalGeneratorModels';
 import LandingPage from './LandingPage';
 import ProjectsDashboard from './ProjectsDashboard';
 import WorkflowsPage from './WorkflowsPage';
@@ -1408,7 +1409,9 @@ export default function App() {
         'seedance', 'ltxVideo2Pro', 'runwayGen45', 'runwayGen4Turbo', 'runwayActTwo',
         'pixVerseV5', 'pixVerseV5Transition', 'omniHuman', 'vfx', 'creativeVideoUpscale',
         'precisionVideoUpscale', 'musicGeneration', 'soundEffects', 'audioIsolation',
-        'voiceover', 'videoImprove'
+        'voiceover', 'videoImprove',
+        'universalGeneratorImage', 'universalGeneratorVideo', 'tripo3d',
+        'quiverImageToVector', 'quiverTextToVector',
       ];
       for (const t of types) {
         nodesRef.current.filter(n => inScope(n) && n.type === t).forEach(n => updateNodeData(n.id, { triggerGenerate: Date.now() }));
@@ -1728,7 +1731,20 @@ export default function App() {
           <GooeyNodesMenu nodeMenu={NODE_MENU} templates={firebaseTemplates.templates} assets={firebaseAssets.assets} onCreateAsset={(d: any) => firebaseAssets.create?.(d)} onAddNode={addNode} onOpenProfile={() => setIsProfileModalOpen(true)} />
           <LayoutHelper selectedNodes={nodes.filter(n => n.selected)} isVisible={nodes.filter(n => n.selected).length >= 2} onAlign={(a, sn) => { saveHistory(); handleMenuAction(a, { selectedNodes: sn }); }} />
           <ReferenceSelection selectedImage={referenceImage} onImageSelect={(d: any) => setReferenceImage(d ?? null)} />
-          {currentPage === 'editor' && <InspectorPanel nodes={nodes} edges={edges} onUpdateNodeData={updateNodeData} onDeleteNode={id => { saveHistory(); setNodes(nds => nds.filter(n => n.id !== id)); setEdges(eds => eds.filter(e => e.source !== id && e.target !== id)); }} />}
+          {currentPage === 'editor' && (
+            <InspectorPanel
+              nodes={nodes}
+              edges={edges}
+              onUpdateNodeData={updateNodeData}
+              onDeleteNode={(id) => {
+                saveHistory();
+                setNodes((nds) => nds.filter((n) => n.id !== id));
+                setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+              }}
+              onRunNode={(id) => handleRunWorkflow(new Set([id]))}
+              isRunning={isRunning}
+            />
+          )}
           {viewMode === 'editor' && (
             <div style={{ position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)', zIndex: 2000 }}>
               <CanvasRunToolbar

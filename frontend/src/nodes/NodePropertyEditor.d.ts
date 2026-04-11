@@ -9,6 +9,10 @@ export interface NodePropertyEditorProps {
   compact?: boolean;
   /** Opens the model mega menu (image/video universal generators). */
   onOpenModelMegaMenu?: () => void;
+  /** Inspector-only: run this single generator node (same path as scoped canvas run). */
+  onRunNode?: () => void;
+  /** Global workflow run in progress — disables Run in inspector. */
+  isRunning?: boolean;
 }
 
 declare const NodePropertyEditor: FC<NodePropertyEditorProps>;

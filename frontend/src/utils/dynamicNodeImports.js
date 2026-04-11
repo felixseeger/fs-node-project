@@ -251,6 +251,21 @@ const PixVerseV5TransitionNode = lazy(() => import('../nodes/PixVerseV5Transitio
   throw error;
 }));
 
+const PixVerseTextToVideoNode = lazy(() => import('../nodes/PixVerseTextToVideoNode').catch(error => {
+  console.error('Failed to load PixVerseTextToVideoNode:', error);
+  throw error;
+}));
+
+const PixVerseImageToVideoNode = lazy(() => import('../nodes/PixVerseImageToVideoNode').catch(error => {
+  console.error('Failed to load PixVerseImageToVideoNode:', error);
+  throw error;
+}));
+
+const PixVerseSoundEffectNode = lazy(() => import('../nodes/PixVerseSoundEffectNode').catch(error => {
+  console.error('Failed to load PixVerseSoundEffectNode:', error);
+  throw error;
+}));
+
 const OmniHumanNode = lazy(() => import('../nodes/OmniHumanNode').catch(error => {
   console.error('Failed to load OmniHumanNode:', error);
   throw error;
@@ -414,6 +429,9 @@ export const dynamicNodes = {
   RunwayActTwoNode,
   PixVerseV5Node,
   PixVerseV5TransitionNode,
+  PixVerseTextToVideoNode,
+  PixVerseImageToVideoNode,
+  PixVerseSoundEffectNode,
   OmniHumanNode,
   VfxNode,
   CreativeVideoUpscaleNode,
@@ -494,6 +512,9 @@ export const prefetchFunctions = {
   prefetchRunwayActTwoNode: () => prefetchNode(() => import('../nodes/RunwayActTwoNode')),
   prefetchPixVerseV5Node: () => prefetchNode(() => import('../nodes/PixVerseV5Node')),
   prefetchPixVerseV5TransitionNode: () => prefetchNode(() => import('../nodes/PixVerseV5TransitionNode')),
+  prefetchPixVerseTextToVideoNode: () => prefetchNode(() => import('../nodes/PixVerseTextToVideoNode')),
+  prefetchPixVerseImageToVideoNode: () => prefetchNode(() => import('../nodes/PixVerseImageToVideoNode')),
+  prefetchPixVerseSoundEffectNode: () => prefetchNode(() => import('../nodes/PixVerseSoundEffectNode')),
   prefetchOmniHumanNode: () => prefetchNode(() => import('../nodes/OmniHumanNode')),
   prefetchVfxNode: () => prefetchNode(() => import('../nodes/VfxNode')),
   prefetchCreativeVideoUpscaleNode: () => prefetchNode(() => import('../nodes/CreativeVideoUpscaleNode')),

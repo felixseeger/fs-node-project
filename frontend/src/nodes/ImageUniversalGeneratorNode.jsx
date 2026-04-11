@@ -1,9 +1,9 @@
-/* eslint-disable react-refresh/only-export-components */
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import { getHandleColor } from '../utils/handleTypes';
 import {
-  CATEGORY_COLORS, sp, font, text, surface, border, radius, ui,
+  CATEGORY_COLORS, sp, font, text, surface, border, radius,
   useNodeConnections, OutputHandle, OutputPreview,
 } from './shared';
 import useNodeProgress from '../hooks/useNodeProgress';
@@ -24,8 +24,18 @@ import {
   styleTransfer as styleTransferApi, pollStyleTransferStatus,
   // Utilities
   quiverTextToSvg, quiverImageToSvg,
+  improvePromptGenerate, pollImprovePromptStatus,
+  imageToPromptGenerate, pollImageToPromptStatus,
+  uploadImages,
 } from '../utils/api';
 import { compressImageBase64 } from '../utils/imageUtils';
+import { IMAGE_UNIVERSAL_MODEL_DEFS } from './imageUniversalGeneratorModels';
+import {
+  normalizeImageSizeTier,
+  recraftPixelSizeForAspectAndTier,
+} from './universalImageSizes';
+import EditableNodeTitle from './EditableNodeTitle';
+import AnnotationModal from '../components/AnnotationModal';
 
 async function urlToBase64(url) {
   if (!url) return null;
@@ -55,37 +65,8 @@ const EDITING_MODELS = [
 ];
 const isEditingModel = (m) => EDITING_MODELS.includes(m);
 
-// Model definitions with metadata (exported for canvas Browse Models modal)
-export const IMAGE_UNIVERSAL_MODEL_DEFS = {
-  // Generation
-  'Auto': { name: 'Auto', provider: 'System', featured: false, tags: [], description: 'Automatically select the best model', type: 'generation' },
-  'Nano Banana 2': { name: 'Nano Banana 2', provider: 'Freepik', featured: true, tags: ['New', '80', '15s'], description: 'State-of-the-art image generation model', type: 'generation' },
-  'recraftv4': { name: 'Recraft V4', provider: 'Recraft', featured: true, tags: ['Vector', 'Fast'], description: 'Professional vector and raster generation', type: 'generation' },
-  'recraftv3': { name: 'Recraft V3', provider: 'Recraft', featured: false, tags: ['Classic'], description: 'Reliable image generation', type: 'generation' },
-  'kora': { name: 'Kora Reality', provider: 'Kora', featured: false, tags: ['Artistic'], description: 'Artistic style generation', type: 'generation' },
-  'flux': { name: 'Flux', provider: 'Black Forest Labs', featured: true, tags: ['Pro', '4K'], description: 'High-fidelity image generation', type: 'generation' },
-  // Editing
-  'remove-bg': { name: 'Remove Background', provider: 'Editing', featured: false, tags: ['Instant'], description: 'Remove image background automatically', type: 'editing' },
-  'creative-upscale': { name: 'Creative Upscale', provider: 'Editing', featured: false, tags: ['2-16x'], description: 'Upscale with creative enhancement', type: 'editing' },
-  'precision-upscale': { name: 'Precision Upscale', provider: 'Editing', featured: false, tags: ['Sharp'], description: 'Precise upscaling with detail preservation', type: 'editing' },
-  'relight': { name: 'Relight', provider: 'Editing', featured: true, tags: ['Studio'], description: 'Change lighting and atmosphere', type: 'editing' },
-  'skin-enhancer': { name: 'Skin Enhancer', provider: 'Editing', featured: false, tags: ['Portrait'], description: 'Professional skin retouching', type: 'editing' },
-  'change-camera': { name: 'Change Camera', provider: 'Editing', featured: false, tags: ['3D'], description: 'Adjust camera angle and perspective', type: 'editing' },
-  'flux-expand': { name: 'Flux Expand', provider: 'Editing', featured: false, tags: ['Outpaint'], description: 'Expand image with Flux', type: 'editing' },
-  'seedream-expand': { name: 'Seedream Expand', provider: 'Editing', featured: false, tags: ['Outpaint'], description: 'Expand image with Seedream', type: 'editing' },
-  'ideogram-expand': { name: 'Ideogram Expand', provider: 'Editing', featured: false, tags: ['Outpaint'], description: 'Expand image with Ideogram', type: 'editing' },
-  'style-transfer': { name: 'Style Transfer', provider: 'Editing', featured: true, tags: ['Artistic'], description: 'Transfer style from reference image', type: 'editing' },
-  // Quiver
-  'quiver-text-to-vector': { name: 'Text to Vector', provider: 'Quiver', featured: false, tags: ['SVG', 'Vector'], description: 'Generate SVG vectors from text prompts', type: 'generation' },
-  'quiver-image-to-vector': { name: 'Image to Vector', provider: 'Quiver', featured: false, tags: ['SVG', 'Vectorize'], description: 'Vectorize raster images to SVG', type: 'editing' },
-};
-
 const MODEL_DEFS = IMAGE_UNIVERSAL_MODEL_DEFS;
 
-// Featured models (displayed at top)
-export const MODELS = Object.keys(MODEL_DEFS);
-
-const ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
 const SCALE_FACTORS_CREATIVE = ['2x', '4x', '8x', '16x'];
 const SCALE_FACTORS_PRECISION = ['2', '4', '8', '16'];
 
@@ -101,10 +82,28 @@ const COST_MAP = {
   'quiver-text-to-vector': 0.02, 'quiver-image-to-vector': 0.02,
 };
 
-const RECRAFT_SIZES = {
-  '1:1': '1024x1024', '16:9': '1820x1024', '9:16': '1024x1820',
-  '4:3': '1365x1024', '3:4': '1024x1365', '3:2': '1536x1024', '2:3': '1024x1536',
+const PROMPT_PLACEHOLDER = {
+  'remove-bg': 'No prompt needed for background removal',
+  'precision-upscale': 'No prompt needed for precision upscale',
+  'skin-enhancer': 'No prompt needed for skin enhancement',
+  'change-camera': 'No prompt needed for camera change',
+  'creative-upscale': 'Optional: guide the enhancement style...',
+  'relight': 'Describe the lighting (e.g. golden hour, studio light)...',
+  'flux-expand': 'Optional: describe the expanded area content...',
+  'seedream-expand': 'Optional: describe the expanded area content...',
+  'ideogram-expand': 'Optional: describe the expanded area content...',
+  'style-transfer': 'Optional: guide the style transfer direction...',
+  'quiver-text-to-vector': 'Describe the vector/SVG to generate...',
+  'quiver-image-to-vector': 'No prompt needed for vectorization',
 };
+
+const PROMPT_DISABLED = new Set([
+  'remove-bg',
+  'precision-upscale',
+  'skin-enhancer',
+  'change-camera',
+  'quiver-image-to-vector',
+]);
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -127,9 +126,8 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const [isHoveringRun, setIsHoveringRun] = useState(false);
   const [showReferenceMenu, setShowReferenceMenu] = useState(false);
   const [annotationOpen, setAnnotationOpen] = useState(false);
-  const [isUploadingNB, setIsUploadingNB] = useState(false);
-  const [dragOverImage, setDragOverImage] = useState(null); // '1', '2', '3', or null
-  const nbFileRef = useRef();
+  const [dragOverImageZone, setDragOverImageZone] = useState(false);
+  const unifiedImageInputRef = useRef(null);
   const lastTrigger = useRef(null);
   const promptRef = useRef(null);
 
@@ -141,43 +139,33 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const locked = data.locked || false;
   const numOutputs = data.numOutputs || 1;
   const aspectRatio = data.aspectRatio || '1:1';
+  const imageSizeTier = normalizeImageSizeTier(data.imageSizeTier);
   const models = data.models || ['Nano Banana 2'];
   const editSettings = data.editSettings || {};
 
   const activeEditingModel = models.find(m => isEditingModel(m)) || null;
-  const isNanoBanana = !activeEditingModel && models.length === 1 && models[0] === 'Nano Banana 2';
 
   // ── Smart Auto Model Selection ──────────────────────────────────────────────
 
-  // Analyze prompt to determine best model
   const analyzePromptForModel = useCallback((prompt) => {
     if (!prompt) return { type: 'general', confidence: 0, recommended: 'Nano Banana 2' };
     const lower = String(prompt).toLowerCase();
 
-    // Vector/Logo/Design indicators
     if (/\b(vector|svg|logo|icon|flat design|illustration|clipart)\b/.test(lower)) {
       return { type: 'vector', confidence: 0.9, recommended: 'recraftv4' };
     }
-
-    // Photorealistic indicators
     if (/\b(photo|photorealistic|realistic|cinematic|8k|hdr|portrait of|photo of)\b/.test(lower)) {
       return { type: 'photorealistic', confidence: 0.85, recommended: 'flux' };
     }
-
-    // Artistic/Style indicators
     if (/\b(painting|art|artistic|oil painting|watercolor|sketch|drawing|style of)\b/.test(lower)) {
       return { type: 'artistic', confidence: 0.8, recommended: 'kora' };
     }
-
-    // Fast/cheap priority
     if (/\b(fast|quick|draft|low quality|cheap)\b/.test(lower)) {
       return { type: 'fast', confidence: 0.7, recommended: 'recraftv3' };
     }
-
     return { type: 'general', confidence: 0.5, recommended: 'Nano Banana 2' };
   }, []);
 
-  // Select model based on analysis and preferences
   const selectAutoImageModel = useCallback((prompt) => {
     const analysis = analyzePromptForModel(prompt);
     return analysis.recommended;
@@ -185,15 +173,14 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
   // ── API dispatch ────────────────────────────────────────────────────────────
 
-  const runGenerationModel = useCallback(async (model, prompt, structureImageUrl) => {
-    // Use smart Auto selection or map legacy model names
+  const runGenerationModel = useCallback(async (model, prompt) => {
     let effectiveModel = model;
     if (model === 'Auto') {
       effectiveModel = selectAutoImageModel(prompt);
     }
     
     const modelMap = {
-      'Flux': 'freepik-mystic', // Map Flux to Mystic as they are compatible in this context
+      'Flux': 'freepik-mystic',
       'Nano Banana 2': 'freepik-mystic',
       'Kora Reality': 'freepik-kora',
       'Google Imagen 3': 'google-imagen-3'
@@ -204,7 +191,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     if (effectiveModel === 'recraftv4' || effectiveModel === 'recraftv3') {
       const result = await generateRecraftImage({
         prompt, model: effectiveModel, n: numOutputs,
-        size: RECRAFT_SIZES[aspectRatio] || '1024x1024',
+        size: recraftPixelSizeForAspectAndTier(aspectRatio, imageSizeTier),
       });
       if (result.error) throw new Error(result.error?.message || 'Recraft generation failed');
       return (result.data || []).map(d => d.url);
@@ -222,14 +209,12 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       if (!generatedData?.svg) throw new Error('No SVG returned from Quiver');
       return [`data:image/svg+xml;utf8,${encodeURIComponent(generatedData.svg)}`];
     }
-    // freepik-mystic (Nano Banana 2), flux, Auto
     const params = { prompt, num_images: numOutputs, aspect_ratio: aspectRatio, model: apiModel };
-    if (structureImageUrl) params.image_urls = [structureImageUrl];
     const result = await generateImage(params);
     if (result.error) throw new Error(result.error?.message || 'Generation failed');
     if (result.data?.task_id) return (await pollStatus(result.data.task_id, apiModel)).data?.generated || [];
     return result.data?.generated || [];
-  }, [numOutputs, aspectRatio, selectAutoImageModel]);
+  }, [numOutputs, aspectRatio, imageSizeTier, selectAutoImageModel]);
 
   const runEditingModelFn = useCallback(async (model, prompt, imageUrl, refImageUrl) => {
     const toBase64 = (url) => url?.startsWith('data:') ? url.split(',')[1] : url;
@@ -335,22 +320,16 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
     const prompt = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt || '';
 
-    // Resolve 3 image inputs from handles or local data
+    // Resolve 1 image input from handle or local data
     const image1Input = data.resolveInput?.(id, 'image-1-in');
-    const image2Input = data.resolveInput?.(id, 'image-2-in');
-    const image3Input = data.resolveInput?.(id, 'image-3-in');
-    
     const image1 = Array.isArray(image1Input) ? image1Input[0] : (image1Input || data.image1Url);
-    const image2 = Array.isArray(image2Input) ? image2Input[0] : (image2Input || data.image2Url);
-    const image3 = Array.isArray(image3Input) ? image3Input[0] : (image3Input || data.image3Url);
     
-    // Collect all available images
-    const inputImages = [image1, image2, image3].filter(Boolean);
+    // Collect available image
+    const inputImages = [image1].filter(Boolean);
 
     if (activeEditingModel) {
-      // For editing models, use the first available image
       if (!inputImages.length) {
-        update({ outputError: 'Connect an image to an image input handle or upload an image to use editing models' });
+        update({ outputError: 'Connect an image to the image input handle or upload an image to use editing models' });
         return;
       }
       const refImages = data.resolveInput?.(id, 'reference-in') || [];
@@ -383,9 +362,8 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       start('Submitting generation request...');
       update({ outputImage: null, outputImages: [], outputError: null });
       try {
-        const nbImage = data.nanoBananaImage || image1 || null;
         const settled = await Promise.allSettled(
-          activeModels.map(m => runGenerationModel(m, prompt, m === 'Nano Banana 2' ? nbImage : null))
+          activeModels.map(m => runGenerationModel(m, prompt))
         );
         const allImages = settled
           .filter(r => r.status === 'fulfilled')
@@ -406,14 +384,8 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
           });
           complete('Generation complete');
 
-          // Spawn and connect ImageOutputNode
           if (data.onCreateNode) {
-            data.onCreateNode(
-              'imageOutput',
-              { outputImage: allImages[0] },
-              'output',
-              'image-in'
-            );
+            data.onCreateNode('imageOutput', { outputImage: allImages[0] }, 'output', 'image-in');
           }
         } else {
           update({ outputError: failures.join('; ') || 'All models failed to generate' });
@@ -452,8 +424,6 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
   const handleImageToPrompt = useCallback(async () => {
     if (isImageToPrompting) return;
-
-    // Prefer the generated output image; fall back to connected/uploaded input images
     const image1Input = data.resolveInput?.(id, 'image-1-in');
     const image1 = Array.isArray(image1Input) ? image1Input[0] : (image1Input || data.image1Url);
     const sourceImage = data.outputImage || image1 || null;
@@ -463,6 +433,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     try {
       const compressed = await compressImageBase64(sourceImage);
       const result = await imageToPromptGenerate({ image: compressed });
+      
       if (result.error) throw new Error(result.error?.message || JSON.stringify(result.error));
 
       const taskId = result.task_id || result.data?.task_id;
@@ -474,9 +445,14 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       } else {
         prompt = result.data?.prompt || result.prompt || result.data?.generated?.[0] || null;
       }
-      if (prompt) update({ inputPrompt: prompt });
+      if (prompt) {
+        update({ inputPrompt: prompt, outputError: null });
+      } else {
+        throw new Error('No description returned');
+      }
     } catch (err) {
       console.error('Image to prompt error:', err);
+      update({ outputError: err.message || 'Failed to describe image' });
     } finally {
       setIsImageToPrompting(false);
     }
@@ -491,57 +467,55 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     a.click();
   }, [data.outputImage]);
 
-  const handleNBUpload = useCallback(async (files) => {
-    if (!files?.length) return;
-    const file = files[0];
-    if (!file.type.startsWith('image/')) return;
-    setIsUploadingNB(true);
-    try {
-      const result = await uploadImages([file]);
-      if (result.images?.length > 0) update({ nanoBananaImage: result.images[0] });
-    } catch (err) {
-      console.error('NB upload failed:', err);
-    } finally {
-      setIsUploadingNB(false);
-    }
-  }, [update]);
+  const readFileAsDataURL = useCallback(
+    (file) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      }),
+    []
+  );
 
-  // Handle image file drop
-  const handleImageDrop = useCallback((e, imageNum) => {
+  const applyImageFilesToSlots = useCallback(
+    async (fileList) => {
+      const files = [...fileList].filter((f) => f.type.startsWith('image/'));
+      if (!files.length) return;
+      const url = await readFileAsDataURL(files[0]);
+      update({ image1Url: url });
+    },
+    [readFileAsDataURL, update]
+  );
+
+  const handleUnifiedImageDrop = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragOverImageZone(false);
+      void applyImageFilesToSlots(e.dataTransfer.files);
+    },
+    [applyImageFilesToSlots]
+  );
+
+  const handleUnifiedDragOver = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragOverImage(null);
-    
-    const files = e.dataTransfer.files;
-    if (!files?.length) return;
-    
-    const file = files[0];
-    if (!file.type.startsWith('image/')) return;
-    
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      update({ [`image${imageNum}Url`]: ev.target.result });
-    };
-    reader.readAsDataURL(file);
-  }, [update]);
-
-  const handleDragOver = useCallback((e, imageNum) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragOverImage(imageNum);
+    setDragOverImageZone(true);
   }, []);
 
-  const handleDragLeave = useCallback((e) => {
+  const handleUnifiedDragLeave = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragOverImage(null);
+    setDragOverImageZone(false);
   }, []);
+
+  const clearImageSlot = useCallback(() => update({ image1Url: null }), [update]);
 
   const setEditSetting = useCallback((key, value) => {
     update({ editSettings: { ...editSettings, [key]: value } });
   }, [update, editSettings]);
 
-  // External trigger
   useEffect(() => {
     if (data.triggerGenerate && data.triggerGenerate !== lastTrigger.current) {
       lastTrigger.current = data.triggerGenerate;
@@ -549,7 +523,6 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     }
   }, [data.triggerGenerate, handleGenerate]);
 
-  // Auto-resize prompt textarea
   useEffect(() => {
     if (promptRef.current) {
       promptRef.current.style.height = 'auto';
@@ -567,46 +540,36 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     ? (PROMPT_PLACEHOLDER[activeEditingModel] || 'Optional prompt...')
     : 'e.g. A cinematic shot of a neon cyberpunk city...';
 
-  // ── Shared styles ───────────────────────────────────────────────────────────
-
   const settingRow = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 };
-  const settingLabel = { ...font.xs, color: text.muted, whiteSpace: 'nowrap' };
+  const settingLabel = { fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' };
   const numInput = {
-    width: 52, padding: '2px 6px', background: surface.base, border: `1px solid ${border.default}`,
-    borderRadius: radius.sm, color: text.primary, ...font.xs, outline: 'none', textAlign: 'center',
+    width: 52, padding: '2px 6px', background: '#0a0a0a', border: '1px solid #1e293b',
+    borderRadius: 4, color: '#f8fafc', fontSize: 11, outline: 'none', textAlign: 'center',
   };
-
-  // ── Editing settings panel ──────────────────────────────────────────────────
 
   const renderEditSettings = () => {
     if (!activeEditingModel) return null;
-
     const es = editSettings;
-
     const pillBtn = (active, onClick, label) => (
       <button
         onClick={onClick}
-        className="nodrag nopan"
-        style={{
-          padding: '2px 8px', borderRadius: radius.sm, cursor: 'pointer', ...font.xs,
-          border: `1px solid ${active ? CATEGORY_COLORS.imageGeneration : border.default}`,
-          background: active ? `${CATEGORY_COLORS.imageGeneration}22` : 'transparent',
-          color: active ? CATEGORY_COLORS.imageGeneration : text.muted,
-        }}
+        className={`nodrag nopan px-2 py-0.5 rounded cursor-pointer text-[10px] border transition-colors ${
+          active ? 'border-pink-500 bg-pink-500/10 text-pink-500' : 'border-slate-800 bg-transparent text-slate-500 hover:text-slate-300'
+        }`}
       >{label}</button>
     );
 
     const expandInputs = (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+      <div className="grid grid-cols-2 gap-1.5">
         {[['Top', 'expandTop'], ['Bottom', 'expandBottom'], ['Left', 'expandLeft'], ['Right', 'expandRight']].map(([lbl, key]) => (
-          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div key={key} className="flex items-center gap-1.5">
             <span style={settingLabel}>{lbl}</span>
             <input
               type="number" min="0" max="2000" step="64"
               value={es[key] ?? 0}
               onChange={e => setEditSetting(key, Number(e.target.value))}
-              className="nodrag nopan"
-              style={{ ...numInput, width: '100%' }}
+              className="nodrag nopan w-full"
+              style={numInput}
             />
           </div>
         ))}
@@ -615,87 +578,52 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
     const panels = {
       'creative-upscale': (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="flex flex-col gap-2">
           <div style={settingRow}>
             <span style={settingLabel}>Scale</span>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {SCALE_FACTORS_CREATIVE.map(s => pillBtn(
-                (es.scaleFactor || '2x') === s,
-                () => setEditSetting('scaleFactor', s), s
-              ))}
+            <div className="flex gap-1">
+              {SCALE_FACTORS_CREATIVE.map(s => pillBtn((es.scaleFactor || '2x') === s, () => setEditSetting('scaleFactor', s), s))}
             </div>
           </div>
           <div style={settingRow}>
             <span style={settingLabel}>Creativity</span>
-            <input
-              type="range" min="0" max="1" step="0.05"
-              value={es.creativity ?? 0}
+            <input type="range" min="0" max="1" step="0.05" value={es.creativity ?? 0}
               onChange={e => setEditSetting('creativity', parseFloat(e.target.value))}
-              className="nodrag nopan"
-              style={{ flex: 1 }}
-            />
-            <span style={{ ...font.xs, color: text.muted, minWidth: 24 }}>
-              {(es.creativity ?? 0).toFixed(2)}
-            </span>
+              className="nodrag nopan flex-1" />
+            <span className="text-[10px] text-slate-500 min-w-[24px]">{(es.creativity ?? 0).toFixed(2)}</span>
           </div>
         </div>
       ),
       'precision-upscale': (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="flex flex-col gap-2">
           <div style={settingRow}>
             <span style={settingLabel}>Scale</span>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {SCALE_FACTORS_PRECISION.map(s => pillBtn(
-                (es.precisionScale || '4') === s,
-                () => setEditSetting('precisionScale', s), `${s}x`
-              ))}
+            <div className="flex gap-1">
+              {SCALE_FACTORS_PRECISION.map(s => pillBtn((es.precisionScale || '4') === s, () => setEditSetting('precisionScale', s), `${s}x`))}
             </div>
           </div>
           <div style={settingRow}>
             <span style={settingLabel}>Sharpen</span>
             <input type="range" min="0" max="10" step="1" value={es.sharpen ?? 7}
               onChange={e => setEditSetting('sharpen', Number(e.target.value))}
-              className="nodrag nopan" style={{ flex: 1 }} />
-            <span style={{ ...font.xs, color: text.muted, minWidth: 16 }}>{es.sharpen ?? 7}</span>
-          </div>
-          <div style={settingRow}>
-            <span style={settingLabel}>Grain</span>
-            <input type="range" min="0" max="10" step="1" value={es.smartGrain ?? 7}
-              onChange={e => setEditSetting('smartGrain', Number(e.target.value))}
-              className="nodrag nopan" style={{ flex: 1 }} />
-            <span style={{ ...font.xs, color: text.muted, minWidth: 16 }}>{es.smartGrain ?? 7}</span>
+              className="nodrag nopan flex-1" />
+            <span className="text-[10px] text-slate-500 min-w-[16px]">{es.sharpen ?? 7}</span>
           </div>
         </div>
       ),
       'change-camera': (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={settingRow}>
-            <span style={settingLabel}>H angle</span>
-            <input type="range" min="-360" max="360" step="10" value={es.hAngle ?? 0}
-              onChange={e => setEditSetting('hAngle', Number(e.target.value))}
-              className="nodrag nopan" style={{ flex: 1 }} />
-            <input type="number" min="-360" max="360" value={es.hAngle ?? 0}
-              onChange={e => setEditSetting('hAngle', Number(e.target.value))}
-              className="nodrag nopan" style={numInput} />
-          </div>
-          <div style={settingRow}>
-            <span style={settingLabel}>V angle</span>
-            <input type="range" min="-90" max="90" step="5" value={es.vAngle ?? 0}
-              onChange={e => setEditSetting('vAngle', Number(e.target.value))}
-              className="nodrag nopan" style={{ flex: 1 }} />
-            <input type="number" min="-90" max="90" value={es.vAngle ?? 0}
-              onChange={e => setEditSetting('vAngle', Number(e.target.value))}
-              className="nodrag nopan" style={numInput} />
-          </div>
-          <div style={settingRow}>
-            <span style={settingLabel}>Zoom</span>
-            <input type="range" min="0" max="10" step="0.5" value={es.zoom ?? 5}
-              onChange={e => setEditSetting('zoom', Number(e.target.value))}
-              className="nodrag nopan" style={{ flex: 1 }} />
-            <input type="number" min="0" max="10" step="0.5" value={es.zoom ?? 5}
-              onChange={e => setEditSetting('zoom', Number(e.target.value))}
-              className="nodrag nopan" style={numInput} />
-          </div>
+        <div className="flex flex-col gap-2">
+          {[['H angle', 'hAngle', -360, 360, 10], ['V angle', 'vAngle', -90, 90, 5], ['Zoom', 'zoom', 0, 10, 0.5]].map(([lbl, key, min, max, step]) => (
+            <div key={key} style={settingRow}>
+              <span style={settingLabel}>{lbl}</span>
+              <input type="range" min={min} max={max} step={step} value={es[key] ?? 0}
+                onChange={e => setEditSetting(key, Number(e.target.value))}
+                className="nodrag nopan flex-1" />
+              <input type="number" min={min} max={max} value={es[key] ?? 0}
+                onChange={e => setEditSetting(key, Number(e.target.value))}
+                className="nodrag nopan" style={numInput} />
+            </div>
+          ))}
         </div>
       ),
       'flux-expand': expandInputs,
@@ -704,15 +632,15 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       'skin-enhancer': (
         <div style={settingRow}>
           <span style={settingLabel}>Mode</span>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="flex gap-1">
             {pillBtn((es.skinMode || 'faithful') === 'faithful', () => setEditSetting('skinMode', 'faithful'), 'Faithful')}
             {pillBtn(es.skinMode === 'flexible', () => setEditSetting('skinMode', 'flexible'), 'Flexible')}
           </div>
         </div>
       ),
       'style-transfer': (
-        <div style={{ ...font.xs, color: text.muted, padding: '4px 0' }}>
-          Connect a reference image to the <span style={{ color: text.primary }}>reference-in</span> handle on the left.
+        <div className="text-[10px] text-slate-500 py-1">
+          Connect a reference image to the <span className="text-slate-300">reference-in</span> handle on the left.
         </div>
       ),
     };
@@ -721,305 +649,141 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     if (!panel) return null;
 
     return (
-      <div style={{
-        background: surface.base, border: `1px solid ${border.default}`,
-        borderRadius: radius.md, padding: sp[2], marginTop: sp[2],
-      }}>
-        <div style={{ ...font.xs, color: text.muted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          Settings
-        </div>
+      <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 mt-2">
+        <div className="text-[10px] text-slate-500 mb-2 uppercase font-bold tracking-wider">Settings</div>
         {panel}
       </div>
     );
   };
 
-  // ── JSX ─────────────────────────────────────────────────────────────────────
-
   return (
-    <div style={{ position: 'relative', paddingTop: 44 }}>
-      {/* Model Settings Bar — inside node bounding rect via paddingTop */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-        background: surface.deep, border: `1px solid ${border.subtle}`,
-        borderRadius: radius.md, padding: '4px 8px', gap: 8,
-        boxShadow: '0 4px 6px rgba(0,0,0,0.3)', zIndex: 10,
-      }}>
-        <span
-          style={{ marginRight: 'auto', ...font.xs, color: text.muted }}
-          title="Configure models, auto-select, and pins in the Inspector"
-        >
-          Models · Inspector
-        </span>
-        {/* Aspect ratio — hide for editing models */}
-        {!activeEditingModel && (
-          <select
-            value={aspectRatio}
-            onChange={e => update({ aspectRatio: e.target.value })}
-            disabled={locked}
-            className="nodrag nopan"
-            style={{
-              background: 'transparent', color: text.muted, border: 'none',
-              ...font.xs, outline: 'none', cursor: locked ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {ASPECT_RATIOS.map(ar => <option key={ar} value={ar}>{ar}</option>)}
-          </select>
-        )}
-        {activeEditingModel && (
-          <span style={{ ...font.xs, color: text.muted }}>editing</span>
-        )}
-
-        <div style={{ display: 'flex', gap: 4 }}>
-          <button
-            onClick={() => update({ locked: !locked })}
-            style={{ background: 'transparent', border: 'none', color: locked ? text.primary : text.muted, cursor: 'pointer', padding: 2 }}
-            title={locked ? 'Unlock settings' : 'Lock settings'}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {locked ? (
-                <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>
-              ) : (
-                <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></>
-              )}
+    <div className="relative pt-11">
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-end bg-slate-950 border border-slate-800 rounded-lg p-1 px-2 gap-2 shadow-lg z-10">
+        <div className="mr-auto flex-1 min-w-0 flex items-center nodrag nopan">
+          <EditableNodeTitle
+            value={String(data.label ?? '')}
+            onCommit={(next) => update({ label: next })}
+            placeholder="Generate Image"
+            maxWidth={200}
+            size="sm"
+            style={{ color: '#94a3b8' }}
+          />
+        </div>
+        {activeEditingModel && <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">editing</span>}
+        <div className="flex gap-1">
+          <button onClick={() => update({ locked: !locked })} className={`bg-transparent border-none p-0.5 cursor-pointer transition-colors ${locked ? 'text-pink-500' : 'text-slate-500 hover:text-slate-300'}`} title={locked ? 'Unlock settings' : 'Lock settings'}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {locked ? <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> : <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></>}
             </svg>
           </button>
-          <button
-            onClick={handleDownload}
-            disabled={!data.outputImage}
-            style={{
-              background: 'transparent', border: 'none',
-              color: data.outputImage ? text.primary : text.muted,
-              cursor: data.outputImage ? 'pointer' : 'not-allowed', padding: 2,
-            }}
-            title="Download"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
+          <button onClick={handleDownload} disabled={!data.outputImage} className={`bg-transparent border-none p-0.5 transition-colors ${data.outputImage ? 'text-slate-300 cursor-pointer hover:text-white' : 'text-slate-600 cursor-not-allowed'}`} title="Download">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
           </button>
         </div>
       </div>
 
-      {/* Main Node */}
-      <div style={{
-        background: surface.base,
-        border: `1px solid ${selected ? border.active : border.subtle}`,
-        borderRadius: radius.lg, width: 320,
-        fontFamily: 'Inter, system-ui, sans-serif',
-        transition: 'all 0.15s ease',
-        boxShadow: selected
-          ? `0 0 0 1px ${border.active}, 0 8px 24px rgba(0,0,0,0.5)`
-          : '0 4px 12px rgba(0,0,0,0.25)',
-      }}>
-        {/* Input Handles */}
-        {/* 3 Image Input Handles */}
-        <Handle type="target" position={Position.Left} id="image-1-in"
-          style={{ top: 25, background: getHandleColor('image-in') }} />
-        <Handle type="target" position={Position.Left} id="image-2-in"
-          style={{ top: 45, background: getHandleColor('image-in') }} />
-        <Handle type="target" position={Position.Left} id="image-3-in"
-          style={{ top: 65, background: getHandleColor('image-in') }} />
-        <Handle type="target" position={Position.Left} id="prompt-in"
-          style={{ top: 90, background: getHandleColor('prompt-in') }} />
-        <Handle type="target" position={Position.Left} id="reference-in"
-          style={{ top: 115, background: getHandleColor('image-in'), opacity: activeEditingModel === 'style-transfer' ? 1 : 0.3 }} />
+      <div className={`bg-slate-900 border ${selected ? 'border-pink-500 shadow-lg shadow-pink-500/20' : 'border-slate-800 shadow-md'} rounded-xl w-80 font-sans transition-all duration-150`}>
+        <Handle type="target" position={Position.Left} id="image-1-in" className="w-3 h-3 border-none" style={{ top: 60, background: getHandleColor('image-in') }} />
+        <Handle type="target" position={Position.Left} id="prompt-in" className="w-3 h-3 border-none" style={{ top: 180, background: getHandleColor('prompt-in') }} />
+        <Handle type="target" position={Position.Left} id="reference-in" className="w-3 h-3 border-none" style={{ top: 228, background: getHandleColor('image-in'), opacity: activeEditingModel === 'style-transfer' ? 1 : 0.3 }} />
 
-        {/* Prompt + Edit Settings */}
-        <div style={{ padding: sp[3] }}>
-          <div style={{
-            background: surface.deep, border: `1px solid ${border.default}`,
-            borderRadius: radius.md, padding: sp[2],
-            display: 'flex', flexDirection: 'column', gap: sp[2],
-          }}>
-            <textarea
-              ref={promptRef}
-              value={data.inputPrompt || ''}
-              onChange={e => update({ inputPrompt: e.target.value })}
-              disabled={promptDisabled}
-              placeholder={promptPlaceholder}
-              rows={promptDisabled ? 2 : 4}
-              className="nodrag nopan nowheel"
-              style={{
-                background: 'transparent', border: 'none', color: promptDisabled ? text.muted : text.primary,
-                ...font.sm, resize: 'none', outline: 'none', width: '100%',
-                opacity: promptDisabled ? 0.5 : 1,
-                overflow: 'hidden'
-              }}
-            />
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-              <div style={{ position: 'relative' }}>
-                <button
-                  title="Reference (@)"
-                  className="nodrag nopan"
-                  onClick={() => setShowReferenceMenu(!showReferenceMenu)}
-                  onMouseDown={e => e.stopPropagation()}
-                  style={{
-                    background: showReferenceMenu ? surface.deep : surface.base, 
-                    border: `1px solid ${showReferenceMenu ? border.active : border.default}`,
-                    color: showReferenceMenu ? text.primary : text.muted, 
-                    borderRadius: radius.sm, width: 32, height: 32,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer',
-                  }}
+        <div className="p-4 flex flex-col gap-4">
+          <input ref={unifiedImageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.length) void applyImageFilesToSlots(e.target.files); e.target.value = ''; }} />
+          
+          <div onClick={() => unifiedImageInputRef.current?.click()} onDrop={handleUnifiedImageDrop} onDragOver={handleUnifiedDragOver} onDragLeave={handleUnifiedDragLeave} className={`nodrag nopan border-2 border-dashed rounded-lg aspect-square p-4 cursor-pointer transition-all duration-150 flex flex-col gap-2 ${dragOverImageZone ? 'border-pink-500 bg-pink-500/10' : 'border-slate-800 bg-slate-950/50 hover:border-slate-700'}`}>
+            <div className="text-[10px] text-slate-400 flex items-center gap-2 uppercase tracking-wider">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={getHandleColor('image-in')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+              <span className="font-bold">Image input</span>
+              <span className="opacity-50 font-normal">optional</span>
+            </div>
+            <div className="flex-1 flex items-center justify-center min-h-[80px] w-full" onClick={(e) => e.stopPropagation()}>
+              {data.image1Url ? (
+                <div 
+                  className="relative w-full aspect-square rounded-md overflow-hidden border border-slate-700 bg-slate-950 group cursor-pointer"
+                  onClick={() => setAnnotationOpen(true)}
+                  title="Click to annotate"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="4"></circle>
-                    <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path>
-                  </svg>
+                  <img src={data.image1Url} alt="Input image" className="w-full h-full object-cover block" />
+
+                  {/* Hover annotation hint */}
+                  <div className="absolute inset-0 bg-black/55 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                    <div className="bg-black/70 rounded-full px-3.5 py-1.5 text-xs text-white flex items-center gap-1.5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                      </svg>
+                      Annotate
+                    </div>
+                  </div>
+
+                  <button type="button" onClick={(e) => { e.stopPropagation(); clearImageSlot(); }} className="absolute top-1 right-1 bg-black/70 hover:bg-red-500/80 text-white border-none rounded p-1 transition-colors" title="Remove"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
+                </div>
+              ) : (                <div className="text-[11px] text-slate-500 flex flex-col items-center gap-1 opacity-70">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                  <span>Click or drop image</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 flex flex-col gap-3">
+            <textarea ref={promptRef} value={data.inputPrompt || ''} onChange={e => update({ inputPrompt: e.target.value })} disabled={promptDisabled} placeholder={promptPlaceholder} rows={promptDisabled ? 2 : 4} className="nodrag nopan nowheel bg-transparent border-none text-slate-100 text-sm resize-none outline-none w-full disabled:opacity-50 overflow-hidden min-h-[60px]" />
+
+            <div className="flex justify-between items-center mt-1">
+              <div className="relative">
+                <button onClick={() => setShowReferenceMenu(!showReferenceMenu)} onMouseDown={e => e.stopPropagation()} className={`w-8 h-8 flex items-center justify-center rounded-md cursor-pointer transition-colors ${showReferenceMenu ? 'bg-slate-800 text-white border border-pink-500/50' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:border-slate-700'}`} title="Reference (@)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path></svg>
                 </button>
                 {showReferenceMenu && (
-                  <div className="nodrag nopan" style={{
-                    position: 'absolute', top: '100%', left: 0, marginTop: 4,
-                    background: surface.deep, border: `1px solid ${border.default}`,
-                    borderRadius: radius.md, padding: 4, zIndex: 10,
-                    display: 'flex', flexDirection: 'column', gap: 2,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)', width: 80
-                  }}>
+                  <div className="nodrag nopan absolute top-full left-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg p-1 z-10 flex flex-col gap-1 shadow-2xl w-24">
                     {['@img_1', '@img_2', '@img_3', '@img_4'].map(tag => (
-                      <div
-                        key={tag}
-                        onClick={() => {
-                          const input = promptRef.current;
-                          if (!input) return;
-                          const start = input.selectionStart || 0;
-                          const end = input.selectionEnd || 0;
-                          const val = input.value;
-                          const newVal = val.substring(0, start) + tag + val.substring(end);
-                          update({ inputPrompt: newVal });
-                          setTimeout(() => {
-                            input.focus();
-                            input.setSelectionRange(start + tag.length, start + tag.length);
-                          }, 0);
-                          setShowReferenceMenu(false);
-                        }}
-                        style={{
-                          padding: '4px 8px', borderRadius: radius.sm, cursor: 'pointer',
-                          color: text.primary, ...font.xs, fontFamily: 'monospace'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = surface.hover}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        {tag}
-                      </div>
+                      <div key={tag} onClick={() => {
+                        const input = promptRef.current;
+                        if (!input) return;
+                        const start = input.selectionStart || 0;
+                        const end = input.selectionEnd || 0;
+                        const val = input.value;
+                        const newVal = val.substring(0, start) + tag + val.substring(end);
+                        update({ inputPrompt: newVal });
+                        setTimeout(() => { input.focus(); input.setSelectionRange(start + tag.length, start + tag.length); }, 0);
+                        setShowReferenceMenu(false);
+                      }} className="p-1.5 px-2 rounded-md cursor-pointer text-slate-300 hover:bg-slate-800 hover:text-white text-[10px] font-mono transition-colors">{tag}</div>
                     ))}
                   </div>
                 )}
               </div>
 
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div className="flex gap-2 items-center">
                 {(() => {
                   const image1Input = data.resolveInput?.(id, 'image-1-in');
                   const image1 = Array.isArray(image1Input) ? image1Input[0] : (image1Input || data.image1Url);
                   const hasImageForPrompt = !!(data.outputImage || image1);
                   return (
-                    <button
-                      onClick={handleImageToPrompt}
-                      onMouseDown={e => e.stopPropagation()}
-                      disabled={isImageToPrompting || !hasImageForPrompt}
-                      className="nodrag nopan"
-                      title="Describe image as prompt"
-                      style={{
-                        background: 'transparent', border: 'none',
-                        color: isImageToPrompting || !hasImageForPrompt ? text.muted : CATEGORY_COLORS.utility,
-                        cursor: isImageToPrompting || !hasImageForPrompt ? 'not-allowed' : 'pointer',
-                        ...font.sm, display: 'flex', alignItems: 'center', gap: 4,
-                      }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 2 }}>
-                        {isImageToPrompting ? (
-                          <><path d="M12 2v4" /><path d="M12 18v4" /><path d="M4.93 4.93l2.83 2.83" /><path d="M16.24 16.24l2.83 2.83" /><path d="M2 12h4" /><path d="M18 12h4" /><path d="M4.93 19.07l2.83-2.83" /><path d="M16.24 7.76l2.83-2.83" /></>
-                        ) : (
-                          <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></>
-                        )}
-                      </svg>
+                    <button onClick={handleImageToPrompt} onMouseDown={e => e.stopPropagation()} disabled={isImageToPrompting || !hasImageForPrompt} className={`nodrag nopan bg-transparent border-none text-xs flex items-center gap-1.5 transition-colors ${isImageToPrompting || !hasImageForPrompt ? 'text-slate-600 cursor-not-allowed' : 'text-sky-400 hover:text-sky-300 cursor-pointer'}`} title="Describe image as prompt">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{isImageToPrompting ? <><path d="M12 2v4" /><path d="M12 18v4" /><path d="M4.93 4.93l2.83 2.83" /><path d="M16.24 16.24l2.83 2.83" /><path d="M2 12h4" /><path d="M18 12h4" /><path d="M4.93 19.07l2.83-2.83" /><path d="M16.24 7.76l2.83-2.83" /></> : <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></>}</svg>
                       Describe
                     </button>
                   );
                 })()}
                 {!promptDisabled && (
-                  <button
-                    onClick={handleImprovePrompt}
-                    onMouseDown={e => e.stopPropagation()}
-                    disabled={isImprovingPrompt || !data.inputPrompt}
-                    className="nodrag nopan"
-                    title="Improve Prompt"
-                    style={{
-                      background: 'transparent', border: 'none',
-                      color: isImprovingPrompt || !data.inputPrompt ? text.muted : CATEGORY_COLORS.utility,
-                      cursor: isImprovingPrompt || !data.inputPrompt ? 'not-allowed' : 'pointer',
-                      ...font.sm, display: 'flex', alignItems: 'center', gap: 4,
-                    }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4 }}>
-                      {isImprovingPrompt ? (
-                        <><path d="M12 2v4" /><path d="M12 18v4" /><path d="M4.93 4.93l2.83 2.83" /><path d="M16.24 16.24l2.83 2.83" /><path d="M2 12h4" /><path d="M18 12h4" /><path d="M4.93 19.07l2.83-2.83" /><path d="M16.24 7.76l2.83-2.83" /></>
-                      ) : (
-                        <><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></>
-                      )}
-                    </svg>
+                  <button onClick={handleImprovePrompt} onMouseDown={e => e.stopPropagation()} disabled={isImprovingPrompt || !data.inputPrompt} className={`nodrag nopan bg-transparent border-none text-xs flex items-center gap-1.5 transition-colors ${isImprovingPrompt || !data.inputPrompt ? 'text-slate-600 cursor-not-allowed' : 'text-sky-400 hover:text-sky-300 cursor-pointer'}`} title="Improve Prompt">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{isImprovingPrompt ? <><path d="M12 2v4" /><path d="M12 18v4" /><path d="M4.93 4.93l2.83 2.83" /><path d="M16.24 16.24l2.83 2.83" /><path d="M2 12h4" /><path d="M18 12h4" /><path d="M4.93 19.07l2.83-2.83" /><path d="M16.24 7.76l2.83-2.83" /></> : <><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></>}</svg>
                     Improve
                   </button>
                 )}
-
-                <div
-                  style={{ position: 'relative' }}
-                  onMouseEnter={() => setIsHoveringRun(true)}
-                  onMouseLeave={() => setIsHoveringRun(false)}
-                >
-                  <button
-                    onClick={handleGenerate}
-                    onMouseDown={e => e.stopPropagation()}
-                    disabled={isGenerating}
-                    className="nodrag nopan"
-                    style={{
-                      background: CATEGORY_COLORS.imageGeneration,
-                      color: '#fff', border: 'none', borderRadius: radius.md,
-                      width: 28, height: 28, display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', cursor: isGenerating ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      {isGenerating ? (
-                        <><path d="M12 2v4" /><path d="M12 18v4" /><path d="M4.93 4.93l2.83 2.83" /><path d="M16.24 16.24l2.83 2.83" /><path d="M2 12h4" /><path d="M18 12h4" /><path d="M4.93 19.07l2.83-2.83" /><path d="M16.24 7.76l2.83-2.83" /></>
-                      ) : (
-                        <><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></>
-                      )}
-                    </svg>
+                <div className="relative" onMouseEnter={() => setIsHoveringRun(true)} onMouseLeave={() => setIsHoveringRun(false)}>
+                  <button onClick={handleGenerate} onMouseDown={e => e.stopPropagation()} disabled={isGenerating} className={`nodrag nopan text-white border-none rounded-lg w-8 h-8 flex items-center justify-center transition-colors shadow-lg ${isGenerating ? 'bg-slate-700 cursor-not-allowed' : 'bg-pink-600 hover:bg-pink-500 cursor-pointer shadow-pink-600/20'}`}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">{isGenerating ? <><path d="M12 2v4" /><path d="M12 18v4" /><path d="M4.93 4.93l2.83 2.83" /><path d="M16.24 16.24l2.83 2.83" /><path d="M2 12h4" /><path d="M18 12h4" /><path d="M4.93 19.07l2.83-2.83" /><path d="M16.24 7.76l2.83-2.83" /></> : <><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></>}</svg>
                   </button>
-
                   {isHoveringRun && (
-                    <div style={{
-                      position: 'absolute', bottom: '100%', right: 0, marginBottom: 8,
-                      background: surface.deep, border: `1px solid ${border.subtle}`,
-                      borderRadius: radius.md, padding: '8px 12px',
-                      display: 'flex', flexDirection: 'column', gap: 8,
-                      minWidth: 140, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 20,
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', ...font.xs, color: text.muted }}>
-                        <span>Cost:</span>
-                        <span>${totalCost.toFixed(3)}</span>
-                      </div>
+                    <div className="absolute bottom-full right-0 mb-2 bg-slate-950 border border-slate-800 rounded-lg p-3 flex flex-col gap-2 min-w-[140px] shadow-2xl z-20">
+                      <div className="flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider"><span>Cost:</span><span className="text-emerald-400">${totalCost.toFixed(3)}</span></div>
                       {!activeEditingModel && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ ...font.xs, color: text.primary }}>Outputs:</span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: surface.base, borderRadius: radius.sm, padding: 2 }}>
-                            <button
-                              onClick={e => { e.stopPropagation(); update({ numOutputs: Math.max(1, numOutputs - 1) }); }}
-                              onMouseDown={e => e.stopPropagation()}
-                              className="nodrag nopan"
-                              style={{ background: 'transparent', border: 'none', color: text.primary, cursor: 'pointer', width: 20 }}
-                            >-</button>
-                            <span style={{ ...font.sm, color: text.primary, minWidth: 16, textAlign: 'center' }}>{numOutputs}</span>
-                            <button
-                              onClick={e => { e.stopPropagation(); update({ numOutputs: Math.min(6, numOutputs + 1) }); }}
-                              onMouseDown={e => e.stopPropagation()}
-                              className="nodrag nopan"
-                              style={{ background: 'transparent', border: 'none', color: text.primary, cursor: 'pointer', width: 20 }}
-                            >+</button>
+                        <div className="flex justify-between items-center gap-3">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Outputs:</span>
+                          <div className="flex items-center gap-2 bg-slate-900 rounded-md p-0.5 border border-slate-800">
+                            <button onClick={e => { e.stopPropagation(); update({ numOutputs: Math.max(1, numOutputs - 1) }); }} onMouseDown={e => e.stopPropagation()} className="bg-transparent border-none text-slate-400 hover:text-white cursor-pointer px-1.5 py-0.5">-</button>
+                            <span className="text-xs text-slate-200 min-w-[12px] text-center font-bold">{numOutputs}</span>
+                            <button onClick={e => { e.stopPropagation(); update({ numOutputs: Math.min(6, numOutputs + 1) }); }} onMouseDown={e => e.stopPropagation()} className="bg-transparent border-none text-slate-400 hover:text-white cursor-pointer px-1.5 py-0.5">+</button>
                           </div>
                         </div>
                       )}
@@ -1029,309 +793,19 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
               </div>
             </div>
           </div>
-
-          {/* 3 Image Input Uploads - Always visible */}
-          <div style={{ marginTop: sp[2] }}>
-            <div style={{ ...font.xs, color: text.muted, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={getHandleColor('image-in')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-              <span>Image Inputs</span>
-              <span style={{ opacity: 0.5 }}>(optional)</span>
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-              {/* Image 1 */}
-              {data.image1Url ? (
-                <div style={{ position: 'relative' }}>
-                  <img
-                    src={data.image1Url}
-                    alt="Input 1"
-                    style={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: radius.sm }}
-                  />
-                  <button
-                    onClick={() => update({ image1Url: null })}
-                    style={{
-                      position: 'absolute', top: 2, right: 2,
-                      background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: radius.sm,
-                      width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer', padding: 0,
-                    }}
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
-                </div>
-              ) : (
-                <div
-                  onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = 'image/*';
-                    input.onchange = (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => update({ image1Url: ev.target.result });
-                        reader.readAsDataURL(file);
-                      }
-                    };
-                    input.click();
-                  }}
-                  onDragOver={(e) => handleDragOver(e, '1')}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleImageDrop(e, '1')}
-                  style={{
-                    border: `2px dashed ${dragOverImage === '1' ? CATEGORY_COLORS.imageGeneration : border.subtle}`,
-                    borderRadius: radius.sm, height: 70,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', background: dragOverImage === '1' ? `${CATEGORY_COLORS.imageGeneration}11` : surface.deep,
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={dragOverImage === '1' ? CATEGORY_COLORS.imageGeneration : text.muted} strokeWidth="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                  </svg>
-                </div>
-              )}
-              
-              {/* Image 2 */}
-              {data.image2Url ? (
-                <div style={{ position: 'relative' }}>
-                  <img
-                    src={data.image2Url}
-                    alt="Input 2"
-                    style={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: radius.sm }}
-                  />
-                  <button
-                    onClick={() => update({ image2Url: null })}
-                    style={{
-                      position: 'absolute', top: 2, right: 2,
-                      background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: radius.sm,
-                      width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer', padding: 0,
-                    }}
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
-                </div>
-              ) : (
-                <div
-                  onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = 'image/*';
-                    input.onchange = (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => update({ image2Url: ev.target.result });
-                        reader.readAsDataURL(file);
-                      }
-                    };
-                    input.click();
-                  }}
-                  onDragOver={(e) => handleDragOver(e, '2')}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleImageDrop(e, '2')}
-                  style={{
-                    border: `2px dashed ${dragOverImage === '2' ? CATEGORY_COLORS.imageGeneration : border.subtle}`,
-                    borderRadius: radius.sm, height: 70,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', background: dragOverImage === '2' ? `${CATEGORY_COLORS.imageGeneration}11` : surface.deep,
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={dragOverImage === '2' ? CATEGORY_COLORS.imageGeneration : text.muted} strokeWidth="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                  </svg>
-                </div>
-              )}
-              
-              {/* Image 3 */}
-              {data.image3Url ? (
-                <div style={{ position: 'relative' }}>
-                  <img
-                    src={data.image3Url}
-                    alt="Input 3"
-                    style={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: radius.sm }}
-                  />
-                  <button
-                    onClick={() => update({ image3Url: null })}
-                    style={{
-                      position: 'absolute', top: 2, right: 2,
-                      background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: radius.sm,
-                      width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer', padding: 0,
-                    }}
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
-                </div>
-              ) : (
-                <div
-                  onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = 'image/*';
-                    input.onchange = (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => update({ image3Url: ev.target.result });
-                        reader.readAsDataURL(file);
-                      }
-                    };
-                    input.click();
-                  }}
-                  onDragOver={(e) => handleDragOver(e, '3')}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleImageDrop(e, '3')}
-                  style={{
-                    border: `2px dashed ${dragOverImage === '3' ? CATEGORY_COLORS.imageGeneration : border.subtle}`,
-                    borderRadius: radius.sm, height: 70,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', background: dragOverImage === '3' ? `${CATEGORY_COLORS.imageGeneration}11` : surface.deep,
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={dragOverImage === '3' ? CATEGORY_COLORS.imageGeneration : text.muted} strokeWidth="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                  </svg>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Model-specific settings panel */}
           {renderEditSettings()}
-
-          {/* Nano Banana 2 — structure reference image upload */}
-          {isNanoBanana && (
-            <div style={{ marginTop: sp[2] }}>
-              <div style={{ ...font.xs, color: text.muted, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>Structure Reference</span>
-                <span style={{ opacity: 0.5 }}>optional</span>
-              </div>
-
-              {data.nanoBananaImage ? (
-                <div
-                  style={{ position: 'relative', borderRadius: radius.md, overflow: 'hidden', cursor: 'pointer' }}
-                  onClick={() => setAnnotationOpen(true)}
-                  title="Click to annotate"
-                >
-                  <img
-                    src={data.nanoBananaImage}
-                    alt="structure reference"
-                    style={{ width: '100%', display: 'block', borderRadius: radius.md }}
-                  />
-                  {/* Hover annotation hint */}
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    background: 'rgba(0,0,0,0.55)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    opacity: 0, transition: 'opacity 0.15s',
-                    borderRadius: radius.md,
-                  }}
-                    onMouseEnter={e => { e.currentTarget.style.opacity = 1; }}
-                    onMouseLeave={e => { e.currentTarget.style.opacity = 0; }}
-                  >
-                    <div style={{
-                      background: 'rgba(0,0,0,0.7)', borderRadius: 20,
-                      padding: '6px 14px', ...font.xs, color: '#fff',
-                      display: 'flex', alignItems: 'center', gap: 6,
-                    }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                      </svg>
-                      Annotate
-                    </div>
-                  </div>
-                  <button
-                    onClick={e => { e.stopPropagation(); update({ nanoBananaImage: null }); }}
-                    onMouseDown={e => e.stopPropagation()}
-                    className="nodrag nopan"
-                    style={{
-                      position: 'absolute', top: 4, right: 4,
-                      width: 20, height: 20, borderRadius: '50%',
-                      background: 'rgba(239,68,68,0.9)', border: 'none',
-                      color: '#fff', fontSize: 11, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >×</button>
-                </div>
-              ) : (
-                <>
-                  <div
-                    onClick={() => nbFileRef.current?.click()}
-                    onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-                    onDrop={e => { e.preventDefault(); e.stopPropagation(); handleNBUpload(e.dataTransfer.files); }}
-                    className="nodrag nopan"
-                    style={{
-                      background: surface.deep, border: `1px dashed ${border.default}`,
-                      borderRadius: radius.md, minHeight: 56,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      gap: 6, cursor: 'pointer', padding: 8,
-                    }}
-                  >
-                    {isUploadingNB ? (
-                      <span style={{ ...font.xs, color: text.muted }}>Uploading...</span>
-                    ) : (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
-                          <path d="M10 4V16M4 10H16" stroke={text.muted} strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
-                        <span style={{ ...font.xs, color: text.muted }}>Upload structure reference</span>
-                      </>
-                    )}
-                  </div>
-                  <input
-                    ref={nbFileRef}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    onChange={e => { handleNBUpload(e.target.files); e.target.value = ''; }}
-                  />
-                </>
-              )}
-            </div>
-          )}
         </div>
-
-        {/* Output */}
-        <div style={{ padding: `0 ${sp[3]}px ${sp[3]}px` }}>
+        <div className="px-4 pb-4">
           <OutputHandle label="Output" id="output" />
-          <OutputPreview
-            output={data.outputImage}
-            isLoading={isGenerating}
-            error={data.outputError}
-            accentColor={CATEGORY_COLORS.imageGeneration}
-            label="Generation Output"
-          />
+          <OutputPreview output={data.outputImage} isLoading={isGenerating} error={data.outputError} accentColor={CATEGORY_COLORS.imageGeneration} label="Generation Output" />
         </div>
       </div>
 
       {/* Annotation modal — portalled outside React Flow to avoid clipping */}
       {annotationOpen && createPortal(
         <AnnotationModal
-          imageUrl={data.nanoBananaImage}
-          onSave={(annotatedUrl) => { update({ nanoBananaImage: annotatedUrl }); setAnnotationOpen(false); }}
+          imageUrl={data.image1Url}
+          onSave={(annotatedUrl) => { update({ image1Url: annotatedUrl }); setAnnotationOpen(false); }}
           onClose={() => setAnnotationOpen(false)}
         />,
         document.body

@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
 import { surface, border, sp, radius, text, ui } from './nodeTokens';
 import NodeGenerateButton from './NodeGenerateButton';
 import NodeDownloadButton from './NodeDownloadButton';
+import EditableNodeTitle from './EditableNodeTitle';
+import type { EditableTitleConfig } from './BaseNode.types';
 import { Handle, Position } from '@xyflow/react';
 import { getHandleColor } from '../utils/handleTypes';
 import { isPanningRef, isDraggingNodeRef, isConnectingRef } from '../interactionRefs';
@@ -27,6 +29,7 @@ import { isPanningRef, isDraggingNodeRef, isConnectingRef } from '../interaction
  */
 interface NodeShellProps {
   label: string;
+  editableTitle?: EditableTitleConfig;
   dotColor?: string;
   selected: boolean;
   children: ReactNode;
@@ -50,6 +53,7 @@ interface NodeShellProps {
 
 export default function NodeShell({
   label,
+  editableTitle,
   dotColor,
   selected,
   children,
@@ -360,18 +364,29 @@ export default function NodeShell({
               }}
             />
           )}
-          <span style={{ 
-            fontSize: 14, 
-            fontWeight: 500, 
-            letterSpacing: '0.02em',
-            color: 'var(--color-text)',
-            textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-            textDecoration: muted ? 'line-through' : 'none',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            maxWidth: 200,
-          }} title={label || 'Untitled'}>{label || 'Untitled'}</span>
+          {editableTitle ? (
+            <EditableNodeTitle
+              value={editableTitle.value}
+              onCommit={editableTitle.onCommit}
+              placeholder={editableTitle.placeholder ?? (label || 'Untitled')}
+              disabled={editableTitle.disabled || muted}
+              maxWidth={200}
+              style={{ textDecoration: muted ? 'line-through' : 'none' }}
+            />
+          ) : (
+            <span style={{ 
+              fontSize: 14, 
+              fontWeight: 500, 
+              letterSpacing: '0.02em',
+              color: 'var(--color-text)',
+              textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+              textDecoration: muted ? 'line-through' : 'none',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              maxWidth: 200,
+            }} title={label || 'Untitled'}>{label || 'Untitled'}</span>
+          )}
         </div>
         
 

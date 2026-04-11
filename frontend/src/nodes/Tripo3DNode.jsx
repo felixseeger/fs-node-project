@@ -105,6 +105,11 @@ export default function Tripo3DNode({ id, data, selected }) {
     <NodeShell
       data={data}
       label={data.label || 'Tripo3D'}
+      editableTitle={{
+        value: String(data.label ?? ''),
+        onCommit: (next) => update({ label: next }),
+        placeholder: 'Generate 3D',
+      }}
       dotColor={CATEGORY_COLORS.utility}
       selected={selected}
       onGenerate={handleGenerate}

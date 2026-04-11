@@ -58,7 +58,7 @@ export const NODE_MENU: NodeMenuSection[] = [
         defaults: {
           label: 'Universal Image',
           inputPrompt: '', outputImage: null, isLoading: false,
-          models: ['Nano Banana 2'], aspectRatio: '1:1', numOutputs: 1,
+          models: ['Nano Banana 2'], aspectRatio: '1:1', imageSizeTier: '1K', numOutputs: 1,
           editSettings: {},
           autoSelect: false,
           useMultiple: false,
@@ -100,6 +100,27 @@ export const NODE_MENU: NodeMenuSection[] = [
           useMultiple: false,
         },
       },
+      {
+        type: 'pixVerseTextToVideo',
+        label: 'PixVerse Text-to-Video',
+        defaults: {
+          label: 'PixVerse Text-to-Video',
+          inputPrompt: '', outputVideo: null, isLoading: false,
+          localModel: 'v5.6', localQuality: '720p', localAspectRatio: '16:9',
+          localDuration: 5, localMotionMode: 'medium', localEnableSound: false,
+        },
+      },
+      {
+        type: 'pixVerseImageToVideo',
+        label: 'PixVerse Image-to-Video',
+        defaults: {
+          label: 'PixVerse Image-to-Video',
+          inputPrompt: '', outputVideo: null, isLoading: false,
+          localImageIn: null, localModel: 'v5.6', localQuality: '720p',
+          localAspectRatio: '16:9', localDuration: 5, localMotionMode: 'medium',
+          localEnableSound: false,
+        },
+      },
     ],
   },
   {
@@ -132,6 +153,15 @@ export const NODE_MENU: NodeMenuSection[] = [
           outputVideo: null, isLoading: false,
           localResolution: '2k', localStrength: 60,
           localSharpen: 0, localSmartGrain: 0, localFpsBoost: false,
+        },
+      },
+      {
+        type: 'pixVerseSoundEffect',
+        label: 'PixVerse Sound Effect',
+        defaults: {
+          label: 'PixVerse Sound Effect',
+          outputVideo: null, isLoading: false,
+          localVideoUrl: '', localOriginalSoundSwitch: false, localSoundContent: '',
         },
       },
     ],

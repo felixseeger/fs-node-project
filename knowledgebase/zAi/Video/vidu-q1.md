@@ -1,0 +1,340 @@
+# Vidu Q1 - Overview - Z.AI DEVELOPER DOCUMENT
+
+Original URL: https://docs.z.ai/guides/video/vidu-q1
+
+[Skip to main content](#content-area)[Overview - Z.AI DEVELOPER DOCUMENT home page](https://z.ai/model-api)EnglishSearch...⌘K* [API Keys](https://z.ai/manage-apikey/apikey-list)
+* [Payment Method](https://z.ai/manage-apikey/billing)
+Search...NavigationVideo Generation ModelsVidu Q1[Guides](/guides/overview/quick-start)[API Reference](/api-reference/introduction)[Scenario Example](/scenario-example/develop-tools/claude)[Coding Plan](/devpack/overview)[Released Notes](/release-notes/new-released)[Terms and Policy](/legal-agreement/privacy-policy)[Help Center](/help/faq)
+# Get Started
+* [Quick Start](/guides/overview/quick-start)
+* [Overview](/guides/overview/overview)
+* [Pricing](/guides/overview/pricing)
+* [Core Parameters](/guides/overview/concept-param)
+* SDKs Guide
+* [Migrate to GLM-5.1](/guides/overview/migrate-to-glm-new)
+
+# Language Models
+* [GLM-5.1](/guides/llm/glm-5.1)
+* [GLM-5](/guides/llm/glm-5)
+* [GLM-5-Turbo](/guides/llm/glm-5-turbo)
+* [GLM-4.7](/guides/llm/glm-4.7)
+* [GLM-4.6](/guides/llm/glm-4.6)
+* [GLM-4.5](/guides/llm/glm-4.5)
+* [GLM-4-32B-0414-128K](/guides/llm/glm-4-32b-0414-128k)
+
+# Vision Language Models
+* [GLM-5V-Turbo](/guides/vlm/glm-5v-turbo)
+* [GLM-4.6V](/guides/vlm/glm-4.6v)
+* [GLM-OCR](/guides/vlm/glm-ocr)
+* [AutoGLM-Phone-Multilingual](/guides/vlm/autoglm-phone-multilingual)
+* [GLM-4.5V](/guides/vlm/glm-4.5v)
+
+# Image Generation Models
+* [GLM-Image](/guides/image/glm-image)
+* [CogView-4](/guides/image/cogview-4)
+
+# Video Generation Models
+* [CogVideoX-3](/guides/video/cogvideox-3)
+* [Vidu Q1](/guides/video/vidu-q1)
+* [Vidu 2](/guides/video/vidu2)
+
+# Image Generation Models
+* [CogView-4](/guides/image/cogview-4)
+
+# Audio Models
+* [GLM-ASR-2512](/guides/audio/glm-asr-2512)
+
+# Capabilities
+* [Thinking Mode](/guides/capabilities/thinking-mode)
+* [Deep Thinking](/guides/capabilities/thinking)
+* [Streaming Messages](/guides/capabilities/streaming)
+* [Tool Streaming Output](/guides/capabilities/stream-tool)
+* [Function Calling](/guides/capabilities/function-calling)
+* [Context Caching](/guides/capabilities/cache)
+* [Structured Output](/guides/capabilities/struct-output)
+
+# Tools
+* [Web Search](/guides/tools/web-search)
+* [Stream Tool Call](/guides/tools/stream-tool)
+
+# Agents
+* [GLM Slide/Poster Agent(beta)](/guides/agents/slide)
+* [Translation Agent](/guides/agents/translation)
+* [Video Effect Template Agent](/guides/agents/video-template)
+On this page* [   Overview](#overview)
+* [   Capability Description](#capability-description)
+* [   Usage](#usage)
+* [   Resources](#resources)
+* [   Introducing ViduQ1](#introducing-viduq1)
+* [Cinematic-Level Visual Clarity](#cinematic-level-visual-clarity)
+* [Precise Resolution of Visual Artifacts](#precise-resolution-of-visual-artifacts)
+* [Multi-Style Artistic Expression](#multi-style-artistic-expression)
+* [Industry-Leading Transition Smoothness](#industry-leading-transition-smoothness)
+* [    Quick Start](#quick-start)
+* [1. Text-to-Video Generation](#1-text-to-video-generation)
+* [2. Image-to-Video Generation](#2-image-to-video-generation)
+* [3. Start and End Frame](#3-start-and-end-frame)
+Video Generation Models
+# Vidu Q1
+Copy pageCopy page
+# [​](#overview)   Overview
+
+Vidu Q1 is the next-generation video generation model from Vidu, designed for high-quality video creation. It consistently outputs 5-second, 24-frame, 1080P video clips. Through advanced optimization of visual clarity, Vidu Q1 delivers significantly enhanced image quality with notable improvements in issues such as hand distortion and frame jitter.
+The model achieves photorealistic rendering that closely resembles real-world scenes, while maintaining stylistic accuracy in 2D animation. Transitions between the first and last frames are exceptionally smooth, making Vidu Q1 well-suited for demanding creative applications in film, advertising, and animated short productions.
+*  viduq1-image
+*  viduq1-start-end
+*  viduq1-text
+
+# Price
+$0.4 / video
+# Capability
+Image-to-Video Generation
+# Duration
+5S
+# Clarity
+1080P
+# Price
+$0.4 / video
+# Capability
+Start and End Frame
+# Duration
+5S
+# Clarity
+1080P
+# Price
+$0.4 / video
+# Capability
+Text-to-Video Generation
+# Duration
+5S
+# Clarity
+1080P
+
+# [​](#capability-description)   Capability Description
+
+# Image-to-Video Generation
+Generate a video by providing a starting frame or both starting and ending frames along with corresponding text descriptions.
+# Start and End Frame
+Support input of two images: the first uploaded image is treated as the starting frame, and the second as the ending frame. The model uses these images as input parameters to generate the video.
+# Text-to-Video Generation
+Generate a video from a text prompt; currently supports both a general style and an anime style optimized for animation.
+The URL link for the video generated by the model is valid for one day. Please save it as soon as possible if needed.
+
+# [​](#usage)   Usage
+
+Film Generation
+
+* By inputting script excerpts, concept art, and other materials, users can generate promotional videos, visual effects shots, and auxiliary film assets
+
+* Delivers theatrical-level clarity and visual quality with complete frame details
+
+* Provides professional-grade video transitions with natural scene flow
+
+Anime Production
+
+* Input character designs and storyboard scripts to quickly generate 2D animated sequences and stylized anime shorts
+
+* Supports styles such as Chinese animation and Japanese anime
+
+* Enables storyline extension and creative regeneration of classic IPs
+
+Short Drama Production
+
+* Automatically generate short videos or micro-dramas from novel chapters or scripted scenes
+
+* Covers diverse genres such as romance, mystery, and historical drama
+
+* Optimized for multi-platform distribution needs
+
+Advertising & Marketing
+
+* Quickly generate highly engaging brand ads, e-commerce product videos, and interactive ads (e.g., virtual try-on) based on product images and feature descriptions
+
+* Supports adaptation to various platform dimensions and creative formats
+
+# [​](#resources)   Resources
+
+[API Documentation](/api-reference/video/cogvideox-3&vidu): Learn how to call the API.
+
+# [​](#introducing-viduq1)   Introducing ViduQ1
+
+1[](#cinematic-level-visual-clarity)
+# Cinematic-Level Visual Clarity
+The model delivers a comprehensive upgrade in visual detail restoration.2[](#precise-resolution-of-visual-artifacts)
+# Precise Resolution of Visual Artifacts
+Movements are smooth and natural—hand gestures during product demonstrations in e-commerce livestreams are accurately rendered and compliant. Visual jitter is minimized through dynamic frame interpolation technology, ensuring fluid and stable footage even in motion-heavy scenes such as running shots or vehicle perspectives.3[](#multi-style-artistic-expression)
+# Multi-Style Artistic Expression
+The realistic style aims for lifelike visuals—urban landscapes and character portraits in city promos are rendered with striking realism. The animated style focuses on authenticity, accurately capturing everything from the hand-drawn lines of Japanese anime to the saturated colors of Western cartoons. By inputting anime character designs, the model generates dynamic story segments that closely match the original IP’s visual style, boosting the efficiency of derivative content creation.*  Realistic Style
+*  Animated Style
+4[](#industry-leading-transition-smoothness)
+# Industry-Leading Transition Smoothness
+The start and end frame transition technology reaches a new level, using dynamic frame prediction and style fusion algorithms to overcome the limitations of “mechanical stitching” in video transitions.
+
+# [​](#quick-start)    Quick Start
+
+# [​](#1-text-to-video-generation)1. Text-to-Video Generation
+
+*  Curl
+*  Python
+
+```
+curl --location --request POST &#x27;https://api.z.ai/api/paas/v4/videos/generations&#x27; \
+--header &#x27;Authorization: Bearer {your apikey}&#x27; \
+--header &#x27;Content-Type: application/json&#x27; \
+--data-raw &#x27;{
+    &quot;model&quot;: &quot;viduq1-text&quot;,
+    &quot;style&quot;: &quot;anime&quot;,
+    &quot;prompt&quot;: &quot;Peter Rabbit drives a small car along the road, his face filled with joy and happiness.&quot;,
+    &quot;duration&quot;: 5,
+    &quot;aspect_ratio&quot;: &quot;16:9&quot;,
+    &quot;size&quot;: &quot;1920x1080&quot;,
+    &quot;movement_amplitude&quot;: &quot;auto&quot;
+}&#x27;
+
+```
+Install SDK
+```
+# Install latest version
+pip install zai-sdk
+
+# Or specify version
+pip install zai-sdk==0.2.2
+
+```
+Verify Installation
+```
+import zai
+print(zai.__version__)
+
+```
+
+```
+from zai import ZaiClient
+
+client = ZaiClient(api_key=&quot;your-api-key&quot;)
+response = client.videos.generations(
+    model=&quot;viduq1-text&quot;,
+    prompt=&quot;Peter Rabbit driving a car, wandering on the road, with a happy and joyful expression on his face.&quot;,
+    style=&quot;general&quot;,
+    duration=5,
+    aspect_ratio=&quot;16:9&quot;,
+    size=&quot;1920x1080&quot;,
+    movement_amplitude=&quot;auto&quot;
+)
+
+print(response)
+
+```
+
+# [​](#2-image-to-video-generation)2. Image-to-Video Generation
+
+*  Curl
+*  Python
+
+```
+curl --location --request POST &#x27;https://api.z.ai/api/paas/v4/videos/generations&#x27; \
+--header &#x27;Authorization: Bearer {your apikey}&#x27; \
+--header &#x27;Content-Type: application/json&#x27; \
+--data-raw &#x27;{
+    &quot;model&quot;:&quot;viduq1-image&quot;,
+    &quot;image_url&quot;:&quot;https://example.com/path/to/your/image.jpg&quot;,
+    &quot;prompt&quot;:&quot;Peter Rabbit drives a small car along the road, his face filled with joy and happiness.&quot;,
+    &quot;duration&quot;:5,
+    &quot;size&quot;:&quot;1920x1080&quot;,
+    &quot;movement_amplitude&quot;:&quot;auto&quot;
+}&#x27;
+
+```
+Install SDK
+```
+# Install latest version
+pip install zai-sdk
+
+# Or specify version
+pip install zai-sdk==0.2.2
+
+```
+Verify Installation
+```
+import zai
+print(zai.__version__)
+
+```
+
+```
+from zai import ZaiClient
+
+client = ZaiClient(api_key=&quot;your-api-key&quot;)
+response = client.videos.generations(
+    model=&quot;viduq1-image&quot;,
+    image_url=&quot;https://example.com/path/to/your/image.jpg&quot;,
+    prompt=&quot;Peter Rabbit driving a car, wandering on the road, with a happy and joyful expression on his face.&quot;,
+    duration=5,
+    size=&quot;1920x1080&quot;,
+    movement_amplitude=&quot;auto&quot;
+)
+
+print(response)
+
+```
+
+# [​](#3-start-and-end-frame)3. Start and End Frame
+
+*  Curl
+*  Python
+
+```
+curl --location --request POST &#x27;https://api.z.ai/api/paas/v4/videos/generations&#x27; \
+--header &#x27;Authorization: Bearer {your apikey}&#x27; \
+--header &#x27;Content-Type: application/json&#x27; \
+--data-raw &#x27;{
+    &quot;model&quot;:&quot;viduq1-start-end&quot;,
+    &quot;image_url&quot;:[&quot;https://example.com/path/to/your/image.jpg&quot;,&quot;https://example.com/path/to/your/image1.jpg&quot;],
+    &quot;prompt&quot;:&quot;Peter Rabbit drives a small car along the road, his face filled with joy and happiness.&quot;,
+    &quot;duration&quot;:5,
+    &quot;size&quot;:&quot;1920x1080&quot;,
+    &quot;movement_amplitude&quot;:&quot;auto&quot;
+}&#x27;
+
+```
+Install SDK
+```
+# Install latest version
+pip install zai-sdk
+
+# Or specify version
+pip install zai-sdk==0.2.2
+
+```
+Verify Installation
+```
+import zai
+print(zai.__version__)
+
+```
+
+```
+from zai import ZaiClient
+
+client = ZaiClient(api_key=&quot;your-api-key&quot;)
+# Define URLs for first frame and last frame
+sample_first_frame = &quot;https://gd-hbimg.huaban.com/ccee58d77afe8f5e17a572246b1994f7e027657fe9e6-qD66In_fw1200webp&quot;
+sample_last_frame = &quot;https://gd-hbimg.huaban.com/cc2601d568a72d18d90b2cc7f1065b16b2d693f7fa3f7-hDAwNq_fw1200webp&quot;
+
+# Video generation request (first and last frame mode)
+response = client.videos.generations(
+    model=&quot;viduq1-start-end&quot;,
+    image_url=[sample_first_frame, sample_last_frame],  # The first and last frame images
+    prompt=&quot;Peter Rabbit driving a car, wandering on the road, with a happy and joyful expression on his face.&quot;,
+    duration=5,  #Video duration (seconds)
+    size=&quot;1920x1080&quot;,  # Video resolution
+    movement_amplitude=&quot;auto&quot;,  # Movement amplitude
+)
+
+# Print the response result
+print(response)
+
+```
+Was this page helpful?
+
+YesNo[CogVideoX-3](/guides/video/cogvideox-3)[Vidu 2](/guides/video/vidu2)⌘I[x](https://x.com/Zai_org)[github](https://github.com/zai-org)[discord](https://discord.gg/QR7SARHRxK)[linkedin](https://www.linkedin.com/company/zdotai)[Powered byThis documentation is built and hosted on Mintlify, a developer documentation platform](https://www.mintlify.com?utm_campaign=poweredBy&utm_medium=referral&utm_source=zhipu-32152247)

@@ -311,7 +311,7 @@ export default function UniversalSimplifiedNodeChrome({
                       overflow: 'hidden',
                     }}
                   >
-                    Run node
+                    Run
                   </span>
                 </button>
                 {runHovered && !runDisabled && (

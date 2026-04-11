@@ -16,6 +16,8 @@ interface InspectorPanelProps {
   edges?: any[];
   onUpdateNodeData?: (nodeId: string, patch: any) => void;
   onDeleteNode?: (nodeId: string) => void;
+  onRunNode?: (nodeId: string) => void;
+  isRunning?: boolean;
 }
 
 export default function InspectorPanel({
@@ -23,6 +25,8 @@ export default function InspectorPanel({
   edges = [],
   onUpdateNodeData,
   onDeleteNode,
+  onRunNode,
+  isRunning = false,
 }: InspectorPanelProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [modelMegaMenuOpen, setModelMegaMenuOpen] = useState(false);
@@ -106,6 +110,8 @@ export default function InspectorPanel({
             onDelete={onDeleteNode}
             compact
             onOpenModelMegaMenu={openModelMegaMenu}
+            onRunNode={onRunNode ? () => onRunNode(singleSelected.id) : undefined}
+            isRunning={isRunning}
           />
         </div>
       )}

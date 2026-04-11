@@ -47,6 +47,66 @@ export const MagicIcon: FC<IconProps> = ({ style }) => (
   </svg>
 );
 
+export const PlayIcon: FC<IconProps> = ({ style }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden style={style}>
+    <polygon points="5 3 19 12 5 21 5 3" />
+  </svg>
+);
+
+/** Frame / aspect — used for aspect-ratio only controls */
+export const AspectRatioIcon: FC<IconProps> = ({ style }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style} aria-hidden>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="M8 9v6M16 9v6" opacity="0.35" />
+  </svg>
+);
+
+/** Mini frame preview for aspect strings like "16:9" (inspector menus) */
+export const AspectFrameMini: FC<{ aspect: string; style?: CSSProperties }> = ({ aspect, style }) => {
+  const [aw, ah] = aspect.split(':').map(Number);
+  if (!Number.isFinite(aw) || !Number.isFinite(ah) || aw <= 0 || ah <= 0) {
+    return (
+      <svg width="20" height="20" viewBox="0 0 20 20" style={style} aria-hidden>
+        <rect x="3" y="3" width="14" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+    );
+  }
+  const box = 14;
+  let rw: number;
+  let rh: number;
+  if (aw >= ah) {
+    rw = box;
+    rh = (box * ah) / aw;
+  } else {
+    rh = box;
+    rw = (box * aw) / ah;
+  }
+  const ox = (20 - rw) / 2;
+  const oy = (20 - rh) / 2;
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" style={style} aria-hidden>
+      <rect
+        x={ox}
+        y={oy}
+        width={rw}
+        height={rh}
+        rx="2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+};
+
+/** Pixel dimensions — used for output size controls */
+export const ResolutionIcon: FC<IconProps> = ({ style }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style} aria-hidden>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M9 9h6v6H9z" />
+  </svg>
+);
+
 export const LinkIcon: FC<IconProps> = ({ style }) => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={style}>
     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path>

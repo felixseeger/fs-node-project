@@ -1,9 +1,24 @@
-import React, { useState, useMemo, FC, ChangeEvent, ReactNode } from 'react';
+import React, { useState, useMemo, useRef, useEffect, FC, ChangeEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { InfoIcon, PublishIcon, ChevronDownIcon } from './NodeIcons';
+import {
+  InfoIcon,
+  PublishIcon,
+  ChevronDownIcon,
+  PlayIcon,
+  AspectRatioIcon,
+  ResolutionIcon,
+  AspectFrameMini,
+} from './NodeIcons';
+import {
+  IMAGE_SIZE_TIERS,
+  normalizeImageSizeTier,
+  recraftPixelSizeForAspectAndTier,
+  UNIVERSAL_ASPECT_LABELS,
+} from './universalImageSizes';
 // @ts-ignore
 import { text as textStyles, surface, border, radius, sp, font } from './nodeTokens';
 import { getHandleColor, getHandleDataType } from '../utils/handleTypes';
+import { getUniversalModelLogo } from '../utils/universalModelLogo';
 import { Node, Edge } from '@xyflow/react';
 
 const IMAGE_MODEL_OPTIONS = [
@@ -66,6 +81,179 @@ const FRIENDLY_MODEL_LABELS: Record<string, string> = {
   'ltx-video': 'LTX Video',
 };
 
+/** Matches ImageUniversalGeneratorNode / VideoUniversalGeneratorNode */
+const UNIVERSAL_ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'] as const;
+
+/** LTX text-to-video resolution by aspect (VideoUniversalGeneratorNode) */
+const VIDEO_LTX_RESOLUTION_BY_ASPECT: Record<string, string> = {
+  '1:1': '1080x1080',
+  '16:9': '1920x1080',
+  '9:16': '1080x1920',
+  '4:3': '1440x1080',
+  '3:4': '1080x1440',
+  '3:2': '1620x1080',
+  '2:3': '1080x1620',
+};
+
+function invertAspectToSizeMap(map: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [ar, px] of Object.entries(map)) {
+    out[px] = ar;
+  }
+  return out;
+}
+
+const VIDEO_SIZE_TO_ASPECT = invertAspectToSizeMap(VIDEO_LTX_RESOLUTION_BY_ASPECT);
+
+const universalIconSelectShell: React.CSSProperties = {
+  position: 'relative',
+  width: 36,
+  height: 36,
+  borderRadius: 8,
+  border: '1px solid rgba(255, 255, 255, 0.12)',
+  background: 'rgba(0, 0, 0, 0.35)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+};
+
+/** Wider shell for image output tier (1K–4K) label + native select overlay */
+const universalSizeTierShell: React.CSSProperties = {
+  ...universalIconSelectShell,
+  width: 'auto',
+  minWidth: 48,
+  padding: '0 10px',
+};
+
+const universalIconSelectNative: React.CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  width: '100%',
+  height: '100%',
+  opacity: 0,
+  cursor: 'pointer',
+  zIndex: 2,
+  fontSize: 18,
+};
+
+const universalAspectPickerPopover: React.CSSProperties = {
+  position: 'absolute',
+  top: '100%',
+  left: 0,
+  marginTop: 6,
+  minWidth: 220,
+  maxHeight: 280,
+  overflowY: 'auto',
+  zIndex: 50,
+  borderRadius: 10,
+  border: '1px solid rgba(255, 255, 255, 0.14)',
+  background: 'rgba(22, 22, 26, 0.98)',
+  boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
+  padding: 6,
+};
+
+const UniversalAspectPicker: FC<{
+  value: string;
+  onChange: (aspect: string) => void;
+}> = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={`Aspect ratio, currently ${value}`}
+        title={`Aspect ratio: ${value}`}
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          ...universalIconSelectShell,
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          cursor: 'pointer',
+          padding: 0,
+        }}
+      >
+        <span
+          style={{
+            color: 'rgba(255,255,255,0.88)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <AspectRatioIcon style={{ display: 'block' }} />
+        </span>
+      </button>
+      {open && (
+        <div role="listbox" style={universalAspectPickerPopover}>
+          {UNIVERSAL_ASPECT_RATIOS.map((ar) => {
+            const selected = ar === value;
+            return (
+              <button
+                key={ar}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => {
+                  onChange(ar);
+                  setOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: selected ? 'rgba(59, 130, 246, 0.18)' : 'transparent',
+                  color: '#e8e8ec',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                }}
+              >
+                <AspectFrameMini aspect={ar} style={{ flexShrink: 0 }} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, lineHeight: 1.25 }}>
+                    {UNIVERSAL_ASPECT_LABELS[ar] ?? ar}
+                  </div>
+                  <div style={{ fontSize: 11, opacity: 0.55, marginTop: 2 }}>{ar}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/** GeneratorNode (Kora vs Nano Banana) */
+const KORA_ASPECTS = ['Auto', '1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
+const NANO_ASPECTS = ['Auto', '1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
+const KORA_RESOLUTIONS = ['HD', '2K'];
+const NANO_RESOLUTIONS = ['1K', '2K', '4K'];
+
 function getModelOptionsByType(nodeType?: string) {
   if (nodeType === 'universalGeneratorImage') return IMAGE_MODEL_OPTIONS;
   if (nodeType === 'universalGeneratorVideo') return VIDEO_MODEL_OPTIONS;
@@ -74,6 +262,18 @@ function getModelOptionsByType(nodeType?: string) {
 
 function getDefaultModelByType(nodeType?: string) {
   return nodeType === 'universalGeneratorVideo' ? 'kling3' : 'Nano Banana 2';
+}
+
+function isInspectorRunnableGeneratorType(nodeType?: string): boolean {
+  if (!nodeType) return false;
+  return (
+    nodeType === 'universalGeneratorImage' ||
+    nodeType === 'universalGeneratorVideo' ||
+    nodeType === 'musicGeneration' ||
+    nodeType === 'tripo3d' ||
+    nodeType === 'quiverImageToVector' ||
+    nodeType === 'quiverTextToVector'
+  );
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -197,9 +397,11 @@ interface NodePropertyEditorProps {
   onDelete?: (id: string) => void;
   compact?: boolean;
   onOpenModelMegaMenu?: () => void;
+  onRunNode?: () => void;
+  isRunning?: boolean;
 }
 
-const NodePropertyEditor: FC<NodePropertyEditorEditorProps> = ({
+const NodePropertyEditor: FC<NodePropertyEditorProps> = ({
   node,
   edges = [],
   allNodes = [],
@@ -207,12 +409,14 @@ const NodePropertyEditor: FC<NodePropertyEditorEditorProps> = ({
   onDelete,
   compact = false,
   onOpenModelMegaMenu,
+  onRunNode,
+  isRunning = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDataExpanded, setIsDataExpanded] = useState(true);
   const [isPointsExpanded, setIsPointsExpanded] = useState(false);
-  const [isInputsExpanded, setIsInputsExpanded] = useState(true);
-  const [isOutputsExpanded, setIsOutputsExpanded] = useState(true);
+  const [isInputsExpanded, setIsInputsExpanded] = useState(false);
+  const [isOutputsExpanded, setIsOutputsExpanded] = useState(false);
 
   const nodeMap = useMemo(() => {
     const m: Record<string, Node> = {};
@@ -242,6 +446,9 @@ const NodePropertyEditor: FC<NodePropertyEditorEditorProps> = ({
     setIsOutputsExpanded,
     nodeMap,
     onOpenModelMegaMenu,
+    showRunInInspector: compact && Boolean(onRunNode),
+    onRunNode,
+    isRunning,
   };
 
   if (compact) {
@@ -280,6 +487,9 @@ interface EditorContentProps {
   setIsOutputsExpanded: (val: boolean) => void;
   nodeMap: Record<string, Node>;
   onOpenModelMegaMenu?: () => void;
+  showRunInInspector?: boolean;
+  onRunNode?: () => void;
+  isRunning?: boolean;
 }
 
 const EditorContent: FC<EditorContentProps> = ({
@@ -291,9 +501,47 @@ const EditorContent: FC<EditorContentProps> = ({
   isOutputsExpanded, setIsOutputsExpanded,
   nodeMap,
   onOpenModelMegaMenu,
+  showRunInInspector = false,
+  onRunNode,
+  isRunning = false,
 }) => {
   const isUniversalGenerator =
     node.type === 'universalGeneratorImage' || node.type === 'universalGeneratorVideo';
+  const isGeneratorNode = node.type === 'generator';
+  const generatorIsKora = node.data.generatorType === 'kora';
+  const generatorAspects = generatorIsKora ? KORA_ASPECTS : NANO_ASPECTS;
+  const generatorResolutions = generatorIsKora ? KORA_RESOLUTIONS : NANO_RESOLUTIONS;
+  const generatorAspect =
+    (node.data.localAspectRatio as string) || generatorAspects[0] || 'Auto';
+  const generatorResolution =
+    (node.data.localResolution as string) || generatorResolutions[0] || '1K';
+  const inspectorSlimChrome =
+    node.type === 'universalGeneratorImage' ||
+    node.type === 'universalGeneratorVideo' ||
+    node.type === 'musicGeneration' ||
+    node.type === 'tripo3d';
+  const hideUniversalModelHeading = inspectorSlimChrome && isUniversalGenerator;
+  const universalAspectRaw = isUniversalGenerator
+    ? ((node.data.aspectRatio as string) ||
+        (node.type === 'universalGeneratorVideo' ? '16:9' : '1:1'))
+    : '1:1';
+  const universalAspect = UNIVERSAL_ASPECT_RATIOS.includes(universalAspectRaw as (typeof UNIVERSAL_ASPECT_RATIOS)[number])
+    ? universalAspectRaw
+    : node.type === 'universalGeneratorVideo'
+      ? '16:9'
+      : '1:1';
+  const universalImageSizeTier =
+    node.type === 'universalGeneratorImage'
+      ? normalizeImageSizeTier(node.data.imageSizeTier)
+      : normalizeImageSizeTier('1K');
+  const universalImageCurrentPx = recraftPixelSizeForAspectAndTier(
+    universalAspect,
+    universalImageSizeTier
+  );
+  const universalVideoCurrentPx =
+    VIDEO_LTX_RESOLUTION_BY_ASPECT[universalAspect] ||
+    VIDEO_LTX_RESOLUTION_BY_ASPECT['1:1'] ||
+    '';
   const modelOptions = getModelOptionsByType(node.type);
   const currentModels = (node.data.models as string[]) || [];
   const pinnedModels = (node.data.pinnedModels as string[]) || [];
@@ -405,23 +653,29 @@ const EditorContent: FC<EditorContentProps> = ({
   return (
     <>
       {/* Header Section */}
-      <div style={styles.sectionHeader}>
-        <span style={styles.titleText}>Node Inspector</span>
-        <InfoIcon style={{ color: '#999' }} />
-      </div>
+      {!inspectorSlimChrome && (
+        <div style={styles.sectionHeader}>
+          <span style={styles.titleText}>Node Inspector</span>
+          <InfoIcon style={{ color: '#999' }} />
+        </div>
+      )}
 
       {/* Content Section */}
       <div style={styles.sectionBody}>
           {/* Label Field */}
-          <div>
-            <div style={styles.labelText}>NODE LABEL</div>
-            <input 
-              style={styles.input}
-              value={(node.data.label as string) || ''} 
-              onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { label: e.target.value })}
-              placeholder="Enter node label..."
-            />
-          </div>
+          {!inspectorSlimChrome && (
+            <div>
+              <div style={styles.labelText}>NODE LABEL</div>
+              <input
+                style={styles.input}
+                value={(node.data.label as string) || ''}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  onUpdate(node.id, { label: e.target.value })
+                }
+                placeholder="Enter node label..."
+              />
+            </div>
+          )}
 
           {/* Type Info */}
           <div style={styles.row}>
@@ -452,8 +706,131 @@ const EditorContent: FC<EditorContentProps> = ({
 
           <div style={{ height: '1px', backgroundColor: '#3a3a3a', margin: '4px 0' }} />
 
+          {isGeneratorNode && (
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ ...styles.titleText, marginBottom: '10px' }}>OUTPUT</div>
+              <div style={{ marginBottom: '10px' }}>
+                <div style={styles.labelText}>Aspect ratio</div>
+                <select
+                  style={styles.input}
+                  value={generatorAspect}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                    onUpdate(node.id, { localAspectRatio: e.target.value })
+                  }
+                >
+                  {generatorAspects.map((ar) => (
+                    <option key={ar} value={ar}>
+                      {ar}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div style={styles.labelText}>Resolution</div>
+                <select
+                  style={styles.input}
+                  value={generatorResolution}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                    onUpdate(node.id, { localResolution: e.target.value })
+                  }
+                >
+                  {generatorResolutions.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           {isUniversalGenerator && (
             <div>
+              <div
+                style={{
+                  marginBottom: '12px',
+                  display: 'flex',
+                  flexDirection: 'row',
+                  gap: '8px',
+                  alignItems: 'center',
+                }}
+              >
+                <UniversalAspectPicker
+                  value={universalAspect}
+                  onChange={(ar) => onUpdate(node.id, { aspectRatio: ar })}
+                />
+                {node.type === 'universalGeneratorImage' ? (
+                  <div
+                    style={universalSizeTierShell}
+                    title={`Output ${universalImageSizeTier} (${universalImageCurrentPx.replace('x', ' × ')})`}
+                  >
+                    <span
+                      style={{
+                        pointerEvents: 'none',
+                        position: 'relative',
+                        zIndex: 1,
+                        color: 'rgba(255,255,255,0.9)',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        letterSpacing: '0.02em',
+                      }}
+                    >
+                      {universalImageSizeTier}
+                    </span>
+                    <select
+                      aria-label={`Image output tier, currently ${universalImageSizeTier}`}
+                      style={universalIconSelectNative}
+                      value={universalImageSizeTier}
+                      onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                        onUpdate(node.id, { imageSizeTier: e.target.value })
+                      }
+                    >
+                      {IMAGE_SIZE_TIERS.map((tier) => (
+                        <option key={tier} value={tier}>
+                          {tier}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div
+                    style={universalIconSelectShell}
+                    title={`Output size: ${universalVideoCurrentPx.replace('x', ' × ')}`}
+                  >
+                    <span
+                      style={{
+                        pointerEvents: 'none',
+                        position: 'absolute',
+                        zIndex: 1,
+                        color: 'rgba(255,255,255,0.88)',
+                        display: 'flex',
+                      }}
+                    >
+                      <ResolutionIcon style={{ display: 'block' }} />
+                    </span>
+                    <select
+                      aria-label={`Output resolution, currently ${universalVideoCurrentPx.replace('x', ' × ')} pixels`}
+                      style={universalIconSelectNative}
+                      value={universalVideoCurrentPx}
+                      onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                        const ar = VIDEO_SIZE_TO_ASPECT[e.target.value];
+                        if (ar) onUpdate(node.id, { aspectRatio: ar });
+                      }}
+                    >
+                      {UNIVERSAL_ASPECT_RATIOS.map((ar) => {
+                        const px = VIDEO_LTX_RESOLUTION_BY_ASPECT[ar];
+                        if (!px) return null;
+                        return (
+                          <option key={ar} value={px}>
+                            {px.replace('x', ' × ')} ({ar})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
+              </div>
+
               {onOpenModelMegaMenu && (
                 <button
                   type="button"
@@ -474,31 +851,62 @@ const EditorContent: FC<EditorContentProps> = ({
                   Select Model…
                 </button>
               )}
-              <div style={{ ...styles.titleText, marginBottom: '10px' }}>MODEL SELECTION</div>
+              {!hideUniversalModelHeading && (
+                <div style={{ ...styles.titleText, marginBottom: '10px' }}>MODEL SELECTION</div>
+              )}
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={styles.labelText}>Auto select model</span>
-                <input
-                  type="checkbox"
-                  checked={autoSelect}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => handleAutoSelectChange(e.target.checked)}
-                />
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <span style={styles.labelText}>Use multiple models</span>
-                <input
-                  type="checkbox"
-                  checked={useMultiple}
-                  disabled={autoSelect}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => handleUseMultipleChange(e.target.checked)}
-                />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px',
+                  marginBottom: '10px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    flex: '1 1 0',
+                    minWidth: 0,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={autoSelect}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => handleAutoSelectChange(e.target.checked)}
+                  />
+                  <span style={styles.labelText}>Auto select model</span>
+                </label>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    cursor: autoSelect ? 'not-allowed' : 'pointer',
+                    flex: '1 1 0',
+                    minWidth: 0,
+                    opacity: autoSelect ? 0.55 : 1,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={useMultiple}
+                    disabled={autoSelect}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => handleUseMultipleChange(e.target.checked)}
+                  />
+                  <span style={styles.labelText}>Use multiple models</span>
+                </label>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
                 {orderedModelOptions.map((model) => {
                   const checked = currentModels.includes(model);
                   const pinned = pinnedModels.includes(model);
+                  const modelLogo = getUniversalModelLogo(model);
                   return (
                     <div
                       key={model}
@@ -514,14 +922,25 @@ const EditorContent: FC<EditorContentProps> = ({
                         opacity: autoSelect ? 0.6 : 1,
                       }}
                     >
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: autoSelect ? 'not-allowed' : 'pointer' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: autoSelect ? 'not-allowed' : 'pointer', minWidth: 0, flex: 1 }}>
                         <input
                           type="checkbox"
                           checked={checked}
                           disabled={autoSelect}
                           onChange={() => handleModelToggle(model)}
                         />
-                        <span style={{ fontSize: '12px', color: '#ddd' }}>
+                        {modelLogo ? (
+                          <img
+                            src={modelLogo}
+                            alt=""
+                            width={20}
+                            height={20}
+                            style={{ flexShrink: 0, objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <span style={{ width: 20, flexShrink: 0 }} aria-hidden />
+                        )}
+                        <span style={{ fontSize: '12px', color: '#ddd', minWidth: 0 }}>
                           {FRIENDLY_MODEL_LABELS[model] || model}
                         </span>
                       </label>
@@ -871,6 +1290,37 @@ const EditorContent: FC<EditorContentProps> = ({
               </div>
             )}
           </div>
+
+          {showRunInInspector &&
+            onRunNode &&
+            isInspectorRunnableGeneratorType(node.type) && (
+              <button
+                type="button"
+                onClick={onRunNode}
+                disabled={isRunning || Boolean(node.data?.isLoading)}
+                aria-label={isRunning ? 'Running' : 'Run'}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  marginTop: '8px',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(16, 185, 129, 0.45)',
+                  background: 'rgba(16, 185, 129, 0.18)',
+                  color: '#6ee7b7',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: isRunning || Boolean(node.data?.isLoading) ? 'not-allowed' : 'pointer',
+                  opacity: isRunning || Boolean(node.data?.isLoading) ? 0.55 : 1,
+                }}
+              >
+                <PlayIcon style={{ flexShrink: 0 }} />
+                {isRunning ? 'Running…' : 'Run'}
+              </button>
+            )}
 
       </div>
     </>

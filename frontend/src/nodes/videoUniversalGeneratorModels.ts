@@ -1,0 +1,81 @@
+/**
+ * Video universal generator catalog — separate from the node component so
+ * App / MegaMenu can import metadata without pulling the full node into the main chunk.
+ */
+export const VIDEO_UNIVERSAL_MODEL_DEFS = {
+  Auto: {
+    name: 'Auto',
+    provider: 'System',
+    featured: false,
+    tags: [] as string[],
+    supportsImageInput: true,
+    supportsEndFrame: true,
+  },
+  kling3: {
+    name: 'Kling 3',
+    provider: 'Kling',
+    featured: true,
+    tags: ['High Quality', '10s'],
+    description: 'Advanced video generation with motion control',
+    supportsImageInput: true,
+    supportsEndFrame: true,
+  },
+  runway: {
+    name: 'Runway Gen-4',
+    provider: 'Runway',
+    featured: true,
+    tags: ['Turbo', '10s'],
+    description: 'Fast generation with cinematic quality',
+    supportsImageInput: true,
+    supportsEndFrame: false,
+  },
+  minimax: {
+    name: 'MiniMax',
+    provider: 'MiniMax',
+    featured: false,
+    tags: ['Live', '6s'],
+    description: 'Real-time video generation',
+    supportsImageInput: true,
+    supportsEndFrame: false,
+  },
+  pixverse: {
+    name: 'PixVerse V5',
+    provider: 'PixVerse',
+    featured: false,
+    tags: ['Motion', '10s'],
+    description: 'Smooth motion and transitions',
+    supportsImageInput: true,
+    supportsEndFrame: true,
+  },
+  seedance: {
+    name: 'Seedance',
+    provider: 'ByteDance',
+    featured: true,
+    tags: ['Pro', '10s'],
+    description: 'Professional dance and movement videos',
+    supportsImageInput: true,
+    supportsEndFrame: false,
+  },
+  'wan2.6': {
+    name: 'Wan 2.6',
+    provider: 'Wan',
+    featured: false,
+    tags: ['720p', '10s'],
+    description: 'High-resolution video generation',
+    supportsImageInput: true,
+    supportsEndFrame: true,
+  },
+  'ltx-video': {
+    name: 'LTX Video',
+    provider: 'LTX',
+    featured: true,
+    tags: ['4K', '8s'],
+    description: 'Up to 4K resolution with synchronized audio',
+    supportsImageInput: true,
+    supportsEndFrame: false,
+  },
+} as const;
+
+export type VideoUniversalModelId = keyof typeof VIDEO_UNIVERSAL_MODEL_DEFS;
+
+export const MODELS = Object.keys(VIDEO_UNIVERSAL_MODEL_DEFS) as VideoUniversalModelId[];

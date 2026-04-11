@@ -1,17 +1,26 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 import { visualizer } from 'rollup-plugin-visualizer'
+
+const isCi = Boolean(process.env.CI || process.env.VERCEL)
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    visualizer({
-      open: true,
-      gzipSize: true,
-      brotliSize: true,
-    })
+    tailwindcss(),
+    // Skip in CI/Vercel: visualizer + Rolldown can fail or bloat logs; not needed for production bundles.
+    ...(isCi
+      ? []
+      : [
+          visualizer({
+            open: true,
+            gzipSize: true,
+            brotliSize: true,
+          }),
+        ]),
   ],
   server: {
     proxy: {

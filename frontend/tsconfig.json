@@ -39,8 +39,12 @@
     "**/__tests__/**",
     "**/*.test.ts",
     "**/*.test.tsx",
+    "**/*.test.js",
+    "**/*.test.jsx",
     "**/*.spec.ts",
     "**/*.spec.tsx",
+    "**/*.spec.js",
+    "**/*.spec.jsx",
     "src/test/**",
     "src/nodes/BaseNode.tsx"
   ],

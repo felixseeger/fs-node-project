@@ -1,15 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { IMAGE_UNIVERSAL_MODEL_DEFS } from '../nodes/ImageUniversalGeneratorNode';
-import { VIDEO_UNIVERSAL_MODEL_DEFS } from '../nodes/VideoUniversalGeneratorNode';
-
-import bflLogo from '../assets/icons/black-forest-labs.svg';
-import bytedanceLogo from '../assets/icons/bytedance-logo.svg';
-import googleLogo from '../assets/icons/google.svg';
-import pixverseLogo from '../assets/icons/pixverse.svg';
-import runwayLogo from '../assets/icons/runway.svg';
-import minimaxLogo from '../assets/icons/minimax.svg';
-import ltxLogo from '../assets/icons/ltx-logo-light.svg';
+import { IMAGE_UNIVERSAL_MODEL_DEFS } from '../nodes/imageUniversalGeneratorModels';
+import { VIDEO_UNIVERSAL_MODEL_DEFS } from '../nodes/videoUniversalGeneratorModels';
+import { getUniversalModelLogo } from '../utils/universalModelLogo';
 
 /** Shared shape for catalog entries from image/video universal defs */
 export interface UniversalCatalogDef {
@@ -45,18 +38,6 @@ function slugifyKey(key: string): string {
     .toLowerCase()
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9._/-]/g, '');
-}
-
-function getModelLogo(modelKey: string): string | null {
-  const lower = modelKey.toLowerCase();
-  if (lower.includes('flux')) return bflLogo;
-  if (lower.includes('seedance')) return bytedanceLogo;
-  if (lower.includes('veo') || lower.includes('gemini') || lower.includes('google') || lower.includes('nano banana')) return googleLogo;
-  if (lower.includes('pixverse')) return pixverseLogo;
-  if (lower.includes('runway')) return runwayLogo;
-  if (lower.includes('minimax')) return minimaxLogo;
-  if (lower.includes('ltx')) return ltxLogo;
-  return null;
 }
 
 function providerPillStyle(provider: string | undefined): BadgeStyle {
@@ -373,7 +354,7 @@ export default function MegaMenuModelSearch({ open, onClose, onSelect }: MegaMen
             }}
           >
             {filtered.map((row) => {
-              const logo = getModelLogo(row.key);
+              const logo = getUniversalModelLogo(row.key);
               const provStyle = providerPillStyle(row.def.provider);
               const caps = capabilityBadges(row);
               return (

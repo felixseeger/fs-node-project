@@ -3,6 +3,7 @@ import { surface, border, sp, radius, text, ui } from './nodeTokens';
 import { BaseNodeProps, NodeStatus } from './BaseNode.types';
 import NodeGenerateButton from './NodeGenerateButton';
 import NodeDownloadButton from './NodeDownloadButton';
+import EditableNodeTitle from './EditableNodeTitle';
 
 /**
  * BaseNode: The foundational UI wrapper for all nodes in the workflow.
@@ -12,6 +13,7 @@ import NodeDownloadButton from './NodeDownloadButton';
 export default function BaseNode({
   id,
   label,
+  editableTitle,
   children,
   selected = false,
   status = "idle",
@@ -110,16 +112,26 @@ export default function BaseNode({
               }}
             />
           )}
-          <span style={{
-            fontSize: 14,
-            fontWeight: 500,
-            letterSpacing: '0.02em',
-            color: 'var(--color-text)',
-            textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>{label || 'Untitled'}</span>
+          {editableTitle ? (
+            <EditableNodeTitle
+              value={editableTitle.value}
+              onCommit={editableTitle.onCommit}
+              placeholder={editableTitle.placeholder ?? (label || 'Untitled')}
+              disabled={editableTitle.disabled}
+              maxWidth={200}
+            />
+          ) : (
+            <span style={{
+              fontSize: 14,
+              fontWeight: 500,
+              letterSpacing: '0.02em',
+              color: 'var(--color-text)',
+              textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>{label || 'Untitled'}</span>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>

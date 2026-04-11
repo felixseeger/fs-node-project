@@ -246,6 +246,11 @@ export default function MusicGenerationNode({
     <NodeShell
       data={data}
       label={data.label || 'ElevenLabs Music'}
+      editableTitle={{
+        value: String(data.label ?? ''),
+        onCommit: (next) => update({ label: next }),
+        placeholder: 'Generate Audio',
+      }}
       dotColor={ACCENT}
       selected={selected}
       onGenerate={handleGenerate}

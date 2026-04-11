@@ -261,8 +261,8 @@ export async function seedanceGenerate(resolution, params) {
   return postToApi(`/api/seedance-1-5-pro/${resolution}`, params);
 }
 
-export async function pollSeedanceStatus(resolution, taskId, maxAttempts = 120, intervalMs = 3000) {
-  return pollGenericStatus(`/api/seedance-1-5-pro/${resolution}`, taskId, { maxAttempts, intervalMs, errorLabel: 'Seedance generation' });
+export async function pollSeedanceStatus(resolution, taskId, maxAttempts = 120, intervalMs = 3000, onProgress) {
+  return pollGenericStatus(`/api/seedance-1-5-pro/${resolution}`, taskId, { maxAttempts, intervalMs, onProgress, errorLabel: 'Seedance generation' });
 }
 
 
@@ -321,6 +321,26 @@ export async function pixVerseV5TransitionGenerate(params) {
 
 export async function pollPixVerseV5TransitionStatus(taskId, maxAttempts = 120, intervalMs = 3000) {
   return pollGenericStatus('/api/pixverse-v5-transition', taskId, { maxAttempts, intervalMs, errorLabel: 'PixVerse V5 Transition generation' });
+}
+
+
+// --- PixVerse Direct API (Native) ---
+export async function pixVerseVideoGenerate(mode, params) {
+  const endpoint = mode === 'image' ? '/api/pixverse/image-to-video' : '/api/pixverse/text-to-video';
+  return postToApi(endpoint, params);
+}
+
+export async function pollPixVerseVideoStatus(videoId, maxAttempts = 120, intervalMs = 3000, onProgress) {
+  return pollGenericStatus('/api/pixverse/status', videoId, {
+    maxAttempts,
+    intervalMs,
+    onProgress,
+    errorLabel: 'PixVerse video generation'
+  });
+}
+
+export async function pixVerseSoundEffect(params) {
+  return postToApi('/api/pixverse/sound-effect', params);
 }
 
 
