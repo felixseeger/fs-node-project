@@ -37,8 +37,12 @@ export default defineConfig({
     // Extensionless imports: .jsx before .tsx so co-located JSX twins keep winning (e.g. InspectorPanel.jsx over .tsx).
     extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
     alias: {
-      // Linked blue-ether sources import gsap; Rolldown/Vite may not walk up to app node_modules.
+      // Linked blue-ether sources import external deps; Rolldown/Vite may not walk up to app node_modules.
       gsap: path.resolve(__dirname, 'node_modules/gsap'),
+      react: path.resolve(__dirname, 'node_modules/react'),
+      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+      'react-redux': path.resolve(__dirname, 'node_modules/react-redux'),
+      '@reduxjs/toolkit': path.resolve(__dirname, 'node_modules/@reduxjs/toolkit'),
       '@': path.resolve(__dirname, './src'),
       '@config': path.resolve(__dirname, './src/config'),
       '@hooks': path.resolve(__dirname, './src/hooks'),
