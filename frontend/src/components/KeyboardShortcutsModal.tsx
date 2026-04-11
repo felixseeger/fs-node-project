@@ -50,7 +50,9 @@ const shortcutCategories: ShortcutCategory[] = [
       { keys: ['Ctrl/Cmd+X'], description: 'Cut selected nodes' },
       { keys: ['Ctrl/Cmd+V'], description: 'Paste nodes' },
       { keys: ['Ctrl/Cmd+D'], description: 'Duplicate selected nodes' },
+      { keys: ['Ctrl/Cmd+Shift+D'], description: 'Disconnect selected nodes' },
       { keys: ['Ctrl/Cmd+Shift+X'], description: 'Clear node contents' },
+      { keys: ['Alt+Click Handle'], description: 'Disconnect specific handle' },
     ]
   },
   {

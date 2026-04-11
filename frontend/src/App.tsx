@@ -989,7 +989,7 @@ export default function App() {
         menuItems.push({ label: 'Copy', action: 'copy', shortcut: '⌘C' });
         menuItems.push({ label: 'Duplicate', action: 'duplicate', shortcut: '⌘D' });
         menuItems.push({ label: 'Clear node contents', action: 'clear_contents', shortcut: '⌘⇧X' });
-        menuItems.push({ label: 'Disconnect Nodes', action: 'disconnect_nodes', icon: <DisconnectIcon /> });
+        menuItems.push({ label: 'Disconnect Nodes', action: 'disconnect_nodes', shortcut: '⌘⇧D', icon: <DisconnectIcon /> });
         menuItems.push({ type: 'divider' });
         if (selectedNodes.length > 1) {
           menuItems.push({ label: 'Grid Nodes', action: 'grid_nodes', icon: <GridIcon /> });
@@ -1260,7 +1260,9 @@ export default function App() {
         if (e.shiftKey) handleRedo(); else handleUndo();
       } else if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 's') {
         e.preventDefault(); handleExportScreenshot();
-      } else if (cmdOrCtrl && e.key === 'd') {
+      } else if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault(); handleMenuAction('disconnect_nodes', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
+      } else if (cmdOrCtrl && e.key.toLowerCase() === 'd') {
         e.preventDefault(); handleMenuAction('duplicate', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
       } else if (cmdOrCtrl && e.key.toLowerCase() === 'c') {
         e.preventDefault(); handleMenuAction('copy', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
@@ -1350,6 +1352,35 @@ export default function App() {
     window.addEventListener('open-command-palette', handleOpenCommandPalette);
     return () => window.removeEventListener('open-command-palette', handleOpenCommandPalette);
   }, []);
+
+  // Handle-level disconnect (Alt + Click on a handle)
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      if (e.altKey) {
+        const target = e.target as HTMLElement;
+        const handleEl = target.closest('.react-flow__handle');
+        if (handleEl) {
+          e.preventDefault();
+          e.stopPropagation();
+          const nodeId = handleEl.getAttribute('data-nodeid');
+          const handleId = handleEl.getAttribute('data-handleid');
+
+          if (nodeId && handleId) {
+            saveHistory();
+            setEdges(eds => eds.filter(edge => {
+              const isMatch = (edge.source === nodeId && edge.sourceHandle === handleId) ||
+                              (edge.target === nodeId && edge.targetHandle === handleId);
+              return !isMatch;
+            }));
+          }
+        }
+      }
+    };
+    
+    // Use capture phase to intercept before React Flow handles the click
+    window.addEventListener('click', handleGlobalClick, { capture: true });
+    return () => window.removeEventListener('click', handleGlobalClick, { capture: true });
+  }, [setEdges, saveHistory]);
 
   const handleRenameSubmit = () => {
     if (newWorkflowName.trim() && activeWorkflowId) {
@@ -1589,6 +1620,14 @@ export default function App() {
     }
     handleDeleteWorkflows([id]);
   }, [activeWorkflowId, workflows, handleCreateWorkflow]);
+
+  const handleExportJSON = useCallback(() => {
+    const b = new Blob([JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = `\${activeWorkflowName || 'workflow'}.json`;
+    a.click();
+  }, [activeWorkflowName]);
 
   if (authLoading) {
     return (
