@@ -14,14 +14,17 @@ import {
   Connection,
   ReactFlowInstance,
   OnConnect,
+  SelectionMode,
+  type NodeTypes,
 } from '@xyflow/react';
 
 import { generateAIWorkflow, sendChat, uploadWorkflowThumbnail } from './utils/api';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirebaseAuth, initializeFirebase, enableOfflinePersistence } from './config/firebase';
 import { useFirebaseWorkflows } from './hooks/useFirebaseWorkflows';
 import { useFirebaseTemplates } from './hooks/useFirebaseTemplates';
 import { useFirebaseAssets } from './hooks/useFirebaseAssets';
+import { useUser } from './hooks/useUser';
 import { saveTemplate as saveLocalTemplate } from './templates/templateStore';
 
 import { dynamicNodes, createDynamicNodeWrapper } from './utils/dynamicNodeImports';
@@ -31,7 +34,6 @@ import { MODELS as IMAGE_MODELS } from './nodes/imageUniversalGeneratorModels';
 import { MODELS as VIDEO_MODELS } from './nodes/videoUniversalGeneratorModels';
 import LandingPage from './LandingPage';
 import ProjectsDashboard from './ProjectsDashboard';
-import WorkflowsPage from './WorkflowsPage';
 import WorkspacesPage from './WorkspacesPage';
 import ProfileModal from './ProfileModal';
 import WorkflowSettingsPage from './WorkflowSettingsPage';
@@ -68,28 +70,26 @@ import { buildCanvasAllNodesSections, resolveCanvasNodeData } from './config/can
 import { isHandleConnected, getConnectionInfo as getConnectionInfoBase } from './helpers/nodeData.js';
 import { captureCanvasViewportPngDataUrl, exportCanvasViewportToPng } from './utils/canvasUtils';
 import InspectorPanel from './InspectorPanel';
-import ConnectionDropMenu from './ConnectionDropMenu';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
-import { Workflow } from './types/workflow';
 import { nextId } from './app/nextId';
 import { GridIcon, CollageIcon, WorkflowIcon, DisconnectIcon } from './app/contextMenuIcons';
 import { CanvasNavigation } from './app/CanvasNavigation';
 import {
   findCompatibleHandle,
-  INPUT_HANDLES_BY_TYPE,
-  OUTPUT_HANDLES_BY_TYPE,
 } from './app/connectionHandleMaps';
+import type { PageType, EditorMode } from './types';
+import { isWorkflowImportData } from './types';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('landing');
+  const [currentPage, setCurrentPage] = useState<PageType>('landing');
   const [workflows, setWorkflows] = useState<any[]>([]);
-  const [activeWorkflowId, setActiveWorkflowId] = useState<string | null>(null);
-  const [editorMode, setEditorMode] = useState('node-editor');
+  const [activeWorkflowId, setActiveWorkflowId] = useState<string | undefined>(undefined);
+  const [editorMode, setEditorMode] = useState<EditorMode>('node-editor');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | undefined>(undefined);
   const [authLoading, setAuthLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | undefined>(undefined);
   const [showSystemLoading, setShowSystemLoading] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('app_theme') || 'dark');
 
@@ -100,11 +100,24 @@ export default function App() {
 
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
-  
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success'; id: string } | undefined>(undefined);
+
   const firebaseTemplates = useFirebaseTemplates(currentUserId);
   const firebaseAssets = useFirebaseAssets(currentUserId);
+  const { initialize: initializeProfile } = useUser(currentUserId as any);
+
+  const handleNavigate = useCallback((page: any) => {
+    setCurrentPage(page as PageType);
+  }, []);
 
   const SLP_KEY = 'slp_shown';
+
+  // Toast helper
+  const showToast = (message: string, type: 'error' | 'success' = 'error') => {
+    const id = Date.now().toString();
+    setToast({ message, type, id });
+    setTimeout(() => setToast(undefined), 4000);
+  };
 
   useEffect(() => {
     try {
@@ -116,14 +129,18 @@ export default function App() {
         if (user) {
           setIsAuthenticated(true);
           setCurrentUserId(user.uid);
-          setCurrentUserEmail(user.email || null);
+          setCurrentUserEmail(user.email || undefined);
+          
+          // Initialize/Sync Firestore profile
+          initializeProfile(user.uid, user.email || '', user.displayName || user.email?.split('@')[0] || 'User');
+          
           setCurrentPage((prev) => (prev === 'landing' || prev.startsWith('auth-') ? 'home' : prev));
           if (!sessionStorage.getItem(SLP_KEY)) {
             setShowSystemLoading(true);
           }
         } else {
           setIsAuthenticated(false);
-          setCurrentUserId(null);
+          setCurrentUserId(undefined);
           setCurrentPage('landing');
           sessionStorage.removeItem(SLP_KEY);
         }
@@ -138,7 +155,7 @@ export default function App() {
       setAuthError(err.message);
       setAuthLoading(false);
     }
-  }, []);
+  }, [initializeProfile]);
 
   useEffect(() => {
     if (!showSystemLoading) return undefined;
@@ -153,7 +170,6 @@ export default function App() {
     workflows: firebaseWorkflows,
     communityWorkflows,
     sharedWorkflows,
-    isLoading: isFirebaseLoading,
     create: createFirebaseWorkflow,
     load: loadFirebaseWorkflow,
     save: saveFirebaseWorkflow,
@@ -208,9 +224,9 @@ export default function App() {
   const activeWorkflowName = workflows.find((w) => w.id === activeWorkflowId)?.name || 'Untitled';
 
   const [nodes, setNodes, onNodesChange] = useNodesState(DEFAULT_NODES);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
-  const [history, setHistory] = useState<{ past: any[], future: any[] }>({ past: [], future: [] });
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | undefined>(undefined);
+  const [_history, setHistory] = useState<{ past: any[], future: any[] }>({ past: [], future: [] });
   const isHistoryAction = useRef(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
@@ -219,16 +235,16 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [browseModelsOpen, setBrowseModelsOpen] = useState(false);
-  const [lastGeneratedWorkflow, setLastGeneratedWorkflow] = useState<any>(null);
+  const [lastGeneratedWorkflow, setLastGeneratedWorkflow] = useState<any>(undefined);
   const [newWorkflowName, setNewWorkflowName] = useState('');
-  const [menu, setMenu] = useState<any>(null);
-  const [clipboardNodes, setClipboardNodes] = useState<any>(null);
-  const clipboardRef = useRef<any>(null);
-  const pastePositionRef = useRef<any>(null);
-  const chatUIRef = useRef<any>(null);
-  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [menu, setMenu] = useState<any>(undefined);
+  const [clipboardNodes, setClipboardNodes] = useState<any>(undefined);
+  const clipboardRef = useRef<any>(undefined);
+  const pastePositionRef = useRef<any>(undefined);
+  const chatUIRef = useRef<any>(undefined);
+  const [referenceImage, setReferenceImage] = useState<string | undefined>(undefined);
   const [isRunning, setIsRunning] = useState(false);
-  const [connectionDrop, setConnectionDrop] = useState<any>(null);
+  const [_connectionDrop, setConnectionDrop] = useState<any>(undefined);
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const edgesRef = useRef(edges);
@@ -254,7 +270,7 @@ export default function App() {
     return `${nodeSignature}__${edgeSignature}`;
   }, []);
 
-  const [zoomMode, setZoomMode] = useState<'scroll' | 'altScroll' | 'ctrlScroll'>(() => {
+  const [zoomMode] = useState<'scroll' | 'altScroll' | 'ctrlScroll'>(() => {
     try {
       return (localStorage.getItem('canvas_zoom_mode') as 'scroll' | 'altScroll' | 'ctrlScroll') || 'ctrlScroll';
     } catch {
@@ -275,7 +291,7 @@ export default function App() {
       return Math.abs(event.deltaY) >= threshold && Math.abs(event.deltaY) % 40 === 0;
     };
 
-    const findScrollableAncestor = (target: EventTarget | null, dx: number, dy: number) => {
+    const findScrollableAncestor = (target: EventTarget | null, _dx: number, _dy: number) => {
       let el = target as HTMLElement | null;
       while (el && el !== wrapper && el !== document.body) {
         const isTextarea = el.tagName === 'TEXTAREA';
@@ -376,34 +392,38 @@ export default function App() {
   );
 
   const onConnect: OnConnect = useCallback(
-    (connection) => {
-      const edgeColor = getHandleColor(connection.sourceHandle);
+    (params) => {
+      const { source, sourceHandle, target, targetHandle } = params;
+      if (!source || !sourceHandle || !target || !targetHandle) return;
+
+      const edgeColor = getHandleColor(sourceHandle);
       const newEdge: Edge = {
-        ...connection,
-        id: `e-${connection.source}-${connection.sourceHandle}-${connection.target}-${connection.targetHandle}`,
+        id: `e-${source}-${sourceHandle}-${target}-${targetHandle}`,
+        source,
+        sourceHandle,
+        target,
+        targetHandle,
         style: { stroke: edgeColor, strokeWidth: 2 },
         type: 'default',
-        source: connection.source!,
-        target: connection.target!,
       };
       setEdges((eds) => addEdge(newEdge, eds));
 
-      if (connection.target) {
-        const targetNode = nodesRef.current.find((n) => n.id === connection.target);
+      if (target) {
+        const targetNode = nodesRef.current.find((n) => n.id === target);
         if (targetNode?.type === 'response') {
-          const sourceNode = nodesRef.current.find((n) => n.id === connection.source);
+          const sourceNode = nodesRef.current.find((n) => n.id === source);
           const existingFields = targetNode.data.responseFields || [];
           const newField = {
-            id: `${connection.source}-${connection.sourceHandle}`,
-            label: connection.sourceHandle,
+            id: `${source}-${sourceHandle}`,
+            label: sourceHandle,
             source: {
-              nodeLabel: sourceNode?.data.label || connection.source,
-              handle: connection.sourceHandle,
+              nodeLabel: sourceNode?.data.label || source,
+              handle: sourceHandle,
             },
             color: edgeColor,
           };
           if (!existingFields.find((f: any) => f.id === newField.id)) {
-            updateNodeData(connection.target, {
+            updateNodeData(target, {
               responseFields: [...existingFields, newField],
             });
           }
@@ -457,58 +477,6 @@ export default function App() {
       });
     },
     [saveHistory, onConnect, rfInstance]
-  );
-
-  const handleDropMenuSelect = useCallback(
-    ({ nodeType, defaults, flowPosition }: any) => {
-      if (!connectionDrop) return;
-      setConnectionDrop(null);
-      const { sourceNodeId, sourceHandleId, connectionType } = connectionDrop;
-      const newNodeId = nextId();
-      const newNode: Node = {
-        id: newNodeId,
-        type: nodeType,
-        position: flowPosition,
-        data: { ...(defaults || {}) },
-      };
-      setNodes((nds) => [...nds, newNode]);
-      saveHistory();
-
-      const isFromSource = connectionType === 'source';
-      const targetNodeId = isFromSource ? newNodeId : sourceNodeId;
-      const sourceNodeIdForEdge = isFromSource ? sourceNodeId : newNodeId;
-      const sourceHandleIdForEdge = isFromSource ? sourceHandleId : null;
-      let newHandleId: string | null = null;
-      if (isFromSource) {
-        const inputHandles = INPUT_HANDLES_BY_TYPE[nodeType] || [];
-        newHandleId = inputHandles.find(h => getHandleDataType(h) === connectionDrop.handleType) || inputHandles[0];
-      } else {
-        const outputHandles = OUTPUT_HANDLES_BY_TYPE[nodeType] || [];
-        newHandleId = outputHandles.find(h => getHandleDataType(h) === connectionDrop.handleType) || outputHandles[0];
-      }
-      if (!newHandleId) return;
-      const finalSourceHandle = isFromSource ? sourceHandleId : newHandleId;
-      const finalTargetHandle = isFromSource ? newHandleId : sourceHandleId;
-      const edgeColor = getHandleColor(finalSourceHandle);
-      const newEdge: Edge = {
-        id: `e-${sourceNodeIdForEdge}-${finalSourceHandle}-${targetNodeId}-${finalTargetHandle}`,
-        source: sourceNodeIdForEdge,
-        sourceHandle: finalSourceHandle,
-        target: targetNodeId,
-        targetHandle: finalTargetHandle,
-        style: { stroke: edgeColor, strokeWidth: 2 },
-        type: 'default',
-      };
-      setEdges((eds) => addEdge(newEdge, eds));
-      setTimeout(() => {
-        const el = document.querySelector(`[data-id="${newNodeId}"]`) as HTMLElement;
-        if (el) {
-          el.focus();
-          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-      }, 100);
-    },
-    [connectionDrop, saveHistory, setNodes, setEdges]
   );
 
   const onEdgesDelete = useCallback(
@@ -680,7 +648,7 @@ export default function App() {
     onEdgesChange(changes);
   }, [onEdgesChange, saveHistory]);
 
-  const nodeTypes = useMemo(
+  const nodeTypes = useMemo<NodeTypes>(
     () => ({
       inputNode: createDynamicNodeWrapper(dynamicNodes.InputNode),
       input: createDynamicNodeWrapper(dynamicNodes.InputNode),
@@ -745,7 +713,7 @@ export default function App() {
       imageOutput: createDynamicNodeWrapper(dynamicNodes.ImageOutputNode),
       videoOutput: createDynamicNodeWrapper(dynamicNodes.VideoOutputNode),
       soundOutput: createDynamicNodeWrapper(dynamicNodes.SoundOutputNode),
-    }),
+    } as any),
     []
   );
 
@@ -1037,7 +1005,7 @@ export default function App() {
   );
 
   const onPaneContextMenu = useCallback(
-    (event: React.MouseEvent) => {
+    (event: any) => {
       const selNodes = nodes.filter(n => n.selected);
       showContextMenu(event, selNodes);
     },
@@ -1045,7 +1013,7 @@ export default function App() {
   );
 
   const onNodeContextMenu = useCallback(
-    (event: React.MouseEvent, node: Node) => {
+    (event: any, node: Node) => {
       const selNodes = nodes.filter(n => n.selected);
       const nodesToShow = selNodes.some(n => n.id === node.id) ? selNodes : [node];
       showContextMenu(event, nodesToShow);
@@ -1054,7 +1022,7 @@ export default function App() {
   );
 
   const onSelectionContextMenu = useCallback(
-    (event: React.MouseEvent, selection: Node[]) => {
+    (event: any, selection: Node[]) => {
       showContextMenu(event, selection);
     },
     [showContextMenu]
@@ -1063,8 +1031,8 @@ export default function App() {
   const handleExportScreenshot = useCallback(async () => {
     try {
       await exportCanvasViewportToPng({
-        reactFlowWrapper: reactFlowWrapper as any,
-        fileName: `${activeWorkflowName || 'workflow'}-screenshot.png`,
+        reactFlowWrapper: reactFlowWrapper,
+        fileName: `\${activeWorkflowName || 'workflow'}-screenshot.png`,
       });
     } catch (error) {
       console.error('Failed to export canvas screenshot:', error);
@@ -1092,7 +1060,13 @@ export default function App() {
             },
           };
           setNodes((nds) => [...nds, newAsset]);
-          if (firebaseAssets.create) firebaseAssets.create(newAsset.data).catch(console.error);
+          if (firebaseAssets.create) {
+            const assetPayload: import('./types/asset').CreateAssetPayload = {
+              name: (newAsset.data.label as string) || 'New Asset',
+              images: Array.isArray(newAsset.data.images) ? newAsset.data.images : [],
+            };
+            firebaseAssets.create(assetPayload).catch(console.error);
+          }
         }
         break;
       case 'duplicate':
@@ -1427,12 +1401,13 @@ export default function App() {
     return `Board ${(maxNum + 1).toString().padStart(2, '0')}`;
   }, [workflows]);
 
-  const handleCreateWorkflow = useCallback(async (name: string, existingId?: string | null, aiOptions: any = null) => {
-    if (existingId && !['system-test', 'ai', 'scratch', 'import'].includes(aiOptions?.type)) {
-      setActiveWorkflowId(existingId);
-      const fbWf = await loadFirebaseWorkflow(existingId);
-      if (fbWf) { setNodes(fbWf.nodes); setEdges(fbWf.edges || []); subscribe(existingId); }
-      else { const local = workflows.find(w => w.id === existingId); if (local) { setNodes(local.nodes); setEdges(local.edges || []); } }
+  const handleCreateWorkflow = useCallback(async (name: string, existingId?: string | null | undefined, aiOptions: any = undefined) => {
+    const id = existingId || undefined;
+    if (id && !['system-test', 'ai', 'scratch', 'import'].includes(aiOptions?.type)) {
+      setActiveWorkflowId(id);
+      const fbWf = await loadFirebaseWorkflow(id);
+      if (fbWf) { setNodes(fbWf.nodes); setEdges((fbWf.edges || []) as Edge[]); subscribe(id); }
+      else { const local = workflows.find(w => w.id === id); if (local) { setNodes(local.nodes); setEdges((local.edges || []) as Edge[]); } }
       setCurrentPage('editor');
     } else if (aiOptions?.type === 'system-test') {
       const all: any[] = []; let x = 50, y = 50;
@@ -1448,14 +1423,14 @@ export default function App() {
       setCurrentPage('editor');
     } else if (aiOptions?.type === 'ai' && aiOptions.aiPrompt) {
       try {
-        const res = await generateAIWorkflow(aiOptions.aiPrompt, aiOptions.aiMode || 'standard');
+        const res: any = await generateAIWorkflow(aiOptions.aiPrompt, aiOptions.aiMode || 'standard');
         if (res.success && res.workflow) {
           const newWf = await createFirebaseWorkflow(res.workflow.name || name, res.workflow.nodes, res.workflow.edges);
-          if (newWf) { setActiveWorkflowId(newWf.id); setNodes(res.workflow.nodes); setEdges(res.workflow.edges); subscribe(newWf.id); }
+          if (newWf) { setActiveWorkflowId(newWf.id); setNodes(res.workflow.nodes); setEdges(res.workflow.edges as Edge[]); subscribe(newWf.id); }
           else {
-            const id = `wf_${Date.now()}`;
+            const id = `wf_\${Date.now()}`;
             const local = { id, name: res.workflow.name || name, nodes: res.workflow.nodes, edges: res.workflow.edges };
-            setWorkflows(p => [...p, local]); setActiveWorkflowId(id); setNodes(res.workflow.nodes); setEdges(res.workflow.edges);
+            setWorkflows(p => [...p, local]); setActiveWorkflowId(id); setNodes(res.workflow.nodes); setEdges(res.workflow.edges as Edge[]);
           }
         }
       } catch (e) {
@@ -1483,18 +1458,19 @@ export default function App() {
 
   const handleImportWorkflowFile = useCallback(async (file: File) => {
     try {
-      const text = await file.text(); const parsed = JSON.parse(text);
+      const text = await file.text(); 
+      const parsed: any = JSON.parse(text);
       let ns: any[] = [], es: any[] = [], wn = parsed.name || file.name.replace(/\.json$/i, '') || getNextBoardName();
       if (Array.isArray(parsed.nodes)) { ns = parsed.nodes; es = parsed.edges || []; }
       else if (parsed.workflow?.nodes) { ns = parsed.workflow.nodes; es = parsed.workflow.edges || []; wn = parsed.workflow.name || wn; }
       else return alert('Invalid JSON format');
-      await handleCreateWorkflow(wn, null, { type: 'import', importedNodes: ns, importedEdges: es, importName: wn });
+      await handleCreateWorkflow(wn, undefined, { type: 'import', importedNodes: ns, importedEdges: es, importName: wn });
     } catch (e) { alert('Failed to read file'); }
   }, [handleCreateWorkflow, getNextBoardName]);
 
   const handlePromptWorkflow = useCallback(async (promptText: string) => {
     const t = promptText?.trim(); if (!t) return;
-    await handleCreateWorkflow(getNextBoardName(), null, { type: 'ai', aiPrompt: t, aiMode: 'standard' });
+    await handleCreateWorkflow(getNextBoardName(), undefined, { type: 'ai', aiPrompt: t, aiMode: 'standard' });
   }, [handleCreateWorkflow, getNextBoardName]);
 
   const persistWorkflowState = useCallback(async ({ workflowId, workflowNodes, workflowEdges, includeThumbnail = false, forceThumbnail = false, extraUpdates = {} }: any) => {
@@ -1505,7 +1481,7 @@ export default function App() {
       const now = Date.now();
       if (forceThumbnail || (sig !== lastThumbnailGraphSignatureRef.current && (now - lastThumbnailUploadAtRef.current > 60000))) {
         try {
-          const dataUrl = await captureCanvasViewportPngDataUrl({ reactFlowWrapper: reactFlowWrapper as any, maxWidth: 1600, maxHeight: 900 });
+          const dataUrl = await captureCanvasViewportPngDataUrl({ reactFlowWrapper: reactFlowWrapper, maxWidth: 1600, maxHeight: 900 });
           const res = await uploadWorkflowThumbnail(dataUrl, workflowId);
           if (res?.url) { updates.thumbnail = res.url; lastThumbnailUploadAtRef.current = now; lastThumbnailGraphSignatureRef.current = sig; }
         } catch (e) { console.warn(e); }
@@ -1516,7 +1492,7 @@ export default function App() {
   }, [buildGraphSignature, saveFirebaseWorkflow]);
 
   useEffect(() => {
-    (window as any).runSystemTest = () => handleCreateWorkflow('System Test Workflow', null, { type: 'system-test' });
+    (window as any).runSystemTest = () => handleCreateWorkflow('System Test Workflow', undefined, { type: 'system-test' });
   }, [handleCreateWorkflow]);
 
   useEffect(() => {
@@ -1541,7 +1517,7 @@ export default function App() {
     setCurrentPage('home');
   }, [activeWorkflowId, persistWorkflowState, unsubscribe]);
 
-  const connectionValidator = useCallback((conn: Connection) => isValidConnection(conn), []);
+  const connectionValidator = useCallback((conn: any) => isValidConnection(conn), []);
   const defaultEdgeOptions = useMemo(() => ({ type: 'default', style: { strokeWidth: 2 } }), []);
 
   const handleDeleteWorkflows = async (ids: string[]) => {
@@ -1559,10 +1535,22 @@ export default function App() {
     if (id === activeWorkflowId) {
       const rem = workflows.filter(w => w.id !== id);
       if (rem.length) handleCreateWorkflow(rem[0].name, rem[0].id);
-      else { setCurrentPage('home'); setActiveWorkflowId(null); }
+      else { setCurrentPage('home'); setActiveWorkflowId(undefined); }
     }
     handleDeleteWorkflows([id]);
   }, [activeWorkflowId, workflows, handleCreateWorkflow]);
+
+  if (authLoading) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 16, animation: 'spin 1s linear infinite' }}>⟳</div>
+          <p style={{ color: '#888', fontSize: 14 }}>Initializing authentication...</p>
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
 
   if (authError) {
     const isApiError = authError.includes('api-key') || authError.includes('API key');
@@ -1572,7 +1560,10 @@ export default function App() {
           <div style={{ fontSize: 48, marginBottom: 24 }}>&#9888;</div>
           <h2 style={{ fontSize: 24, fontWeight: 600, marginBottom: 16 }}>{isApiError ? 'Firebase API Key Error' : 'Authentication Error'}</h2>
           <p style={{ fontSize: 14, color: '#888', marginBottom: 24 }}>{isApiError ? 'The Firebase API key is not valid for this domain.' : authError}</p>
-          <button onClick={() => window.location.reload()} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '12px 24px', fontSize: 14, borderRadius: 8 }}>Retry</button>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button onClick={() => window.location.reload()} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '12px 24px', fontSize: 14, borderRadius: 8, cursor: 'pointer' }}>Retry</button>
+            <button onClick={() => setAuthError(undefined)} style={{ background: 'transparent', color: '#888', border: '1px solid #444', padding: '12px 24px', fontSize: 14, borderRadius: 8, cursor: 'pointer' }}>Dismiss</button>
+          </div>
         </div>
       </div>
     );
@@ -1581,7 +1572,7 @@ export default function App() {
   if (!isAuthenticated && currentPage !== 'landing' && !currentPage.startsWith('auth-')) setCurrentPage('landing');
   if (!isAuthenticated && currentPage.startsWith('auth-')) {
     const initial = currentPage.replace('auth-', '');
-    return <AuthPage initialScreen={initial === 'login' || initial === 'signup' ? initial : 'login'} onNavigate={setCurrentPage} />;
+    return <AuthPage initialScreen={initial === 'login' || initial === 'signup' ? initial : 'login'} onNavigate={handleNavigate} />;
   }
 
   if (showSystemLoading) {
@@ -1592,9 +1583,9 @@ export default function App() {
   if (!isAuthenticated || currentPage === 'landing') {
     return (
       <div className="app-container">
-        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+        <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
         <div className="app-content">
-          <LandingPage theme={theme} setTheme={setTheme} onCreateWorkflow={handleCreateWorkflow} onDeleteWorkflows={handleDeleteWorkflows} workflows={workflows} onNavigate={setCurrentPage} />
+          <LandingPage theme={theme} setTheme={setTheme} onCreateWorkflow={handleCreateWorkflow} onDeleteWorkflows={handleDeleteWorkflows} workflows={workflows} onNavigate={handleNavigate} />
         </div>
       </div>
     );
@@ -1612,12 +1603,12 @@ export default function App() {
           onCreateProject={(n) => handleCreateWorkflow(n || getNextBoardName())}
           onImportWorkflowFile={handleImportWorkflowFile}
           onPromptWorkflow={handlePromptWorkflow}
-          onOpenProject={(p) => handleCreateWorkflow(p.name || p.title || '', p.id)}
-          onUpdateProject={async (id, up) => { setWorkflows(prev => prev.map(w => w.id === id ? { ...w, ...up } : w)); if (saveFirebaseWorkflow) await saveFirebaseWorkflow(id, up); }}
+          onOpenProject={(p: any) => handleCreateWorkflow(p.name || p.title || '', p.id)}
+          onUpdateProject={async (id, up: any) => { setWorkflows(prev => prev.map(w => w.id === id ? { ...w, ...up } : w)); if (saveFirebaseWorkflow) await saveFirebaseWorkflow(id, up); }}
           onTogglePublic={async (id, pub) => { const name = (getFirebaseAuth().currentUser?.displayName || getFirebaseAuth().currentUser?.email?.split('@')[0]) || 'User'; await toggleWorkflowPublic(id, pub, name); }}
           onDeleteProject={id => handleDeleteWorkflows([id])}
-          onDuplicateProject={async p => { if (createFirebaseWorkflow) await createFirebaseWorkflow(`${p.name || p.title} (Copy)`, p.nodes || [], p.edges || []); }}
-          onCloneProject={async p => { if (createFirebaseWorkflow) { const res = await createFirebaseWorkflow(`${p.name || p.title} (Cloned)`, p.nodes || [], p.edges || []); if (res) alert('Cloned successfully'); } }}
+          onDuplicateProject={async (p: any) => { if (createFirebaseWorkflow) await createFirebaseWorkflow(`${p.name || p.title} (Copy)`, p.nodes || [], p.edges || []); }}
+          onCloneProject={async (p: any) => { if (createFirebaseWorkflow) { const res = await createFirebaseWorkflow(`${p.name || p.title} (Cloned)`, p.nodes || [], p.edges || []); if (res) alert('Cloned successfully'); } }}
           onLogout={handleLogout}
           onOpenProfile={() => setIsProfileModalOpen(true)}
           theme={theme}
@@ -1631,7 +1622,7 @@ export default function App() {
   if (currentPage === 'workspaces') {
     return (
       <div className="app-container">
-        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+        <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
         <div className="app-content"><WorkspacesPage onCreateWorkspace={() => setCurrentPage('home')} workspaces={[]} /></div>
         <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
       </div>
@@ -1641,7 +1632,7 @@ export default function App() {
   if (currentPage === 'workflow-settings') {
     return (
       <div className="app-container">
-        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+        <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
         <div className="app-content"><WorkflowSettingsPage /></div>
         <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
       </div>
@@ -1651,7 +1642,7 @@ export default function App() {
   if (currentPage === 'drawflow' || currentPage === 'node-banana') {
     return (
       <div className="app-container">
-        <TopBar currentPage={currentPage} onNavigate={setCurrentPage} workflowName={null} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+        <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
         <div className="app-content" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           {currentPage === 'drawflow' ? <DrawflowLab /> : <NodeBananaLab />}
         </div>
@@ -1664,7 +1655,7 @@ export default function App() {
     <div className="app-container">
       <TopBar
         currentPage={currentPage}
-        onNavigate={handleBackToHome}
+        onNavigate={() => handleBackToHome()}
         workflowName={activeWorkflowName}
         editorMode={editorMode}
         onEditorModeChange={setEditorMode}
@@ -1712,7 +1703,35 @@ export default function App() {
           } catch (e) { console.error(e); }
         }}
         onExportJSON={() => { const b = new Blob([JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${activeWorkflowName}.json`; a.click(); }}
-        onImportJSON={() => { const i = document.createElement('input'); i.type = 'file'; i.accept = '.json'; i.onchange = (e: any) => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = (ev: any) => { try { const p = JSON.parse(ev.target.result); if (p.nodes) setNodes(p.nodes); if (p.edges) setEdges(p.edges); } catch (err) { console.error(err); } }; r.readAsText(f); }; i.click(); }}
+        onImportJSON={() => {
+          const i = document.createElement('input');
+          i.type = 'file';
+          i.accept = '.json';
+          i.onchange = (e: any) => {
+            const f = e.target.files[0];
+            if (!f) return;
+            const r = new FileReader();
+            r.onload = (ev: any) => {
+              try {
+                const p = JSON.parse(ev.target.result);
+                if (!isWorkflowImportData(p)) {
+                  throw new Error('Invalid format: file must contain name, "nodes", and "edges" arrays');
+                }
+                if (p.nodes.length === 0 && p.edges.length === 0) {
+                  throw new Error('Empty workflow: file contains no nodes or edges');
+                }
+                setNodes(p.nodes);
+                setEdges(p.edges);
+              } catch (err) {
+                const msg = err instanceof Error ? err.message : 'Failed to import JSON';
+                alert(`Import Error: \${msg}`);
+                console.error(err);
+              }
+            };
+            r.readAsText(f);
+          };
+          i.click();
+        }}
         onScreenshot={handleExportScreenshot}
         projectName={activeWorkflowName}
         onRenameProject={(n) => { if (activeWorkflowId && n) return handleRenameBoard(activeWorkflowId, n); }}
@@ -1721,8 +1740,19 @@ export default function App() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', background: '#1a1a1a' }}>
         <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }} onDrop={onDrop} onDragOver={onDragOver}>
           {viewMode === 'interface' && <WorkflowInterface nodes={nodes} edges={edges} onUpdateNodeData={updateNodeData} onRunWorkflow={() => handleRunWorkflow()} onSwitchToEditor={() => setViewMode('editor')} isRunning={isRunning} />}
-          <GooeyNodesMenu nodeMenu={NODE_MENU} templates={firebaseTemplates.templates} assets={firebaseAssets.assets} onCreateAsset={(d: any) => firebaseAssets.create?.(d)} onAddNode={addNode} onOpenProfile={() => setIsProfileModalOpen(true)} />
-          <LayoutHelper selectedNodes={nodes.filter(n => n.selected)} isVisible={nodes.filter(n => n.selected).length >= 2} onAlign={(a, sn) => { saveHistory(); handleMenuAction(a, { selectedNodes: sn }); }} />
+          <GooeyNodesMenu 
+           nodeMenu={NODE_MENU} 
+           templates={firebaseTemplates.templates} 
+           assets={firebaseAssets.assets} 
+           publicAssets={firebaseAssets.publicAssets}
+           onCreateAsset={(d: any) => firebaseAssets.create?.({
+             name: d.name,
+             images: d.images,
+             isPublic: d.isPublic ?? false
+           })} 
+           onAddNode={addNode} 
+           onOpenProfile={() => setIsProfileModalOpen(true)} 
+          />          <LayoutHelper selectedNodes={nodes.filter(n => n.selected)} isVisible={nodes.filter(n => n.selected).length >= 2} onAlign={(a, sn) => { saveHistory(); handleMenuAction(a, { selectedNodes: sn }); }} />
           <ReferenceSelection selectedImage={referenceImage} onImageSelect={(d: any) => setReferenceImage(d ?? null)} />
           {currentPage === 'editor' && (
             <InspectorPanel
@@ -1774,13 +1804,13 @@ export default function App() {
             isValidConnection={connectionValidator} nodeTypes={nodeTypes} defaultEdgeOptions={defaultEdgeOptions}
             fitView fitViewOptions={{ padding: 0.1, minZoom: 0.1, maxZoom: 2 }} minZoom={0.1} maxZoom={2}
             panOnDrag={isLocked ? false : (activeTool === 'hand' ? [0, 1, 2] : [1, 2])} panOnScroll={false}
-            selectionOnDrag={activeTool === 'select'} selectionMode="partial" selectionKeyCode={activeTool === 'select' ? null : 'Shift'}
+            selectionOnDrag={activeTool === 'select'} selectionMode={SelectionMode.Partial} selectionKeyCode={activeTool === 'select' ? null : 'Shift'}
             multiSelectionKeyCode="Meta" nodeDragThreshold={5} elevateNodesOnSelect elevateEdgesOnSelect
             zoomOnScroll={false} nodesDraggable={!isLocked} nodesConnectable={!isLocked} elementsSelectable={!isLocked}
             autoPanOnConnect autoPanOnNodeDrag connectionRadius={40} deleteKeyCode={['Backspace', 'Delete']}
             colorMode={theme === 'light' ? 'light' : 'dark'} style={{ background: 'var(--color-surface)' }}
             onPaneContextMenu={onPaneContextMenu} onNodeContextMenu={onNodeContextMenu} onSelectionContextMenu={onSelectionContextMenu}
-            onPaneClick={() => { setMenu(null); setNodes(nds => nds.map(n => n.selected ? { ...n, selected: false } : n)); setEdges(eds => eds.map(e => e.selected ? { ...e, selected: false } : e)); }}
+            onPaneClick={() => { setMenu(undefined); setNodes(nds => nds.map(n => n.selected ? { ...n, selected: false } : n)); setEdges(eds => eds.map(e => e.selected ? { ...e, selected: false } : e)); }}
           >
             {menu && (
               <div style={{ position: 'absolute', top: menu.y, left: menu.x, backgroundColor: 'rgba(30, 30, 30, 0.75)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '10px', zIndex: 1000, minWidth: 220, padding: '6px 0' }}>
@@ -1796,24 +1826,24 @@ export default function App() {
           <ChatButton isOpen={isChatOpen} onClick={() => setIsChatOpen(!isChatOpen)} />
           <ChatUI
             ref={chatUIRef} isOpen={isChatOpen} onClose={() => setIsChatOpen(false)}
-            onSendMessage={async (msg: any) => {
+            onSendMessage={async (_msg: any) => {
               setIsRunning(true);
               try {
-                const res = await sendChat(msg);
+                const res: any = await sendChat(_msg);
                 if (res.success && res.response) chatUIRef.current?.addMessage({ type: 'assistant', content: res.response });
                 else chatUIRef.current?.addMessage({ type: 'assistant', content: 'Error: ' + (res.error?.message || res.message || 'Please try again.') });
               } catch (e: any) { chatUIRef.current?.addMessage({ type: 'assistant', content: 'Connection error' }); }
               finally { setIsRunning(false); }
             }}
-            onGenerate={async (msg: string) => {
-              if (!msg?.trim()) return; setIsRunning(true);
+            onGenerate={async (_msg: string) => {
+              if (!_msg?.trim()) return; setIsRunning(true);
               try {
-                const res = await generateAIWorkflow(msg.trim(), 'standard');
+                const res: any = await generateAIWorkflow(_msg.trim(), 'standard');
                 if (res.success && res.workflow) {
                   setLastGeneratedWorkflow(res.workflow);
                   const newWf = await createFirebaseWorkflow(res.workflow.name || 'AI Generated Workflow', res.workflow.nodes, res.workflow.edges);
-                  if (newWf) { setActiveWorkflowId(newWf.id); setNodes(res.workflow.nodes); setEdges(res.workflow.edges); subscribe(newWf.id); }
-                  else { setNodes(res.workflow.nodes); setEdges(res.workflow.edges); }
+                  if (newWf) { setActiveWorkflowId(newWf.id); setNodes(res.workflow.nodes); setEdges(res.workflow.edges as Edge[]); subscribe(newWf.id); }
+                  else { setNodes(res.workflow.nodes); setEdges(res.workflow.edges as Edge[]); }
                 }
               } catch (e) { console.error(e); } finally { setIsRunning(false); }
             }}
@@ -1822,8 +1852,22 @@ export default function App() {
         </div>
       </div>
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
-      <TemplateBuilderModal isOpen={showTemplateModal} onClose={() => setShowTemplateModal(false)} selectedNodes={nodes.filter(n => n.selected)} nodes={nodes} edges={edges} onCreated={({ template }: any) => { setShowTemplateModal(false); saveLocalTemplate(template); if (firebaseTemplates.create) firebaseTemplates.create(template).catch(console.error); }} />
+      <TemplateBuilderModal isOpen={showTemplateModal} onClose={() => setShowTemplateModal(false)} selectedNodes={nodes.filter(n => n.selected)} nodes={nodes} edges={edges} onCreated={({ template }: any) => { setShowTemplateModal(false); saveLocalTemplate(template); if (firebaseTemplates.create) firebaseTemplates.create(template).catch(err => showToast(`Failed to save template: ${err.message}`)); }} />
       <BottomBar workflows={workflows} activeWorkflowId={activeWorkflowId} onSwitchWorkflow={handleCreateWorkflow} onRenameBoard={handleRenameBoard} onDeleteBoard={handleDeleteBoard} />
+
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 20, right: 20,
+          background: toast.type === 'error' ? '#dc2626' : '#16a34a',
+          color: '#fff', padding: '12px 20px', borderRadius: 8,
+          fontSize: 14, zIndex: 9999, maxWidth: 400,
+          boxShadow: '0 10px 15px rgba(0,0,0,0.3)',
+          wordWrap: 'break-word'
+        }}>
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

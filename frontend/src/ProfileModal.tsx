@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, FC, ReactElement, ChangeEvent } from 'react';
 import './ProfileModal.css';
 import { getFirebaseAuth } from './config/firebase';
-import { updateProfile, updateEmail, updatePassword, deleteUser, User } from 'firebase/auth';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { updateEmail, updatePassword, deleteUser, User } from 'firebase/auth';
+import { useUser } from './hooks/useUser';
 
 interface IconsType {
   [key: string]: ReactElement;
@@ -35,6 +35,8 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [user, setUser] = useState<User | null>(null);
+  const { profile, updateProfile: updateFirestoreProfile, updateAvatar } = useUser(user?.uid || null);
+  
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -48,17 +50,23 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
       const auth = getFirebaseAuth();
       if (auth?.currentUser) {
         setUser(auth.currentUser);
-        const parts = (auth.currentUser.displayName || '').split(' ');
-        setFirstName(parts[0] || '');
-        setLastName(parts.slice(1).join(' ') || '');
         setEmail(auth.currentUser.email || '');
-        setAvatar(auth.currentUser.photoURL || null);
       }
       setMessage(null);
       setNewPassword('');
       setAvatarFile(null);
     }
   }, [isOpen]);
+
+  // Sync state with firestore profile
+  useEffect(() => {
+    if (profile) {
+      const parts = (profile.displayName || '').split(' ');
+      setFirstName(parts[0] || '');
+      setLastName(parts.slice(1).join(' ') || '');
+      setAvatar(profile.photoURL || null);
+    }
+  }, [profile]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -67,19 +75,27 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
     try {
       const newDisplayName = `${firstName} ${lastName}`.trim();
 
-      let finalAvatarUrl = avatar;
+      // Update Firestore Profile
+      const profileUpdates: any = { displayName: newDisplayName };
+      await updateFirestoreProfile(profileUpdates);
+
+      // Handle Avatar Upload if file selected
       if (avatarFile) {
-        const storage = getStorage();
-        const avatarStorageRef = ref(storage, `avatars/${user.uid}_${Date.now()}_${avatarFile.name}`);
-        const snapshot = await uploadBytes(avatarStorageRef, avatarFile);
-        finalAvatarUrl = await getDownloadURL(snapshot.ref);
-        setAvatar(finalAvatarUrl);
+        const reader = new FileReader();
+        const uploadPromise = new Promise<string>((resolve, reject) => {
+          reader.onload = async (e) => {
+            if (e.target?.result) {
+              const url = await updateAvatar(e.target.result as string);
+              if (url) resolve(url);
+              else reject(new Error('Avatar upload failed'));
+            }
+          };
+          reader.readAsDataURL(avatarFile);
+        });
+        await uploadPromise;
         setAvatarFile(null);
       }
 
-      if (newDisplayName !== user.displayName || finalAvatarUrl !== user.photoURL) {
-        await updateProfile(user, { displayName: newDisplayName, photoURL: finalAvatarUrl || undefined });
-      }
       if (email !== user.email) {
         await updateEmail(user, email);
       }

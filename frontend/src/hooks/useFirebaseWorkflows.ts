@@ -305,27 +305,33 @@ export function useFirebaseWorkflows(
 
   const share = useCallback(async (workflowId: string, email: string): Promise<void> => {
     if (!isAvailable || !userId) {
-      setError(new Error('Firebase not configured or user not authenticated'));
-      return;
+      const err = new Error('Firebase not configured or user not authenticated');
+      setError(err);
+      throw err;
     }
     setError(null);
     try {
       await shareWorkflow(workflowId, userId, email);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to share workflow'));
+      const error = err instanceof Error ? err : new Error('Failed to share workflow');
+      setError(error);
+      throw error;
     }
   }, [userId, isAvailable]);
 
   const unshare = useCallback(async (workflowId: string, email: string): Promise<void> => {
     if (!isAvailable || !userId) {
-      setError(new Error('Firebase not configured or user not authenticated'));
-      return;
+      const err = new Error('Firebase not configured or user not authenticated');
+      setError(err);
+      throw err;
     }
     setError(null);
     try {
       await unshareWorkflow(workflowId, userId, email);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to unshare workflow'));
+      const error = err instanceof Error ? err : new Error('Failed to unshare workflow');
+      setError(error);
+      throw error;
     }
   }, [userId, isAvailable]);
   

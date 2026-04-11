@@ -3,8 +3,9 @@ import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import { getHandleColor } from '../utils/handleTypes';
 import {
-  CATEGORY_COLORS, sp, font, text, surface, border, radius,
+  CATEGORY_COLORS,
   useNodeConnections, OutputHandle, OutputPreview,
+  Slider
 } from './shared';
 import useNodeProgress from '../hooks/useNodeProgress';
 import {
@@ -37,21 +38,72 @@ import {
 import EditableNodeTitle from './EditableNodeTitle';
 import AnnotationModal from '../components/AnnotationModal';
 
-async function urlToBase64(url) {
+async function urlToBase64(url, timeoutMs = 10000) {
   if (!url) return null;
   if (url.startsWith('data:image')) return url;
   try {
-    const res = await fetch(url);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    if (!res.headers.get('content-type')?.startsWith('image/')) {
+      throw new Error('URL does not return an image');
+    }
+
     const blob = await res.blob();
+    if (blob.size > 50 * 1024 * 1024) throw new Error('Image exceeds 50MB limit');
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result);
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
-  } catch {
+  } catch (err) {
+    console.warn(`urlToBase64 failed for "${url}":`, err.message);
     return null;
   }
+}
+
+// ── Validation & Sanitization ────────────────────────────────────────────────
+
+/** Sanitize SVG to prevent XSS. Removes dangerous attributes and event handlers. */
+function sanitizeSvg(svgString) {
+  if (!svgString || typeof svgString !== 'string') return '';
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgString, 'image/svg+xml');
+    if (doc.documentElement.tagName === 'parsererror') throw new Error('Invalid SVG');
+
+    // Remove event handlers and dangerous attributes
+    const walker = doc.createTreeWalker(doc.documentElement, NodeFilter.SHOW_ELEMENT);
+    let node;
+    while (node = walker.nextNode()) {
+      // Remove on* attributes (onclick, onload, etc.)
+      Array.from(node.attributes || []).forEach(attr => {
+        if (attr.name.startsWith('on')) node.removeAttribute(attr.name);
+      });
+      // Remove script tags
+      if (node.tagName.toLowerCase() === 'script') node.remove();
+    }
+    const sanitized = new XMLSerializer().serializeToString(doc.documentElement);
+    // Reject oversized SVG outputs (serialization bomb protection)
+    if (sanitized.length > 5 * 1024 * 1024) throw new Error('SVG too large (>5MB)');
+    return sanitized;
+  } catch (err) {
+    console.warn('SVG sanitization failed:', err.message);
+    return '';
+  }
+}
+
+/** Validate image URL format and size. Returns null if invalid. */
+function validateImageUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  if (!url.startsWith('data:image') && !url.startsWith('http')) return null;
+  if (url.length > 1000000) return null; // 1MB URL size limit
+  return url;
 }
 
 // ── Model lists ──────────────────────────────────────────────────────────────
@@ -207,7 +259,9 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       if (result.error) throw new Error(result.error?.message || 'Quiver generation failed');
       const generatedData = result.data?.data?.[0];
       if (!generatedData?.svg) throw new Error('No SVG returned from Quiver');
-      return [`data:image/svg+xml;utf8,${encodeURIComponent(generatedData.svg)}`];
+      const sanitized = sanitizeSvg(generatedData.svg);
+      if (!sanitized) throw new Error('SVG validation failed');
+      return [`data:image/svg+xml;utf8,${encodeURIComponent(sanitized)}`];
     }
     const params = { prompt, num_images: numOutputs, aspect_ratio: aspectRatio, model: apiModel };
     const result = await generateImage(params);
@@ -303,12 +357,21 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
         const base64DataUri = await urlToBase64(imageUrl);
         if (!base64DataUri) throw new Error('Failed to load image for vectorization');
         const compressed = await compressImageBase64(base64DataUri);
-        const base64Only = compressed.includes(',') ? compressed.split(',')[1] : compressed;
+        if (!compressed || typeof compressed !== 'string') {
+          throw new Error('Image compression failed. Try a smaller or different image.');
+        }
+        if (compressed.length > 100 * 1024 * 1024) {
+          throw new Error('Compressed image too large. Maximum 100MB allowed.');
+        }
+        const base64Only = compressed?.includes(',') ? compressed.split(',')[1] : compressed;
+        if (!base64Only || base64Only.length === 0) throw new Error('Image compression failed');
         const result = await quiverImageToSvg({ model: 'arrow-preview', stream: false, image: { base64: base64Only } });
         if (result.error) throw new Error(result.error?.message || 'Quiver vectorization failed');
         const generatedData = result.data?.data?.[0];
         if (!generatedData?.svg) throw new Error('No SVG returned from Quiver');
-        return [`data:image/svg+xml;utf8,${encodeURIComponent(generatedData.svg)}`];
+        const sanitized = sanitizeSvg(generatedData.svg);
+        if (!sanitized) throw new Error('SVG validation failed');
+        return [`data:image/svg+xml;utf8,${encodeURIComponent(sanitized)}`];
       }
       default:
         throw new Error(`Unknown editing model: ${model}`);
@@ -388,8 +451,11 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
             data.onCreateNode('imageOutput', { outputImage: allImages[0] }, 'output', 'image-in');
           }
         } else {
-          update({ outputError: failures.join('; ') || 'All models failed to generate' });
-          fail(new Error(failures.join('; ')));
+          // Truncate error message if too long (max 500 chars)
+          const errorMsg = failures.join('; ') || 'All models failed to generate';
+          const truncatedErr = errorMsg.length > 500 ? errorMsg.substring(0, 497) + '...' : errorMsg;
+          update({ outputError: truncatedErr });
+          fail(new Error(truncatedErr));
         }
       } catch (err) {
         console.error('Universal image generation error:', err);
@@ -432,8 +498,15 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     setIsImageToPrompting(true);
     try {
       const compressed = await compressImageBase64(sourceImage);
+      // Validate compression succeeded and size is within limits (100MB string = ~75MB)
+      if (!compressed || typeof compressed !== 'string') {
+        throw new Error('Image compression failed. Try a smaller or different image.');
+      }
+      if (compressed.length > 100 * 1024 * 1024) {
+        throw new Error('Compressed image too large. Maximum 100MB allowed.');
+      }
       const result = await imageToPromptGenerate({ image: compressed });
-      
+
       if (result.error) throw new Error(result.error?.message || JSON.stringify(result.error));
 
       const taskId = result.task_id || result.data?.task_id;
@@ -481,10 +554,28 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const applyImageFilesToSlots = useCallback(
     async (fileList) => {
       try {
-        const files = [...fileList].filter((f) => f.type.startsWith('image/'));
-        if (!files.length) return;
+        const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+        const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+        const files = [...fileList].filter((f) => {
+          if (!ALLOWED_TYPES.has(f.type)) {
+            console.warn(`Rejected file: unsupported MIME type ${f.type}`);
+            return false;
+          }
+          if (f.size > MAX_FILE_SIZE) {
+            console.warn(`Rejected file: exceeds 50MB limit (${(f.size / 1024 / 1024).toFixed(1)}MB)`);
+            return false;
+          }
+          return true;
+        });
+
+        if (!files.length) {
+          update({ outputError: 'Only JPEG, PNG, WebP, and GIF images (≤50MB) are supported' });
+          return;
+        }
+
         const url = await readFileAsDataURL(files[0]);
-        update({ image1Url: url });
+        update({ image1Url: url, outputError: null });
       } catch (err) {
         console.error('Image file upload error:', err);
         update({ outputError: `Failed to load image: ${err.message}` });
@@ -520,6 +611,11 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const setEditSetting = useCallback((key, value) => {
     update({ editSettings: { ...editSettings, [key]: value } });
   }, [update, editSettings]);
+
+  const safeUpdateNumOutputs = useCallback((newVal) => {
+    const val = Math.max(1, Math.min(6, Math.floor(newVal || 1)));
+    update({ numOutputs: val });
+  }, [update]);
 
   useEffect(() => {
     if (data.triggerGenerate && data.triggerGenerate !== lastTrigger.current) {
@@ -571,9 +667,11 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
             <span style={settingLabel}>{lbl}</span>
             <input
               type="number" min="0" max="2000" step="64"
+              className="nodrag nopan w-full"
               value={es[key] ?? 0}
               onChange={e => setEditSetting(key, Number(e.target.value))}
-              className="nodrag nopan w-full"
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
               style={numInput}
             />
           </div>
@@ -592,10 +690,17 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
           </div>
           <div style={settingRow}>
             <span style={settingLabel}>Creativity</span>
-            <input type="range" min="0" max="1" step="0.05" value={es.creativity ?? 0}
+            <input 
+              type="range" 
+              className="nodrag nopan nowheel flex-1"
+              min="0" max="1" step="0.05" 
+              value={Math.max(0, Math.min(1, es.creativity ?? 0))}
               onChange={e => setEditSetting('creativity', parseFloat(e.target.value))}
-              className="nodrag nopan flex-1" />
-            <span className="text-[10px] text-slate-500 min-w-[24px]">{(es.creativity ?? 0).toFixed(2)}</span>
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onBlur={e => setEditSetting('creativity', Math.max(0, Math.min(1, parseFloat(e.target.value))))}
+            />
+            <span className="text-[10px] text-slate-500 min-w-[24px]">{(Math.max(0, Math.min(1, es.creativity ?? 0))).toFixed(2)}</span>
           </div>
         </div>
       ),
@@ -609,26 +714,48 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
           </div>
           <div style={settingRow}>
             <span style={settingLabel}>Sharpen</span>
-            <input type="range" min="0" max="10" step="1" value={es.sharpen ?? 7}
+            <input 
+              type="range" 
+              className="nodrag nopan nowheel flex-1"
+              min="0" max="10" step="1" 
+              value={Math.max(0, Math.min(10, es.sharpen ?? 7))}
               onChange={e => setEditSetting('sharpen', Number(e.target.value))}
-              className="nodrag nopan flex-1" />
-            <span className="text-[10px] text-slate-500 min-w-[16px]">{es.sharpen ?? 7}</span>
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onBlur={e => setEditSetting('sharpen', Math.max(0, Math.min(10, Number(e.target.value))))}
+            />
+            <span className="text-[10px] text-slate-500 min-w-[16px]">{Math.max(0, Math.min(10, es.sharpen ?? 7))}</span>
           </div>
         </div>
       ),
       'change-camera': (
         <div className="flex flex-col gap-2">
-          {[['H angle', 'hAngle', -360, 360, 10], ['V angle', 'vAngle', -90, 90, 5], ['Zoom', 'zoom', 0, 10, 0.5]].map(([lbl, key, min, max, step]) => (
+          {[['H angle', 'hAngle', 0, 360, 1, 0], ['V angle', 'vAngle', -30, 90, 1, 0], ['Zoom', 'zoom', 0, 10, 0.1, 5]].map(([lbl, key, min, max, step, def]) => {
+            const val = es[key] ?? def;
+            return (
             <div key={key} style={settingRow}>
               <span style={settingLabel}>{lbl}</span>
-              <input type="range" min={min} max={max} step={step} value={es[key] ?? 0}
+              <input 
+                type="range" min={min} max={max} step={step} 
+                className="nodrag nopan nowheel flex-1"
+                value={val}
                 onChange={e => setEditSetting(key, Number(e.target.value))}
-                className="nodrag nopan flex-1" />
-              <input type="number" min={min} max={max} value={es[key] ?? 0}
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              />
+              <input 
+                type="number" min={min} max={max} step={step}
+                className="nodrag nopan nowheel"
+                value={val}
                 onChange={e => setEditSetting(key, Number(e.target.value))}
-                className="nodrag nopan" style={numInput} />
+                onBlur={e => setEditSetting(key, Number(e.target.value))}
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                style={numInput} 
+              />
             </div>
-          ))}
+            );
+          })}
         </div>
       ),
       'flux-expand': expandInputs,
@@ -731,7 +858,21 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
           </div>
 
           <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 flex flex-col gap-3">
-            <textarea ref={promptRef} value={data.inputPrompt || ''} onChange={e => update({ inputPrompt: e.target.value })} disabled={promptDisabled} placeholder={promptPlaceholder} rows={promptDisabled ? 2 : 4} className="nodrag nopan nowheel bg-transparent border-none text-slate-100 text-sm resize-none outline-none w-full disabled:opacity-50 overflow-hidden min-h-[60px]" />
+            <div className="flex flex-col gap-1">
+              <textarea 
+                ref={promptRef} 
+                className="nodrag nopan nowheel bg-transparent border-none text-slate-100 text-sm resize-none outline-none w-full disabled:opacity-50 overflow-hidden min-h-[60px]"
+                value={data.inputPrompt || ''} 
+                onChange={e => update({ inputPrompt: e.target.value })} 
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                disabled={promptDisabled} 
+                placeholder={promptPlaceholder} 
+                rows={promptDisabled ? 2 : 4} 
+                maxLength={5000} 
+              />
+              <div className="text-[9px] text-slate-500 text-right">{(data.inputPrompt || '').length}/5000</div>
+            </div>
 
             <div className="flex justify-between items-center mt-1">
               <div className="relative">
@@ -786,9 +927,9 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                         <div className="flex justify-between items-center gap-3">
                           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Outputs:</span>
                           <div className="flex items-center gap-2 bg-slate-900 rounded-md p-0.5 border border-slate-800">
-                            <button onClick={e => { e.stopPropagation(); update({ numOutputs: Math.max(1, numOutputs - 1) }); }} onMouseDown={e => e.stopPropagation()} className="bg-transparent border-none text-slate-400 hover:text-white cursor-pointer px-1.5 py-0.5">-</button>
+                            <button onClick={e => { e.stopPropagation(); safeUpdateNumOutputs(numOutputs - 1); }} onMouseDown={e => e.stopPropagation()} className="bg-transparent border-none text-slate-400 hover:text-white cursor-pointer px-1.5 py-0.5">-</button>
                             <span className="text-xs text-slate-200 min-w-[12px] text-center font-bold">{numOutputs}</span>
-                            <button onClick={e => { e.stopPropagation(); update({ numOutputs: Math.min(6, numOutputs + 1) }); }} onMouseDown={e => e.stopPropagation()} className="bg-transparent border-none text-slate-400 hover:text-white cursor-pointer px-1.5 py-0.5">+</button>
+                            <button onClick={e => { e.stopPropagation(); safeUpdateNumOutputs(numOutputs + 1); }} onMouseDown={e => e.stopPropagation()} className="bg-transparent border-none text-slate-400 hover:text-white cursor-pointer px-1.5 py-0.5">+</button>
                           </div>
                         </div>
                       )}

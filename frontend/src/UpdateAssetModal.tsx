@@ -23,6 +23,7 @@ export const UpdateAssetModal: FC<UpdateAssetModalProps> = ({
 }) => {
   const [name, setName] = useState('Unnamed Element');
   const [images, setImages] = useState<string[]>([]);
+  const [isPublic, setIsPublic] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync state when modal opens or nodeData changes
@@ -30,6 +31,7 @@ export const UpdateAssetModal: FC<UpdateAssetModalProps> = ({
     if (isOpen) {
       setName(nodeData?.label || nodeData?.name || 'Unnamed Element');
       setImages(nodeData?.images || []);
+      setIsPublic(false); // Default to private
     }
   }, [isOpen, nodeData]);
 
@@ -67,9 +69,9 @@ export const UpdateAssetModal: FC<UpdateAssetModalProps> = ({
 
   const handleSave = () => {
     if (onUpdate && nodeData?.id) {
-      onUpdate(nodeData.id, { label: name, name: name, images });
+      onUpdate(nodeData.id, { label: name, name: name, images, isPublic });
     } else if (onCreateAsset) {
-      onCreateAsset({ name, images });
+      onCreateAsset({ name, images, isPublic });
     }
     onClose();
   };
@@ -260,26 +262,39 @@ export const UpdateAssetModal: FC<UpdateAssetModalProps> = ({
             paddingTop: '24px'
           }}>
             {/* Options */}
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-              <div style={{
-                width: '18px',
-                height: '18px',
-                borderRadius: '50%',
-                border: '2px solid #AEAEB2',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginTop: '2px',
-                cursor: 'pointer'
-              }}>
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EAEAEA' }} />
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <div style={{
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  border: '2px solid #AEAEB2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: '2px',
+                  cursor: 'pointer'
+                }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EAEAEA' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ color: '#EAEAEA', fontSize: '14px', fontWeight: '500' }}>Add images to make a reusable visual element</span>
+                  <span style={{ color: '#8E8E93', fontSize: '12px', maxWidth: '320px', lineHeight: 1.4 }}>
+                    For best results, use multiple images of the same subject with varied angles, lighting, framing, and context.
+                  </span>
+                </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ color: '#EAEAEA', fontSize: '14px', fontWeight: '500' }}>Add images to make a reusable visual element</span>
-                <span style={{ color: '#8E8E93', fontSize: '12px', maxWidth: '320px', lineHeight: 1.4 }}>
-                  For best results, use multiple images of the same subject with varied angles, lighting, framing, and context.
-                </span>
-              </div>
+
+              {/* Public Toggle */}
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '12px' }}>
+                <input 
+                  type="checkbox" 
+                  checked={isPublic}
+                  onChange={(e) => setIsPublic(e.target.checked)}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span style={{ color: '#EAEAEA', fontSize: '13px' }}>Make this asset public</span>
+              </label>
             </div>
 
             {/* Submit Button */}
