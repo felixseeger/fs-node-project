@@ -1,4 +1,4 @@
-import { useState, FC } from 'react';
+import React, { FC, useState, useEffect } from 'react';
 import ApiExportModal from './ApiExportModal';
 import ProjectSettingsModal from './ProjectSettingsModal';
 
@@ -36,6 +36,12 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
   const [showApiModal, setShowApiModal] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showSaveDropdown, setShowSaveDropdown] = useState(false);
+
+  useEffect(() => {
+    const handleOpenSettings = () => setShowProjectSettings(true);
+    window.addEventListener('open-project-settings', handleOpenSettings);
+    return () => window.removeEventListener('open-project-settings', handleOpenSettings);
+  }, []);
 
   return (
     <>

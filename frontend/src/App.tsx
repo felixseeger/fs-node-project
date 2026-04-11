@@ -63,6 +63,7 @@ import LayoutHelper from './components/LayoutHelper';
 import CanvasRunToolbar from './components/CanvasRunToolbar';
 // @ts-ignore
 import MegaMenuModelSearch from './components/MegaMenuModelSearch';
+import { CanvasProvider } from './context/CanvasContext';
 import { isValidConnection, getHandleColor, getHandleDataType } from './utils/handleTypes';
 import { isPanningRef, isDraggingNodeRef, isConnectingRef, beginInteraction, endInteraction } from './interactionRefs';
 import { NODE_MENU, DEFAULT_NODES, DEFAULT_EDGES } from './config/nodeMenu.js';
@@ -71,6 +72,7 @@ import { isHandleConnected, getConnectionInfo as getConnectionInfoBase } from '.
 import { captureCanvasViewportPngDataUrl, exportCanvasViewportToPng } from './utils/canvasUtils';
 import InspectorPanel from './InspectorPanel';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
+import { CommandPalette } from './components/CommandPalette';
 import { nextId } from './app/nextId';
 import { GridIcon, CollageIcon, WorkflowIcon, DisconnectIcon } from './app/contextMenuIcons';
 import { CanvasNavigation } from './app/CanvasNavigation';
@@ -79,6 +81,72 @@ import {
 } from './app/connectionHandleMaps';
 import type { PageType, EditorMode } from './types';
 import { isWorkflowImportData } from './types';
+
+const nodeTypes: NodeTypes = {
+  inputNode: createDynamicNodeWrapper(dynamicNodes.InputNode),
+  input: createDynamicNodeWrapper(dynamicNodes.InputNode),
+  textNode: createDynamicNodeWrapper(dynamicNodes.TextNode),
+  imageNode: createDynamicNodeWrapper(dynamicNodes.ImageNode),
+  assetNode: createDynamicNodeWrapper(dynamicNodes.AssetNode),
+  sourceMediaNode: createDynamicNodeWrapper(dynamicNodes.SourceMediaNode),
+  workflowTemplate: createDynamicNodeWrapper(dynamicNodes.WorkflowNode),
+  imageAnalyzer: createDynamicNodeWrapper(dynamicNodes.ImageAnalyzerNode),
+  generator: createDynamicNodeWrapper(dynamicNodes.GeneratorNode),
+  creativeUpscale: createDynamicNodeWrapper(dynamicNodes.CreativeUpScaleNode),
+  precisionUpscale: createDynamicNodeWrapper(dynamicNodes.PrecisionUpScaleNode),
+  relight: createDynamicNodeWrapper(dynamicNodes.RelightNode),
+  styleTransfer: createDynamicNodeWrapper(dynamicNodes.StyleTransferNode),
+  removeBackground: createDynamicNodeWrapper(dynamicNodes.RemoveBackgroundNode),
+  fluxReimagine: createDynamicNodeWrapper(dynamicNodes.FluxReimagineNode),
+  fluxImageExpand: createDynamicNodeWrapper(dynamicNodes.FluxImageExpandNode),
+  seedreamExpand: createDynamicNodeWrapper(dynamicNodes.SeedreamExpandNode),
+  ideogramExpand: createDynamicNodeWrapper(dynamicNodes.IdeogramExpandNode),
+  skinEnhancer: createDynamicNodeWrapper(dynamicNodes.SkinEnhancerNode),
+  ideogramInpaint: createDynamicNodeWrapper(dynamicNodes.IdeogramInpaintNode),
+  changeCamera: createDynamicNodeWrapper(dynamicNodes.ChangeCameraNode),
+  kling3: createDynamicNodeWrapper(dynamicNodes.Kling3Node),
+  kling3Omni: createDynamicNodeWrapper(dynamicNodes.Kling3OmniNode),
+  kling3Motion: createDynamicNodeWrapper(dynamicNodes.Kling3MotionControlNode),
+  klingElementsPro: createDynamicNodeWrapper(dynamicNodes.KlingElementsProNode),
+  klingO1: createDynamicNodeWrapper(dynamicNodes.KlingO1Node),
+  minimaxLive: createDynamicNodeWrapper(dynamicNodes.MiniMaxLiveNode),
+  wan26: createDynamicNodeWrapper(dynamicNodes.Wan26VideoNode),
+  seedance: createDynamicNodeWrapper(dynamicNodes.SeedanceNode),
+  ltxVideo2Pro: createDynamicNodeWrapper(dynamicNodes.LtxVideo2ProNode),
+  runwayGen45: createDynamicNodeWrapper(dynamicNodes.RunwayGen45Node),
+  runwayGen4Turbo: createDynamicNodeWrapper(dynamicNodes.RunwayGen4TurboNode),
+  runwayActTwo: createDynamicNodeWrapper(dynamicNodes.RunwayActTwoNode),
+  pixVerseV5Transition: createDynamicNodeWrapper(dynamicNodes.PixVerseV5TransitionNode),
+  omniHuman: createDynamicNodeWrapper(dynamicNodes.OmniHumanNode),
+  vfx: createDynamicNodeWrapper(dynamicNodes.VfxNode),
+  creativeVideoUpscale: createDynamicNodeWrapper(dynamicNodes.CreativeVideoUpscaleNode),
+  precisionVideoUpscale: createDynamicNodeWrapper(dynamicNodes.PrecisionVideoUpscaleNode),
+  textToIcon: createDynamicNodeWrapper(dynamicNodes.TextToIconNode),
+  imageToPrompt: createDynamicNodeWrapper(dynamicNodes.ImageToPromptNode),
+  improvePrompt: createDynamicNodeWrapper(dynamicNodes.ImprovePromptNode),
+  aiImageClassifier: createDynamicNodeWrapper(dynamicNodes.AIImageClassifierNode),
+  musicGeneration: createDynamicNodeWrapper(dynamicNodes.MusicGenerationNode),
+  soundEffects: createDynamicNodeWrapper(dynamicNodes.SoundEffectsNode),
+  audioIsolation: createDynamicNodeWrapper(dynamicNodes.AudioIsolationNode),
+  voiceover: createDynamicNodeWrapper(dynamicNodes.VoiceoverNode),
+  response: createDynamicNodeWrapper(dynamicNodes.ResponseNode),
+  adaptedPrompt: createDynamicNodeWrapper(dynamicNodes.AdaptedPromptNode),
+  layerEditor: createDynamicNodeWrapper(dynamicNodes.LayerEditorNode),
+  comment: createDynamicNodeWrapper(dynamicNodes.CommentNode),
+  routerNode: createDynamicNodeWrapper(dynamicNodes.RouterNode),
+  groupEditing: createDynamicNodeWrapper(dynamicNodes.GroupEditingNode),
+  facialEditing: createDynamicNodeWrapper(dynamicNodes.FacialEditingNode),
+  universalGeneratorImage: createDynamicNodeWrapper(dynamicNodes.ImageUniversalGeneratorNode),
+  universalGeneratorVideo: createDynamicNodeWrapper(dynamicNodes.VideoUniversalGeneratorNode),
+  videoImprove: createDynamicNodeWrapper(dynamicNodes.VideoImproveNode),
+  quiverTextToVector: createDynamicNodeWrapper(dynamicNodes.QuiverTextToVectorGenerationNode),
+  quiverImageToVector: createDynamicNodeWrapper(dynamicNodes.QuiverImageToVectorGenerationNode),
+  tripo3d: createDynamicNodeWrapper(dynamicNodes.Tripo3DNode),
+  textElement: createDynamicNodeWrapper(dynamicNodes.TextElementNode),
+  imageOutput: createDynamicNodeWrapper(dynamicNodes.ImageOutputNode),
+  videoOutput: createDynamicNodeWrapper(dynamicNodes.VideoOutputNode),
+  soundOutput: createDynamicNodeWrapper(dynamicNodes.SoundOutputNode),
+} as any;
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('landing');
@@ -100,7 +168,8 @@ export default function App() {
 
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success'; id: string } | undefined>(undefined);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success'; id: string } | null>(null);
 
   const firebaseTemplates = useFirebaseTemplates(currentUserId);
   const firebaseAssets = useFirebaseAssets(currentUserId);
@@ -121,9 +190,6 @@ export default function App() {
 
   useEffect(() => {
     try {
-      initializeFirebase();
-      enableOfflinePersistence();
-
       const auth = getFirebaseAuth();
       const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -707,74 +773,6 @@ export default function App() {
     onEdgesChange(changes);
   }, [onEdgesChange, saveHistory]);
 
-  const nodeTypes = useMemo<NodeTypes>(
-    () => ({
-      inputNode: createDynamicNodeWrapper(dynamicNodes.InputNode),
-      input: createDynamicNodeWrapper(dynamicNodes.InputNode),
-      textNode: createDynamicNodeWrapper(dynamicNodes.TextNode),
-      imageNode: createDynamicNodeWrapper(dynamicNodes.ImageNode),
-      assetNode: createDynamicNodeWrapper(dynamicNodes.AssetNode),
-      sourceMediaNode: createDynamicNodeWrapper(dynamicNodes.SourceMediaNode),
-      workflowTemplate: createDynamicNodeWrapper(dynamicNodes.WorkflowNode),
-      imageAnalyzer: createDynamicNodeWrapper(dynamicNodes.ImageAnalyzerNode),
-      generator: createDynamicNodeWrapper(dynamicNodes.GeneratorNode),
-      creativeUpscale: createDynamicNodeWrapper(dynamicNodes.CreativeUpScaleNode),
-      precisionUpscale: createDynamicNodeWrapper(dynamicNodes.PrecisionUpScaleNode),
-      relight: createDynamicNodeWrapper(dynamicNodes.RelightNode),
-      styleTransfer: createDynamicNodeWrapper(dynamicNodes.StyleTransferNode),
-      removeBackground: createDynamicNodeWrapper(dynamicNodes.RemoveBackgroundNode),
-      fluxReimagine: createDynamicNodeWrapper(dynamicNodes.FluxReimagineNode),
-      fluxImageExpand: createDynamicNodeWrapper(dynamicNodes.FluxImageExpandNode),
-      seedreamExpand: createDynamicNodeWrapper(dynamicNodes.SeedreamExpandNode),
-      ideogramExpand: createDynamicNodeWrapper(dynamicNodes.IdeogramExpandNode),
-      skinEnhancer: createDynamicNodeWrapper(dynamicNodes.SkinEnhancerNode),
-      ideogramInpaint: createDynamicNodeWrapper(dynamicNodes.IdeogramInpaintNode),
-      changeCamera: createDynamicNodeWrapper(dynamicNodes.ChangeCameraNode),
-      kling3: createDynamicNodeWrapper(dynamicNodes.Kling3Node),
-      kling3Omni: createDynamicNodeWrapper(dynamicNodes.Kling3OmniNode),
-      kling3Motion: createDynamicNodeWrapper(dynamicNodes.Kling3MotionControlNode),
-      klingElementsPro: createDynamicNodeWrapper(dynamicNodes.KlingElementsProNode),
-      klingO1: createDynamicNodeWrapper(dynamicNodes.KlingO1Node),
-      minimaxLive: createDynamicNodeWrapper(dynamicNodes.MiniMaxLiveNode),
-      wan26: createDynamicNodeWrapper(dynamicNodes.Wan26VideoNode),
-      seedance: createDynamicNodeWrapper(dynamicNodes.SeedanceNode),
-      ltxVideo2Pro: createDynamicNodeWrapper(dynamicNodes.LtxVideo2ProNode),
-      runwayGen45: createDynamicNodeWrapper(dynamicNodes.RunwayGen45Node),
-      runwayGen4Turbo: createDynamicNodeWrapper(dynamicNodes.RunwayGen4TurboNode),
-      runwayActTwo: createDynamicNodeWrapper(dynamicNodes.RunwayActTwoNode),
-      pixVerseV5Transition: createDynamicNodeWrapper(dynamicNodes.PixVerseV5TransitionNode),
-      omniHuman: createDynamicNodeWrapper(dynamicNodes.OmniHumanNode),
-      vfx: createDynamicNodeWrapper(dynamicNodes.VfxNode),
-      creativeVideoUpscale: createDynamicNodeWrapper(dynamicNodes.CreativeVideoUpscaleNode),
-      precisionVideoUpscale: createDynamicNodeWrapper(dynamicNodes.PrecisionVideoUpscaleNode),
-      textToIcon: createDynamicNodeWrapper(dynamicNodes.TextToIconNode),
-      imageToPrompt: createDynamicNodeWrapper(dynamicNodes.ImageToPromptNode),
-      improvePrompt: createDynamicNodeWrapper(dynamicNodes.ImprovePromptNode),
-      aiImageClassifier: createDynamicNodeWrapper(dynamicNodes.AIImageClassifierNode),
-      musicGeneration: createDynamicNodeWrapper(dynamicNodes.MusicGenerationNode),
-      soundEffects: createDynamicNodeWrapper(dynamicNodes.SoundEffectsNode),
-      audioIsolation: createDynamicNodeWrapper(dynamicNodes.AudioIsolationNode),
-      voiceover: createDynamicNodeWrapper(dynamicNodes.VoiceoverNode),
-      response: createDynamicNodeWrapper(dynamicNodes.ResponseNode),
-      adaptedPrompt: createDynamicNodeWrapper(dynamicNodes.AdaptedPromptNode),
-      layerEditor: createDynamicNodeWrapper(dynamicNodes.LayerEditorNode),
-      comment: createDynamicNodeWrapper(dynamicNodes.CommentNode),
-      routerNode: createDynamicNodeWrapper(dynamicNodes.RouterNode),
-      groupEditing: createDynamicNodeWrapper(dynamicNodes.GroupEditingNode),
-      facialEditing: createDynamicNodeWrapper(dynamicNodes.FacialEditingNode),
-      universalGeneratorImage: createDynamicNodeWrapper(dynamicNodes.ImageUniversalGeneratorNode),
-      universalGeneratorVideo: createDynamicNodeWrapper(dynamicNodes.VideoUniversalGeneratorNode),
-      videoImprove: createDynamicNodeWrapper(dynamicNodes.VideoImproveNode),
-      quiverTextToVector: createDynamicNodeWrapper(dynamicNodes.QuiverTextToVectorGenerationNode),
-      quiverImageToVector: createDynamicNodeWrapper(dynamicNodes.QuiverImageToVectorGenerationNode),
-      tripo3d: createDynamicNodeWrapper(dynamicNodes.Tripo3DNode),
-      textElement: createDynamicNodeWrapper(dynamicNodes.TextElementNode),
-      imageOutput: createDynamicNodeWrapper(dynamicNodes.ImageOutputNode),
-      videoOutput: createDynamicNodeWrapper(dynamicNodes.VideoOutputNode),
-      soundOutput: createDynamicNodeWrapper(dynamicNodes.SoundOutputNode),
-    } as any),
-    []
-  );
 
   const canvasAllNodesSections = useMemo(
     () => buildCanvasAllNodesSections(Object.keys(nodeTypes)),
@@ -933,23 +931,16 @@ export default function App() {
     return getConnectionInfoBase(nodeId, handleId, edgesRef.current, nodesRef.current);
   }, []);
 
-  const nodesWithCallbacks = useMemo(() => {
-    return nodes.map((n) => ({
-      ...n,
-      data: {
-        ...n.data,
-        nodeId: n.id,
-        onUpdate: updateNodeData,
-        resolveInput,
-        hasConnection,
-        getConnectionInfo,
-        onAnalyzeComplete,
-        onUnlink,
-        onDisconnectNode,
-        onCreateNode: (type: string, dataPatch: any, sh: string, th: string) => onCreateNode(type, dataPatch, sh, th, n.id),
-      },
-    }));
-  }, [nodes, updateNodeData, resolveInput, hasConnection, getConnectionInfo, onAnalyzeComplete, onUnlink, onDisconnectNode, onCreateNode]);
+  const canvasContextValue = useMemo(() => ({
+    updateNodeData,
+    resolveInput,
+    hasConnection,
+    getConnectionInfo,
+    onAnalyzeComplete,
+    onUnlink,
+    onDisconnectNode,
+    onCreateNode,
+  }), [updateNodeData, resolveInput, hasConnection, getConnectionInfo, onAnalyzeComplete, onUnlink, onDisconnectNode, onCreateNode]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -1281,6 +1272,9 @@ export default function App() {
         e.preventDefault(); handleMenuAction('clear_contents', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
       } else if (cmdOrCtrl && e.key === '.') {
         e.preventDefault(); setShowKeyboardShortcuts(true);
+      } else if (cmdOrCtrl && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('open-command-palette'));
       } else if (cmdOrCtrl && e.key.toLowerCase() === 'a') {
         e.preventDefault(); setNodes(nds => nds.map(n => ({ ...n, selected: true })));
       } else if (e.key === 'Escape') {
@@ -1350,6 +1344,12 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleUndo, handleRedo, rfInstance, setNodes, saveHistory, handleExportScreenshot, isMacOS]);
+
+  useEffect(() => {
+    const handleOpenCommandPalette = () => setIsCommandPaletteOpen(true);
+    window.addEventListener('open-command-palette', handleOpenCommandPalette);
+    return () => window.removeEventListener('open-command-palette', handleOpenCommandPalette);
+  }, []);
 
   const handleRenameSubmit = () => {
     if (newWorkflowName.trim() && activeWorkflowId) {
@@ -1521,17 +1521,42 @@ export default function App() {
   }, [handleCreateWorkflow]);
 
   useEffect(() => {
-    if (currentPage !== 'editor' || !activeWorkflowId) return;
-    const sig = buildGraphSignature(nodes, edges);
-    if (sig === lastSavedGraphSignatureRef.current) return;
+    const handleDirty = () => { isDirtyRef.current = true; };
+    window.addEventListener('canvas-dirty', handleDirty);
+    
+    if (currentPage !== 'editor' || !activeWorkflowId) {
+      return () => window.removeEventListener('canvas-dirty', handleDirty);
+    }
+    
+    if (!isDirtyRef.current) {
+      return () => window.removeEventListener('canvas-dirty', handleDirty);
+    }
+    
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = setTimeout(async () => {
       if (autosaveInFlightRef.current) return;
+      const sig = buildGraphSignature(nodes, edges);
+      if (sig === lastSavedGraphSignatureRef.current) {
+        isDirtyRef.current = false;
+        return;
+      }
       autosaveInFlightRef.current = true;
-      try { await persistWorkflowState({ workflowId: activeWorkflowId, workflowNodes: nodesRef.current, workflowEdges: edgesRef.current, includeThumbnail: true }); }
-      finally { autosaveInFlightRef.current = false; }
-    }, 4000);
-    return () => { if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current); };
+      try {
+        await persistWorkflowState({
+          workflowId: activeWorkflowId,
+          workflowNodes: nodes,
+          workflowEdges: edges,
+          includeThumbnail: true
+        });
+        isDirtyRef.current = false;
+      } finally {
+        autosaveInFlightRef.current = false;
+      }
+    }, 5000);
+    return () => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+      window.removeEventListener('canvas-dirty', handleDirty);
+    };
   }, [activeWorkflowId, buildGraphSignature, currentPage, edges, nodes, persistWorkflowState]);
 
   const handleBackToHome = useCallback(async () => {
@@ -1677,7 +1702,8 @@ export default function App() {
   }
 
   return (
-    <div className="app-container">
+    <CanvasProvider value={canvasContextValue}>
+      <div className="app-container">
       <TopBar
         currentPage={currentPage}
         onNavigate={() => handleBackToHome()}
@@ -1817,7 +1843,7 @@ export default function App() {
           <div style={{ position: 'absolute', bottom: 96, right: 24, zIndex: 10 }}><Queue nodes={nodes} /></div>
           <MatrixDot dotSize={2} dotColor={theme === 'light' ? '#cbd5e1' : '#3a3a3a'} spacing={28} opacity={theme === 'light' ? 0.45 : 0.6} />
           <ReactFlow
-            nodes={nodesWithCallbacks} edges={edges} onInit={setRfInstance}
+            nodes={nodes} edges={edges} onInit={setRfInstance}
             onNodesChange={customOnNodesChange} onEdgesChange={customOnEdgesChange}
             onConnect={(p) => { saveHistory(); onConnect(p); }} onConnectEnd={handleConnectEnd}
             onEdgesDelete={(d) => { saveHistory(); onEdgesDelete(d); }}
@@ -1879,6 +1905,18 @@ export default function App() {
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
       <TemplateBuilderModal isOpen={showTemplateModal} onClose={() => setShowTemplateModal(false)} selectedNodes={nodes.filter(n => n.selected)} nodes={nodes} edges={edges} onCreated={({ template }: any) => { setShowTemplateModal(false); saveLocalTemplate(template); if (firebaseTemplates.create) firebaseTemplates.create(template).catch(err => showToast(`Failed to save template: ${err.message}`)); }} />
       <BottomBar workflows={workflows} activeWorkflowId={activeWorkflowId} onSwitchWorkflow={handleCreateWorkflow} onRenameBoard={handleRenameBoard} onDeleteBoard={handleDeleteBoard} />
+      <CommandPalette 
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onAddNode={addNodeAtViewportCenter}
+        onRunWorkflow={() => handleRunWorkflow()}
+        onClearCanvas={() => { setNodes([]); setEdges([]); }}
+        onFitView={handleCanvasFitView}
+        onExportJSON={handleExportJSON}
+        onExportScreenshot={handleExportScreenshot}
+        onProjectSettings={() => window.dispatchEvent(new CustomEvent('open-project-settings'))}
+        onOpenHistory={() => window.dispatchEvent(new CustomEvent('open-search-history'))}
+      />
 
       {/* Toast Notification */}
       {toast && (
@@ -1894,5 +1932,6 @@ export default function App() {
         </div>
       )}
     </div>
+    </CanvasProvider>
   );
 }
