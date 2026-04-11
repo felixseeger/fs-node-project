@@ -12,6 +12,8 @@
 import './env.js';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import timeout from 'connect-timeout';
 import routes from '../lib/api/routes/index.js';
 import { errorHandler, notFoundHandler } from '../lib/api/middleware/errorHandler.js';
 import { globalLimiter } from '../lib/api/middleware/rateLimiter.js';
@@ -19,9 +21,62 @@ import { generateProjectName } from './utils/nameGenerator.js';
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+// --- SECURITY MIDDLEWARE ---
+
+// 1. Security Headers (Helmet)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://api.freepik.com", "https://api.anthropic.com"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+
+// 2. Request Timeout (2 minutes for AI generation)
+const TIMEOUT_MS = process.env.REQUEST_TIMEOUT_MS ? parseInt(process.env.REQUEST_TIMEOUT_MS) : 120000;
+app.use((req, res, next) => {
+  if (req.path.match(/\/(generate|upscale|relight|style-transfer|kling|runway|minimax|ltx|video|music|voiceover)/)) {
+    return timeout(TIMEOUT_MS)(req, res, next);
+  }
+  next();
+});
+
+// 3. Tightened CORS Configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : process.env.NODE_ENV === 'production' 
+    ? [] 
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5175'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS] Blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+  credentials: true,
+  maxAge: 86400
+}));
+
+// 4. Request Size Limits
+app.use(express.json({ 
+  limit: '10mb',
+  strict: true,
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 
 // Apply global rate limiting
 app.use(globalLimiter);

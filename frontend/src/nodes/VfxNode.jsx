@@ -217,8 +217,12 @@ export default function VfxNode({ id, data, selected }) {
         hasVideoConnection ? linkedBadges('video-in') : null
       )}
       {hasVideoConnection ? connectionInfoBox(videoConnection) : (
-        <input type="text" value={data.localVideo || ''}
+        <input type="text" 
+          className="nodrag nopan"
+          value={data.localVideo || ''}
           onChange={(e) => update({ localVideo: e.target.value })}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           placeholder="Video URL..."
           style={{
             width: '100%', background: '#1a1a1a', border: '1px solid #3a3a3a',
@@ -239,7 +243,12 @@ export default function VfxNode({ id, data, selected }) {
         {/* Filter Type */}
         <div style={{ marginBottom: 10 }}>
           <div style={{ fontSize: 11, color: '#999', marginBottom: 6 }}>Filter Type</div>
-          <select value={localFilterType} onChange={(e) => update({ localFilterType: Number(e.target.value) })}
+          <select 
+            className="nodrag nopan"
+            value={localFilterType} 
+            onChange={(e) => update({ localFilterType: Number(e.target.value) })}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             style={{
               width: '100%', background: '#111', border: '1px solid #3a3a3a',
               borderRadius: 6, color: '#e0e0e0', fontSize: 11, padding: '6px 8px',
@@ -255,10 +264,11 @@ export default function VfxNode({ id, data, selected }) {
             <span style={{ fontSize: 11, color: '#999' }}>Output FPS</span>
             <span style={{ fontSize: 11, color: '#e0e0e0', fontWeight: 600 }}>{localFps}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="nodrag nopan" style={{ display: 'flex', alignItems: 'center', gap: 8 }} onMouseDown={e => e.stopPropagation()}>
             <span style={{ fontSize: 9, color: '#555', minWidth: 14, textAlign: 'right' }}>1</span>
             <input type="range" min={1} max={60} step={1} value={localFps}
               onChange={(e) => update({ localFps: Number(e.target.value) })}
+              onMouseDown={e => e.stopPropagation()}
               style={{ flex: 1, accentColor: ACCENT }} />
             <span style={{ fontSize: 9, color: '#555', minWidth: 14 }}>60</span>
           </div>

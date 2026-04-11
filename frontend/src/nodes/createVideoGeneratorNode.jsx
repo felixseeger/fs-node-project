@@ -377,8 +377,13 @@ export function createVideoGeneratorNode(config) {
                 return (
                   <div key={control.key} style={{ marginBottom: 6 }}>
                     <div style={{ fontSize: 11, color: '#999', marginBottom: 4 }}>{control.label}</div>
-                    <input type="number" value={value}
+                    <input 
+                      type="number" 
+                      className="nodrag nopan"
+                      value={value}
                       onChange={(e) => onChange(Number(e.target.value))}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
                       placeholder={control.placeholder}
                       style={{
                         width: '100%', background: '#111', border: '1px solid #3a3a3a',
@@ -393,7 +398,12 @@ export function createVideoGeneratorNode(config) {
                 return (
                   <div key={control.key} style={{ marginBottom: 6 }}>
                     <div style={{ fontSize: 11, color: '#999', marginBottom: 4 }}>{control.label}</div>
-                    <select value={value} onChange={(e) => onChange(e.target.value)}
+                    <select 
+                      className="nodrag nopan"
+                      value={value} 
+                      onChange={(e) => onChange(e.target.value)}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
                       style={{
                         width: '100%', background: '#111', border: '1px solid #3a3a3a',
                         borderRadius: 6, color: '#e0e0e0', fontSize: 11, padding: '6px 8px',

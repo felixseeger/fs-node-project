@@ -1,3 +1,4 @@
+import { uploadAssetToStorage } from './storageService';
 /**
  * History Service
  * Manages generated images/videos in localStorage for search and reuse
@@ -58,7 +59,14 @@ function saveHistory(items) {
  * @param {string} item.nodeLabel - The node label
  * @returns {Object} The created history item with ID
  */
-export function addToHistory(item) {
+export async function addToHistory(item) {
+  if (item.url && (item.url.startsWith('data:') || item.url.startsWith('blob:'))) {
+    try {
+      item.url = await uploadAssetToStorage(item.url, 'history');
+    } catch (e) {
+      console.error('Failed to upload history item to storage', e);
+    }
+  }
   const history = getHistory();
   
   const newItem = {

@@ -48,8 +48,11 @@ const TextNode: FC<NodeProps> = ({ id, data, selected }) => {
 
         <div style={{ flex: 1 }}>
           <textarea
+            className="nodrag nopan"
             value={(data.text as string) || ''}
             onChange={onChange}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             placeholder="Enter text..."
             rows={3}
             style={{
@@ -63,6 +66,15 @@ const TextNode: FC<NodeProps> = ({ id, data, selected }) => {
               resize: 'vertical',
               outline: 'none',
               boxSizing: 'border-box',
+              transition: 'border-color 0.2s, box-shadow 0.2s',
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = '#f97316';
+              e.currentTarget.style.boxShadow = '0 0 0 2px rgba(249, 115, 22, 0.2)';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = '#3a3a3a';
+              e.currentTarget.style.boxShadow = 'none';
             }}
           />
         </div>

@@ -27,6 +27,7 @@ import {
 } from 'firebase/firestore';
 import { getDb, isFirebaseConfigured } from '../config/firebase';
 import type { Workflow } from '../types/workflow';
+import { processAssetsInObject } from './storageService';
 
 // Collection name
 const WORKFLOWS_COLLECTION = 'workflows';
@@ -98,8 +99,11 @@ export async function createWorkflow(
   const db = getDb();
   const workflowsRef = collection(db, WORKFLOWS_COLLECTION);
   
+  // Upload any local assets to Firebase Storage before saving
+  const processedWorkflow = await processAssetsInObject(workflow);
+
   const workflowData = {
-    ...serializeWorkflow(workflow),
+    ...serializeWorkflow(processedWorkflow),
     userId,
     createdAt: serverTimestamp(),
     isDeleted: false,
@@ -189,12 +193,22 @@ export async function updateWorkflow(
 
   if (updates.name !== undefined) updateData.name = updates.name;
   if (updates.description !== undefined) updateData.description = updates.description;
-  if (updates.nodes !== undefined) {
-    updateData.nodes = JSON.parse(JSON.stringify(updates.nodes));
-    updateData.nodeCount = updates.nodes.length;
+
+  // Process nodes and edges to upload any local assets
+  let processedNodes = updates.nodes;
+  let processedEdges = updates.edges;
+  if (updates.nodes !== undefined || updates.edges !== undefined) {
+    const processed = await processAssetsInObject({ nodes: updates.nodes, edges: updates.edges });
+    if (updates.nodes !== undefined) processedNodes = processed.nodes;
+    if (updates.edges !== undefined) processedEdges = processed.edges;
   }
-  if (updates.edges !== undefined) {
-    updateData.edges = JSON.parse(JSON.stringify(updates.edges));
+
+  if (processedNodes !== undefined) {
+    updateData.nodes = JSON.parse(JSON.stringify(processedNodes));
+    updateData.nodeCount = processedNodes.length;
+  }
+  if (processedEdges !== undefined) {
+    updateData.edges = JSON.parse(JSON.stringify(processedEdges));
   }
   if (updates.thumbnail !== undefined) updateData.thumbnail = updates.thumbnail;
 

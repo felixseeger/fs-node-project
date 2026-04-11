@@ -65,7 +65,10 @@ export function LinkedBadges({ nodeId, handleId, onUnlink }: LinkedBadgesProps) 
       </span>
       <button
         onClick={() => onUnlink?.(nodeId, handleId)}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
         aria-label={`Unlink ${handleId}`}
+        className="nodrag nopan"
         style={{
           fontSize: 9, color: ui.error,
           padding: '2px 6px', background: ui.errorBg,

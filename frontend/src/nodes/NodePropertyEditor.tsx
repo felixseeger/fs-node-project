@@ -376,9 +376,12 @@ interface InEndPointSearchProps {
 const InEndPointSearch: FC<InEndPointSearchProps> = ({ value, onChange }) => (
   <div style={{ position: 'relative', marginBottom: '12px' }}>
     <input 
+      className="nodrag nopan"
       style={{ ...styles.input, paddingLeft: '32px' }}
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
       placeholder="Search properties..."
     />
     <svg 
@@ -668,11 +671,14 @@ const EditorContent: FC<EditorContentProps> = ({
             <div>
               <div style={styles.labelText}>NODE LABEL</div>
               <input
+                className="nodrag nopan"
                 style={styles.input}
                 value={(node.data.label as string) || ''}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   onUpdate(node.id, { label: e.target.value })
                 }
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
                 placeholder="Enter node label..."
               />
             </div>
@@ -713,11 +719,14 @@ const EditorContent: FC<EditorContentProps> = ({
               <div style={{ marginBottom: '10px' }}>
                 <div style={styles.labelText}>Aspect ratio</div>
                 <select
+                  className="nodrag nopan"
                   style={styles.input}
                   value={generatorAspect}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) =>
                     onUpdate(node.id, { localAspectRatio: e.target.value })
                   }
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                 >
                   {generatorAspects.map((ar) => (
                     <option key={ar} value={ar}>
@@ -729,11 +738,14 @@ const EditorContent: FC<EditorContentProps> = ({
               <div>
                 <div style={styles.labelText}>Resolution</div>
                 <select
+                  className="nodrag nopan"
                   style={styles.input}
                   value={generatorResolution}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) =>
                     onUpdate(node.id, { localResolution: e.target.value })
                   }
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                 >
                   {generatorResolutions.map((r) => (
                     <option key={r} value={r}>
@@ -779,9 +791,12 @@ const EditorContent: FC<EditorContentProps> = ({
                       {universalImageSizeTier}
                     </span>
                     <select
+                      className="nodrag nopan"
                       aria-label={`Image output tier, currently ${universalImageSizeTier}`}
                       style={universalIconSelectNative}
                       value={universalImageSizeTier}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
                       onChange={(e: ChangeEvent<HTMLSelectElement>) =>
                         onUpdate(node.id, { imageSizeTier: e.target.value })
                       }
@@ -810,9 +825,12 @@ const EditorContent: FC<EditorContentProps> = ({
                       <ResolutionIcon style={{ display: 'block' }} />
                     </span>
                     <select
+                      className="nodrag nopan"
                       aria-label={`Output resolution, currently ${universalVideoCurrentPx.replace('x', ' × ')} pixels`}
                       style={universalIconSelectNative}
                       value={universalVideoCurrentPx}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
                       onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                         const ar = VIDEO_SIZE_TO_ASPECT[e.target.value];
                         if (ar) onUpdate(node.id, { aspectRatio: ar });
@@ -877,8 +895,11 @@ const EditorContent: FC<EditorContentProps> = ({
                 >
                   <input
                     type="checkbox"
+                    className="nodrag nopan"
                     checked={autoSelect}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => handleAutoSelectChange(e.target.checked)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
                   />
                   <span style={styles.labelText}>Auto select model</span>
                 </label>
@@ -895,15 +916,18 @@ const EditorContent: FC<EditorContentProps> = ({
                 >
                   <input
                     type="checkbox"
+                    className="nodrag nopan"
                     checked={useMultiple}
                     disabled={autoSelect}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => handleUseMultipleChange(e.target.checked)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
                   />
                   <span style={styles.labelText}>Use multiple models</span>
                 </label>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }} className="nodrag nopan" onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
                 {orderedModelOptions.map((model) => {
                   const checked = currentModels.includes(model);
                   const pinned = pinnedModels.includes(model);
@@ -926,9 +950,12 @@ const EditorContent: FC<EditorContentProps> = ({
                       <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: autoSelect ? 'not-allowed' : 'pointer', minWidth: 0, flex: 1 }}>
                         <input
                           type="checkbox"
+                          className="nodrag nopan"
                           checked={checked}
                           disabled={autoSelect}
                           onChange={() => handleModelToggle(model)}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
                         />
                         {modelLogo ? (
                           <img
@@ -948,7 +975,10 @@ const EditorContent: FC<EditorContentProps> = ({
 
                       <button
                         type="button"
+                        className="nodrag nopan"
                         onClick={() => handleModelPinToggle(model)}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
                         style={{
                           border: '1px solid rgba(255,255,255,0.15)',
                           background: pinned ? 'rgba(245,158,11,0.18)' : 'transparent',
@@ -979,8 +1009,11 @@ const EditorContent: FC<EditorContentProps> = ({
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '10px' }}>
                   <input
                     type="checkbox"
+                    className="nodrag nopan"
                     checked={Boolean(node.data.pixverseSoundEnabled)}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { pixverseSoundEnabled: e.target.checked })}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
                   />
                   <span style={styles.labelText}>Generate Sound Effects</span>
                 </label>
@@ -989,8 +1022,11 @@ const EditorContent: FC<EditorContentProps> = ({
                   <div>
                     <div style={{ ...styles.labelText, marginBottom: '6px' }}>Sound Description</div>
                     <textarea
+                      className="nodrag nopan"
                       value={String(node.data.pixverseSoundContent || '')}
                       onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onUpdate(node.id, { pixverseSoundContent: e.target.value })}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
                       placeholder="Describe the sound effects (e.g., ocean waves, birds chirping, futuristic sci-fi ambience)..."
                       rows={3}
                       style={{ ...styles.input, width: '100%', resize: 'vertical', minHeight: '60px' }}
@@ -1033,58 +1069,73 @@ const EditorContent: FC<EditorContentProps> = ({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <input
                         type="color"
+                        className="nodrag nopan"
                         value={(node.data.textColor as string) || '#e0e0e0'}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { textColor: e.target.value })}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
                         style={{ width: '30px', height: '24px', padding: 0, border: '1px solid #333', background: 'transparent', cursor: 'pointer' }}
                       />
                       <input
                         type="text"
+                        className="nodrag nopan"
                         value={(node.data.textColor as string) || '#e0e0e0'}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { textColor: e.target.value })}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
                         style={{ ...styles.input, flex: 1, fontSize: '11px', padding: '4px 8px' }}
                       />
                     </div>
-                  </div>
+                </div>
 
-                  <div>
-                    <div style={{ ...styles.labelText, marginBottom: '6px' }}>
-                      Background Color
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input
-                        type="color"
-                        value={(node.data.bgColor as string) || '#00000000'}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { bgColor: e.target.value })}
-                        style={{ width: '30px', height: '24px', padding: 0, border: '1px solid #333', background: 'transparent', cursor: 'pointer' }}
-                      />
-                      <input
-                        type="text"
-                        value={(node.data.bgColor as string) || 'transparent'}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { bgColor: e.target.value })}
-                        style={{ ...styles.input, flex: 1, fontSize: '11px', padding: '4px 8px' }}
-                        placeholder="transparent or hex..."
-                      />
-                    </div>
+                <div>
+                  <div style={{ ...styles.labelText, marginBottom: '6px' }}>
+                    Background Color
                   </div>
-
-                  <div>
-                    <div style={{ ...styles.labelText, marginBottom: '6px' }}>
-                      HTML Source
-                    </div>
-                    <textarea
-                      style={{
-                        ...styles.input,
-                        minHeight: '100px',
-                        maxHeight: '200px',
-                        fontFamily: 'monospace',
-                        fontSize: '10px',
-                        lineHeight: '1.4',
-                        resize: 'vertical'
-                      }}
-                      value={(node.data.text as string) || ''}
-                      onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onUpdate(node.id, { text: e.target.value })}
-                      placeholder="HTML content..."
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="color"
+                      className="nodrag nopan"
+                      value={(node.data.bgColor as string) || '#00000000'}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { bgColor: e.target.value })}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      style={{ width: '30px', height: '24px', padding: 0, border: '1px solid #333', background: 'transparent', cursor: 'pointer' }}
                     />
+                    <input
+                      type="text"
+                      className="nodrag nopan"
+                      value={(node.data.bgColor as string) || 'transparent'}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { bgColor: e.target.value })}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      style={{ ...styles.input, flex: 1, fontSize: '11px', padding: '4px 8px' }}
+                      placeholder="transparent or hex..."
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ ...styles.labelText, marginBottom: '6px' }}>
+                    HTML Source
+                  </div>
+                  <textarea
+                    className="nodrag nopan"
+                    style={{
+                      ...styles.input,
+                      minHeight: '100px',
+                      maxHeight: '200px',
+                      fontFamily: 'monospace',
+                      fontSize: '10px',
+                      lineHeight: '1.4',
+                      resize: 'vertical'
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    value={(node.data.text as string) || ''}
+                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onUpdate(node.id, { text: e.target.value })}
+                    placeholder="HTML content..."
+                  />
                   </div>
                   <div style={{ ...styles.labelText, marginTop: '2px', fontStyle: 'italic' }}>
                     Tip: Double-click the node on canvas for rich text editing

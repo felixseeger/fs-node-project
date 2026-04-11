@@ -27,10 +27,10 @@ interface TopBarProps {
   onLockView?: () => void;
   onOpenProfile?: () => void;
   isAuthenticated: boolean;
-  setIsMobileMenuOpen: (isOpen: boolean) => void;
-}
+  setIsMobileMenuOpen?: (isOpen: boolean) => void;
+  }
 
-export const TopBar: FC<TopBarProps> = ({
+  export const TopBar: FC<TopBarProps> = ({
   currentPage,
   onNavigate,
   workflowName,
@@ -48,8 +48,8 @@ export const TopBar: FC<TopBarProps> = ({
   onLockView,
   onOpenProfile,
   isAuthenticated,
-  setIsMobileMenuOpen
-}) => {
+  setIsMobileMenuOpen = () => {},
+  }) => {
   const [hovered, setHovered] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

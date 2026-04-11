@@ -1,29 +1,24 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
-import NodeShell from './NodeShell';
-import { getHandleColor } from '../utils/handleTypes';
+import {
+  NodeShell,
+  SectionHeader,
+  ConnectedOrLocal,
+  useNodeConnections,
+  getHandleColor,
+} from './shared';
 import { imageClassifierGenerate } from '../utils/api';
 import { compressImageBase64 } from '../utils/imageUtils';
 import ImageUploadBox from './ImageUploadBox';
 
 export default function AIImageClassifierNode({ id, data, selected }) {
   const [isLoading, setIsLoading] = useState(false);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
 
-  const update = useCallback(
-    (patch) => data.onUpdate?.(id, patch),
-    [id, data]
-  );
-
-  const getConnInfo = useCallback((handleId) => {
-    return data.getConnectionInfo?.(id, handleId) || null;
-  }, [id, data]);
-
-  const imageConnection = getConnInfo('image-in');
-  const hasImageConnection = data.hasConnection?.(id, 'image-in');
+  const imageConn = conn('image-in');
 
   const handleAnalyze = useCallback(async () => {
-    let images = data.resolveInput?.(id, 'image-in');
-    if (!images?.length && data.localImage) images = [data.localImage];
+    let images = resolve.image('image-in', data.localImage);
 
     if (!images?.length) {
       if (data.onAnalyzeComplete) data.onAnalyzeComplete(id);
@@ -69,7 +64,7 @@ export default function AIImageClassifierNode({ id, data, selected }) {
       setIsLoading(false);
       if (data.onAnalyzeComplete) data.onAnalyzeComplete(id);
     }
-  }, [id, data, update]);
+  }, [id, data, update, resolve]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -79,81 +74,29 @@ export default function AIImageClassifierNode({ id, data, selected }) {
     }
   }, [data.triggerAnalyze, handleAnalyze]);
 
-  // ── Helpers ──
-
-  const sectionHeader = (label, handleId, handleType, color, extra) => (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      marginBottom: 6, marginTop: 10,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Handle type={handleType} position={handleType === 'target' ? Position.Left : Position.Right}
-          id={handleId} style={{
-            width: 10, height: 10, borderRadius: '50%', background: color, border: 'none',
-            position: 'relative', left: handleType === 'target' ? -12 : 'auto',
-            right: handleType === 'source' ? -12 : 'auto', transform: 'none',
-          }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>{label}</span>
-      </div>
-      {extra && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>{extra}</div>}
-    </div>
-  );
-
-  const linkedBadges = (onUnlinkHandle) => (
-    <>
-      <span style={{ fontSize: 9, color: '#3b82f6', padding: '2px 6px', background: 'rgba(59,130,246,0.1)', borderRadius: 4 }}>linked</span>
-      <button onClick={() => data.onUnlink?.(id, onUnlinkHandle)} style={{
-        fontSize: 9, color: '#ef4444', padding: '2px 6px', background: 'rgba(239,68,68,0.15)', borderRadius: 4,
-        border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer',
-      }}>unlink</button>
-    </>
-  );
-
-  const connectionInfoBox = (connInfo) => (
-    <div style={{
-      background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)',
-      borderRadius: 6, padding: '6px 10px', marginBottom: 4,
-      display: 'flex', alignItems: 'center', gap: 6,
-    }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: '#93b4f5' }}>
-        {connInfo ? `Linked from ${connInfo.nodeLabel} → ${connInfo.handle}` : 'Linked from upstream node'}
-      </span>
-    </div>
-  );
-
   const ACCENT = '#f59e0b'; // Amber for AI analysis/prompting
 
-  // ── Render ──
-
   return (
-    <NodeShell data={data} label={data.label || 'AI Image Classifier'} dotColor={ACCENT} selected={selected}>
-
-      {/* ── Text Output Handle (top) ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-        marginBottom: 4,
-      }}>
-        <span style={{ fontSize: 10, color: '#999', marginRight: 4 }}>text</span>
-        <Handle type="source" position={Position.Right} id="text-out" style={{
-          width: 10, height: 10, borderRadius: '50%',
-          background: getHandleColor('text-out'), border: 'none',
-          position: 'relative', right: -12, transform: 'none',
-        }} />
-      </div>
+    <NodeShell data={data} label={data.label || 'AI Image Classifier'} dotColor={ACCENT} selected={selected} onDisconnect={disconnectNode} onGenerate={handleAnalyze} isGenerating={isLoading}>
+      <OutputHandle id="text-out" label="text" type="text" color={getHandleColor('text-out')} />
 
       {/* ── 1. Image Input (Required) ── */}
-      {sectionHeader('Input Image (Required)', 'image-in', 'target', getHandleColor('image-in'),
-        hasImageConnection ? linkedBadges('image-in') : null
-      )}
-      {hasImageConnection ? connectionInfoBox(imageConnection) : (
+      <SectionHeader 
+        label="Input Image (Required)" 
+        handleId="image-in" 
+        handleType="target" 
+        color={getHandleColor('image-in')}
+        isConnected={imageConn.connected}
+        onUnlink={() => data.onUnlink?.(id, 'image-in')}
+      />
+      <ConnectedOrLocal connected={imageConn.connected} connInfo={imageConn.info}>
         <ImageUploadBox
           image={data.localImage || data.inputImagePreview || null}
           onImageChange={(img) => update({ localImage: img })}
           placeholder="Upload image"
           minHeight={60}
         />
-      )}
+      </ConnectedOrLocal>
 
       {/* ── 2. Output ── */}
       <div style={{

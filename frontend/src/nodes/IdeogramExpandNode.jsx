@@ -1,7 +1,18 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
-import NodeShell from './NodeShell';
-import { getHandleColor } from '../utils/handleTypes';
+import {
+  NodeShell,
+  SectionHeader,
+  ConnectedOrLocal,
+  PromptInput,
+  TextInput,
+  DirectionSlider,
+  Pill,
+  OutputHandle,
+  OutputPreview,
+  useNodeConnections,
+  getHandleColor,
+} from './shared';
 import { ideogramExpand, pollIdeogramExpandStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
@@ -20,6 +31,7 @@ const PRESETS = [
 
 export default function IdeogramExpandNode({ id, data, selected }) {
   const { isActive, start, complete, fail } = useNodeProgress();
+  const { update, conn, resolve } = useNodeConnections(id, data);
 
   const localLeft = data.localLeft ?? 0;
   const localRight = data.localRight ?? 0;
@@ -27,23 +39,11 @@ export default function IdeogramExpandNode({ id, data, selected }) {
   const localBottom = data.localBottom ?? 0;
   const localSeed = data.localSeed ?? '';
 
-  const update = useCallback(
-    (patch) => data.onUpdate?.(id, patch),
-    [id, data]
-  );
-
-  const getConnInfo = useCallback((handleId) => {
-    return data.getConnectionInfo?.(id, handleId) || null;
-  }, [id, data]);
-
-  const imageConnection = getConnInfo('image-in');
-  const hasImageConnection = data.hasConnection?.(id, 'image-in');
-  const promptConnection = getConnInfo('prompt-in');
-  const hasPromptConnection = data.hasConnection?.(id, 'prompt-in');
+  const imageConn = conn('image-in');
+  const promptConn = conn('prompt-in');
 
   const handleExpand = useCallback(async () => {
-    let images = data.resolveInput?.(id, 'image-in');
-    if (!images?.length && data.localImage) images = [data.localImage];
+    let images = resolve.image('image-in', data.localImage);
     if (!images?.length) return;
 
     start();
@@ -53,7 +53,7 @@ export default function IdeogramExpandNode({ id, data, selected }) {
       let imageBase64 = images[0];
       if (imageBase64.startsWith('data:')) imageBase64 = imageBase64.split(',')[1];
 
-      const prompt = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt || '';
+      const prompt = resolve.text('prompt-in', data.inputPrompt);
 
       const params = {
         image: imageBase64,
@@ -100,7 +100,7 @@ export default function IdeogramExpandNode({ id, data, selected }) {
       update({ isLoading: false, outputError: err.message });
       fail();
     }
-  }, [id, data, update, localLeft, localRight, localTop, localBottom, localSeed, start, complete, fail]);
+  }, [id, data, update, localLeft, localRight, localTop, localBottom, localSeed, start, complete, fail, resolve]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -110,94 +110,51 @@ export default function IdeogramExpandNode({ id, data, selected }) {
     }
   }, [data.triggerGenerate, handleExpand]);
 
-  // ── Helpers ──
-
-  const sectionHeader = (label, handleId, handleType, color, extra) => (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      marginBottom: 6, marginTop: 10,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Handle type={handleType} position={handleType === 'target' ? Position.Left : Position.Right}
-          id={handleId} style={{
-            width: 10, height: 10, borderRadius: '50%', background: color, border: 'none',
-            position: 'relative', left: handleType === 'target' ? -12 : 'auto',
-            right: handleType === 'source' ? -12 : 'auto', transform: 'none',
-          }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>{label}</span>
-      </div>
-      {extra && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>{extra}</div>}
-    </div>
-  );
-
-  const linkedBadges = (onUnlinkHandle) => (
-    <>
-      <span style={{ fontSize: 9, color: '#3b82f6', padding: '2px 6px', background: 'rgba(59,130,246,0.1)', borderRadius: 4 }}>linked</span>
-      <button onClick={() => data.onUnlink?.(id, onUnlinkHandle)} style={{
-        fontSize: 9, color: '#ef4444', padding: '2px 6px', background: 'rgba(239,68,68,0.15)', borderRadius: 4,
-        border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer',
-      }}>unlink</button>
-    </>
-  );
-
-  const connectionInfoBox = (connInfo) => (
-    <div style={{
-      background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)',
-      borderRadius: 6, padding: '6px 10px', marginBottom: 4,
-      display: 'flex', alignItems: 'center', gap: 6,
-    }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: '#93b4f5' }}>
-        {connInfo ? `Linked from ${connInfo.nodeLabel} → ${connInfo.handle}` : 'Linked from upstream node'}
-      </span>
-    </div>
-  );
-
-  const dirSlider = (label, value, onChange, color) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-      <span style={{ fontSize: 10, color: '#999', width: 40, textAlign: 'right', flexShrink: 0 }}>{label}</span>
-      <input type="range" min={0} max={2048} step={64} value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        style={{ flex: 1, accentColor: color }} />
-      <span style={{ fontSize: 10, color: '#e0e0e0', fontWeight: 600, width: 44, textAlign: 'right', flexShrink: 0 }}>{value}px</span>
-    </div>
-  );
-
   const ACCENT = '#14b8a6';
-
-  // ── Render ──
 
   return (
     <NodeShell data={data} label={data.label || 'Ideogram Expand'} dotColor={ACCENT} selected={selected} onGenerate={handleExpand} isGenerating={isActive}>
+      <OutputHandle id="output" label="image" color={getHandleColor('output')} />
+      <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />
 
       {/* ── 1. Image ── */}
-      {sectionHeader('Image', 'image-in', 'target', getHandleColor('image-in'),
-        hasImageConnection ? linkedBadges('image-in') : null
-      )}
-      {hasImageConnection ? connectionInfoBox(imageConnection) : (
+      <SectionHeader 
+        label="Image" 
+        handleId="image-in" 
+        handleType="target" 
+        color={getHandleColor('image-in')}
+        isConnected={imageConn.connected}
+        onUnlink={() => data.onUnlink?.(id, 'image-in')}
+      />
+      <ConnectedOrLocal connected={imageConn.connected} connInfo={imageConn.info}>
         <ImageUploadBox
           image={data.localImage || data.inputImagePreview || null}
           onImageChange={(img) => update({ localImage: img })}
           placeholder="Click or drag to upload image"
         />
-      )}
+      </ConnectedOrLocal>
 
       {/* ── 2. Prompt ── */}
-      {sectionHeader('Prompt', 'prompt-in', 'target', getHandleColor('prompt-in'),
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}><AutoPromptButton id={id} data={data} update={update} imageKey="image-in" localImageKey="localImage" />
-            <ImprovePromptButton id={id} data={data} update={update} type="image" />{hasPromptConnection ? linkedBadges('prompt-in') : null}</div>
-      )}
-      {hasPromptConnection ? connectionInfoBox(promptConnection) : (
-        <textarea value={data.inputPrompt || ''}
-          onChange={(e) => update({ inputPrompt: e.target.value })}
-          placeholder='Optional: guide content (auto-generated if empty)'
+      <SectionHeader 
+        label="Prompt" 
+        handleId="prompt-in" 
+        handleType="target" 
+        color={getHandleColor('prompt-in')}
+        isConnected={promptConn.connected}
+        onUnlink={() => data.onUnlink?.(id, 'prompt-in')}
+        extra={<div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <AutoPromptButton id={id} data={data} update={update} imageKey="image-in" localImageKey="localImage" />
+          <ImprovePromptButton id={id} data={data} update={update} type="image" />
+        </div>}
+      />
+      <ConnectedOrLocal connected={promptConn.connected} connInfo={promptConn.info}>
+        <PromptInput
+          value={data.inputPrompt || ''}
+          onChange={(v) => update({ inputPrompt: v })}
+          placeholder="Optional: guide content (auto-generated if empty)"
           rows={2}
-          style={{
-            width: '100%', background: '#1a1a1a', border: '1px solid #3a3a3a',
-            borderRadius: 6, color: '#e0e0e0', fontSize: 12, padding: 8,
-            resize: 'vertical', outline: 'none', boxSizing: 'border-box',
-          }} />
-      )}
+        />
+      </ConnectedOrLocal>
 
       {/* ── 3. Expansion Presets ── */}
       <div style={{ marginTop: 10, marginBottom: 6 }}>
@@ -205,17 +162,19 @@ export default function IdeogramExpandNode({ id, data, selected }) {
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 4 }}>
         {PRESETS.map((p) => (
-          <button key={p.label} onClick={() => update({ localLeft: p.left, localRight: p.right, localTop: p.top, localBottom: p.bottom })} style={{
-            padding: '4px 10px', fontSize: 10, fontWeight: 400,
-            borderRadius: 14, border: 'none', cursor: 'pointer',
-            background: '#1a1a1a', color: '#999',
-          }}>{p.label}</button>
+          <Pill 
+            key={p.label} 
+            label={p.label} 
+            isActive={localLeft === p.left && localRight === p.right && localTop === p.top && localBottom === p.bottom}
+            onClick={() => update({ localLeft: p.left, localRight: p.right, localTop: p.top, localBottom: p.bottom })}
+            accentColor={ACCENT}
+          />
         ))}
       </div>
 
       {/* ── 4. Directional Controls ── */}
       <div style={{
-        background: '#1a1a1a', borderRadius: 8, border: '1px solid #3a3a3a',
+        background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)',
         padding: 12, marginTop: 6,
       }}>
         <div style={{ fontSize: 11, fontWeight: 600, color: '#e0e0e0', marginBottom: 10, textAlign: 'center' }}>
@@ -256,10 +215,10 @@ export default function IdeogramExpandNode({ id, data, selected }) {
         </div>
 
         {/* Sliders */}
-        {dirSlider('Left', localLeft, (v) => update({ localLeft: v }), ACCENT)}
-        {dirSlider('Right', localRight, (v) => update({ localRight: v }), ACCENT)}
-        {dirSlider('Top', localTop, (v) => update({ localTop: v }), ACCENT)}
-        {dirSlider('Bottom', localBottom, (v) => update({ localBottom: v }), ACCENT)}
+        <DirectionSlider label="Left" value={localLeft} onChange={(v) => update({ localLeft: v })} accentColor={ACCENT} />
+        <DirectionSlider label="Right" value={localRight} onChange={(v) => update({ localRight: v })} accentColor={ACCENT} />
+        <DirectionSlider label="Top" value={localTop} onChange={(v) => update({ localTop: v })} accentColor={ACCENT} />
+        <DirectionSlider label="Bottom" value={localBottom} onChange={(v) => update({ localBottom: v })} accentColor={ACCENT} />
 
         {/* Total expansion summary */}
         <div style={{
@@ -282,77 +241,24 @@ export default function IdeogramExpandNode({ id, data, selected }) {
       <div style={{ marginTop: 10, marginBottom: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: '#999' }}>Seed (optional)</span>
-          {localSeed !== '' && (
-            <button onClick={() => update({ localSeed: '' })} style={{
-              fontSize: 9, color: '#999', background: 'transparent', border: 'none', cursor: 'pointer',
-            }}>clear</button>
-          )}
         </div>
-        <input
+        <TextInput
           type="number"
-          min={0}
-          max={2147483647}
-          value={localSeed}
-          onChange={(e) => update({ localSeed: e.target.value })}
-          placeholder="Random if empty (0–2147483647)"
-          style={{
-            width: '100%', background: '#1a1a1a', border: '1px solid #3a3a3a',
-            borderRadius: 6, color: '#e0e0e0', fontSize: 12, padding: '8px 10px',
-            outline: 'none', boxSizing: 'border-box',
-          }}
+          value={String(localSeed)}
+          onChange={(v) => update({ localSeed: v })}
+          placeholder="Random if empty"
         />
       </div>
 
-      {/* ── 6. Progress ── */}
       <NodeProgress isActive={isActive} />
 
-      {/* ── 7. Output ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 6, marginTop: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ec4899', flexShrink: 0 }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>Expanded Output</span>
-        </div>
-      </div>
-      <div style={{
-        background: '#1a1a1a', borderRadius: 6, border: '1px solid #3a3a3a',
-        minHeight: 80, position: 'relative',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-      }}>
-        {isActive ? (
-          <div style={{
-            width: 28, height: 28, border: '3px solid #3a3a3a',
-            borderTop: `3px solid ${ACCENT}`, borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }} />
-        ) : data.outputImage ? (
-          <img src={data.outputImage} alt="expanded" style={{ width: '100%', display: 'block', borderRadius: 6 }} />
-        ) : data.outputError ? (
-          <span style={{ fontSize: 10, color: '#ef4444', padding: 12, textAlign: 'center' }}>{data.outputError}</span>
-        ) : (
-          <span style={{ fontSize: 11, color: '#555', padding: 16, textAlign: 'center' }}>Expanded image will appear here</span>
-        )}
-      </div>
-
-      {/* Output handles */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6, gap: 4, alignItems: 'center' }}>
-        <Handle type="source" position={Position.Right} id="prompt-out" style={{
-          width: 10, height: 10, borderRadius: '50%',
-          background: getHandleColor('prompt-out'), border: 'none',
-          position: 'relative', right: -12, transform: 'none',
-        }} />
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-        <Handle type="source" position={Position.Right} id="output" style={{
-          width: 10, height: 10, borderRadius: '50%',
-          background: getHandleColor('output'), border: 'none',
-          position: 'relative', right: -12, transform: 'none',
-        }} />
-      </div>
-
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      <OutputPreview
+        isLoading={isActive}
+        output={data.outputImage}
+        error={data.outputError}
+        accentColor={ACCENT}
+        label="Expanded Output"
+      />
     </NodeShell>
   );
 }

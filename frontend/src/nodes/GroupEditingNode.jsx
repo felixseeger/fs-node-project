@@ -113,6 +113,7 @@ export default function GroupEditingNode({ id, data, selected }) {
             <input
               type="text"
               placeholder="e.g. red car"
+              className="nodrag nopan"
               value={localSubjectVal}
               onFocus={() => setIsEditingSubject(true)}
               onBlur={() => setIsEditingSubject(false)}
@@ -120,8 +121,9 @@ export default function GroupEditingNode({ id, data, selected }) {
                 setLocalSubjectVal(e.target.value);
                 update({ subjectPrompt: e.target.value });
               }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
               style={{ width: '100%', background: '#111', border: '1px solid #333', padding: '6px 10px', borderRadius: 6, color: '#e0e0e0', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
-              className="nodrag nopan"
             />
           </div>
 
@@ -129,6 +131,7 @@ export default function GroupEditingNode({ id, data, selected }) {
             <label style={{ ...font.xs, color: '#999', display: 'block', marginBottom: 4 }}>Edit Instructions</label>
             <textarea
               placeholder="e.g. a futuristic hover-car"
+              className="nodrag nopan"
               value={promptIn || localEditVal}
               onFocus={() => setIsEditingEdit(true)}
               onBlur={() => setIsEditingEdit(false)}
@@ -136,17 +139,26 @@ export default function GroupEditingNode({ id, data, selected }) {
                 setLocalEditVal(e.target.value);
                 update({ editPrompt: e.target.value });
               }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
               readOnly={!!promptIn}
               rows={2}
               style={{ width: '100%', background: promptIn ? '#1a1a1a' : '#111', border: '1px solid #333', padding: '6px 10px', borderRadius: 6, color: promptIn ? '#888' : '#e0e0e0', fontSize: 12, resize: 'none', outline: 'none', boxSizing: 'border-box' }}
-              className="nodrag nopan"
             />
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
             <span style={{ ...font.xs, color: '#999' }}>Geom Flow (VGGT)</span>
             <label style={{ display: 'inline-flex', cursor: 'pointer' }}>
-              <input type="checkbox" checked={useVGGT} onChange={e => update({ useVGGT: e.target.checked })} style={{ display: 'none' }} />
+              <input 
+                type="checkbox" 
+                checked={useVGGT} 
+                className="nodrag nopan"
+                onChange={e => update({ useVGGT: e.target.checked })} 
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                style={{ display: 'none' }} 
+              />
               <div style={{ width: 28, height: 16, background: useVGGT ? '#0ea5e9' : '#333', borderRadius: 20, position: 'relative' }}>
                 <div style={{ width: 12, height: 12, background: '#fff', borderRadius: '50%', position: 'absolute', top: 2, left: useVGGT ? 14 : 2, transition: '0.2s' }} />
               </div>
@@ -157,6 +169,9 @@ export default function GroupEditingNode({ id, data, selected }) {
         {/* Generate Button (Manual Fallback) */}
         <button
           onClick={runGeneration}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="nodrag nopan"
           disabled={isLoading || inputImages.length === 0}
           style={{
             background: '#0ea5e9', color: '#fff', border: 'none', padding: '8px', borderRadius: 6,

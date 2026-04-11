@@ -3,6 +3,22 @@ import { Edge } from '@xyflow/react';
 // @ts-ignore
 import { collectDownstreamNodeIds } from '../utils/workflowRunScope';
 
+/**
+ * SECURITY: Canvas toolbar for workflow execution with input validation
+ * All user-provided data is sanitized before rendering or passing to callbacks
+ */
+
+// SECURITY: Maximum limits to prevent DoS
+const MAX_NODE_ID_LENGTH = 128;
+const MAX_SELECTED_NODES = 1000;
+const MAX_SECTIONS = 50;
+const MAX_ROWS_PER_SECTION = 100;
+const MAX_LABEL_LENGTH = 100;
+const MAX_TITLE_LENGTH = 50;
+
+// SECURITY: Valid node type pattern (alphanumeric, dash, underscore)
+const VALID_NODE_TYPE_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
 const barStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -103,7 +119,7 @@ function menuRowStyle(enabled: boolean): CSSProperties {
   };
 }
 
-/** Filled play — primary “run all” */
+/** Filled play — primary "run all" */
 const IconPlayFilled: FC = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden style={{ flexShrink: 0 }}>
     <path d="M8 5v14l11-7z" />
@@ -132,6 +148,110 @@ const IconPlaysOutlineOverlap: FC = () => (
   </svg>
 );
 
+/**
+ * SECURITY: Type-safe section row definition
+ */
+interface NodeSectionRow {
+  key: string;
+  label: string;
+  type: string;
+  dataPatch?: Record<string, unknown>;
+}
+
+/**
+ * SECURITY: Type-safe section definition
+ */
+interface NodeSection {
+  title?: string;
+  rows: NodeSectionRow[];
+}
+
+/**
+ * SECURITY: Validate and sanitize node section data
+ */
+function sanitizeNodeSections(sections: unknown): NodeSection[] {
+  if (!Array.isArray(sections)) return [];
+  if (sections.length > MAX_SECTIONS) {
+    console.warn(`SECURITY: Limiting sections from ${sections.length} to ${MAX_SECTIONS}`);
+  }
+  
+  return sections.slice(0, MAX_SECTIONS).map((section, idx): NodeSection => {
+    // Validate section structure
+    const validSection: NodeSection = {
+      title: typeof section?.title === 'string' 
+        ? section.title.slice(0, MAX_TITLE_LENGTH) 
+        : undefined,
+      rows: [],
+    };
+    
+    // Validate rows
+    if (Array.isArray(section?.rows)) {
+      if (section.rows.length > MAX_ROWS_PER_SECTION) {
+        console.warn(`SECURITY: Limiting rows in section ${idx} from ${section.rows.length} to ${MAX_ROWS_PER_SECTION}`);
+      }
+      
+      validSection.rows = section.rows.slice(0, MAX_ROWS_PER_SECTION).map((row: unknown, rIdx: number): NodeSectionRow => {
+        const safeRow: NodeSectionRow = {
+          key: `row-${idx}-${rIdx}`,
+          label: 'Unknown',
+          type: 'unknown',
+        };
+        
+        if (row && typeof row === 'object') {
+          const rowObj = row as Record<string, unknown>;
+          
+          // Validate key
+          if (typeof rowObj.key === 'string' && rowObj.key.length <= MAX_LABEL_LENGTH) {
+            safeRow.key = rowObj.key;
+          }
+          
+          // Validate label
+          if (typeof rowObj.label === 'string') {
+            safeRow.label = rowObj.label.slice(0, MAX_LABEL_LENGTH);
+          }
+          
+          // Validate type (security critical - prevents injection)
+          if (typeof rowObj.type === 'string' && VALID_NODE_TYPE_PATTERN.test(rowObj.type)) {
+            safeRow.type = rowObj.type;
+          }
+          
+          // Validate dataPatch (must be plain object)
+          if (rowObj.dataPatch && typeof rowObj.dataPatch === 'object' && !Array.isArray(rowObj.dataPatch)) {
+            safeRow.dataPatch = rowObj.dataPatch as Record<string, unknown>;
+          }
+        }
+        
+        return safeRow;
+      });
+    }
+    
+    return validSection;
+  });
+}
+
+/**
+ * SECURITY: Validate node ID to prevent injection
+ */
+function isValidNodeId(id: string): boolean {
+  return typeof id === 'string' && 
+         id.length > 0 && 
+         id.length <= MAX_NODE_ID_LENGTH &&
+         /^[a-zA-Z0-9_-]+$/.test(id);
+}
+
+/**
+ * SECURITY: Sanitize selected node IDs
+ */
+function sanitizeSelectedNodeIds(ids: unknown): string[] {
+  if (!Array.isArray(ids)) return [];
+  if (ids.length > MAX_SELECTED_NODES) {
+    console.warn(`SECURITY: Limiting selected nodes from ${ids.length} to ${MAX_SELECTED_NODES}`);
+  }
+  return ids
+    .filter((id): id is string => typeof id === 'string' && isValidNodeId(id))
+    .slice(0, MAX_SELECTED_NODES);
+}
+
 interface RunScopeMenuItemsProps {
   onRun: (nodeIdFilterSet?: Set<string>) => Promise<void>;
   isRunning: boolean;
@@ -141,10 +261,13 @@ interface RunScopeMenuItemsProps {
 }
 
 const RunScopeMenuItems: FC<RunScopeMenuItemsProps> = ({ onRun, isRunning, edges, selectedNodeIds, onCloseMenu }) => {
-  const ids = useMemo(
-    () => (Array.isArray(selectedNodeIds) ? selectedNodeIds.filter(Boolean) : []),
+  // SECURITY: Sanitize selected node IDs
+  const sanitizedIds = useMemo(
+    () => sanitizeSelectedNodeIds(selectedNodeIds),
     [selectedNodeIds]
   );
+  
+  const ids = useMemo(() => sanitizedIds.filter(Boolean), [sanitizedIds]);
   const singleId = ids.length === 1 ? ids[0] : null;
   const canFull = !isRunning;
   const canFromSelected = !isRunning && singleId != null;
@@ -278,8 +401,8 @@ interface CanvasRunToolbarProps {
   onAddTextLlm?: () => void;
   onAddPrompt?: () => void;
   onAddOutput?: () => void;
-  allNodesSections?: any[];
-  onAddNodeFromMenu?: (type: string, dataPatch?: any) => void;
+  allNodesSections?: unknown[];
+  onAddNodeFromMenu?: (type: string, dataPatch?: Record<string, unknown>) => void;
   onSelectAll?: () => void;
   onDeselectAll?: () => void;
   onFitView?: () => void;
@@ -288,6 +411,7 @@ interface CanvasRunToolbarProps {
 
 /**
  * Bottom canvas toolbar: quick add nodes, scope menus, models, fit view, Run.
+ * SECURITY: All user inputs validated before use
  */
 const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
   onRun,
@@ -312,6 +436,18 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
   const [openNodes, setOpenNodes] = useState(false);
   const [openRunMenu, setOpenRunMenu] = useState(false);
   const runSplitRef = useRef<HTMLDivElement>(null);
+
+  // SECURITY: Sanitize allNodesSections
+  const sanitizedSections = useMemo(
+    () => sanitizeNodeSections(allNodesSections),
+    [allNodesSections]
+  );
+  
+  // SECURITY: Sanitize selected node IDs for RunScopeMenuItems
+  const sanitizedSelectedIds = useMemo(
+    () => sanitizeSelectedNodeIds(selectedNodeIds),
+    [selectedNodeIds]
+  );
 
   const closeAll = useCallback(() => {
     setOpenGenerate(false);
@@ -482,39 +618,39 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
         </button>
         {openNodes && (
           <div style={allNodesMenuPanel}>
-            {Array.isArray(allNodesSections) &&
-              allNodesSections.map((section, sIdx) => (
-                <div key={`sec-${sIdx}-${section.title ?? 'untitled'}`}>
-                  {section.title == null && sIdx > 0 ? <hr style={sectionRuleStyle} /> : null}
-                  {section.title ? (
-                    <>
-                      {sIdx > 0 ? <hr style={sectionRuleStyle} /> : null}
-                      <div style={sectionHeaderStyle}>{section.title}</div>
-                    </>
-                  ) : null}
-                  {section.rows.map((row: any) => (
-                    <button
-                      key={row.key}
-                      type="button"
-                      style={menuItem}
-                      onMouseEnter={(e: MouseEvent<HTMLButtonElement>) => {
-                        (e.currentTarget as HTMLElement).style.background = '#333';
-                      }}
-                      onMouseLeave={(e: MouseEvent<HTMLButtonElement>) => {
-                        (e.currentTarget as HTMLElement).style.background = 'none';
-                      }}
-                      onClick={() => {
-                        setOpenNodes(false);
-                        if (onAddNodeFromMenu) {
-                          onAddNodeFromMenu(row.type, row.dataPatch);
-                        }
-                      }}
-                    >
-                      {row.label}
-                    </button>
-                  ))}
-                </div>
-              ))}
+            {sanitizedSections.map((section, sIdx) => (
+              <div key={`sec-${sIdx}-${section.title ?? 'untitled'}`}>
+                {section.title == null && sIdx > 0 ? <hr style={sectionRuleStyle} /> : null}
+                {section.title ? (
+                  <>
+                    {sIdx > 0 ? <hr style={sectionRuleStyle} /> : null}
+                    <div style={sectionHeaderStyle}>{section.title}</div>
+                  </>
+                ) : null}
+                {section.rows.map((row) => (
+                  <button
+                    key={row.key}
+                    type="button"
+                    style={menuItem}
+                    onMouseEnter={(e: MouseEvent<HTMLButtonElement>) => {
+                      (e.currentTarget as HTMLElement).style.background = '#333';
+                    }}
+                    onMouseLeave={(e: MouseEvent<HTMLButtonElement>) => {
+                      (e.currentTarget as HTMLElement).style.background = 'none';
+                    }}
+                    onClick={() => {
+                      setOpenNodes(false);
+                      if (onAddNodeFromMenu) {
+                        // SECURITY: type and dataPatch already validated in sanitizeNodeSections
+                        onAddNodeFromMenu(row.type, row.dataPatch);
+                      }
+                    }}
+                  >
+                    {row.label}
+                  </button>
+                ))}
+              </div>
+            ))}
             <hr style={sectionRuleStyle} />
             <button
               type="button"
@@ -667,7 +803,7 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
               onRun={onRun}
               isRunning={isRunning}
               edges={edges}
-              selectedNodeIds={selectedNodeIds}
+              selectedNodeIds={sanitizedSelectedIds}
               onCloseMenu={() => setOpenRunMenu(false)}
             />
           </div>

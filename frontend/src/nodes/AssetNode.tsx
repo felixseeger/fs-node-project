@@ -1,192 +1,396 @@
-import React, { useRef, useState, useCallback, FC, ChangeEvent, DragEvent, ReactNode } from 'react';
-import UpdateAssetModal from '../UpdateAssetModal';
-import { Handle, Position, NodeProps } from '@xyflow/react';
-import NodeShell from './NodeShell';
-import useNodeConnections from './useNodeConnections';
-import { sp, CATEGORY_COLORS, font } from './nodeTokens';
+/**
+ * AssetNode - Hardened React Flow node for asset management
+ * 
+ * Features:
+ * - Strict type definitions for node data
+ * - Safe property access with runtime validation
+ * - File validation before processing
+ * - Proper error boundaries
+ */
 
-const Icons = {
-  Upload: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>,
-  Plus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-};
+import React, { useState, useCallback, useMemo } from 'react';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Asset, AssetMediaItem } from '../types/asset';
 
 /**
- * AssetNode - Repository for media assets
+ * AssetNode data structure
  */
-const AssetNode: FC<NodeProps> = ({ id, data, selected }) => {
-  const { disconnectNode } = useNodeConnections(id, data);
-  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const images = (data.images as string[]) || [];
+export interface AssetNodeData {
+  /** Node display label */
+  label?: string;
+  /** Asset ID reference */
+  assetId?: string;
+  /** Full asset data (when embedded) */
+  asset?: Asset;
+  /** Image URLs for display */
+  images: string[];
+  /** Media items with metadata */
+  mediaItems?: AssetMediaItem[];
+  /** Whether asset has unsaved changes */
+  isDirty?: boolean;
+  /** Callback to update node data */
+  onUpdate?: (data: Partial<AssetNodeData>) => void;
+  /** Callback to show update modal */
+  onShowUpdateModal?: (nodeId: string, data: AssetNodeData) => void;
+  /** Callback to add images */
+  onAddImages?: (nodeId: string, images: string[]) => void;
+  /** Node ID reference */
+  nodeId: string;
+}
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
+/**
+ * File validation result
+ */
+interface FileValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+/**
+ * Image validation state
+ */
+interface ImageValidationState {
+  isValidating: boolean;
+  errors: Record<string, string>;
+}
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_IMAGES_PER_NODE = 50;
+
+/**
+ * Type guard for AssetNodeData
+ */
+function isAssetNodeData(data: unknown): data is AssetNodeData {
+  if (typeof data !== 'object' || data === null) return false;
+  const d = data as Record<string, unknown>;
+  return (
+    Array.isArray(d.images) &&
+    (d.label === undefined || typeof d.label === 'string') &&
+    (d.nodeId === undefined || typeof d.nodeId === 'string')
+  );
+}
+
+/**
+ * Validate file before processing
+ */
+function validateFile(file: File): FileValidationResult {
+  const errors: string[] = [];
+
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    errors.push(`${file.name}: Invalid type. Allowed: JPG, PNG, WebP, GIF`);
+  }
+
+  if (file.size > MAX_FILE_SIZE) {
+    errors.push(`${file.name}: Too large (max ${MAX_FILE_SIZE / 1024 / 1024}MB)`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
   };
+}
 
-  const processFiles = useCallback(async (files: FileList | File[]) => {
-    const fileArray = Array.from(files).filter(f =>
-      f.type.startsWith('image/') || f.type.startsWith('video/')
+/**
+ * AssetNode React Flow component
+ * 
+ * @param props - Node props from React Flow
+ */
+export function AssetNode(props: NodeProps<Record<string, unknown>>): React.ReactElement {
+  const { data, id } = props;
+  
+  // Validate data structure
+  if (!isAssetNodeData(data)) {
+    console.error('[AssetNode] Invalid node data:', data);
+    return (
+      <div className="bg-red-900/50 border border-red-700 rounded-lg p-4 text-red-200">
+        Invalid node data
+      </div>
     );
+  }
 
-    if (!fileArray.length) {
-      console.warn('AssetNode: No valid image/video files found');
-      return;
+  // Cast data to AssetNodeData after validation
+  const nodeData = data as AssetNodeData;
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [validationState, setValidationState] = useState<ImageValidationState>({
+    isValidating: false,
+    errors: {},
+  });
+
+  // Safe property access with defaults
+  const nodeLabel = nodeData.label ?? 'Asset Repository';
+  const images = useMemo(() => {
+    // Ensure all images are valid strings
+    return nodeData.images.filter((img): img is string => 
+      typeof img === 'string' && img.length > 0
+    );
+  }, [nodeData.images]);
+  
+  const assetName = nodeData.asset?.name ?? nodeLabel;
+  const isDirty = nodeData.isDirty ?? false;
+
+  /**
+   * Handle file processing
+   */
+  const processFiles = useCallback(async (files: FileList): Promise<string[]> => {
+    const processed: string[] = [];
+    const errors: Record<string, string> = {};
+
+    setValidationState(prev => ({ ...prev, isValidating: true }));
+
+    for (const file of Array.from(files)) {
+      const validation = validateFile(file);
+      if (!validation.valid) {
+        errors[file.name] = validation.errors.join('; ');
+        continue;
+      }
+
+      try {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const result = e.target?.result;
+            if (typeof result === 'string') {
+              resolve(result);
+            } else {
+              reject(new Error('Failed to read file'));
+            }
+          };
+          reader.onerror = () => reject(new Error('File read error'));
+          reader.readAsDataURL(file);
+        });
+        processed.push(dataUrl);
+      } catch (err) {
+        errors[file.name] = err instanceof Error ? err.message : 'Read failed';
+      }
     }
 
-    console.log('AssetNode: Processing', fileArray.length, 'files');
-
-    // Read all files in parallel
-    const readPromises = fileArray.map(file => {
-      return new Promise<string | null>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          resolve(event.target?.result as string);
-        };
-        reader.onerror = (err) => {
-          console.error('AssetNode: FileReader error for', file.name, err);
-          resolve(null);
-        };
-        reader.readAsDataURL(file);
-      });
+    setValidationState({
+      isValidating: false,
+      errors,
     });
 
-    const results = await Promise.all(readPromises);
-    const newImages = results.filter((res): res is string => res !== null);
-
-    if (newImages.length > 0 && typeof data.onUpdate === 'function') {
-      data.onUpdate(id, { images: [...images, ...newImages] });
-    }
-  }, [id, data, images]);
-
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      processFiles(e.target.files);
-      e.target.value = '';
-    }
-  };
-
-  const handleDragOver = useCallback((e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
+    return processed;
   }, []);
 
-  const handleDragEnter = useCallback((e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setIsDragging(false);
-    }
-  }, []);
-
-  const handleDrop = useCallback((e: DragEvent) => {
+  /**
+   * Handle file drop
+   */
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
 
-    const files = e.dataTransfer.files;
-    if (files?.length > 0) {
-      processFiles(files);
+    // Check max images
+    if (images.length >= MAX_IMAGES_PER_NODE) {
+      setValidationState(prev => ({
+        ...prev,
+        errors: { general: `Maximum ${MAX_IMAGES_PER_NODE} images allowed` },
+      }));
+      return;
     }
-  }, [processFiles]);
+
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    // Process files
+    const newImages = await processFiles(files);
+    
+    if (newImages.length > 0) {
+      // Calculate how many we can add
+      const availableSlots = MAX_IMAGES_PER_NODE - images.length;
+      const imagesToAdd = newImages.slice(0, availableSlots);
+
+      // Update via callback
+      if (nodeData.onAddImages) {
+        nodeData.onAddImages(id, imagesToAdd);
+      } else if (nodeData.onUpdate) {
+        nodeData.onUpdate({
+          images: [...images, ...imagesToAdd],
+          isDirty: true,
+        });
+      }
+    }
+  }, [images, nodeData, id, processFiles]);
+
+  /**
+   * Handle drag over
+   */
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  /**
+   * Handle drag leave
+   */
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  /**
+   * Handle click to show update modal
+   */
+  const handleShowUpdateModal = useCallback(() => {
+    if (nodeData.onShowUpdateModal) {
+      nodeData.onShowUpdateModal(id, nodeData);
+    }
+  }, [nodeData, id]);
+
+  /**
+   * Handle file input change
+   */
+  const handleFileInputChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // Check max images
+    if (images.length >= MAX_IMAGES_PER_NODE) {
+      setValidationState(prev => ({
+        ...prev,
+        errors: { general: `Maximum ${MAX_IMAGES_PER_NODE} images allowed` },
+      }));
+      return;
+    }
+
+    const newImages = await processFiles(files);
+    
+    if (newImages.length > 0) {
+      const availableSlots = MAX_IMAGES_PER_NODE - images.length;
+      const imagesToAdd = newImages.slice(0, availableSlots);
+
+      if (nodeData.onAddImages) {
+        nodeData.onAddImages(id, imagesToAdd);
+      } else if (nodeData.onUpdate) {
+        nodeData.onUpdate({
+          images: [...images, ...imagesToAdd],
+          isDirty: true,
+        });
+      }
+    }
+
+    // Reset input
+    e.target.value = '';
+  }, [images, nodeData, id, processFiles]);
 
   return (
-    <>
-      <NodeShell data={data}
-        label={(data.label as string) || 'Asset'}
-        dotColor={CATEGORY_COLORS.input}
-        selected={selected}
-        onDisconnect={disconnectNode}
-        onEdit={() => setIsUpdateModalOpen(true)}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: sp[4] }}>
-          <input
-            type="file"
-            multiple
-            accept="image/*,video/*"
-            ref={fileInputRef}
-            style={{ display: 'none' }}
-            onChange={handleFileChange}
-          />
-
-          {images.length > 0 ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: sp[2] }}>
-              {images.map((src, i) => (
-                <div key={i} style={{ width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '1px solid #333' }}>
-                  <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={`Asset ${i}`} />
-                </div>
-              ))}
-              <button
-                onClick={handleUploadClick}
-                onDragOver={handleDragOver}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 8,
-                  border: isDragging ? '2px dashed #3b82f6' : '1px dashed #444',
-                  background: isDragging ? 'rgba(59,130,246,0.2)' : '#222',
-                  color: isDragging ? '#3b82f6' : '#888',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: 0,
-                  padding: 0,
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <span style={{ width: 24, height: 24 }}>{Icons.Plus}</span>
-              </button>
-            </div>
-          ) : (
-            <div
-              onClick={handleUploadClick}
-              onDragOver={handleDragOver}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              style={{
-                padding: sp[4],
-                border: isDragging ? '2px dashed #3b82f6' : '1px dashed #444',
-                borderRadius: 8,
-                background: isDragging ? 'rgba(59,130,246,0.1)' : '#222',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: sp[2],
-                cursor: 'pointer',
-                color: isDragging ? '#3b82f6' : '#888',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <span style={{ width: 24, height: 24 }}>{Icons.Upload}</span>
-              <span style={{ ...font.sm, fontWeight: 500 }}>
-                {isDragging ? 'Drop files here' : 'Upload Media'}
-              </span>
-            </div>
-          )}
-
+    <div
+      className={`
+        relative bg-gray-800 border-2 rounded-lg p-4 min-w-[280px] max-w-[400px]
+        ${isDragging ? 'border-blue-500 bg-blue-900/20' : 'border-gray-600'}
+        ${isDirty ? 'border-yellow-500/50' : ''}
+        transition-colors duration-200
+      `}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+    >
+      {/* Drag indicator */}
+      {isDragging && (
+        <div className="absolute inset-0 bg-blue-500/10 border-2 border-dashed border-blue-500 rounded-lg flex items-center justify-center">
+          <span className="text-blue-400 font-medium">Drop images here</span>
         </div>
-        <Handle type="source" position={Position.Right} style={{ top: 40 }} />
-      </NodeShell>
-      <UpdateAssetModal
-        isOpen={isUpdateModalOpen}
-        onClose={() => setIsUpdateModalOpen(false)}
-        nodeData={{ id, label: (data.label as string) || (data.name as string), images }}
-        onUpdate={(nodeId, patch) => (data.onUpdate as Function)?.(nodeId, patch)}
+      )}
+
+      {/* Node header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <h3 className="text-white font-medium truncate max-w-[180px]" title={assetName}>
+            {assetName}
+          </h3>
+          {isDirty && (
+            <span className="text-yellow-500 text-xs" title="Unsaved changes">●</span>
+          )}
+        </div>
+        <span className="text-gray-500 text-xs">{images.length} images</span>
+      </div>
+
+      {/* Image grid */}
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        {images.slice(0, 6).map((image, index) => (
+          <div key={index} className="relative aspect-square bg-gray-700 rounded overflow-hidden">
+            <img
+              src={image}
+              alt={`Asset ${index + 1}`}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={(e) => {
+                // Replace with placeholder on error
+                (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>';
+              }}
+            />
+            {index === 5 && images.length > 6 && (
+              <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                <span className="text-white font-medium">+{images.length - 6}</span>
+              </div>
+            )}
+          </div>
+        ))}
+        
+        {/* Add image button */}
+        {images.length < MAX_IMAGES_PER_NODE && (
+          <label className="aspect-square bg-gray-700/50 border-2 border-dashed border-gray-600 rounded flex items-center justify-center cursor-pointer hover:border-gray-500 hover:bg-gray-700 transition-colors">
+            <input
+              type="file"
+              accept={ALLOWED_IMAGE_TYPES.join(',')}
+              multiple
+              className="hidden"
+              onChange={handleFileInputChange}
+              disabled={validationState.isValidating}
+            />
+            {validationState.isValidating ? (
+              <svg className="animate-spin h-5 w-5 text-gray-400" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            )}
+          </label>
+        )}
+      </div>
+
+      {/* Validation errors */}
+      {Object.entries(validationState.errors).length > 0 && (
+        <div className="mb-3 p-2 bg-red-900/30 border border-red-700/50 rounded text-red-300 text-xs">
+          {Object.entries(validationState.errors).map(([file, error]) => (
+            <div key={file}>{file}: {error}</div>
+          ))}
+        </div>
+      )}
+
+      {/* Actions */}
+        <button
+          onClick={handleShowUpdateModal}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="nodrag nopan flex-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+        >
+          Update Asset
+        </button>
+
+      {/* React Flow handles */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!bg-gray-500 !w-3 !h-3"
       />
-    </>);
-};
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!bg-blue-500 !w-3 !h-3"
+      />
+    </div>
+  );
+}
 
 export default AssetNode;

@@ -379,6 +379,8 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
             <select
               value={aspectRatio}
               onChange={e => update({ aspectRatio: e.target.value })}
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
               disabled={locked}
               className="nodrag nopan"
               style={{
@@ -428,11 +430,13 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
         }}>
           <textarea
             ref={promptRef}
+            className="nodrag nopan nowheel"
             value={data.inputPrompt || ''}
             onChange={e => update({ inputPrompt: e.target.value })}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             placeholder="e.g. A cinematic shot of a neon cyberpunk city..."
             rows={4}
-            className="nodrag nopan nowheel"
             style={{
               background: 'transparent', border: 'none', color: text.primary,
               ...font.sm, resize: 'none', outline: 'none', width: '100%', overflow: 'hidden',
@@ -547,6 +551,8 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
                   checked={data.pixverseSoundEnabled || false}
                   onChange={(e) => update({ pixverseSoundEnabled: e.target.checked })}
                   className="nodrag nopan"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                 />
                 <span style={{ ...font.xs, color: text.primary }}>Enable AI sound generation</span>
               </label>
@@ -557,10 +563,12 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
                 <span style={{ ...font.xs, color: text.muted }}>Sound description (optional)</span>
                 <input
                   type="text"
+                  className="nodrag nopan"
                   value={data.pixverseSoundContent || ''}
                   onChange={(e) => update({ pixverseSoundContent: e.target.value })}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                   placeholder="e.g. Epic orchestral music, futuristic synth..."
-                  className="nodrag nopan"
                   style={{
                     background: surface.base,
                     border: `1px solid ${border.divider}`,

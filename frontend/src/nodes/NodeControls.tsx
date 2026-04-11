@@ -16,6 +16,9 @@ export function Pill({ label, isActive, onClick, accentColor = '#5ee7df' }: Pill
   return (
     <button
       onClick={onClick}
+      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      className="nodrag nopan"
       aria-pressed={isActive}
       style={{
         flex: 1,
@@ -75,7 +78,9 @@ export function Toggle({ label, value, checked, onChange, accentColor = '#5ee7df
   const toggleBtn = (
     <button
       onClick={() => onChange(!isChecked)}
-      onMouseDown={e => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      className="nodrag nopan"
       role="switch"
       aria-checked={isChecked}
       aria-label={label}
@@ -145,8 +150,11 @@ export function Slider({
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <input
           type="range"
+          className="nodrag nopan"
           min={min} max={max} step={step} value={value}
           onChange={(e) => onChange(Number(e.target.value))}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           aria-label={label}
           className="liquid-slider"
           style={{ 
@@ -184,7 +192,10 @@ export function DirectionSlider({ label, value, onChange, max = 2048, step = 64,
       </span>
       <input
         type="range" min={0} max={max} step={step} value={value}
+        className="nodrag nopan"
         onChange={(e) => onChange(Number(e.target.value))}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
         aria-label={`${label} expansion`}
         style={{ flex: 1, accentColor }}
       />
@@ -218,14 +229,26 @@ export function PromptInput({ value, onChange, placeholder, rows = 3 }: PromptIn
   return (
     <textarea
       ref={textareaRef}
+      className="nodrag nopan"
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
+      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
       placeholder={placeholder}
       rows={rows}
       style={{
         width: '100%', background: surface.sunken, border: `1px solid ${border.input}`,
         borderRadius: radius.md, color: text.primary, fontSize: 12, padding: sp[3],
-        resize: 'none', outline: 'none', boxSizing: 'border-box', overflow: 'hidden'
+        resize: 'none', outline: 'none', boxSizing: 'border-box', overflow: 'hidden',
+        transition: 'border-color 0.2s, box-shadow 0.2s',
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = border.active;
+        e.currentTarget.style.boxShadow = `0 0 0 2px ${border.active}33`;
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = border.input;
+        e.currentTarget.style.boxShadow = 'none';
       }}
     />
   );
@@ -245,14 +268,26 @@ export function TextInput({ value, onChange, placeholder, type = 'text' }: TextI
   return (
     <input
       type={type}
+      className="nodrag nopan"
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
+      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
       placeholder={placeholder}
       style={{
         width: '100%', background: surface.sunken, border: `1px solid ${border.input}`,
         borderRadius: radius.md, color: text.primary, fontSize: 11,
         padding: `${sp[2]}px ${sp[3]}px`,
         outline: 'none', boxSizing: 'border-box',
+        transition: 'border-color 0.2s, box-shadow 0.2s',
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = border.active;
+        e.currentTarget.style.boxShadow = `0 0 0 2px ${border.active}33`;
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = border.input;
+        e.currentTarget.style.boxShadow = 'none';
       }}
     />
   );

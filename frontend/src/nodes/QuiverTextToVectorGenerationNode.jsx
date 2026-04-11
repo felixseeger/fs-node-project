@@ -52,7 +52,7 @@ export default function QuiverTextToVectorGenerationNode({ id, data, selected })
           outputError: null,
         });
         // Register in history
-        addToHistory({
+        await addToHistory({
           type: 'svg',
           url: svgDataUri,
           prompt: prompt,

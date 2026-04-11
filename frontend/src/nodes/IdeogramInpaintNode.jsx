@@ -1,7 +1,17 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
-import NodeShell from './NodeShell';
-import { getHandleColor } from '../utils/handleTypes';
+import {
+  NodeShell,
+  SectionHeader,
+  ConnectedOrLocal,
+  PromptInput,
+  TextInput,
+  Pill,
+  OutputHandle,
+  OutputPreview,
+  useNodeConnections,
+  getHandleColor,
+} from './shared';
 import { ideogramInpaint, pollIdeogramInpaintStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
@@ -42,6 +52,7 @@ const COLOR_PALETTES = [
 
 export default function IdeogramInpaintNode({ id, data, selected }) {
   const { isActive, start, fail, complete } = useNodeProgress();
+  const { update, conn, resolve } = useNodeConnections(id, data);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const localRenderingSpeed = data.localRenderingSpeed || 'DEFAULT';
@@ -50,32 +61,18 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
   const localColorPalette = data.localColorPalette || '';
   const localSeed = data.localSeed ?? '';
 
-  const update = useCallback(
-    (patch) => data.onUpdate?.(id, patch),
-    [id, data]
-  );
-
-  const getConnInfo = useCallback((handleId) => {
-    return data.getConnectionInfo?.(id, handleId) || null;
-  }, [id, data]);
-
-  const imageConnection = getConnInfo('image-in');
-  const hasImageConnection = data.hasConnection?.(id, 'image-in');
-  const maskConnection = getConnInfo('mask-in');
-  const hasMaskConnection = data.hasConnection?.(id, 'mask-in');
-  const promptConnection = getConnInfo('prompt-in');
-  const hasPromptConnection = data.hasConnection?.(id, 'prompt-in');
+  const imageConn = conn('image-in');
+  const maskConn = conn('mask-in');
+  const promptConn = conn('prompt-in');
 
   const handleInpaint = useCallback(async () => {
-    let images = data.resolveInput?.(id, 'image-in');
-    if (!images?.length && data.localImage) images = [data.localImage];
+    let images = resolve.image('image-in', data.localImage);
     if (!images?.length) return;
 
-    let masks = data.resolveInput?.(id, 'mask-in');
-    if (!masks?.length && data.localMask) masks = [data.localMask];
+    let masks = resolve.image('mask-in', data.localMask);
     if (!masks?.length) return;
 
-    const prompt = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt || '';
+    const prompt = resolve.text('prompt-in', data.inputPrompt);
     if (!prompt) return;
 
     start();
@@ -129,7 +126,7 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
       update({ isLoading: false, outputError: err.message });
       fail();
     }
-  }, [id, data, update, localRenderingSpeed, localMagicPrompt, localStyleType, localColorPalette, localSeed, start, fail, complete]);
+  }, [id, data, update, localRenderingSpeed, localMagicPrompt, localStyleType, localColorPalette, localSeed, start, fail, complete, resolve]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -139,106 +136,69 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
     }
   }, [data.triggerGenerate, handleInpaint]);
 
-  // ── Helpers ──
-
-  const sectionHeader = (label, handleId, handleType, color, extra) => (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      marginBottom: 6, marginTop: 10,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Handle type={handleType} position={handleType === 'target' ? Position.Left : Position.Right}
-          id={handleId} style={{
-            width: 10, height: 10, borderRadius: '50%', background: color, border: 'none',
-            position: 'relative', left: handleType === 'target' ? -12 : 'auto',
-            right: handleType === 'source' ? -12 : 'auto', transform: 'none',
-          }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>{label}</span>
-      </div>
-      {extra && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>{extra}</div>}
-    </div>
-  );
-
-  const linkedBadges = (onUnlinkHandle) => (
-    <>
-      <span style={{ fontSize: 9, color: '#3b82f6', padding: '2px 6px', background: 'rgba(59,130,246,0.1)', borderRadius: 4 }}>linked</span>
-      <button onClick={() => data.onUnlink?.(id, onUnlinkHandle)} style={{
-        fontSize: 9, color: '#ef4444', padding: '2px 6px', background: 'rgba(239,68,68,0.15)', borderRadius: 4,
-        border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer',
-      }}>unlink</button>
-    </>
-  );
-
-  const connectionInfoBox = (connInfo) => (
-    <div style={{
-      background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)',
-      borderRadius: 6, padding: '6px 10px', marginBottom: 4,
-      display: 'flex', alignItems: 'center', gap: 6,
-    }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: '#93b4f5' }}>
-        {connInfo ? `Linked from ${connInfo.nodeLabel} → ${connInfo.handle}` : 'Linked from upstream node'}
-      </span>
-    </div>
-  );
-
-  const pill = (label, isActive, onClick, color) => (
-    <button key={label} onClick={onClick} style={{
-      padding: '4px 10px', fontSize: 11, fontWeight: isActive ? 600 : 400,
-      borderRadius: 14, border: 'none', cursor: 'pointer',
-      background: isActive ? (color || '#d946ef') : '#1a1a1a',
-      color: isActive ? '#fff' : '#999',
-    }}>{label}</button>
-  );
-
   const ACCENT = '#d946ef';
-
-  // ── Render ──
 
   return (
     <NodeShell data={data} label={data.label || 'Ideogram Inpaint'} dotColor={ACCENT} selected={selected} onGenerate={handleInpaint} isGenerating={isActive}>
+      <OutputHandle id="output" label="image" color={getHandleColor('output')} />
+      <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />
 
       {/* ── 1. Image ── */}
-      {sectionHeader('Image', 'image-in', 'target', getHandleColor('image-in'),
-        hasImageConnection ? linkedBadges('image-in') : null
-      )}
-      {hasImageConnection ? connectionInfoBox(imageConnection) : (
+      <SectionHeader 
+        label="Image" 
+        handleId="image-in" 
+        handleType="target" 
+        color={getHandleColor('image-in')}
+        isConnected={imageConn.connected}
+        onUnlink={() => data.onUnlink?.(id, 'image-in')}
+      />
+      <ConnectedOrLocal connected={imageConn.connected} connInfo={imageConn.info}>
         <ImageUploadBox
           image={data.localImage || data.inputImagePreview || null}
           onImageChange={(img) => update({ localImage: img })}
           placeholder="Click or drag to upload source image"
         />
-      )}
+      </ConnectedOrLocal>
 
       {/* ── 2. Mask ── */}
-      {sectionHeader('Mask', 'mask-in', 'target', getHandleColor('image-in'),
-        hasMaskConnection ? linkedBadges('mask-in') : null
-      )}
-      {hasMaskConnection ? connectionInfoBox(maskConnection) : (
+      <SectionHeader 
+        label="Mask" 
+        handleId="mask-in" 
+        handleType="target" 
+        color={getHandleColor('image-in')}
+        isConnected={maskConn.connected}
+        onUnlink={() => data.onUnlink?.(id, 'mask-in')}
+      />
+      <ConnectedOrLocal connected={maskConn.connected} connInfo={maskConn.info}>
         <ImageUploadBox
           image={data.localMask || null}
           onImageChange={(img) => update({ localMask: img })}
           placeholder="Upload mask (Black = edit, White = keep)"
           minHeight={40}
         />
-      )}
+      </ConnectedOrLocal>
 
       {/* ── 3. Prompt (required) ── */}
-      {sectionHeader('Prompt', 'prompt-in', 'target', getHandleColor('prompt-in'),
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}><AutoPromptButton id={id} data={data} update={update} imageKey="image-in" localImageKey="localImage" />
-            <ImprovePromptButton id={id} data={data} update={update} type="image" />{hasPromptConnection ? linkedBadges('prompt-in') : null}</div>
-      )}
-      {hasPromptConnection ? connectionInfoBox(promptConnection) : (
-        <textarea value={data.inputPrompt || ''}
-          onChange={(e) => update({ inputPrompt: e.target.value })}
+      <SectionHeader 
+        label="Prompt" 
+        handleId="prompt-in" 
+        handleType="target" 
+        color={getHandleColor('prompt-in')}
+        isConnected={promptConn.connected}
+        onUnlink={() => data.onUnlink?.(id, 'prompt-in')}
+        extra={<div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <AutoPromptButton id={id} data={data} update={update} imageKey="image-in" localImageKey="localImage" />
+          <ImprovePromptButton id={id} data={data} update={update} type="image" />
+        </div>}
+      />
+      <ConnectedOrLocal connected={promptConn.connected} connInfo={promptConn.info}>
+        <PromptInput
+          value={data.inputPrompt || ''}
+          onChange={(v) => update({ inputPrompt: v })}
           placeholder='Describe desired changes (required)'
           rows={2}
-          style={{
-            width: '100%', background: '#1a1a1a', border: '1px solid #3a3a3a',
-            borderRadius: 6, color: '#e0e0e0', fontSize: 12, padding: 8,
-            resize: 'vertical', outline: 'none', boxSizing: 'border-box',
-          }} />
-      )}
+        />
+      </ConnectedOrLocal>
 
       {/* ── 4. Rendering Speed ── */}
       <div style={{ marginTop: 10, marginBottom: 6 }}>
@@ -246,13 +206,20 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
         {RENDERING_SPEEDS.map((rs) => (
-          <button key={rs.value} onClick={() => update({ localRenderingSpeed: rs.value })} style={{
-            flex: 1, padding: '8px 6px', fontSize: 11, textAlign: 'center',
-            borderRadius: 8, border: 'none', cursor: 'pointer',
-            background: localRenderingSpeed === rs.value ? 'rgba(217,70,239,0.15)' : '#1a1a1a',
-            borderLeft: localRenderingSpeed === rs.value ? `3px solid ${ACCENT}` : '3px solid transparent',
-            transition: 'all 0.15s',
-          }}>
+          <button 
+            key={rs.value} 
+            className="nodrag nopan"
+            onClick={() => update({ localRenderingSpeed: rs.value })} 
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{
+              flex: 1, padding: '8px 6px', fontSize: 11, textAlign: 'center',
+              borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: localRenderingSpeed === rs.value ? 'rgba(217,70,239,0.15)' : '#1a1a1a',
+              borderLeft: localRenderingSpeed === rs.value ? `3px solid ${ACCENT}` : '3px solid transparent',
+              transition: 'all 0.15s',
+            }}
+          >
             <div style={{ fontWeight: localRenderingSpeed === rs.value ? 600 : 400, color: localRenderingSpeed === rs.value ? '#e0e0e0' : '#999' }}>
               {rs.label}
             </div>
@@ -266,14 +233,16 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
         <span style={{ fontSize: 11, fontWeight: 600, color: '#999' }}>MagicPrompt</span>
       </div>
       <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
-        {MAGIC_PROMPT_OPTIONS.map((mp) => pill(mp.label, localMagicPrompt === mp.value,
-          () => update({ localMagicPrompt: mp.value }), ACCENT
+        {MAGIC_PROMPT_OPTIONS.map((mp) => (
+          <Pill key={mp.label} label={mp.label} isActive={localMagicPrompt === mp.value} onClick={() => update({ localMagicPrompt: mp.value })} accentColor={ACCENT} />
         ))}
       </div>
 
       {/* ── 6. Advanced Settings (collapsible) ── */}
       <button
         onClick={() => setShowAdvanced(!showAdvanced)}
+        className="nodrag nopan"
+        onMouseDown={(e) => e.stopPropagation()}
         style={{
           width: '100%', padding: '8px 0', marginTop: 8, marginBottom: 4,
           background: 'transparent', border: 'none', cursor: 'pointer',
@@ -290,7 +259,7 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
 
       {showAdvanced && (
         <div style={{
-          background: '#1a1a1a', borderRadius: 6, border: '1px solid #3a3a3a',
+          background: 'rgba(255,255,255,0.03)', borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)',
           padding: 10, marginBottom: 4,
         }}>
           {/* Style Type */}
@@ -298,8 +267,8 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
             <span style={{ fontSize: 11, fontWeight: 600, color: '#999' }}>Style Type</span>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
-            {STYLE_TYPES.map((st) => pill(st.label, localStyleType === st.value,
-              () => update({ localStyleType: st.value }), ACCENT
+            {STYLE_TYPES.map((st) => (
+              <Pill key={st.label} label={st.label} isActive={localStyleType === st.value} onClick={() => update({ localStyleType: st.value })} accentColor={ACCENT} />
             ))}
           </div>
 
@@ -308,8 +277,8 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
             <span style={{ fontSize: 11, fontWeight: 600, color: '#999' }}>Color Palette</span>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
-            {COLOR_PALETTES.map((cp) => pill(cp.label, localColorPalette === cp.value,
-              () => update({ localColorPalette: cp.value }), ACCENT
+            {COLOR_PALETTES.map((cp) => (
+              <Pill key={cp.label} label={cp.label} isActive={localColorPalette === cp.value} onClick={() => update({ localColorPalette: cp.value })} accentColor={ACCENT} />
             ))}
           </div>
 
@@ -317,79 +286,26 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
           <div style={{ marginBottom: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: '#999' }}>Seed</span>
-              {localSeed !== '' && (
-                <button onClick={() => update({ localSeed: '' })} style={{
-                  fontSize: 9, color: '#999', background: 'transparent', border: 'none', cursor: 'pointer',
-                }}>clear</button>
-              )}
             </div>
-            <input
+            <TextInput
               type="number"
-              min={0}
-              max={2147483647}
-              value={localSeed}
-              onChange={(e) => update({ localSeed: e.target.value })}
+              value={String(localSeed)}
+              onChange={(v) => update({ localSeed: v })}
               placeholder="Random if empty"
-              style={{
-                width: '100%', background: '#111', border: '1px solid #3a3a3a',
-                borderRadius: 6, color: '#e0e0e0', fontSize: 12, padding: '6px 8px',
-                outline: 'none', boxSizing: 'border-box',
-              }}
             />
           </div>
         </div>
       )}
 
-      {/* ── 7. Progress ── */}
       <NodeProgress isActive={isActive} />
 
-      {/* ── 8. Output ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 6, marginTop: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ec4899', flexShrink: 0 }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>Inpainted Output</span>
-        </div>
-      </div>
-      <div style={{
-        background: '#1a1a1a', borderRadius: 6, border: '1px solid #3a3a3a',
-        minHeight: 80, position: 'relative',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-      }}>
-        {isActive ? (
-          <div style={{
-            width: 28, height: 28, border: '3px solid #3a3a3a',
-            borderTop: `3px solid ${ACCENT}`, borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }} />
-        ) : data.outputImage ? (
-          <img src={data.outputImage} alt="inpainted" style={{ width: '100%', display: 'block', borderRadius: 6 }} />
-        ) : data.outputError ? (
-          <span style={{ fontSize: 10, color: '#ef4444', padding: 12, textAlign: 'center' }}>{data.outputError}</span>
-        ) : (
-          <span style={{ fontSize: 11, color: '#555', padding: 16, textAlign: 'center' }}>Inpainted image will appear here</span>
-        )}
-      </div>
-
-      {/* Output handles */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6, gap: 4, alignItems: 'center' }}>
-        <Handle type="source" position={Position.Right} id="prompt-out" style={{
-          width: 10, height: 10, borderRadius: '50%',
-          background: getHandleColor('prompt-out'), border: 'none',
-          position: 'relative', right: -12, transform: 'none',
-        }} />
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-        <Handle type="source" position={Position.Right} id="output" style={{
-          width: 10, height: 10, borderRadius: '50%',
-          background: getHandleColor('output'), border: 'none',
-          position: 'relative', right: -12, transform: 'none',
-        }} />
-      </div>
-
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      <OutputPreview
+        isLoading={isActive}
+        output={data.outputImage}
+        error={data.outputError}
+        accentColor={ACCENT}
+        label="Inpainted Output"
+      />
     </NodeShell>
   );
 }

@@ -196,15 +196,29 @@ export default function SoundEffectsNode({ id, data, selected }) {
         </div>
       )}
       {hasPromptConnection ? connectionInfoBox(promptConnection) : (
-        <textarea value={data.inputPrompt || ''}
+        <textarea 
+          className="nodrag nopan"
+          value={data.inputPrompt || ''}
           onChange={(e) => update({ inputPrompt: e.target.value })}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           placeholder="e.g. A cat meowing softly indoors"
           rows={3}
           style={{
             width: '100%', background: '#1a1a1a', border: '1px solid #3a3a3a',
             borderRadius: 6, color: '#e0e0e0', fontSize: 12, padding: 8,
             resize: 'vertical', outline: 'none', boxSizing: 'border-box',
-          }} />
+            transition: 'border-color 0.2s, box-shadow 0.2s',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = ACCENT;
+            e.currentTarget.style.boxShadow = `0 0 0 2px ${ACCENT}33`;
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = '#3a3a3a';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        />
       )}
 
       {/* ── 2. Settings ── */}
@@ -222,10 +236,11 @@ export default function SoundEffectsNode({ id, data, selected }) {
             <span style={{ fontSize: 11, color: '#999' }}>Duration (sec)</span>
             <span style={{ fontSize: 11, color: '#e0e0e0', fontWeight: 600 }}>{localDuration}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="nodrag nopan" style={{ display: 'flex', alignItems: 'center', gap: 8 }} onMouseDown={e => e.stopPropagation()}>
             <span style={{ fontSize: 9, color: '#555', minWidth: 14, textAlign: 'right' }}>0.5</span>
             <input type="range" min={0.5} max={22} step={0.5} value={localDuration}
               onChange={(e) => update({ localDuration: Number(e.target.value) })}
+              onMouseDown={e => e.stopPropagation()}
               style={{ flex: 1, accentColor: ACCENT }} />
             <span style={{ fontSize: 9, color: '#555', minWidth: 14 }}>22</span>
           </div>
@@ -237,10 +252,11 @@ export default function SoundEffectsNode({ id, data, selected }) {
             <span style={{ fontSize: 11, color: '#999' }}>Prompt Influence</span>
             <span style={{ fontSize: 11, color: '#e0e0e0', fontWeight: 600 }}>{localPromptInfluence.toFixed(2)}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="nodrag nopan" style={{ display: 'flex', alignItems: 'center', gap: 8 }} onMouseDown={e => e.stopPropagation()}>
             <span style={{ fontSize: 9, color: '#555', minWidth: 14, textAlign: 'right' }}>0</span>
             <input type="range" min={0} max={1} step={0.05} value={localPromptInfluence}
               onChange={(e) => update({ localPromptInfluence: Number(e.target.value) })}
+              onMouseDown={e => e.stopPropagation()}
               style={{ flex: 1, accentColor: ACCENT }} />
             <span style={{ fontSize: 9, color: '#555', minWidth: 14 }}>1</span>
           </div>

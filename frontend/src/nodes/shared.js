@@ -16,3 +16,6 @@ export { CATEGORY_COLORS, summaryRowStyle } from './nodeTokens';
 export { surface, border, radius, sp, font, text, ui, control } from './nodeTokens';
 
 export { stripBase64Prefix } from '../utils/imageUtils';
+
+export const getHandleColor = (type) => '#ccc';
+

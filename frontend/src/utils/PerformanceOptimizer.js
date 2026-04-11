@@ -274,7 +274,12 @@ export function useCanvasOptimizer() {
           shadowQuality: 'none'
         };
       default:
-        return getQualitySettings('high');
+        return {
+          nodeDetail: 'full',
+          edgeDetail: 'full',
+          animation: true,
+          shadowQuality: 'high'
+        };
     }
   }, [renderQuality]);
 

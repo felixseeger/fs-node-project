@@ -1,11 +1,26 @@
-import React, { useState, useCallback, useEffect, useRef, FC, KeyboardEvent, ChangeEvent } from 'react';
-// @ts-ignore
-import { generateWorkflowFromPrompt, validateWorkflow } from '../utils/workflowAI';
+import type { 
+  KeyboardEvent, 
+  ChangeEvent, 
+  CSSProperties, 
+  FC 
+} from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import type { Node } from '@xyflow/react';
+import { 
+  generateWorkflowFromPrompt, 
+  validateWorkflow 
+} from '../utils/workflowAI';
 import { useInfiniteCanvas } from './InfiniteCanvas';
+import type { 
+  GeneratedWorkflow, 
+  WorkflowValidation,
+  WorkflowEdge 
+} from '../utils/workflowAI';
+import type { NodeData } from '../types';
 
 interface WorkflowPreview {
-  nodes: any[];
-  edges: any[];
+  nodes: Node<NodeData>[];
+  edges: WorkflowEdge[];
   isValid: boolean;
   validationErrors: string[];
 }
@@ -22,7 +37,7 @@ interface Message {
 interface ChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  onWorkflowGenerated?: (workflow: any) => void;
+  onWorkflowGenerated?: (workflow: GeneratedWorkflow) => void;
 }
 
 /**
@@ -37,13 +52,13 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
       timestamp: new Date().toISOString(),
     }
   ]);
-  const [inputValue, setInputValue] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [currentWorkflow, setCurrentWorkflow] = useState<any>(null);
+  const [inputValue, setInputValue] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [currentWorkflow, setCurrentWorkflow] = useState<GeneratedWorkflow | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { centerCanvas } = useInfiniteCanvas();
 
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = useCallback((): void => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
@@ -51,7 +66,7 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  const handleSendMessage = useCallback(async () => {
+  const handleSendMessage = useCallback(async (): Promise<void> => {
     if (!inputValue.trim() || isGenerating) return;
 
     const userMessage: Message = {
@@ -73,7 +88,7 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
         constraints: { maxNodes: 8 },
       });
 
-      const validation = validateWorkflow(workflow);
+      const validation: WorkflowValidation = validateWorkflow(workflow);
       setCurrentWorkflow(workflow);
 
       const aiResponse: Message = {
@@ -96,11 +111,11 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
       }
       centerCanvas();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage: Message = {
         id: `err-${Date.now()}`,
         sender: 'ai',
-        content: `❌ Sorry, I encountered an error while generating your workflow: ${error.message}`,
+        content: `❌ Sorry, I encountered an error while generating your workflow: ${error instanceof Error ? error.message : 'Unknown error'}`,
         timestamp: new Date().toISOString(),
         isError: true,
       };
@@ -110,14 +125,14 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
     }
   }, [inputValue, isGenerating, onWorkflowGenerated, centerCanvas]);
 
-  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>): void => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      void handleSendMessage();
     }
   }, [handleSendMessage]);
 
-  const handleRegenerate = useCallback(() => {
+  const handleRegenerate = useCallback((): void => {
     if (messages.length > 1) {
       const lastUserMessage = [...messages].reverse().find(m => m.sender === 'user');
       if (lastUserMessage) {
@@ -126,7 +141,7 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
     }
   }, [messages]);
 
-  const handleClearChat = useCallback(() => {
+  const handleClearChat = useCallback((): void => {
     setMessages([{
       id: 'welcome',
       sender: 'system',
@@ -138,37 +153,67 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
 
   if (!isOpen) return null;
 
+  const panelStyles: CSSProperties = {
+    position: 'fixed',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: '350px',
+    background: '#1a1a1a',
+    borderLeft: '1px solid #333',
+    display: 'flex',
+    flexDirection: 'column',
+    zIndex: 1000,
+  };
+
+  const headerStyles: CSSProperties = {
+    padding: '15px',
+    borderBottom: '1px solid #333',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    background: '#2a2a2a',
+  };
+
+  const messagesContainerStyles: CSSProperties = {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '15px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '15px',
+  };
+
+  const inputAreaStyles: CSSProperties = {
+    padding: '15px',
+    borderTop: '1px solid #333',
+    background: '#2a2a2a',
+  };
+
+  const getMessageBackground = (message: Message): string => {
+    if (message.sender === 'user') return '#3b82f6';
+    if (message.isError) return '#ef4444';
+    return '#374151';
+  };
+
+  const getStatusIndicatorStyles = (isValid: boolean): CSSProperties => ({
+    fontSize: '12px',
+    marginTop: '5px',
+    color: isValid ? '#10b981' : '#f59e0b',
+  });
+
   return (
     <div
       className="chat-panel"
-      style={{
-        position: 'fixed',
-        right: 0,
-        top: 0,
-        bottom: 0,
-        width: '350px',
-        background: '#1a1a1a',
-        borderLeft: '1px solid #333',
-        display: 'flex',
-        flexDirection: 'column',
-        zIndex: 1000,
-      }}
+      style={panelStyles}
       role="region"
       aria-label="AI Workflow Generation Chat"
     >
       {/* Chat header */}
-      <div
-        style={{
-          padding: '15px',
-          borderBottom: '1px solid #333',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: '#2a2a2a',
-        }}
-      >
+      <div style={headerStyles}>
         <h3 style={{ margin: 0, color: 'white', fontSize: '16px' }}>🤖 AI Workflow Generator</h3>
         <button
+          type="button"
           onClick={onClose}
           style={{
             background: 'none',
@@ -185,14 +230,7 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
 
       {/* Chat messages */}
       <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '15px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '15px',
-        }}
+        style={messagesContainerStyles}
         role="log"
         aria-live="polite"
       >
@@ -206,8 +244,7 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
           >
             <div
               style={{
-                background: message.sender === 'user' ? '#3b82f6' : 
-                          message.isError ? '#ef4444' : '#374151',
+                background: getMessageBackground(message),
                 color: 'white',
                 padding: '10px 15px',
                 borderRadius: '15px',
@@ -224,7 +261,7 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
                   <div style={{ fontSize: '12px', marginTop: '5px' }}>
                     {message.workflowPreview.nodes.length} nodes | {message.workflowPreview.edges.length} edges
                   </div>
-                  <div style={{ fontSize: '12px', marginTop: '5px', color: message.workflowPreview.isValid ? '#10b981' : '#f59e0b' }}>
+                  <div style={getStatusIndicatorStyles(message.workflowPreview.isValid)}>
                     {message.workflowPreview.isValid ? '✅ Valid workflow' : '⚠️ Needs review'}
                   </div>
                 </div>
@@ -240,9 +277,10 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
       </div>
 
       {/* Input area */}
-      <div style={{ padding: '15px', borderTop: '1px solid #333', background: '#2a2a2a' }}>
+      <div style={inputAreaStyles}>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
           <button
+            type="button"
             onClick={handleRegenerate}
             disabled={isGenerating || messages.length <= 1}
             style={{
@@ -259,6 +297,7 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
             🔄 Regenerate
           </button>
           <button
+            type="button"
             onClick={handleClearChat}
             disabled={isGenerating}
             style={{
@@ -298,6 +337,7 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
             aria-label="Type your workflow description"
           />
           <button
+            type="button"
             onClick={handleSendMessage}
             disabled={!inputValue.trim() || isGenerating}
             style={{

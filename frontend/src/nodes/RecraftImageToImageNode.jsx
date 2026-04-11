@@ -1,18 +1,30 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import NodeShell from './NodeShell';
-import { SectionHeader, ConnectedOrLocal } from './NodeSection';
-import { PromptInput, Slider } from './NodeControls';
-import { OutputHandle, OutputPreview } from './NodeOutput';
-import useNodeConnections from './useNodeConnections';
-import { getHandleColor } from '../utils/handleTypes';
-import { CATEGORY_COLORS, sp, font, text, surface, border, radius } from './nodeTokens';
+import {
+  NodeShell,
+  SectionHeader,
+  ConnectedOrLocal,
+  PromptInput,
+  TextInput,
+  Slider,
+  OutputHandle,
+  OutputPreview,
+  useNodeConnections,
+  CATEGORY_COLORS,
+  getHandleColor,
+  sp,
+  font,
+  text,
+  surface,
+  border,
+  radius,
+} from './shared';
 import { recraftImageToImage } from '../utils/api';
 
 const MODELS = ['recraftv3', 'recraftv3_vector'];
 
 export default function RecraftImageToImageNode({ id, data, selected }) {
-  const { update } = useNodeConnections(id, data);
+  const { update, conn, resolve } = useNodeConnections(id, data);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
@@ -20,10 +32,12 @@ export default function RecraftImageToImageNode({ id, data, selected }) {
   const localModel = data.model || 'recraftv3';
   const localStyle = data.style || '';
 
+  const imageConn = conn('image-in');
+  const promptConn = conn('prompt-in');
+
   const handleGenerate = useCallback(async () => {
-    const prompt = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt;
-    let images = data.resolveInput?.(id, 'image-in');
-    if (!images?.length && data.localImage) images = [data.localImage];
+    const prompt = resolve.text('prompt-in', data.inputPrompt);
+    let images = resolve.image('image-in', data.localImage);
     const image_url = images?.[0];
 
     if (!prompt || !image_url) return;
@@ -65,7 +79,7 @@ export default function RecraftImageToImageNode({ id, data, selected }) {
     } finally {
       setIsGenerating(false);
     }
-  }, [id, data, update, localModel, localStyle]);
+  }, [id, data, update, localModel, localStyle, resolve]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -75,59 +89,68 @@ export default function RecraftImageToImageNode({ id, data, selected }) {
     }
   }, [data.triggerGenerate, handleGenerate]);
 
+  const ACCENT = CATEGORY_COLORS.imageEditing;
+
   return (
     <NodeShell data={data}
       label="Recraft Img2Img"
-      dotColor={CATEGORY_COLORS.imageEditing}
+      dotColor={ACCENT}
       selected={selected}
+      onGenerate={handleGenerate}
+      isGenerating={isGenerating}
     >
-      <SectionHeader title="Input Image" />
-      <div style={{ position: 'relative', marginBottom: sp[4] }}>
-        <Handle
-          type="target"
-          position={Position.Left}
-          id="image-in"
-          style={{ background: getHandleColor('image-in') }}
-        />
-        <ConnectedOrLocal
-          nodeId={id}
-          handleId="image-in"
-          data={data}
-          localValue={data.localImage}
-          onLocalChange={(v) => update({ localImage: v })}
-          type="image"
-        />
-      </div>
+      <OutputHandle label="image" id="output" color={getHandleColor('output')} />
 
-      <SectionHeader title="Prompt" />
-      <div style={{ position: 'relative', marginBottom: sp[4] }}>
-        <Handle
-          type="target"
-          position={Position.Left}
-          id="prompt-in"
-          style={{ background: getHandleColor('prompt-in') }}
+      <SectionHeader 
+        label="Input Image" 
+        handleId="image-in" 
+        handleType="target" 
+        color={getHandleColor('image-in')}
+        isConnected={imageConn.connected}
+        onUnlink={() => data.onUnlink?.(id, 'image-in')}
+      />
+      <ConnectedOrLocal connected={imageConn.connected} connInfo={imageConn.info}>
+        <ImageUploadBox
+          image={data.localImage || null}
+          onImageChange={(v) => update({ localImage: v })}
+          placeholder="Upload source image"
         />
+      </ConnectedOrLocal>
+
+      <SectionHeader 
+        label="Prompt" 
+        handleId="prompt-in" 
+        handleType="target" 
+        color={getHandleColor('prompt-in')}
+        isConnected={promptConn.connected}
+        onUnlink={() => data.onUnlink?.(id, 'prompt-in')}
+      />
+      <ConnectedOrLocal connected={promptConn.connected} connInfo={promptConn.info}>
         <PromptInput
           value={data.inputPrompt || ''}
-          onChange={(e) => update({ inputPrompt: e.target.value })}
+          onChange={(v) => update({ inputPrompt: v })}
           placeholder="Describe areas to change..."
         />
-      </div>
+      </ConnectedOrLocal>
 
-      <SectionHeader title="Configuration" />
+      <SectionHeader label="Configuration" />
       <div style={{ marginBottom: sp[4], display: 'flex', flexDirection: 'column', gap: sp[2] }}>
         <Slider
-          label="Strength (0=identical, 1=new)"
+          label="Strength"
           value={data.strength !== undefined ? data.strength : 0.2}
           onChange={(v) => update({ strength: v })}
           min={0} max={1} step={0.05}
+          accentColor={ACCENT}
         />
         
         <div>
           <div style={{ ...font.xs, color: text.muted, marginBottom: 4 }}>Model</div>
           <select 
+            className="nodrag nopan"
             value={localModel}
             onChange={(e) => update({ model: e.target.value })}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             style={{
               width: '100%', padding: '4px 8px', borderRadius: radius.md,
               background: surface.deep, border: `1px solid ${border.default}`,
@@ -140,36 +163,19 @@ export default function RecraftImageToImageNode({ id, data, selected }) {
         
         <div>
           <div style={{ ...font.xs, color: text.muted, marginBottom: 4 }}>Style (Optional)</div>
-          <input 
-            type="text"
+          <TextInput 
             value={localStyle}
-            onChange={(e) => update({ style: e.target.value })}
+            onChange={(v) => update({ style: v })}
             placeholder="e.g. Photorealism, Vector art"
-            style={{
-              width: '100%', padding: '4px 8px', borderRadius: radius.md,
-              background: surface.deep, border: `1px solid ${border.default}`,
-              color: text.primary, ...font.sm, boxSizing: 'border-box'
-            }}
           />
         </div>
       </div>
 
-      <button
-        onClick={handleGenerate}
-        disabled={isGenerating}
-        style={{
-          width: '100%', padding: '8px 16px', background: CATEGORY_COLORS.imageEditing,
-          color: '#fff', border: 'none', borderRadius: radius.md, cursor: isGenerating ? 'not-allowed' : 'pointer',
-          fontWeight: 600, ...font.sm, marginBottom: sp[4]
-        }}
-      >
-        {isGenerating ? 'Processing...' : 'Variate Image'}
-      </button>
-
       {error && <div style={{ ...font.xs, color: '#ef4444', marginBottom: sp[2] }}>{error}</div>}
 
-      <OutputHandle label="Output" id="output" />
-      <OutputPreview image={data.outputImage} label="Variated Output" />
+      <OutputPreview image={data.outputImage} label="Variated Output" accentColor={ACCENT} />
     </NodeShell>
   );
 }
+
+import ImageUploadBox from './ImageUploadBox';

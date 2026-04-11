@@ -1,12 +1,23 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import NodeShell from './NodeShell';
-import { SectionHeader, ConnectedOrLocal } from './NodeSection';
-import { PromptInput, PillGroup } from './NodeControls';
-import { OutputHandle, OutputPreview } from './NodeOutput';
-import useNodeConnections from './useNodeConnections';
-import { getHandleColor } from '../utils/handleTypes';
-import { CATEGORY_COLORS, sp, font, text, surface, border, radius } from './nodeTokens';
+import {
+  NodeShell,
+  SectionHeader,
+  ConnectedOrLocal,
+  PromptInput,
+  TextInput,
+  OutputHandle,
+  OutputPreview,
+  useNodeConnections,
+  CATEGORY_COLORS,
+  getHandleColor,
+  sp,
+  font,
+  text,
+  surface,
+  border,
+  radius,
+} from './shared';
 import { generateRecraftImage } from '../utils/api';
 
 const MODELS = [
@@ -15,7 +26,7 @@ const MODELS = [
 ];
 
 export default function RecraftGenerateNode({ id, data, selected }) {
-  const { update } = useNodeConnections(id, data);
+  const { update, conn, resolve } = useNodeConnections(id, data);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
@@ -24,8 +35,12 @@ export default function RecraftGenerateNode({ id, data, selected }) {
   const localSize = data.size || '1:1';
   const localStyle = data.style || '';
 
+  const promptConn = conn('prompt-in');
+  const sizeConn = conn('size-in');
+  const numImagesConn = conn('num-images-in');
+
   const handleGenerate = useCallback(async () => {
-    const prompt = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt;
+    const prompt = resolve.text('prompt-in', data.inputPrompt);
     if (!prompt) return;
 
     setIsGenerating(true);
@@ -36,7 +51,7 @@ export default function RecraftGenerateNode({ id, data, selected }) {
       const params = {
         prompt,
         model: localModel,
-        size: data.resolveInput?.(id, 'size-in') || localSize,
+        size: resolve.text('size-in', localSize),
       };
       
       // V3 and V2 support style
@@ -44,8 +59,8 @@ export default function RecraftGenerateNode({ id, data, selected }) {
         params.style = localStyle;
       }
       
-      const numImages = data.resolveInput?.(id, 'num-images-in') || data.numImages || 1;
-      if (numImages) params.n = numImages;
+      const numImages = resolve.text('num-images-in', data.numImages || 1);
+      if (numImages) params.n = Number(numImages);
 
       const result = await generateRecraftImage(params);
       
@@ -65,7 +80,7 @@ export default function RecraftGenerateNode({ id, data, selected }) {
     } finally {
       setIsGenerating(false);
     }
-  }, [id, data, update, localModel, localSize, localStyle]);
+  }, [id, data, update, localModel, localSize, localStyle, resolve]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -75,34 +90,44 @@ export default function RecraftGenerateNode({ id, data, selected }) {
     }
   }, [data.triggerGenerate, handleGenerate]);
 
+  const ACCENT = CATEGORY_COLORS.imageGeneration;
+
   return (
     <NodeShell data={data}
       label="Recraft Gen"
-      dotColor={CATEGORY_COLORS.imageGeneration}
+      dotColor={ACCENT}
       selected={selected}
+      onGenerate={handleGenerate}
+      isGenerating={isGenerating}
     >
-      <SectionHeader title="Prompt" />
-      <div style={{ position: 'relative', marginBottom: sp[4] }}>
-        <Handle
-          type="target"
-          position={Position.Left}
-          id="prompt-in"
-          style={{ background: getHandleColor('prompt-in') }}
-        />
+      <OutputHandle label="image" id="output" color={getHandleColor('output')} />
+
+      <SectionHeader 
+        label="Prompt" 
+        handleId="prompt-in" 
+        handleType="target" 
+        color={getHandleColor('prompt-in')}
+        isConnected={promptConn.connected}
+        onUnlink={() => data.onUnlink?.(id, 'prompt-in')}
+      />
+      <ConnectedOrLocal connected={promptConn.connected} connInfo={promptConn.info}>
         <PromptInput
           value={data.inputPrompt || ''}
-          onChange={(e) => update({ inputPrompt: e.target.value })}
+          onChange={(v) => update({ inputPrompt: v })}
           placeholder="Describe your image..."
         />
-      </div>
+      </ConnectedOrLocal>
 
-      <SectionHeader title="Configuration" />
+      <SectionHeader label="Configuration" />
       <div style={{ marginBottom: sp[4], display: 'flex', flexDirection: 'column', gap: sp[2] }}>
         <div>
           <div style={{ ...font.xs, color: text.muted, marginBottom: 4 }}>Model</div>
           <select 
+            className="nodrag nopan"
             value={localModel}
             onChange={(e) => update({ model: e.target.value })}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             style={{
               width: '100%', padding: '4px 8px', borderRadius: radius.md,
               background: surface.deep, border: `1px solid ${border.default}`,
@@ -113,81 +138,54 @@ export default function RecraftGenerateNode({ id, data, selected }) {
           </select>
         </div>
         
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="size-in"
-            style={{ background: getHandleColor('size-in') }}
-          />
-          <div style={{ ...font.xs, color: text.muted, marginBottom: 4 }}>Size (e.g. 1024x1024 or 16:9)</div>
-          <input 
-            type="text"
+        <SectionHeader 
+          label="Size (e.g. 1024x1024 or 16:9)" 
+          handleId="size-in" 
+          handleType="target" 
+          color={getHandleColor('size-in')}
+          isConnected={sizeConn.connected}
+          onUnlink={() => data.onUnlink?.(id, 'size-in')}
+          mini
+        />
+        <ConnectedOrLocal connected={sizeConn.connected} connInfo={sizeConn.info}>
+          <TextInput 
             value={localSize}
-            onChange={(e) => update({ size: e.target.value })}
-            style={{
-              width: '100%', padding: '4px 8px', borderRadius: radius.md,
-              background: surface.deep, border: `1px solid ${border.default}`,
-              color: text.primary, ...font.sm, boxSizing: 'border-box'
-            }}
+            onChange={(v) => update({ size: v })}
           />
-        </div>
+        </ConnectedOrLocal>
 
         {!localModel.includes('v4') && (
           <div>
             <div style={{ ...font.xs, color: text.muted, marginBottom: 4 }}>Style (Optional)</div>
-            <input 
-              type="text"
+            <TextInput 
               value={localStyle}
-              onChange={(e) => update({ style: e.target.value })}
+              onChange={(v) => update({ style: v })}
               placeholder="e.g. Photorealism, Vector art"
-              style={{
-                width: '100%', padding: '4px 8px', borderRadius: radius.md,
-                background: surface.deep, border: `1px solid ${border.default}`,
-                color: text.primary, ...font.sm, boxSizing: 'border-box'
-              }}
             />
           </div>
         )}
         
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="num-images-in"
-            style={{ background: getHandleColor('num-images-in') }}
-          />
-          <div style={{ ...font.xs, color: text.muted, marginBottom: 4 }}>Images (1-6)</div>
-          <input 
+        <SectionHeader 
+          label="Images (1-6)" 
+          handleId="num-images-in" 
+          handleType="target" 
+          color={getHandleColor('num-images-in')}
+          isConnected={numImagesConn.connected}
+          onUnlink={() => data.onUnlink?.(id, 'num-images-in')}
+          mini
+        />
+        <ConnectedOrLocal connected={numImagesConn.connected} connInfo={numImagesConn.info}>
+          <TextInput 
             type="number"
-            min="1" max="6"
-            value={data.numImages || 1}
-            onChange={(e) => update({ numImages: parseInt(e.target.value) })}
-            style={{
-              width: '100%', padding: '4px 8px', borderRadius: radius.md,
-              background: surface.deep, border: `1px solid ${border.default}`,
-              color: text.primary, ...font.sm, boxSizing: 'border-box'
-            }}
+            value={String(data.numImages || 1)}
+            onChange={(v) => update({ numImages: parseInt(v) })}
           />
-        </div>
+        </ConnectedOrLocal>
       </div>
-
-      <button
-        onClick={handleGenerate}
-        disabled={isGenerating}
-        style={{
-          width: '100%', padding: '8px 16px', background: CATEGORY_COLORS.imageGeneration,
-          color: '#fff', border: 'none', borderRadius: radius.md, cursor: isGenerating ? 'not-allowed' : 'pointer',
-          fontWeight: 600, ...font.sm, marginBottom: sp[4]
-        }}
-      >
-        {isGenerating ? 'Generating...' : 'Generate Image'}
-      </button>
 
       {error && <div style={{ ...font.xs, color: '#ef4444', marginBottom: sp[2] }}>{error}</div>}
 
-      <OutputHandle label="Output" id="output" />
-      <OutputPreview image={data.outputImage} label="Recraft Output" />
+      <OutputPreview image={data.outputImage} label="Recraft Output" accentColor={ACCENT} />
     </NodeShell>
   );
 }

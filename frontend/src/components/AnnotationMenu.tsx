@@ -1,16 +1,59 @@
-import React, { FC, MouseEvent } from 'react';
+import React, { FC } from 'react';
 
 /**
  * Bottom pill toolbar for image annotation (colors + tools).
  * Visual reference: frontend/ref/annotations.jpg
+ * 
+ * SECURITY: All inputs validated before use. CSS injection prevention.
  */
+
+// SECURITY: Strict color allowlist to prevent CSS injection
 export const ANNOTATION_COLORS = [
   { id: 'red', hex: '#ef4444' },
   { id: 'yellow', hex: '#eab308' },
   { id: 'green', hex: '#22c55e' },
   { id: 'sky', hex: '#38bdf8' },
   { id: 'white', hex: '#ffffff' },
-];
+] as const;
+
+// SECURITY: Valid tool IDs to prevent injection
+const VALID_TOOL_IDS = ['pan', 'draw', 'text'] as const;
+type ToolId = typeof VALID_TOOL_IDS[number];
+
+// SECURITY: Allowed hex color pattern (3 or 6 character hex only)
+const VALID_HEX_PATTERN = /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/;
+
+/**
+ * SECURITY: Validate color hex to prevent CSS injection
+ * Only accepts valid 3 or 6 character hex colors
+ */
+function sanitizeColorHex(color: string): string | null {
+  if (typeof color !== 'string') return null;
+  const trimmed = color.trim();
+  
+  // Check against valid hex pattern
+  if (!VALID_HEX_PATTERN.test(trimmed)) {
+    console.warn('SECURITY: Invalid color hex format blocked:', trimmed);
+    return null;
+  }
+  
+  return trimmed.toLowerCase();
+}
+
+/**
+ * SECURITY: Validate tool ID against allowlist
+ */
+function sanitizeToolId(tool: string): ToolId | null {
+  if (typeof tool !== 'string') return null;
+  const trimmed = tool.trim();
+  
+  if (VALID_TOOL_IDS.includes(trimmed as ToolId)) {
+    return trimmed as ToolId;
+  }
+  
+  console.warn('SECURITY: Invalid tool ID blocked:', trimmed);
+  return null;
+}
 
 const pill: React.CSSProperties = {
   display: 'flex',
@@ -67,6 +110,10 @@ const AnnotationMenu: FC<AnnotationMenuProps> = ({
   tool,
   onToolChange,
 }) => {
+  // SECURITY: Sanitize inputs before use
+  const sanitizedColor = sanitizeColorHex(selectedColorHex) ?? ANNOTATION_COLORS[0].hex;
+  const sanitizedTool = sanitizeToolId(tool) ?? 'pan';
+
   return (
     <div
       style={{
@@ -86,7 +133,7 @@ const AnnotationMenu: FC<AnnotationMenuProps> = ({
     >
       <div style={pill}>
         {ANNOTATION_COLORS.map((c) => {
-          const active = c.hex === selectedColorHex;
+          const active = c.hex === sanitizedColor;
           return (
             <button
               key={c.id}
@@ -95,6 +142,7 @@ const AnnotationMenu: FC<AnnotationMenuProps> = ({
               onClick={() => onColorChange(c.hex)}
               style={{
                 ...swatchBase,
+                // SECURITY: Color comes from allowlist only
                 background: c.hex,
                 boxShadow: active ? '0 0 0 2px #fff, 0 0 0 4px rgba(59,130,246,0.6)' : undefined,
                 transform: active ? 'scale(1.08)' : undefined,
@@ -110,7 +158,7 @@ const AnnotationMenu: FC<AnnotationMenuProps> = ({
           { id: 'draw', Icon: FreehandIcon, label: 'Draw', char: null },
           { id: 'text', Icon: null, label: 'Text', char: 'T' },
         ].map(({ id, Icon, label, char }) => {
-          const active = tool === id;
+          const active = sanitizedTool === id;
           return (
             <button
               key={id}

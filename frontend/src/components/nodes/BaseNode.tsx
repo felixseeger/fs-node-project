@@ -19,11 +19,20 @@ import { cn } from "@/utils/cn";
 import { getMediaDimensions } from "@/utils/nodeDimensions";
 import { BaseNodeData, NodeStatus } from "@/types/nodes";
 
+// SECURITY: All dynamic content sanitization happens in render, not via imports
+// to keep the dependency footprint minimal and avoid DOM Clobbering vectors.
+
 // Constants
 const DEFAULT_NODE_DIMENSION = 300;
 const MIN_NODE_WIDTH = 180;
 const MIN_NODE_HEIGHT = 100;
 const ANIMATION_DURATION = 160; // ms
+
+// SECURITY: Resource limits to prevent DoS
+const MAX_MEDIA_SIZE_MB = 50;
+const MAX_MEDIA_DIMENSIONS_PX = 16000;
+const ALLOWED_MEDIA_PROTOCOLS = ['http:', 'https:', 'blob:', 'data:'];
+const ALLOWED_MEDIA_HOSTS: string[] = []; // Add specific hosts here if needed, empty = allow all safe protocols
 
 interface BaseNodeProps<T extends BaseNodeData = BaseNodeData> {
   id: string;
@@ -53,15 +62,84 @@ interface BaseNodeProps<T extends BaseNodeData = BaseNodeData> {
 }
 
 /**
+ * SECURITY: Validates and sanitizes a URL to prevent XSS via javascript: or data:text/html
+ */
+function sanitizeUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  
+  try {
+    // Check for obvious javascript: or data:text/html patterns before parsing
+    const trimmed = url.trim().toLowerCase();
+    if (trimmed.startsWith('javascript:') || 
+        trimmed.startsWith('data:text/html') ||
+        trimmed.startsWith('vbscript:') ||
+        trimmed.startsWith('mhtml:')) {
+      console.warn('SECURITY: Blocked potentially dangerous URL protocol');
+      return null;
+    }
+    
+    const parsed = new URL(url, window.location.href);
+    
+    // Validate protocol
+    if (!ALLOWED_MEDIA_PROTOCOLS.includes(parsed.protocol)) {
+      console.warn(`SECURITY: Blocked URL with disallowed protocol: ${parsed.protocol}`);
+      return null;
+    }
+    
+    // If specific hosts are configured, validate against them
+    if (ALLOWED_MEDIA_HOSTS.length > 0) {
+      const isAllowedHost = ALLOWED_MEDIA_HOSTS.some(host => 
+        parsed.hostname === host || parsed.hostname.endsWith(`.${host}`)
+      );
+      if (!isAllowedHost) {
+        console.warn(`SECURITY: Blocked URL from unauthorized host: ${parsed.hostname}`);
+        return null;
+      }
+    }
+    
+    return url;
+  } catch {
+    // Invalid URL format
+    return null;
+  }
+}
+
+/**
+ * SECURITY: Sanitizes a string for safe display in error messages
+ * Prevents XSS via crafted error messages
+ */
+function sanitizeErrorMessage(message: unknown): string {
+  if (typeof message !== 'string') return 'An error occurred';
+  
+  // Remove HTML/script tags and limit length
+  return message
+    .replace(/[<>]/g, '')
+    .slice(0, 500);
+}
+
+/**
+ * SECURITY: Validates numeric dimension to prevent CSS injection
+ */
+function sanitizeDimension(value: unknown, defaultValue: number): number {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0 || num > MAX_MEDIA_DIMENSIONS_PX) {
+    return defaultValue;
+  }
+  return num;
+}
+
+/**
  * Read a node's effective width or height, respecting React Flow's internal priority
  */
 function getNodeDimension(node: Node, axis: "width" | "height"): number {
-  return (
+  const value = 
     (node[axis] as number) ??
     (node.style?.[axis] as number) ??
     (node.measured?.[axis] as number) ??
-    DEFAULT_NODE_DIMENSION
-  );
+    DEFAULT_NODE_DIMENSION;
+  
+  // SECURITY: Sanitize to prevent CSS injection
+  return sanitizeDimension(value, DEFAULT_NODE_DIMENSION);
 }
 
 /**
@@ -117,15 +195,47 @@ export function BaseNode<T extends BaseNodeData = BaseNodeData>({
   const currentWidth = node ? getNodeDimension(node, "width") : minWidth;
   const currentHeight = node ? getNodeDimension(node, "height") : minHeight;
   
-  // Load media dimensions if aspectFitMedia provided
+  // SECURITY: Load media dimensions with validation and error handling
   useEffect(() => {
-    if (aspectFitMedia) {
-      getMediaDimensions(aspectFitMedia)
-        .then(dims => setMediaDimensions(dims))
-        .catch(error => {
-          console.warn(`Could not load media dimensions for ${aspectFitMedia}:`, error);
-        });
+    // SECURITY: Validate URL before any fetch/load operation
+    const sanitizedUrl = sanitizeUrl(aspectFitMedia);
+    if (!sanitizedUrl) {
+      setMediaDimensions(null);
+      return;
     }
+    
+    // SECURITY: Add timeout to prevent hanging on malicious/slow resources
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      console.warn('SECURITY: Media dimension load timed out');
+    }, 10000); // 10 second timeout
+    
+    getMediaDimensions(sanitizedUrl, { 
+      signal: controller.signal,
+      maxSizeMB: MAX_MEDIA_SIZE_MB 
+    })
+      .then(dims => {
+        clearTimeout(timeoutId);
+        // SECURITY: Validate dimensions to prevent memory exhaustion
+        if (dims.width > MAX_MEDIA_DIMENSIONS_PX || dims.height > MAX_MEDIA_DIMENSIONS_PX) {
+          console.warn('SECURITY: Media dimensions exceed safe limits');
+          setMediaDimensions(null);
+          return;
+        }
+        setMediaDimensions(dims);
+      })
+      .catch(() => {
+        clearTimeout(timeoutId);
+        // SECURITY: Don't expose internal error details
+        console.warn('Could not load media dimensions for node');
+        setMediaDimensions(null);
+      });
+    
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [aspectFitMedia]);
   
   // Handle resize events
@@ -229,18 +339,42 @@ export function BaseNode<T extends BaseNodeData = BaseNodeData>({
     }
   }, [settingsExpanded, minHeight, currentHeight, setNodes, id, node, minWidth]);
   
-  // Track settings panel height
+  // SECURITY: Track settings panel height with error handling
   useEffect(() => {
     if (!settingsPanelRef.current) return;
     
+    let isActive = true;
     const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        trackedSettingsHeightRef.current = entry.contentRect.height;
+      // SECURITY: Guard against errors in callback
+      try {
+        if (!isActive) return;
+        for (const entry of entries) {
+          // SECURITY: Validate height before storing
+          const height = entry.contentRect?.height;
+          if (typeof height === 'number' && height >= 0 && height < 10000) {
+            trackedSettingsHeightRef.current = height;
+          }
+        }
+      } catch (err) {
+        // SECURITY: Fail silently - don't crash on observer errors
+        console.warn('ResizeObserver error handled');
       }
     });
     
-    observer.observe(settingsPanelRef.current);
-    return () => observer.disconnect();
+    try {
+      observer.observe(settingsPanelRef.current);
+    } catch (err) {
+      console.warn('Failed to initialize ResizeObserver');
+    }
+    
+    return () => {
+      isActive = false;
+      try {
+        observer.disconnect();
+      } catch {
+        // Ignore cleanup errors
+      }
+    };
   }, [settingsPanel]);
   
   // Execution status styles
@@ -380,7 +514,7 @@ export function BaseNode<T extends BaseNodeData = BaseNodeData>({
         onResizeEnd={onResizeEnd}
       />
       
-      {/* Error Message */}
+      {/* SECURITY: Error message is sanitized before display to prevent XSS */}
       {hasError && data.error && (
         <div
           id={`${id}-error`}
@@ -388,7 +522,7 @@ export function BaseNode<T extends BaseNodeData = BaseNodeData>({
           role="alert"
           aria-live="assertive"
         >
-          {data.error}
+          {sanitizeErrorMessage(data.error)}
         </div>
       )}
       

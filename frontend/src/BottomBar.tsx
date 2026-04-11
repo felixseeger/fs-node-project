@@ -3,15 +3,15 @@ import { Workflow } from './types/workflow';
 
 interface BottomBarProps {
   workflows?: (Workflow & { deleted?: boolean })[];
-  activeWorkflowId?: string | null;
-  onSwitchWorkflow: (name: string, id: string | null, options?: { type: string } | null) => void;
+  activeWorkflowId?: string | null | undefined;
+  onSwitchWorkflow: (name: string, id?: string | undefined, options?: any) => void | Promise<void>;
   onRenameBoard?: (id: string, name: string) => void;
   onDeleteBoard?: (id: string) => void;
 }
 
 export const BottomBar: FC<BottomBarProps> = ({
   workflows = [],
-  activeWorkflowId = null,
+  activeWorkflowId = undefined,
   onSwitchWorkflow,
   onRenameBoard,
   onDeleteBoard,
@@ -45,7 +45,7 @@ export const BottomBar: FC<BottomBarProps> = ({
   const handleConfirmNewBoard = () => {
     const trimmed = newBoardName.trim();
     if (!trimmed) return;
-    onSwitchWorkflow(trimmed, null, { type: 'scratch' });
+    onSwitchWorkflow(trimmed, undefined, { type: 'scratch' });
     setNewBoardMode(false);
     setNewBoardName('');
     setIsOpen(false);

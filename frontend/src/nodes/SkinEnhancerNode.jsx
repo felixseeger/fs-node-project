@@ -1,8 +1,16 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
-import NodeShell from './NodeShell';
-import NodeProgress from './NodeProgress';
-import { getHandleColor } from '../utils/handleTypes';
+import {
+  NodeShell,
+  SectionHeader,
+  ConnectedOrLocal,
+  Pill,
+  Slider,
+  OutputHandle,
+  OutputPreview,
+  useNodeConnections,
+  getHandleColor,
+} from './shared';
 import { skinEnhancer, pollSkinEnhancerStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import useNodeProgress from '../hooks/useNodeProgress';
@@ -22,7 +30,8 @@ const OPTIMIZED_FOR = [
 ];
 
 export default function SkinEnhancerNode({ id, data, selected }) {
-  const { state: progressState, start, complete, fail } = useNodeProgress('skin-enhancer');
+  const { start, complete, fail } = useNodeProgress('skin-enhancer');
+  const { update, conn, resolve } = useNodeConnections(id, data);
 
   const localMode = data.localMode || 'faithful';
   const localSharpen = data.localSharpen ?? 0;
@@ -30,21 +39,10 @@ export default function SkinEnhancerNode({ id, data, selected }) {
   const localSkinDetail = data.localSkinDetail ?? 80;
   const localOptimizedFor = data.localOptimizedFor || 'enhance_skin';
 
-  const update = useCallback(
-    (patch) => data.onUpdate?.(id, patch),
-    [id, data]
-  );
-
-  const getConnInfo = useCallback((handleId) => {
-    return data.getConnectionInfo?.(id, handleId) || null;
-  }, [id, data]);
-
-  const imageConnection = getConnInfo('image-in');
-  const hasImageConnection = data.hasConnection?.(id, 'image-in');
+  const imageConn = conn('image-in');
 
   const handleEnhance = useCallback(async () => {
-    let images = data.resolveInput?.(id, 'image-in');
-    if (!images?.length && data.localImage) images = [data.localImage];
+    let images = resolve.image('image-in', data.localImage);
     if (!images?.length) return;
 
     start();
@@ -95,7 +93,7 @@ export default function SkinEnhancerNode({ id, data, selected }) {
       fail(err.message);
       update({ isLoading: false, outputError: err.message });
     }
-  }, [id, data, update, localMode, localSharpen, localSmartGrain, localSkinDetail, localOptimizedFor, start, complete, fail]);
+  }, [id, data, update, localMode, localSharpen, localSmartGrain, localSkinDetail, localOptimizedFor, start, complete, fail, resolve]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
@@ -105,92 +103,28 @@ export default function SkinEnhancerNode({ id, data, selected }) {
     }
   }, [data.triggerGenerate, handleEnhance]);
 
-  // ── Helpers ──
-
-  const sectionHeader = (label, handleId, handleType, color, extra) => (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      marginBottom: 6, marginTop: 10,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Handle type={handleType} position={handleType === 'target' ? Position.Left : Position.Right}
-          id={handleId} style={{
-            width: 10, height: 10, borderRadius: '50%', background: color, border: 'none',
-            position: 'relative', left: handleType === 'target' ? -12 : 'auto',
-            right: handleType === 'source' ? -12 : 'auto', transform: 'none',
-          }} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>{label}</span>
-      </div>
-      {extra && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>{extra}</div>}
-    </div>
-  );
-
-  const linkedBadges = (onUnlinkHandle) => (
-    <>
-      <span style={{ fontSize: 9, color: '#3b82f6', padding: '2px 6px', background: 'rgba(59,130,246,0.1)', borderRadius: 4 }}>linked</span>
-      <button onClick={() => data.onUnlink?.(id, onUnlinkHandle)} style={{
-        fontSize: 9, color: '#ef4444', padding: '2px 6px', background: 'rgba(239,68,68,0.15)', borderRadius: 4,
-        border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer',
-      }}>unlink</button>
-    </>
-  );
-
-  const connectionInfoBox = (connInfo) => (
-    <div style={{
-      background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)',
-      borderRadius: 6, padding: '6px 10px', marginBottom: 4,
-      display: 'flex', alignItems: 'center', gap: 6,
-    }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: '#93b4f5' }}>
-        {connInfo ? `Linked from ${connInfo.nodeLabel} → ${connInfo.handle}` : 'Linked from upstream node'}
-      </span>
-    </div>
-  );
-
-  const slider = (label, value, onChange, min = 0, max = 100, defaultVal = 0) => (
-    <div style={{ marginBottom: 6 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: 11, color: '#999' }}>{label}</span>
-        <span style={{ fontSize: 11, color: '#e0e0e0', fontWeight: 600 }}>{value}</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 9, color: '#555', minWidth: 18, textAlign: 'right' }}>{min}</span>
-        <input type="range" min={min} max={max} value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          style={{ flex: 1, accentColor: '#e879f9' }} />
-        <span style={{ fontSize: 9, color: '#555', minWidth: 18 }}>{max}</span>
-      </div>
-    </div>
-  );
-
-  const pill = (label, isActive, onClick, color) => (
-    <button key={label} onClick={onClick} style={{
-      padding: '4px 10px', fontSize: 11, fontWeight: isActive ? 600 : 400,
-      borderRadius: 14, border: 'none', cursor: 'pointer',
-      background: isActive ? (color || '#e879f9') : '#1a1a1a',
-      color: isActive ? '#fff' : '#999',
-    }}>{label}</button>
-  );
-
   const ACCENT = '#e879f9';
 
-  // ── Render ──
-
   return (
-    <NodeShell data={data} label={data.label || 'Skin Enhancer'} dotColor={ACCENT} selected={selected}>
+    <NodeShell data={data} label={data.label || 'Skin Enhancer'} dotColor={ACCENT} selected={selected} onGenerate={handleEnhance} isGenerating={data.isLoading}>
+      <OutputHandle id="output" label="image" color={getHandleColor('output')} />
 
       {/* ── 1. Image ── */}
-      {sectionHeader('Image', 'image-in', 'target', getHandleColor('image-in'),
-        hasImageConnection ? linkedBadges('image-in') : null
-      )}
-      {hasImageConnection ? connectionInfoBox(imageConnection) : (
+      <SectionHeader 
+        label="Image" 
+        handleId="image-in" 
+        handleType="target" 
+        color={getHandleColor('image-in')}
+        isConnected={imageConn.connected}
+        onUnlink={() => data.onUnlink?.(id, 'image-in')}
+      />
+      <ConnectedOrLocal connected={imageConn.connected} connInfo={imageConn.info}>
         <ImageUploadBox
           image={data.localImage || data.inputImagePreview || null}
           onImageChange={(img) => update({ localImage: img })}
           placeholder="Click or drag to upload portrait image"
         />
-      )}
+      </ConnectedOrLocal>
 
       {/* ── 2. Mode Selector ── */}
       <div style={{ marginTop: 10, marginBottom: 6 }}>
@@ -198,13 +132,20 @@ export default function SkinEnhancerNode({ id, data, selected }) {
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
         {MODES.map((m) => (
-          <button key={m.value} onClick={() => update({ localMode: m.value })} style={{
-            flex: 1, padding: '8px 6px', fontSize: 11, textAlign: 'center',
-            borderRadius: 8, border: 'none', cursor: 'pointer',
-            background: localMode === m.value ? 'rgba(232,121,249,0.15)' : '#1a1a1a',
-            borderLeft: localMode === m.value ? `3px solid ${ACCENT}` : '3px solid transparent',
-            transition: 'all 0.15s',
-          }}>
+          <button 
+            key={m.value} 
+            className="nodrag nopan"
+            onClick={() => update({ localMode: m.value })} 
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{
+              flex: 1, padding: '8px 6px', fontSize: 11, textAlign: 'center',
+              borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: localMode === m.value ? 'rgba(232,121,249,0.15)' : '#1a1a1a',
+              borderLeft: localMode === m.value ? `3px solid ${ACCENT}` : '3px solid transparent',
+              transition: 'all 0.15s',
+            }}
+          >
             <div style={{ fontWeight: localMode === m.value ? 600 : 400, color: localMode === m.value ? '#e0e0e0' : '#999', marginBottom: 2 }}>
               {m.label}
             </div>
@@ -215,18 +156,18 @@ export default function SkinEnhancerNode({ id, data, selected }) {
 
       {/* ── 3. Common Controls ── */}
       <div style={{
-        background: '#1a1a1a', borderRadius: 6, border: '1px solid #3a3a3a',
+        background: 'rgba(255,255,255,0.03)', borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)',
         padding: 10, marginTop: 8,
       }}>
         <div style={{ fontSize: 11, fontWeight: 600, color: '#e0e0e0', marginBottom: 8 }}>
           Enhancement Controls
         </div>
-        {slider('Sharpen', localSharpen, (v) => update({ localSharpen: v }), 0, 100, 0)}
-        {slider('Smart Grain', localSmartGrain, (v) => update({ localSmartGrain: v }), 0, 100, 2)}
+        <Slider label="Sharpen" value={localSharpen} onChange={(v) => update({ localSharpen: v })} min={0} max={100} accentColor={ACCENT} />
+        <Slider label="Smart Grain" value={localSmartGrain} onChange={(v) => update({ localSmartGrain: v })} min={0} max={100} accentColor={ACCENT} />
 
         {/* Faithful-only: Skin Detail */}
         {localMode === 'faithful' && (
-          slider('Skin Detail', localSkinDetail, (v) => update({ localSkinDetail: v }), 0, 100, 80)
+          <Slider label="Skin Detail" value={localSkinDetail} onChange={(v) => update({ localSkinDetail: v })} min={0} max={100} accentColor={ACCENT} />
         )}
 
         {/* Flexible-only: Optimized For */}
@@ -236,54 +177,21 @@ export default function SkinEnhancerNode({ id, data, selected }) {
               Optimized For
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-              {OPTIMIZED_FOR.map((o) => pill(o.label, localOptimizedFor === o.value,
-                () => update({ localOptimizedFor: o.value }), ACCENT
+              {OPTIMIZED_FOR.map((o) => (
+                <Pill key={o.value} label={o.label} isActive={localOptimizedFor === o.value} onClick={() => update({ localOptimizedFor: o.value })} accentColor={ACCENT} />
               ))}
             </div>
           </>
         )}
       </div>
 
-      {/* ── 4. Output ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 6, marginTop: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ec4899', flexShrink: 0 }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>Enhanced Output</span>
-        </div>
-      </div>
-      <div style={{
-        background: '#1a1a1a', borderRadius: 6, border: '1px solid #3a3a3a',
-        minHeight: 80, position: 'relative',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-      }}>
-        {data.isLoading ? (
-          <div style={{
-            width: 28, height: 28, border: '3px solid #3a3a3a',
-            borderTop: `3px solid ${ACCENT}`, borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }} />
-        ) : data.outputImage ? (
-          <img src={data.outputImage} alt="enhanced" style={{ width: '100%', display: 'block', borderRadius: 6 }} />
-        ) : data.outputError ? (
-          <span style={{ fontSize: 10, color: '#ef4444', padding: 12, textAlign: 'center' }}>{data.outputError}</span>
-        ) : (
-          <span style={{ fontSize: 11, color: '#555', padding: 16, textAlign: 'center' }}>Enhanced portrait will appear here</span>
-        )}
-      </div>
-
-      {/* Output handles */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6, gap: 4, alignItems: 'center' }}>
-        <Handle type="source" position={Position.Right} id="output" style={{
-          width: 10, height: 10, borderRadius: '50%',
-          background: getHandleColor('output'), border: 'none',
-          position: 'relative', right: -12, transform: 'none',
-        }} />
-      </div>
-
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      <OutputPreview
+        isLoading={data.isLoading}
+        output={data.outputImage}
+        error={data.outputError}
+        accentColor={ACCENT}
+        label="Enhanced Output"
+      />
     </NodeShell>
   );
 }

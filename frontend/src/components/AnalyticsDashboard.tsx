@@ -1,17 +1,20 @@
 import React, { useState, useEffect, useCallback, FC } from 'react';
-// @ts-ignore
 import { useStore } from '../store';
 import { BarChart, LineChart, PieChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, Line, Pie, Cell } from 'recharts';
-// @ts-ignore
 import { getProviderStats, PerformanceUtils } from '../utils';
-
-interface AnalyticsData {
-  workflowStats: any[];
-  nodeTypeDistribution: any[];
-  performanceTrends: any[];
-  providerUsage: any[];
-  complexityAnalysis: any;
-}
+import type {
+  AnalyticsData,
+  Workflow,
+  WorkflowStat,
+  NodeTypeDistribution,
+  PerformanceTrend,
+  ProviderUsage,
+  ComplexityAnalysis,
+  ProviderStats,
+  PerformanceMetrics
+} from '../types';
+import type { Node } from '@xyflow/react';
+import type { NodeData } from '../types';
 
 interface AnalyticsDashboardProps {
   isOpen: boolean;
@@ -23,7 +26,7 @@ interface AnalyticsDashboardProps {
  * Provides workflow insights, usage statistics, and performance metrics
  */
 const AnalyticsDashboard: FC<AnalyticsDashboardProps> = ({ isOpen, onClose }) => {
-  const { workflows, nodes, edges, providerStats } = useStore();
+  const { workflows, nodes, edges } = useStore();
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     workflowStats: [],
     nodeTypeDistribution: [],
@@ -37,38 +40,40 @@ const AnalyticsDashboard: FC<AnalyticsDashboardProps> = ({ isOpen, onClose }) =>
       edgeCount: 0
     }
   });
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'providers' | 'complexity'>('overview');
 
   /**
    * Calculate workflow complexity
    */
-  const calculateComplexity = useCallback((nodeCount: number, edgeCount: number) => {
+  const calculateComplexity = useCallback((nodeCount: number, edgeCount: number): number => {
     return Math.round((nodeCount * 0.7 + edgeCount * 0.3) * 10) / 10;
   }, []);
 
   /**
    * Calculate workflow statistics
    */
-  const calculateWorkflowStats = useCallback(() => {
-    const stats = (workflows || []).map((workflow: any, index: number) => ({
+  const calculateWorkflowStats = useCallback((): WorkflowStat[] => {
+    const stats = (workflows || []).map((workflow: Workflow, index: number) => ({
       name: workflow.name || `Workflow ${index + 1}`,
       nodes: workflow.nodes?.length || 0,
       edges: workflow.edges?.length || 0,
       complexity: calculateComplexity(workflow.nodes?.length || 0, workflow.edges?.length || 0),
-      created: workflow.created || new Date().toISOString(),
-      lastUsed: workflow.lastUsed || new Date().toISOString()
+      created: workflow.createdAt || new Date().toISOString(),
+      lastUsed: workflow.updatedAt || new Date().toISOString()
     }));
     
-    return stats.sort((a: any, b: any) => new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime());
+    return stats.sort((a: WorkflowStat, b: WorkflowStat) => 
+      new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime()
+    );
   }, [workflows, calculateComplexity]);
 
   /**
    * Calculate node type distribution
    */
-  const calculateNodeTypeDistribution = useCallback(() => {
+  const calculateNodeTypeDistribution = useCallback((): NodeTypeDistribution[] => {
     const typeCounts: Record<string, number> = {};
     
-    (nodes || []).forEach((node: any) => {
+    (nodes || []).forEach((node: Node<NodeData>) => {
       const type = node.type || 'unknown';
       typeCounts[type] = (typeCounts[type] || 0) + 1;
     });
@@ -82,24 +87,24 @@ const AnalyticsDashboard: FC<AnalyticsDashboardProps> = ({ isOpen, onClose }) =>
   /**
    * Calculate performance trends
    */
-  const calculatePerformanceTrends = useCallback(() => {
+  const calculatePerformanceTrends = useCallback((): PerformanceTrend[] => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
-    return days.map((day, index) => ({
+    return days.map((day) => ({
       day,
-      fps: Math.max(30, 60 - index * 2 + Math.random() * 10),
-      memory: Math.max(20, 80 - index * 5 + Math.random() * 20),
-      renderTime: Math.max(5, 30 - index + Math.random() * 15)
+      fps: Math.max(30, 60 - days.indexOf(day) * 2 + Math.random() * 10),
+      memory: Math.max(20, 80 - days.indexOf(day) * 5 + Math.random() * 20),
+      renderTime: Math.max(5, 30 - days.indexOf(day) + Math.random() * 15)
     }));
   }, []);
 
   /**
    * Calculate provider usage statistics
    */
-  const calculateProviderUsage = useCallback(() => {
-    const providers = getProviderStats?.() || {};
+  const calculateProviderUsage = useCallback((): ProviderUsage[] => {
+    const providers: Record<string, ProviderStats> = getProviderStats?.() || {};
     
-    return Object.entries(providers).map(([id, stats]: [string, any]) => ({
+    return Object.entries(providers).map(([id, stats]: [string, ProviderStats]) => ({
       name: id,
       requests: (stats.success || 0) + (stats.failures || 0),
       successRate: (stats.success || 0) + (stats.failures || 0) > 0 
@@ -112,18 +117,21 @@ const AnalyticsDashboard: FC<AnalyticsDashboardProps> = ({ isOpen, onClose }) =>
   /**
    * Analyze current workflow complexity
    */
-  const analyzeCurrentComplexity = useCallback(() => {
+  const analyzeCurrentComplexity = useCallback((): ComplexityAnalysis => {
     const nodeCount = nodes?.length || 0;
     const edgeCount = edges?.length || 0;
     const complexity = calculateComplexity(nodeCount, edgeCount);
-    const optimizationLevel = PerformanceUtils?.needsOptimization?.(nodeCount, edgeCount) || 'none';
-    const recommendations = PerformanceUtils?.getRecommendations?.({
+    
+    const metrics: PerformanceMetrics = {
       fps: 45,
       memoryUsage: complexity * 2,
       nodeCount,
       edgeCount,
       renderTime: Math.min(50, complexity * 1.5)
-    }) || [];
+    };
+    
+    const optimizationLevel = PerformanceUtils?.needsOptimization?.(nodeCount, edgeCount) || 'none';
+    const recommendations = PerformanceUtils?.getRecommendations?.(metrics) || [];
     
     return {
       complexity,
@@ -159,11 +167,11 @@ const AnalyticsDashboard: FC<AnalyticsDashboardProps> = ({ isOpen, onClose }) =>
     return undefined;
   }, [isOpen, updateAnalytics]);
 
-  const formatNumber = (value: number) => {
+  const formatNumber = (value: number): string => {
     return new Intl.NumberFormat().format(value);
   };
 
-  const getComplexityColor = (level: string) => {
+  const getComplexityColor = (level: ComplexityAnalysis['optimizationLevel']): string => {
     switch (level) {
       case 'critical': return '#ef4444';
       case 'recommended': return '#f59e0b';
@@ -172,7 +180,7 @@ const AnalyticsDashboard: FC<AnalyticsDashboardProps> = ({ isOpen, onClose }) =>
     }
   };
 
-  const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6'];
+  const CHART_COLORS: readonly string[] = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6'];
 
   if (!isOpen) return null;
 
@@ -193,7 +201,7 @@ const AnalyticsDashboard: FC<AnalyticsDashboardProps> = ({ isOpen, onClose }) =>
 
       <div className="dashboard-tabs px-4 py-2 bg-gray-800 border-b border-gray-700">
         <div className="flex space-x-2">
-          {['overview', 'performance', 'providers', 'complexity'].map(tab => (
+          {(['overview', 'performance', 'providers', 'complexity'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -269,9 +277,9 @@ const AnalyticsDashboard: FC<AnalyticsDashboardProps> = ({ isOpen, onClose }) =>
                       fill="#8884d8"
                       dataKey="value"
                       nameKey="name"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     >
-                      {analyticsData.nodeTypeDistribution.map((entry, index) => (
+                      {analyticsData.nodeTypeDistribution.map((entry, index: number) => (
                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>
@@ -293,24 +301,24 @@ const AnalyticsDashboard: FC<AnalyticsDashboardProps> = ({ isOpen, onClose }) =>
               <StatCard
                 title="Current FPS"
                 value={analyticsData.performanceTrends.length > 0 
-                  ? analyticsData.performanceTrends[analyticsData.performanceTrends.length - 1].fps
-                  : '60'}
+                  ? Math.round(analyticsData.performanceTrends[analyticsData.performanceTrends.length - 1].fps)
+                  : 60}
                 icon="🎮"
                 unit="fps"
               />
               <StatCard
                 title="Memory Usage"
                 value={analyticsData.performanceTrends.length > 0 
-                  ? analyticsData.performanceTrends[analyticsData.performanceTrends.length - 1].memory
-                  : '45'}
+                  ? Math.round(analyticsData.performanceTrends[analyticsData.performanceTrends.length - 1].memory)
+                  : 45}
                 icon="💾"
                 unit="MB"
               />
               <StatCard
                 title="Render Time"
                 value={analyticsData.performanceTrends.length > 0 
-                  ? analyticsData.performanceTrends[analyticsData.performanceTrends.length - 1].renderTime
-                  : '15'}
+                  ? Math.round(analyticsData.performanceTrends[analyticsData.performanceTrends.length - 1].renderTime)
+                  : 15}
                 icon="⏱️"
                 unit="ms"
               />
@@ -375,7 +383,7 @@ const AnalyticsDashboard: FC<AnalyticsDashboardProps> = ({ isOpen, onClose }) =>
             <div className="provider-stats">
               <h3 className="text-white font-semibold mb-3">Provider Usage Statistics</h3>
               <div className="space-y-3">
-                {analyticsData.providerUsage.map(provider => (
+                {analyticsData.providerUsage.map((provider: ProviderUsage) => (
                   <div key={provider.name} className="bg-gray-800 p-3 rounded border border-gray-700">
                     <div className="flex justify-between items-start">
                       <div>
@@ -432,9 +440,10 @@ const AnalyticsDashboard: FC<AnalyticsDashboardProps> = ({ isOpen, onClose }) =>
                   <div className="text-gray-400">
                     Complexity Score
                   </div>
-                  <div className={`mt-3 text-sm font-medium ${
-                    getComplexityColor(analyticsData.complexityAnalysis.optimizationLevel)
-                  }`}>
+                  <div 
+                    className="mt-3 text-sm font-medium"
+                    style={{ color: getComplexityColor(analyticsData.complexityAnalysis.optimizationLevel) }}
+                  >
                     {analyticsData.complexityAnalysis.optimizationLevel.toUpperCase()}
                   </div>
                 </div>
@@ -556,11 +565,11 @@ const ComplexityItem: FC<ComplexityItemProps> = ({ label, value, color }) => {
 interface TipItemProps {
   title: string;
   description: string;
-  impact: string;
+  impact: 'High' | 'Medium' | 'Low' | string;
 }
 
 const TipItem: FC<TipItemProps> = ({ title, description, impact }) => {
-  const getImpactColor = () => {
+  const getImpactColor = (): string => {
     switch (impact) {
       case 'High': return 'bg-red-500';
       case 'Medium': return 'bg-yellow-500';

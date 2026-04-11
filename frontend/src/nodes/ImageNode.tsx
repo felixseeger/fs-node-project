@@ -204,6 +204,8 @@ const ImageNode: FC<NodeProps> = ({ id, data, selected }) => {
                     e.stopPropagation();
                     removeImage(i);
                   }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                   style={{
                     position: 'absolute',
                     top: 4,
@@ -232,6 +234,9 @@ const ImageNode: FC<NodeProps> = ({ id, data, selected }) => {
             {images.length < 3 && (
               <div
                 onClick={() => fileRef.current?.click()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="nodrag nopan"
                 style={{
                   width: '100%',
                   aspectRatio: '1',

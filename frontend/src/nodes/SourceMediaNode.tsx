@@ -183,6 +183,8 @@ const SourceMediaNode: FC<NodeProps> = ({ id, data, selected }) => {
                 <button
                   className="nodrag nopan"
                   onClick={() => removeMedia(i)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -202,6 +204,8 @@ const SourceMediaNode: FC<NodeProps> = ({ id, data, selected }) => {
         <button
           className="nodrag nopan"
           onClick={() => fileRef.current?.click()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           onDragOver={handleDragOver}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}

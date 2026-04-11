@@ -1,7 +1,7 @@
 /**
  * Workflow and execution types
  */
-import type { Node } from '@xyflow/react';
+import type { Node, MarkerType } from '@xyflow/react';
 import type { NodeData } from './nodes';
 
 // Workflow definition
@@ -32,11 +32,11 @@ export interface WorkflowEdge {
   style?: React.CSSProperties;
   selected?: boolean;
   markerEnd?: {
-    type: string;
+    type: MarkerType | 'arrow' | 'arrowclosed';
     width?: number;
     height?: number;
     color?: string;
-  };
+  } | string;
 }
 
 // Execution state

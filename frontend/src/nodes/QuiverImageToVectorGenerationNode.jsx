@@ -93,7 +93,7 @@ export default function QuiverImageToVectorGenerationNode({ id, data, selected }
           outputError: null,
         });
         // Register in history
-        addToHistory({
+        await addToHistory({
           type: 'svg',
           url: svgDataUri,
           prompt: 'Image to Vector conversion',

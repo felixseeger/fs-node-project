@@ -198,9 +198,8 @@ export default function App() {
   useEffect(() => {
     if (firebaseWorkflows.length > 0) {
       setWorkflows((prev) => {
-        if (JSON.stringify(prev) === JSON.stringify(firebaseWorkflows)) {
-          return prev;
-        }
+        // More efficient comparison or just update if different
+        if (prev === firebaseWorkflows) return prev;
         return firebaseWorkflows;
       });
     }
@@ -211,6 +210,11 @@ export default function App() {
 
     const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
     const now = Date.now();
+    
+    // Check if we actually have anything to remove before updating state
+    const hasExpired = workflows.some(w => w.deleted && w.deletedAt && (now - w.deletedAt > THIRTY_DAYS_MS));
+    if (!hasExpired) return;
+
     const expiredIds = workflows
       .filter(w => w.deleted && w.deletedAt && (now - w.deletedAt > THIRTY_DAYS_MS))
       .map(w => w.id);
@@ -366,14 +370,19 @@ export default function App() {
     [nodes]
   );
 
+  const isDirtyRef = useRef(false);
+
   const saveHistory = useCallback(() => {
     setHistory((prev) => {
       const last = prev.past[prev.past.length - 1];
-      if (last && JSON.stringify(last.nodes) === JSON.stringify(nodesRef.current) && JSON.stringify(last.edges) === JSON.stringify(edgesRef.current)) {
+      if (last && last.nodes === nodesRef.current && last.edges === edgesRef.current) {
         return prev;
       }
       return {
-        past: [...prev.past.slice(-50), { nodes: JSON.parse(JSON.stringify(nodesRef.current)), edges: JSON.parse(JSON.stringify(edgesRef.current)) }],
+        past: [...prev.past.slice(-50), { 
+          nodes: JSON.parse(JSON.stringify(nodesRef.current)), 
+          edges: JSON.parse(JSON.stringify(edgesRef.current)) 
+        }],
         future: []
       };
     });
@@ -382,6 +391,7 @@ export default function App() {
   const updateNodeData = useCallback(
     (nodeId: string, patch: any) => {
       saveHistory();
+      isDirtyRef.current = true;
       setNodes((nds) =>
         nds.map((n) =>
           n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n
@@ -390,6 +400,52 @@ export default function App() {
     },
     [setNodes, saveHistory]
   );
+
+  const onUnlink = useCallback((targetNodeId: string, targetHandle: string) => {
+    setEdges((eds) => eds.filter((e) => !(e.target === targetNodeId && e.targetHandle === targetHandle)));
+    isDirtyRef.current = true;
+  }, [setEdges]);
+
+  const onDisconnectNode = useCallback((id: string) => {
+    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+    isDirtyRef.current = true;
+  }, [setEdges]);
+
+  const onCreateNode = useCallback((type: string, dataPatch: any, sourceHandle: string, targetHandle: string, sourceId: string) => {
+    const newId = nextId();
+    const sourceNode = nodesRef.current.find(nd => nd.id === sourceId);
+    const position = sourceNode ? { x: sourceNode.position.x + 450, y: sourceNode.position.y } : { x: 400, y: 400 };
+    const newNode: Node = { id: newId, type, position, data: { ...dataPatch } };
+    setNodes((nds) => [...nds, newNode]);
+    isDirtyRef.current = true;
+    
+    if (sourceHandle && targetHandle) {
+      const edgeColor = getHandleColor(sourceHandle);
+      const newEdge: Edge = {
+        id: `e-${sourceId}-${sourceHandle}-${newId}-${targetHandle}`,
+        source: sourceId,
+        sourceHandle,
+        target: newId,
+        targetHandle,
+        style: { stroke: edgeColor, strokeWidth: 2 },
+      };
+      setTimeout(() => setEdges((eds) => addEdge(newEdge, eds)), 50);
+    }
+    setTimeout(() => {
+      const el = document.querySelector(`[data-id="${newId}"]`) as HTMLElement;
+      if (el) {
+        el.focus();
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 100);
+  }, [setNodes, setEdges]);
+
+  const onAnalyzeComplete = useCallback((id: string) => {
+    if (analyzeResolvers.current[id]) {
+      analyzeResolvers.current[id]();
+      delete analyzeResolvers.current[id];
+    }
+  }, []);
 
   const onConnect: OnConnect = useCallback(
     (params) => {
@@ -407,6 +463,7 @@ export default function App() {
         type: 'default',
       };
       setEdges((eds) => addEdge(newEdge, eds));
+      isDirtyRef.current = true;
 
       if (target) {
         const targetNode = nodesRef.current.find((n) => n.id === target);
@@ -632,6 +689,7 @@ export default function App() {
     const isSignificantChange = changes.some(c => (c.type === 'position' && !c.dragging) || c.type === 'remove' || c.type === 'add');
     if (isSignificantChange && !isHistoryAction.current) {
       saveHistory();
+      isDirtyRef.current = true;
     }
     if (changes.every(c => c.type !== 'position' || !c.dragging)) {
       isHistoryAction.current = false;
@@ -643,6 +701,7 @@ export default function App() {
     const isSignificantChange = changes.some(c => c.type === 'remove' || c.type === 'add');
     if (isSignificantChange && !isHistoryAction.current) {
       saveHistory();
+      isDirtyRef.current = true;
     }
     isHistoryAction.current = false;
     onEdgesChange(changes);
@@ -884,47 +943,13 @@ export default function App() {
         resolveInput,
         hasConnection,
         getConnectionInfo,
-        onAnalyzeComplete: (id: string) => {
-          if (analyzeResolvers.current[id]) {
-            analyzeResolvers.current[id]();
-            delete analyzeResolvers.current[id];
-          }
-        },
-        onUnlink: (targetNodeId: string, targetHandle: string) => {
-          setEdges((eds) => eds.filter((e) => !(e.target === targetNodeId && e.targetHandle === targetHandle)));
-        },
-        onDisconnectNode: (id: string) => {
-          setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
-        },
-        onCreateNode: (type: string, dataPatch: any, sourceHandle: string, targetHandle: string) => {
-          const newId = nextId();
-          const sourceNode = nodesRef.current.find(nd => nd.id === n.id);
-          const position = sourceNode ? { x: sourceNode.position.x + 450, y: sourceNode.position.y } : { x: 400, y: 400 };
-          const newNode: Node = { id: newId, type, position, data: { ...dataPatch } };
-          setNodes((nds) => [...nds, newNode]);
-          if (sourceHandle && targetHandle) {
-            const edgeColor = getHandleColor(sourceHandle);
-            const newEdge: Edge = {
-              id: `e-${n.id}-${sourceHandle}-${newId}-${targetHandle}`,
-              source: n.id,
-              sourceHandle,
-              target: newId,
-              targetHandle,
-              style: { stroke: edgeColor, strokeWidth: 2 },
-            };
-            setTimeout(() => setEdges((eds) => addEdge(newEdge, eds)), 50);
-          }
-          setTimeout(() => {
-            const el = document.querySelector(`[data-id="${newId}"]`) as HTMLElement;
-            if (el) {
-              el.focus();
-              el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-          }, 100);
-        },
+        onAnalyzeComplete,
+        onUnlink,
+        onDisconnectNode,
+        onCreateNode: (type: string, dataPatch: any, sh: string, th: string) => onCreateNode(type, dataPatch, sh, th, n.id),
       },
     }));
-  }, [nodes, edges, updateNodeData, resolveInput, hasConnection, getConnectionInfo, setEdges, setNodes]);
+  }, [nodes, updateNodeData, resolveInput, hasConnection, getConnectionInfo, onAnalyzeComplete, onUnlink, onDisconnectNode, onCreateNode]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();

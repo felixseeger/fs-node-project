@@ -45,11 +45,12 @@ export function getHandleColor(handleId: string): string {
 }
 
 export function isValidConnection(connection: {
-  source: string;
-  target: string;
-  sourceHandle: string;
-  targetHandle: string;
+  source: string | null;
+  target: string | null;
+  sourceHandle: string | null;
+  targetHandle: string | null;
 }): boolean {
+  if (!connection.source || !connection.target || !connection.sourceHandle || !connection.targetHandle) return false;
   if (connection.source === connection.target) return false;
 
   const srcType = getHandleDataType(connection.sourceHandle);

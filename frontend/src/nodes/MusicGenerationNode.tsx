@@ -300,11 +300,26 @@ export default function MusicGenerationNode({
         connectionInfoBox(promptConnection)
       ) : (
         <textarea
+          className="nodrag nopan"
           value={data.inputPrompt || ''}
           onChange={(e) => update({ inputPrompt: e.target.value })}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           placeholder="e.g. Upbeat jazz with piano and brushed drums"
           rows={4}
-          style={{ ...textareaStyle, minHeight: 88 } as CSSProperties}
+          style={{ 
+            ...textareaStyle, 
+            minHeight: 88,
+            transition: 'border-color 0.2s, box-shadow 0.2s',
+          } as CSSProperties}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = ACCENT;
+            e.currentTarget.style.boxShadow = `0 0 0 2px ${ACCENT}33`;
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = border.input;
+            e.currentTarget.style.boxShadow = 'none';
+          }}
         />
       )}
 
@@ -324,7 +339,7 @@ export default function MusicGenerationNode({
               {localDuration}
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: sp[2] }}>
+          <div className="nodrag nopan" style={{ display: 'flex', alignItems: 'center', gap: sp[2] }} onMouseDown={e => e.stopPropagation()}>
             <span
               style={{
                 fontSize: 9,
@@ -342,6 +357,7 @@ export default function MusicGenerationNode({
               step={1}
               value={localDuration}
               onChange={(e) => update({ localDuration: Number(e.target.value) })}
+              onMouseDown={e => e.stopPropagation()}
               style={{ flex: 1, accentColor: ACCENT }}
             />
             <span style={{ fontSize: 9, color: text.muted, minWidth: 14 }}>240</span>

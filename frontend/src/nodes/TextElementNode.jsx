@@ -147,7 +147,10 @@ export default function TextElementNode({ id, data, selected }) {
                     <label style={{ cursor: 'pointer', padding: '0 4px', display: 'flex', alignItems: 'center' }} title="Text Color">
                         <input
                             type="color"
+                            className="nodrag nopan"
                             value={data.textColor || '#e0e0e0'}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
                             onInput={e => {
                                 contentRef.current?.focus();
                                 document.execCommand('foreColor', false, e.target.value);

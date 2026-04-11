@@ -21,22 +21,73 @@ export const MIN_NODE_HEIGHT = 100;
 const mediaDimensionsCache = new Map<string, { width: number; height: number; aspectRatio: number }>();
 
 /**
+ * Options for getMediaDimensions
+ */
+export interface GetMediaDimensionsOptions {
+  /** AbortController signal for cancellation */
+  signal?: AbortSignal;
+  /** Maximum size in MB for data URLs */
+  maxSizeMB?: number;
+}
+
+/**
  * Get media dimensions from URL or base64 data
  * Supports images and videos with caching for performance
+ * 
+ * SECURITY: Supports AbortController for timeouts and maxSizeMB for data URL validation
  */
 export async function getMediaDimensions(
-  mediaUrl: string
+  mediaUrl: string,
+  options: GetMediaDimensionsOptions = {}
 ): Promise<{ width: number; height: number; aspectRatio: number }> {
-  // Check cache first
-  const cached = mediaDimensionsCache.get(mediaUrl);
-  if (cached) return cached;
+  const { signal, maxSizeMB } = options;
+  
+  // Check cache first (respect abort signal)
+  if (!signal?.aborted) {
+    const cached = mediaDimensionsCache.get(mediaUrl);
+    if (cached) return cached;
+  }
+  
+  // SECURITY: Validate data URL size if maxSizeMB is specified
+  if (maxSizeMB !== undefined && mediaUrl.startsWith('data:')) {
+    // Estimate size: base64 is ~4/3 of binary size
+    const base64Data = mediaUrl.split(',')[1];
+    if (base64Data) {
+      const estimatedBytes = (base64Data.length * 3) / 4;
+      const estimatedMB = estimatedBytes / (1024 * 1024);
+      if (estimatedMB > maxSizeMB) {
+        console.warn(`Media size (${estimatedMB.toFixed(2)}MB) exceeds limit (${maxSizeMB}MB)`);
+        return { width: 800, height: 600, aspectRatio: 4/3 };
+      }
+    }
+  }
   
   return new Promise((resolve) => {
+    // Check if already aborted
+    if (signal?.aborted) {
+      resolve({ width: 800, height: 600, aspectRatio: 4/3 });
+      return;
+    }
+    
     try {
       // Create image element for dimension detection
       const img = new Image();
       
+      // Handle abort signal
+      const abortHandler = () => {
+        img.src = ''; // Cancel loading
+        resolve({ width: 800, height: 600, aspectRatio: 4/3 });
+      };
+      
+      if (signal) {
+        signal.addEventListener('abort', abortHandler, { once: true });
+      }
+      
       img.onload = () => {
+        if (signal) {
+          signal.removeEventListener('abort', abortHandler);
+        }
+        
         const dimensions = {
           width: img.naturalWidth || img.width,
           height: img.naturalHeight || img.height,
@@ -49,6 +100,10 @@ export async function getMediaDimensions(
       };
       
       img.onerror = () => {
+        if (signal) {
+          signal.removeEventListener('abort', abortHandler);
+        }
+        
         // Fallback dimensions if loading fails
         const fallback = { width: 800, height: 600, aspectRatio: 4/3 };
         mediaDimensionsCache.set(mediaUrl, fallback);

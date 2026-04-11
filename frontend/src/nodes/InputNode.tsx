@@ -162,8 +162,11 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
 
             {type === 'prompt' || type === 'text' ? (
               <textarea
+                className="nodrag nopan"
                 value={values[handleId] || ''}
                 onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateField(handleId, e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
                 placeholder={`Enter ${cfg.label.toLowerCase()}...`}
                 rows={3}
                 style={{
@@ -177,14 +180,24 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
                   resize: 'vertical',
                   outline: 'none',
                   boxSizing: 'border-box',
+                  transition: 'border-color 0.2s, box-shadow 0.2s',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = '#3b82f6';
+                  e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = '#3a3a3a';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               />
             ) : type === 'aspect_ratio' ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              <div className="nodrag nopan" style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }} onMouseDown={e => e.stopPropagation()}>
                 {ASPECT_OPTIONS.map((opt) => (
                   <button
                     key={opt}
                     onClick={() => updateField(handleId, opt)}
+                    onMouseDown={e => e.stopPropagation()}
                     style={{
                       padding: '2px 8px',
                       fontSize: 10,
@@ -201,11 +214,12 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
                 ))}
               </div>
             ) : type === 'resolution' ? (
-              <div style={{ display: 'flex', gap: 4 }}>
+              <div className="nodrag nopan" style={{ display: 'flex', gap: 4 }} onMouseDown={e => e.stopPropagation()}>
                 {RESOLUTION_OPTIONS.map((opt) => (
                   <button
                     key={opt}
                     onClick={() => updateField(handleId, opt)}
+                    onMouseDown={e => e.stopPropagation()}
                     style={{
                       padding: '2px 8px',
                       fontSize: 10,
@@ -222,13 +236,14 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
                 ))}
               </div>
             ) : type === 'num_images' ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="nodrag nopan" style={{ display: 'flex', alignItems: 'center', gap: 8 }} onMouseDown={e => e.stopPropagation()}>
                 <input
                   type="range"
                   min={1}
                   max={4}
                   value={values[handleId] || 1}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => updateField(handleId, Number(e.target.value))}
+                  onMouseDown={e => e.stopPropagation()}
                   style={{ flex: 1 }}
                 />
                 <span style={{ fontSize: 11, color: '#e0e0e0', minWidth: 12 }}>
