@@ -300,7 +300,9 @@ export default function App() {
   const isHistoryAction = useRef(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
-  const [activeTool, setActiveTool] = useState<'select' | 'hand'>('select');
+  const [activeTool, setActiveTool] = useState<'select' | 'hand' | 'slice'>('select');
+  const [sliceStart, setSliceStart] = useState<{ x: number, y: number } | null>(null);
+  const [sliceCurrent, setSliceCurrent] = useState<{ x: number, y: number } | null>(null);
   const [viewMode, setViewMode] = useState<'editor' | 'interface'>('editor');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(true);
@@ -1309,6 +1311,7 @@ export default function App() {
             return;
           }
           case 'v': setActiveTool('select'); return;
+          case 's': setActiveTool('slice'); return;
           case 'm': {
             const sel = rfInstance?.getNodes().filter(n => n.selected);
             if (sel?.length) {
@@ -1828,7 +1831,25 @@ export default function App() {
       />
       <GlobalProgressBar nodes={nodes} />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', background: '#1a1a1a' }}>
-        <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }} onDrop={onDrop} onDragOver={onDragOver}>
+        <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }} onDrop={onDrop} onDragOver={onDragOver}
+          onPointerDownCapture={handleSliceStart}
+          onPointerMoveCapture={handleSliceMove}
+          onPointerUpCapture={handleSliceEnd}
+          onPointerCancelCapture={handleSliceEnd}
+        >
+          {sliceStart && sliceCurrent && (
+            <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 9999 }}>
+              <line 
+                x1={sliceStart.x - (reactFlowWrapper.current?.getBoundingClientRect().left || 0)} 
+                y1={sliceStart.y - (reactFlowWrapper.current?.getBoundingClientRect().top || 0)} 
+                x2={sliceCurrent.x - (reactFlowWrapper.current?.getBoundingClientRect().left || 0)} 
+                y2={sliceCurrent.y - (reactFlowWrapper.current?.getBoundingClientRect().top || 0)} 
+                stroke="#ef4444" 
+                strokeWidth="2" 
+                strokeDasharray="4 4" 
+              />
+            </svg>
+          )}
           {viewMode === 'interface' && <WorkflowInterface nodes={nodes} edges={edges} onUpdateNodeData={updateNodeData} onRunWorkflow={() => handleRunWorkflow()} onSwitchToEditor={() => setViewMode('editor')} isRunning={isRunning} />}
           <GooeyNodesMenu 
            nodeMenu={NODE_MENU} 
@@ -1893,7 +1914,7 @@ export default function App() {
             onConnectStart={() => { isConnectingRef.current = true; beginInteraction(); }}
             isValidConnection={connectionValidator} nodeTypes={nodeTypes} defaultEdgeOptions={defaultEdgeOptions}
             fitView fitViewOptions={{ padding: 0.1, minZoom: 0.1, maxZoom: 2 }} minZoom={0.1} maxZoom={2}
-            panOnDrag={isLocked ? false : (activeTool === 'hand' ? [0, 1, 2] : [1, 2])} panOnScroll={false}
+            panOnDrag={isLocked ? false : (activeTool === 'hand' ? [0, 1, 2] : (activeTool === 'slice' ? [1, 2] : [1, 2]))} panOnScroll={false}
             selectionOnDrag={activeTool === 'select'} selectionMode={SelectionMode.Partial} selectionKeyCode={activeTool === 'select' ? null : 'Shift'}
             multiSelectionKeyCode="Meta" nodeDragThreshold={5} elevateNodesOnSelect elevateEdgesOnSelect
             zoomOnScroll={false} nodesDraggable={!isLocked} nodesConnectable={!isLocked} elementsSelectable={!isLocked}
