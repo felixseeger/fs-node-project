@@ -95,7 +95,6 @@ import { AppThemeSchema, CanvasZoomModeSchema } from './schemas';
 import PromptRecipeGallery from './components/PromptRecipeGallery';
 import { WorkflowLineageTracker } from './components/WorkflowLineageTracker';
 import { SmartConnectorUI } from './components/SmartConnectorUI';
-import { WorkflowHealthMonitor } from './components/WorkflowHealthMonitor';
 import { SmartConnectorEngine } from './engine/SmartConnectorEngine';
 import { CollaboratorPresence, LiveActionFeed, CollaborationHub, CollaborationPresence, NodeLocks } from './components/CollaborationHub';
 
@@ -806,29 +805,6 @@ export default function App() {
       });
     }
   }, [activeConnection, onConnect, saveHistory]);
-
-  const handleHealthAutoFix = useCallback((targetNodeId: string, handleId: string) => {
-    const targetType = getHandleDataType(handleId);
-    
-    // Find a node that has an output compatible with targetType
-    const compatibleSource = nodes.slice().reverse().find(node => {
-      if (node.id === targetNodeId) return false;
-      const outputs = SmartConnectorEngine.getPossibleOutputs(node);
-      return outputs.some(outId => SmartConnectorEngine.isCompatible(getHandleDataType(outId), targetType));
-    });
-
-    if (compatibleSource) {
-      const sourceHandleId = SmartConnectorEngine.getPossibleOutputs(compatibleSource)[0] || 'output';
-      
-      saveHistory();
-      onConnect({
-        source: compatibleSource.id,
-        sourceHandle: sourceHandleId,
-        target: targetNodeId,
-        targetHandle: handleId
-      });
-    }
-  }, [nodes, saveHistory, onConnect]);
 
 const handleConnectEnd = useCallback(
     (event: any, connectionState: any) => {
@@ -2557,7 +2533,6 @@ const handleConnectEnd = useCallback(
           <MegaMenuModelSearch open={browseModelsOpen} onClose={() => setBrowseModelsOpen(false)} onSelect={(k: string, m: string) => handleApplyModelToAll(k, m)} />
           <div style={{ position: 'absolute', bottom: 96, right: 24, zIndex: 10 }}><Queue nodes={nodes} /></div>
           <WorkflowLineageTracker workflowId={activeWorkflowId} />
-          <WorkflowHealthMonitor onAutoFix={handleHealthAutoFix} />
           <SmartConnectorUI activeConnection={activeConnection} onAutoConnect={handleAutoConnect} />
           <MatrixDot dotSize={2} dotColor={theme === 'light' ? '#cbd5e1' : '#3a3a3a'} spacing={28} opacity={theme === 'light' ? 0.45 : 0.6} />
           <ReactFlow
@@ -2730,8 +2705,7 @@ If the user wants to generate a COMPLETELY NEW workflow from scratch (overwritin
 \`\`\`
 Available node types: input, generator, imageAnalyzer, creativeUpscale, precisionUpscale, relight, styleTransfer, removeBackground, fluxReimagine, fluxImageExpand, seedreamExpand, ideogramExpand, skinEnhancer, ideogramInpaint, kling3, kling3Omni, kling3Motion, wan26, seedance, runwayGen45, runwayGen4Turbo, runwayActTwo, pixVerseV5Transition, omniHuman, vfx, creativeVideoUpscale, precisionVideoUpscale, textToIcon, imageToPrompt, improvePrompt, aiImageClassifier, musicGeneration, soundEffects, audioIsolation, voiceover, response, adaptedPrompt, layerEditor, comment, routerNode, groupEditing, facialEditing, universalGeneratorImage, universalGeneratorVideo, videoImprove, tripo3d, textElement, imageOutput, videoOutput, soundOutput.
 `;
-                const promptWithContext = `${_msg}\n\n${systemContext}`;
-                const res: any = await sendChat(promptWithContext, history, undefined, referenceImages);
+                const res: any = await sendChat(_msg, history, systemContext, referenceImages);
 
                 if (res.success && res.response) {
                   // Save assistant response to Firebase
