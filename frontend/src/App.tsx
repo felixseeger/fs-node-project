@@ -1385,6 +1385,60 @@ export default function App() {
     return () => window.removeEventListener('click', handleGlobalClick, { capture: true });
   }, [setEdges, saveHistory]);
 
+  const handleSliceStart = useCallback((e: React.PointerEvent) => {
+    if (activeTool === 'slice') {
+      e.stopPropagation();
+      setSliceStart({ x: e.clientX, y: e.clientY });
+      setSliceCurrent({ x: e.clientX, y: e.clientY });
+    }
+  }, [activeTool]);
+
+  const handleSliceMove = useCallback((e: React.PointerEvent) => {
+    if (activeTool === 'slice' && sliceStart) {
+      e.stopPropagation();
+      setSliceCurrent({ x: e.clientX, y: e.clientY });
+    }
+  }, [activeTool, sliceStart]);
+
+  const handleSliceEnd = useCallback((e: React.PointerEvent) => {
+    if (activeTool === 'slice' && sliceStart && sliceCurrent) {
+      e.stopPropagation();
+      const end = { x: e.clientX, y: e.clientY };
+      const dx = end.x - sliceStart.x;
+      const dy = end.y - sliceStart.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const steps = Math.max(10, Math.floor(distance / 2));
+
+      const edgeIdsToRemove = new Set<string>();
+
+      for (let i = 0; i <= steps; i++) {
+        const x = sliceStart.x + (dx * i) / steps;
+        const y = sliceStart.y + (dy * i) / steps;
+        const elements = document.elementsFromPoint(x, y);
+        for (const el of elements) {
+          if (el.classList.contains('react-flow__edge-path') || el.classList.contains('react-flow__edge-interaction')) {
+            const edgeWrapper = el.closest('.react-flow__edge');
+            if (edgeWrapper) {
+              const id = edgeWrapper.getAttribute('data-id');
+              if (id) edgeIdsToRemove.add(id);
+            }
+          }
+        }
+      }
+
+      if (edgeIdsToRemove.size > 0) {
+        saveHistory();
+        setEdges((eds) => eds.filter(edge => !edgeIdsToRemove.has(edge.id)));
+      }
+
+      setSliceStart(null);
+      setSliceCurrent(null);
+    } else if (activeTool === 'slice') {
+      setSliceStart(null);
+      setSliceCurrent(null);
+    }
+  }, [activeTool, sliceStart, sliceCurrent, saveHistory, setEdges]);
+
   const handleRenameSubmit = () => {
     if (newWorkflowName.trim() && activeWorkflowId) {
       setWorkflows(prev => prev.map(wf => wf.id === activeWorkflowId ? { ...wf, name: newWorkflowName.trim() } : wf));
@@ -1742,60 +1796,6 @@ export default function App() {
       </div>
     );
   }
-
-  const handleSliceStart = useCallback((e: React.PointerEvent) => {
-    if (activeTool === 'slice') {
-      e.stopPropagation();
-      setSliceStart({ x: e.clientX, y: e.clientY });
-      setSliceCurrent({ x: e.clientX, y: e.clientY });
-    }
-  }, [activeTool]);
-
-  const handleSliceMove = useCallback((e: React.PointerEvent) => {
-    if (activeTool === 'slice' && sliceStart) {
-      e.stopPropagation();
-      setSliceCurrent({ x: e.clientX, y: e.clientY });
-    }
-  }, [activeTool, sliceStart]);
-
-  const handleSliceEnd = useCallback((e: React.PointerEvent) => {
-    if (activeTool === 'slice' && sliceStart && sliceCurrent) {
-      e.stopPropagation();
-      const end = { x: e.clientX, y: e.clientY };
-      const dx = end.x - sliceStart.x;
-      const dy = end.y - sliceStart.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const steps = Math.max(10, Math.floor(distance / 2));
-
-      const edgeIdsToRemove = new Set<string>();
-
-      for (let i = 0; i <= steps; i++) {
-        const x = sliceStart.x + (dx * i) / steps;
-        const y = sliceStart.y + (dy * i) / steps;
-        const elements = document.elementsFromPoint(x, y);
-        for (const el of elements) {
-          if (el.classList.contains('react-flow__edge-path') || el.classList.contains('react-flow__edge-interaction')) {
-            const edgeWrapper = el.closest('.react-flow__edge');
-            if (edgeWrapper) {
-              const id = edgeWrapper.getAttribute('data-id');
-              if (id) edgeIdsToRemove.add(id);
-            }
-          }
-        }
-      }
-
-      if (edgeIdsToRemove.size > 0) {
-        saveHistory();
-        setEdges((eds) => eds.filter(edge => !edgeIdsToRemove.has(edge.id)));
-      }
-
-      setSliceStart(null);
-      setSliceCurrent(null);
-    } else if (activeTool === 'slice') {
-      setSliceStart(null);
-      setSliceCurrent(null);
-    }
-  }, [activeTool, sliceStart, sliceCurrent, saveHistory, setEdges]);
 
   return (
     <CanvasProvider value={canvasContextValue}>
