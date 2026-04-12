@@ -11,18 +11,7 @@ import {
 import { imageClassifierGenerate } from '../utils/api';
 import { compressImageBase64 } from '../utils/imageUtils';
 import ImageUploadBox from './ImageUploadBox';
-import type { NodeData } from '../types';
-
-export interface AIImageClassifierNodeData extends NodeData {
-  localImage?: string;
-  inputImagePreview?: string;
-  outputText?: string | null;
-  rawResult?: any;
-  outputError?: string | null;
-  isLoading?: boolean;
-  onAnalyzeComplete?: (id: string) => void;
-  triggerAnalyze?: number;
-}
+import type { AIImageClassifierNodeData } from '../types';
 
 export default function AIImageClassifierNode({ id, data, selected }: NodeProps) {
   const nodeData = data as unknown as AIImageClassifierNodeData;
