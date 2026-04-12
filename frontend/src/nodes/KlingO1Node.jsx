@@ -1,6 +1,6 @@
 import createVideoGeneratorNode from './createVideoGeneratorNode';
 import { klingO1Generate, pollKlingO1Status } from '../utils/api';
-import { compressImageBase64 } from '../utils/imageUtils';
+import { compressImageBase64, alignImageToMatch } from '../utils/imageUtils';
 
 const MODELS = [
   { value: 'std', label: 'Standard' },
@@ -17,10 +17,15 @@ export default createVideoGeneratorNode({
   displayName: 'Kling O1',
   promptOptional: true, // Prompt is optional if images are provided
   apiGeneratorFn: async (params) => {
-    const { model, first_frame, last_frame, ...rest } = params;
+    let { model, first_frame, last_frame, ...rest } = params;
 
     if (!first_frame && !last_frame) {
       return { error: { message: 'Kling O1 requires at least a first or last frame.' } };
+    }
+
+    // Backend Alignment for in-out frames
+    if (first_frame && last_frame) {
+      last_frame = await alignImageToMatch(first_frame, last_frame);
     }
 
     if (first_frame) {

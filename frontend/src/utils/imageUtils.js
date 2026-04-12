@@ -46,3 +46,58 @@ export function stripBase64Prefix(str) {
   const m = str.match(/^data:image\/[^;]+;base64,(.+)$/i);
   return m ? m[1] : str;
 }
+
+/** 
+ * Backend Alignment: Resizes and center-crops the endImage to exactly match the startImage dimensions.
+ * Video generation models (Kling, PixVerse) require exactly matching dimensions for in-out frames.
+ * Returns a promise that resolves to the aligned endImage (base64).
+ */
+export function alignImageToMatch(startImageB64, endImageB64) {
+  return new Promise((resolve) => {
+    if (!startImageB64 || !endImageB64) {
+      resolve(endImageB64);
+      return;
+    }
+    if (!startImageB64.startsWith('data:image') || !endImageB64.startsWith('data:image')) {
+      resolve(endImageB64);
+      return;
+    }
+
+    const startImg = new Image();
+    startImg.onload = () => {
+      const targetWidth = startImg.width;
+      const targetHeight = startImg.height;
+
+      const endImg = new Image();
+      endImg.onload = () => {
+        const sourceWidth = endImg.width;
+        const sourceHeight = endImg.height;
+
+        if (sourceWidth === targetWidth && sourceHeight === targetHeight) {
+          resolve(endImageB64); // Already aligned
+          return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d');
+
+        // Calculate crop to fill (center)
+        const scale = Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight);
+        const scaledWidth = sourceWidth * scale;
+        const scaledHeight = sourceHeight * scale;
+        
+        const dx = (targetWidth - scaledWidth) / 2;
+        const dy = (targetHeight - scaledHeight) / 2;
+
+        ctx.drawImage(endImg, dx, dy, scaledWidth, scaledHeight);
+        resolve(canvas.toDataURL('image/jpeg', 0.9));
+      };
+      endImg.onerror = () => resolve(endImageB64);
+      endImg.src = endImageB64;
+    };
+    startImg.onerror = () => resolve(endImageB64);
+    startImg.src = startImageB64;
+  });
+}

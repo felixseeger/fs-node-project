@@ -5,7 +5,7 @@ import { useNodeConnections } from './shared';
 import { getHandleColor } from '../utils/handleTypes';
 
 const SocialPublisherNode: FC<NodeProps> = ({ id, data, selected }) => {
-  const { disconnectNode } = useNodeConnections(id, data);
+  const { onDisconnectNode } = useNodeConnections();
   const platform = (data.platform as string) || 'x';
   const caption = (data.caption as string) || '';
   
@@ -20,7 +20,7 @@ const SocialPublisherNode: FC<NodeProps> = ({ id, data, selected }) => {
       label={data.label as string || 'Social Publisher'}
       dotColor="#3b82f6"
       selected={selected}
-      onDisconnect={() => disconnectNode()}
+      onDisconnect={() => onDisconnectNode && onDisconnectNode(id)}
       isGenerating={data.isGenerating as boolean}
       hasError={data.hasError as boolean}
     >

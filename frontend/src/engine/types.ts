@@ -148,6 +148,7 @@ export interface NodeTypeMetadata {
   description?: string;
   inputs: string[];
   outputs: string[];
+  capabilities?: string[];
   isAsync: boolean;
   estimatedDuration?: number;
 }

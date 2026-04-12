@@ -5,7 +5,7 @@ import { useNodeConnections } from './shared';
 import { getHandleColor } from '../utils/handleTypes';
 
 const VariableNode: FC<NodeProps> = ({ id, data, selected }) => {
-  const { disconnectNode } = useNodeConnections(id, data);
+  const { onDisconnectNode } = useNodeConnections();
   const varName = (data.varName as string) || 'my_var';
   const varValue = (data.varValue as string) || '';
   
@@ -20,7 +20,7 @@ const VariableNode: FC<NodeProps> = ({ id, data, selected }) => {
       label={data.label as string || 'Variable'}
       dotColor="#eab308"
       selected={selected}
-      onDisconnect={() => disconnectNode()}
+      onDisconnect={() => onDisconnectNode && onDisconnectNode(id)}
       isGenerating={data.isGenerating as boolean}
       hasError={data.hasError as boolean}
     >

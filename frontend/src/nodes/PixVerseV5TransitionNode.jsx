@@ -1,6 +1,6 @@
 import createVideoGeneratorNode from './createVideoGeneratorNode';
 import { pixVerseV5TransitionGenerate, pollPixVerseV5TransitionStatus } from '../utils/api';
-import { compressImageBase64 } from '../utils/imageUtils';
+import { compressImageBase64, alignImageToMatch } from '../utils/imageUtils';
 
 const RESOLUTIONS = [
   { value: '360p', label: '360p' },
@@ -17,12 +17,15 @@ const DURATIONS = [
 export default createVideoGeneratorNode({
   displayName: 'PixVerse V5 Transition',
   apiGeneratorFn: async (params) => {
-    const { first_image_url, last_image_url, ...rest } = params;
+    let { first_image_url, last_image_url, ...rest } = params;
     
     if (!first_image_url || !last_image_url) {
       return { error: { message: 'Both start and end frames are required' } };
     }
     
+    // Backend Alignment for in-out frames
+    last_image_url = await alignImageToMatch(first_image_url, last_image_url);
+
     rest.first_image_url = await compressImageBase64(first_image_url);
     rest.last_image_url = await compressImageBase64(last_image_url);
     

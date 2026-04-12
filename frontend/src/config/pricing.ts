@@ -48,6 +48,34 @@ export const PRICING_CATALOG: Record<string, NodePricing> = {
     category: 'video',
     description: 'Google Veo video generation'
   },
+  'kling-v3': { 
+    id: 'kling-v3', 
+    name: 'Kling 3.0', 
+    baseCost: 35, 
+    category: 'video',
+    description: 'Next-gen video generation'
+  },
+  'minimax-live': { 
+    id: 'minimax-live', 
+    name: 'MiniMax Live', 
+    baseCost: 20, 
+    category: 'video',
+    description: 'Real-time video synthesis'
+  },
+  'wan-v2.6': { 
+    id: 'wan-v2.6', 
+    name: 'WAN 2.6', 
+    baseCost: 25, 
+    category: 'video',
+    description: 'High-speed video generation'
+  },
+  'runway-gen4.5': { 
+    id: 'runway-gen4.5', 
+    name: 'Runway Gen-4.5', 
+    baseCost: 50, 
+    category: 'video',
+    description: 'State-of-the-art cinematic video'
+  },
 
   // Text/LLM Models
   'claude-3-5-sonnet': { 
@@ -73,6 +101,20 @@ export const PRICING_CATALOG: Record<string, NodePricing> = {
     category: 'audio',
     description: 'Ultra-realistic voice synthesis'
   },
+  'music-gen': { 
+    id: 'music-gen', 
+    name: 'Music Generation', 
+    baseCost: 10, 
+    category: 'audio',
+    description: 'AI-composed background music'
+  },
+  'audio-isolation': { 
+    id: 'audio-isolation', 
+    name: 'Audio Isolation', 
+    baseCost: 5, 
+    category: 'audio',
+    description: 'Voice/Music separation'
+  },
   
   // Utilities
   'background-removal': {
@@ -88,6 +130,27 @@ export const PRICING_CATALOG: Record<string, NodePricing> = {
     baseCost: 4,
     category: 'utility',
     description: 'AI-powered image enhancement'
+  },
+  'relight': {
+    id: 'relight',
+    name: 'Image Relighting',
+    baseCost: 6,
+    category: 'utility',
+    description: 'Dynamic lighting adjustment'
+  },
+  'style-transfer': {
+    id: 'style-transfer',
+    name: 'Style Transfer',
+    baseCost: 5,
+    category: 'utility',
+    description: 'Apply artistic styles'
+  },
+  'tripo-3d': {
+    id: 'tripo-3d',
+    name: 'Tripo 3D',
+    baseCost: 20,
+    category: 'utility',
+    description: '3D mesh reconstruction'
   }
 };
 

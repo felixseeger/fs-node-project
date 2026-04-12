@@ -18,6 +18,8 @@ interface InspectorPanelProps {
   onDeleteNode?: (nodeId: string) => void;
   onRunNode?: (nodeId: string) => void;
   isRunning?: boolean;
+  locks?: any[];
+  currentUserId?: string;
 }
 
 export default function InspectorPanel({
@@ -27,6 +29,8 @@ export default function InspectorPanel({
   onDeleteNode,
   onRunNode,
   isRunning = false,
+  locks = [],
+  currentUserId,
 }: InspectorPanelProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [modelMegaMenuOpen, setModelMegaMenuOpen] = useState(false);
@@ -68,6 +72,11 @@ export default function InspectorPanel({
       singleSelected.type === 'universalGeneratorVideo')
       ? () => setModelMegaMenuOpen(true)
       : undefined;
+
+  const lockInfo = singleSelected 
+    ? locks.find((l: any) => l.id === singleSelected.id && l.userId !== currentUserId)
+    : null;
+  const isLockedByOther = !!lockInfo;
 
   if (!singleSelected) {
     return <style>{inspectorStyles}</style>;
@@ -112,6 +121,8 @@ export default function InspectorPanel({
             onOpenModelMegaMenu={openModelMegaMenu}
             onRunNode={onRunNode ? () => onRunNode(singleSelected.id) : undefined}
             isRunning={isRunning}
+            readOnly={isLockedByOther}
+            lockInfo={lockInfo}
           />
         </div>
       )}

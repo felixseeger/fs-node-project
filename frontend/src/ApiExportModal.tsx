@@ -1,44 +1,6 @@
 import React, { useState, useCallback } from 'react';
 
-const WORKFLOW_ID = 'wf_abc123';
-const API_URL = `https://api.kora.ai/v1/workflows/${WORKFLOW_ID}`;
-
 type TabKey = 'Javascript' | 'Python' | 'Claude Code';
-
-const TAB_DATA: Record<TabKey, string> = {
-  Javascript: `// Install the SDK
-npm install @kora/sdk
-
-// Use in your project
-import { Kora } from '@kora/sdk';
-
-const client = new Kora({
-  apiKey: process.env.KORA_API_KEY,
-});
-
-const result = await client.runWorkflow('${WORKFLOW_ID}', {
-  prompt: 'Your input prompt',
-});
-
-console.log(result);`,
-  Python: `# Install the SDK
-pip install kora-sdk
-
-# Use in your project
-from kora import Kora
-
-client = Kora(
-    api_key=os.environ["KORA_API_KEY"]
-)
-
-result = client.run_workflow(
-    "${WORKFLOW_ID}",
-    prompt="Your input prompt"
-)
-
-print(result)`,
-  'Claude Code': `npx kora code-workflow`,
-};
 
 function CopyIcon(): React.ReactElement {
   return (
@@ -68,10 +30,19 @@ export default function ApiExportModal({ isOpen, onClose, nodes = [], edges = []
     const nodeCount = nodes.length;
     const edgeCount = edges.length;
     const nodeTypes = Array.from(new Set(nodes.map(n => n.type))).join(', ');
+    
+    // Find input nodes to extract fields
+    const inputNode = nodes.find(n => n.type === 'inputNode' || n.type === 'input');
+    const inputFields = inputNode?.data?.fieldValues || {};
+    const fieldKeys = Object.keys(inputFields);
+    
+    const inputPlaceholder = fieldKeys.length > 0 
+      ? fieldKeys.map(k => `    ${k}: ${JSON.stringify(inputFields[k])}`).join(',\n')
+      : '    prompt: "A beautiful sunset over the ocean"';
 
     if (tab === 'Javascript') {
       return `// Workflow: ${workflowId} (${nodeCount} nodes, ${edgeCount} edges)
-// Node Types: ${nodeTypes}
+// Nodes: ${nodeTypes}
 
 import { Kora } from '@kora/sdk';
 
@@ -79,9 +50,10 @@ const client = new Kora({
   apiKey: process.env.KORA_API_KEY,
 });
 
+// Run the workflow with dynamic inputs
 const result = await client.runWorkflow('${workflowId}', {
   input: {
-    // Add your input parameters here
+${inputPlaceholder}
   }
 });
 
@@ -90,7 +62,7 @@ console.log('Workflow result:', result);`;
 
     if (tab === 'Python') {
       return `# Workflow: ${workflowId} (${nodeCount} nodes, ${edgeCount} edges)
-# Node Types: ${nodeTypes}
+# Nodes: ${nodeTypes}
 
 from kora import Kora
 import os
@@ -99,17 +71,18 @@ client = Kora(
     api_key=os.environ.get("KORA_API_KEY")
 )
 
+# Run the workflow with dynamic inputs
 result = client.run_workflow(
     "${workflowId}",
     input={
-        # Add your input parameters here
+${inputPlaceholder}
     }
 )
 
 print(f"Workflow result: {result}")`;
     }
 
-    return `npx kora run ${workflowId}`;
+    return `npx kora run ${workflowId} ${fieldKeys.map(k => `--${k} ${JSON.stringify(inputFields[k])}`).join(' ')}`;
   }, [nodes, edges, workflowId]);
 
   const getCode = useCallback((): string => {

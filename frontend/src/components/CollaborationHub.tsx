@@ -1,29 +1,11 @@
-import React, { useState, useEffect, useCallback, type FC, type KeyboardEvent } from 'react';
+import React, { useState, useCallback, type FC } from 'react';
 // @ts-ignore
 import { useStore } from '../store';
-// @ts-ignore
-import { usePresence, useUser } from '../utils/collaboration';
-import { useViewport } from '@xyflow/react';
-
-interface Collaborator {
-  id: string;
-  name: string;
-  avatar: string;
-  status: string;
-  role: string;
-  x?: number;
-  y?: number;
-  action?: string;
-  color?: string;
-}
-
-interface Message {
-  id: string;
-  sender: string;
-  text: string;
-  timestamp: string;
-  type: 'message' | 'system';
-}
+import { useCollaboration } from '../hooks/useCollaboration';
+import { useAuth } from '../context/AuthContext';
+import { useUser } from '../hooks/useUser';
+import { useViewport, useNodes } from '@xyflow/react';
+import type { Collaborator, ActionEvent, ChatMessage, NodeLock } from '../services/collaborationService';
 
 interface CollaborationHubProps {
   isOpen: boolean;
@@ -35,21 +17,26 @@ interface CollaborationHubProps {
  */
 export const CollaboratorPresence: FC = () => {
   const { x, y, zoom } = useViewport();
+  const { currentWorkflow } = useStore();
+  const { user } = useAuth();
+  const { profile } = useUser(user?.uid);
   
-  // Mock active collaborators on the canvas
-  const activeCollaborators: Collaborator[] = [
-    { id: 'user1', name: 'Alex Johnson', avatar: 'AJ', color: '#3b82f6', x: 200, y: 150, action: 'Editing Image Generator', status: 'online', role: 'Editor' },
-    { id: 'user2', name: 'Sam Wilson', avatar: 'SW', color: '#10b981', x: 500, y: 300, action: 'Adding connection', status: 'online', role: 'Editor' }
-  ];
+  const { collaborators } = useCollaboration({
+    workflowId: currentWorkflow?.id || null,
+    userId: user?.uid || null,
+    userName: profile?.displayName || user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
+    userAvatar: profile?.avatarUri || '👤',
+    userColor: profile?.themeColor || '#3b82f6'
+  });
 
-  if (!activeCollaborators || activeCollaborators.length === 0) return null;
+  if (!collaborators || collaborators.length === 0) return null;
 
   return (
     <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
-      {activeCollaborators.map(collaborator => {
-        if (typeof collaborator.x !== 'number' || typeof collaborator.y !== 'number') return null;
-        const screenX = collaborator.x * zoom + x;
-        const screenY = collaborator.y * zoom + y;
+      {collaborators.map(collaborator => {
+        if (typeof collaborator.cursorX !== 'number' || typeof collaborator.cursorY !== 'number') return null;
+        const screenX = collaborator.cursorX * zoom + x;
+        const screenY = collaborator.cursorY * zoom + y;
         
         return (
           <div 
@@ -57,7 +44,7 @@ export const CollaboratorPresence: FC = () => {
             className="absolute flex flex-col items-center"
             style={{ 
               transform: `translate(${screenX}px, ${screenY}px)`,
-              transition: 'transform 0.2s ease-out'
+              transition: 'transform 0.1s linear'
             }}
           >
             {/* Cursor SVG */}
@@ -73,10 +60,70 @@ export const CollaboratorPresence: FC = () => {
               </div>
               <div className="min-w-0 overflow-hidden">
                 <div className="font-bold leading-tight truncate">{collaborator.name || 'Unknown User'}</div>
-                {collaborator.action && (
-                  <div className="opacity-80 text-[9px] leading-tight truncate">{collaborator.action}</div>
+                {collaborator.lastAction && (
+                  <div className="opacity-80 text-[9px] leading-tight truncate">{collaborator.lastAction}</div>
                 )}
               </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+/**
+ * NodeLocks - Renders lock indicators over nodes being edited
+ */
+export const NodeLocks: FC = () => {
+  const { currentWorkflow } = useStore();
+  const { user } = useAuth();
+  const nodes = useNodes();
+  const { x, y, zoom } = useViewport();
+  
+  const { locks } = useCollaboration({
+    workflowId: currentWorkflow?.id || null,
+    userId: user?.uid || null
+  });
+
+  if (!locks || locks.length === 0) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden">
+      {locks.map(lock => {
+        // Find the node this lock refers to
+        const node = nodes.find(n => n.id === lock.id);
+        if (!node || lock.userId === user?.uid) return null;
+        
+        const screenX = node.position.x * zoom + x;
+        const screenY = node.position.y * zoom + y;
+        
+        // Handle xyflow Node type which might have measured property
+        const nodeWidth = ((node as any).measured?.width || 200) * zoom;
+        const nodeHeight = ((node as any).measured?.height || 100) * zoom;
+
+        return (
+          <div 
+            key={lock.id}
+            className="absolute border-2 rounded-lg pointer-events-none flex items-start justify-end p-1"
+            style={{ 
+              transform: `translate(${screenX}px, ${screenY}px)`,
+              width: `${nodeWidth}px`,
+              height: `${nodeHeight}px`,
+              borderColor: lock.userColor,
+              backgroundColor: `${lock.userColor}10`,
+              transition: 'all 0.2s ease-out'
+            }}
+          >
+            <div 
+              className="px-1.5 py-0.5 rounded text-[10px] text-white font-bold flex items-center gap-1 shadow-sm absolute top-0 right-0"
+              style={{ backgroundColor: lock.userColor, transform: 'translateY(-100%)' }}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              {lock.userName} editing
             </div>
           </div>
         );
@@ -89,14 +136,16 @@ export const CollaboratorPresence: FC = () => {
  * LiveActionFeed - Sidebar showing real-time collaborative events
  */
 export const LiveActionFeed: FC = () => {
-  const [feed] = useState([
-    { id: 1, user: 'Alex Johnson', action: 'edited', target: 'Image Generator Node', time: 'Just now', color: '#3b82f6' },
-    { id: 2, user: 'Sam Wilson', action: 'commented', target: '"Should we increase steps?"', time: '2m ago', color: '#10b981' },
-    { id: 3, user: 'System', action: 'completed', target: 'Video Generation Task', time: '5m ago', color: '#8b5cf6' },
-  ]);
+  const { currentWorkflow } = useStore();
+  const { user } = useAuth();
+  
+  const { actionFeed } = useCollaboration({
+    workflowId: currentWorkflow?.id || null,
+    userId: user?.uid || null
+  });
 
   // Prevent enormous feeds from killing the DOM
-  const displayFeed = feed.slice(0, 50);
+  const displayFeed = actionFeed.slice(0, 50);
 
   return (
     <div className="absolute right-4 top-20 w-64 bg-gray-900/90 backdrop-blur border border-gray-700 rounded-lg shadow-xl overflow-hidden z-40 flex flex-col max-h-96 pointer-events-auto">
@@ -110,11 +159,13 @@ export const LiveActionFeed: FC = () => {
         {displayFeed.length === 0 ? (
           <div className="text-center text-gray-500 text-xs py-4">No recent activity</div>
         ) : (
-          displayFeed.map(item => (
-            <div key={item.id} className="p-2 rounded bg-gray-800/50 border border-gray-700/50 text-xs min-w-0">
+          displayFeed.map((item, idx) => (
+            <div key={item.id || idx} className="p-2 rounded bg-gray-800/50 border border-gray-700/50 text-xs min-w-0">
               <div className="flex items-center justify-between mb-1 gap-2">
-                <span className="font-bold truncate" style={{ color: item.color || '#9ca3af' }}>{item.user || 'Unknown'}</span>
-                <span className="text-gray-500 text-[10px] shrink-0">{item.time || ''}</span>
+                <span className="font-bold truncate" style={{ color: item.userColor || '#9ca3af' }}>{item.userName || 'Unknown'}</span>
+                <span className="text-gray-500 text-[10px] shrink-0">
+                  {item.timestamp?.toDate ? new Date(item.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                </span>
               </div>
               <div className="text-gray-300 break-words line-clamp-2">
                 <span className="opacity-80">{item.action} </span>
@@ -132,86 +183,30 @@ export const LiveActionFeed: FC = () => {
  * CollaborationHub - Real-time collaboration interface
  * Enables multi-user workflow editing with presence and communication
  */
-const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose }) => {
-  const { workflows, currentWorkflow, setWorkflow, nodes, edges } = useStore();
-  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
+export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose }) => {
+  const { currentWorkflow } = useStore();
+  const { user } = useAuth();
+  const { profile } = useUser(user?.uid);
+  
+  const { collaborators, actionFeed, messages, sendMessage } = useCollaboration({
+    workflowId: currentWorkflow?.id || null,
+    userId: user?.uid || null,
+    userName: profile?.displayName || user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
+    userAvatar: profile?.avatarUri || '👤',
+    userColor: profile?.themeColor || '#3b82f6'
+  });
+
   const [newMessage, setNewMessage] = useState('');
   const [activeTab, setActiveTab] = useState('team');
-  const [userPresence, setUserPresence] = useState<Record<string, string>>({});
-
-  // Mock collaboration data
-  const mockCollaborators: Collaborator[] = [
-    { id: 'user1', name: 'Alex Johnson', avatar: '👤', status: 'online', role: 'Editor' },
-    { id: 'user2', name: 'Sam Wilson', avatar: '👤', status: 'online', role: 'Viewer' },
-    { id: 'user3', name: 'Taylor Lee', avatar: '👤', status: 'offline', role: 'Editor' }
-  ];
-
-  const mockMessages: Message[] = [
-    { id: 'msg1', sender: 'user1', text: 'I\'ve updated the image generation workflow', timestamp: '10:30 AM', type: 'message' },
-    { id: 'msg2', sender: 'user2', text: 'Looks good! Let me test the video generation part', timestamp: '10:32 AM', type: 'message' },
-    { id: 'msg3', sender: 'system', text: 'Alex Johnson joined the workflow', timestamp: '10:25 AM', type: 'system' }
-  ];
-
-  /**
-   * Initialize collaboration
-   */
-  const initializeCollaboration = useCallback(() => {
-    setCollaborators(mockCollaborators);
-    setMessages(mockMessages);
-    
-    const initialPresence: Record<string, string> = {};
-    mockCollaborators.forEach(user => {
-      initialPresence[user.id] = user.status;
-    });
-    setUserPresence(initialPresence);
-  }, []);
 
   /**
    * Send a message
    */
-  const sendMessage = useCallback(() => {
+  const handleSendMessage = useCallback(() => {
     if (!newMessage.trim()) return;
-    
-    const message: Message = {
-      id: `msg-${Date.now()}`,
-      sender: 'current-user',
-      text: newMessage,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      type: 'message'
-    };
-    
-    setMessages(prev => [...prev, message]);
+    sendMessage(newMessage);
     setNewMessage('');
-  }, [newMessage]);
-
-  /**
-   * Handle user presence updates
-   */
-  const updateUserPresence = useCallback((userId: string, status: string) => {
-    setUserPresence(prev => ({
-      ...prev,
-      [userId]: status
-    }));
-    
-    setCollaborators(prev => 
-      prev.map(user => 
-        user.id === userId ? { ...user, status } : user
-      )
-    );
-    
-    const statusText = status === 'online' ? 'joined' : 'left';
-    setMessages(prev => [
-      ...prev,
-      {
-        id: `sys-${Date.now()}`,
-        sender: 'system',
-        text: `${collaborators.find(u => u.id === userId)?.name} ${statusText} the workflow`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        type: 'system'
-      }
-    ]);
-  }, [collaborators]);
+  }, [newMessage, sendMessage]);
 
   /**
    * Share current workflow
@@ -222,24 +217,9 @@ const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose }) => {
     const shareLink = `${window.location.origin}/share/${currentWorkflow.id}`;
     navigator.clipboard.writeText(shareLink);
     
-    setMessages(prev => [
-      ...prev,
-      {
-        id: `sys-${Date.now()}`,
-        sender: 'system',
-        text: `Workflow shared! Link copied to clipboard: ${shareLink}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        type: 'system'
-      }
-    ]);
+    // System message locally or via trackAction
+    console.log(`Workflow shared! Link copied to clipboard: ${shareLink}`);
   }, [currentWorkflow]);
-
-  /**
-   * Initialize on mount
-   */
-  useEffect(() => {
-    initializeCollaboration();
-  }, [initializeCollaboration]);
 
   if (!isOpen) return null;
 
@@ -282,25 +262,46 @@ const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose }) => {
             <div className="flex justify-between items-center mb-3">
               <h4 className="text-white font-medium">Active Collaborators</h4>
               <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
-                {collaborators.filter(c => c.status === 'online').length} online
+                {collaborators.length + 1} online
               </span>
             </div>
 
             <div className="space-y-2">
-              {collaborators.map(user => (
-                <div key={user.id} className="flex items-center justify-between p-2 bg-gray-800 rounded border border-gray-700">
+              {/* Current User */}
+              <div className="flex items-center justify-between p-2 bg-blue-900/20 rounded border border-blue-700/50">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-2 text-sm">
+                    {profile?.avatarUri || '👤'}
+                  </div>
+                  <div>
+                    <div className="text-white font-medium text-sm">You ({profile?.displayName || 'Anonymous'})</div>
+                    <div className="text-gray-400 text-xs">Editor</div>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full mr-2 bg-green-500" />
+                  <span className="text-xs text-gray-400">Online</span>
+                </div>
+              </div>
+
+              {/* Other Collaborators */}
+              {collaborators.map(collab => (
+                <div key={collab.id} className="flex items-center justify-between p-2 bg-gray-800 rounded border border-gray-700">
                   <div className="flex items-center">
-                    <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center mr-2 text-sm">
-                      {user.avatar}
+                    <div 
+                      className="w-8 h-8 rounded-full flex items-center justify-center mr-2 text-sm"
+                      style={{ backgroundColor: collab.color + '40', color: collab.color }}
+                    >
+                      {collab.avatar || '👤'}
                     </div>
                     <div>
-                      <div className="text-white font-medium text-sm">{user.name}</div>
-                      <div className="text-gray-400 text-xs">{user.role}</div>
+                      <div className="text-white font-medium text-sm">{collab.name}</div>
+                      <div className="text-gray-400 text-xs truncate max-w-[100px]">{collab.lastAction || 'Viewing'}</div>
                     </div>
                   </div>
                   <div className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full mr-2 ${user.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}`} />
-                    <span className="text-xs text-gray-400 capitalize">{user.status}</span>
+                    <div className="w-2 h-2 rounded-full mr-2 bg-green-500" />
+                    <span className="text-xs text-gray-400">Online</span>
                   </div>
                 </div>
               ))}
@@ -317,13 +318,12 @@ const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose }) => {
                 </button>
                 <button
                   className="w-full flex items-center justify-center py-2 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 transition-colors"
+                  onClick={() => {
+                    const link = `${window.location.origin}/share/${currentWorkflow?.id}`;
+                    navigator.clipboard.writeText(link);
+                  }}
                 >
                   📋 Copy Workflow Link
-                </button>
-                <button
-                  className="w-full flex items-center justify-center py-2 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 transition-colors"
-                >
-                  👥 Invite Collaborator
                 </button>
               </div>
             </div>
@@ -333,28 +333,35 @@ const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose }) => {
         {activeTab === 'chat' && (
           <div className="chat-container flex flex-col h-full">
             <div className="messages flex-1 overflow-y-auto space-y-2 mb-3">
-              {messages.map(message => (
-                <div
-                  key={message.id}
-                  className={`message ${message.sender === 'current-user' ? 'text-right' : 'text-left'}`}
-                >
+              {messages.length === 0 ? (
+                <div className="text-center text-gray-500 text-xs py-10 italic">No messages yet. Start the conversation!</div>
+              ) : (
+                messages.map((message, idx) => (
                   <div
-                    className={`inline-block max-w-xs p-2 rounded-lg text-sm ${
-                      message.type === 'system'
-                        ? 'bg-gray-700 text-gray-200 text-center mx-auto'
-                        : message.sender === 'current-user'
-                          ? 'bg-blue-600 text-white rounded-br-none'
-                          : 'bg-gray-700 text-gray-200 rounded-bl-none'
-                    }`}
+                    key={message.id || idx}
+                    className={`message ${message.senderId === user?.uid ? 'text-right' : 'text-left'}`}
                   >
-                    {message.type === 'system' && '🤖 '}
-                    {message.text}
-                    <div className="text-xs opacity-70 mt-1">
-                      {message.timestamp}
+                    <div
+                      className={`inline-block max-w-[85%] p-2 rounded-lg text-sm ${
+                        message.type === 'system'
+                          ? 'bg-gray-700 text-gray-200 text-center mx-auto'
+                          : message.senderId === user?.uid
+                            ? 'bg-blue-600 text-white rounded-br-none'
+                            : 'bg-gray-700 text-gray-200 rounded-bl-none'
+                      }`}
+                    >
+                      {message.senderId !== user?.uid && message.type !== 'system' && (
+                        <div className="text-[10px] font-bold opacity-70 mb-1">{message.senderName}</div>
+                      )}
+                      {message.type === 'system' && '🤖 '}
+                      {message.text}
+                      <div className="text-[9px] opacity-70 mt-1">
+                        {message.timestamp?.toDate ? new Date(message.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             <div className="chat-input flex space-x-2">
@@ -364,10 +371,10 @@ const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose }) => {
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type a message..."
                 className="flex-1 px-3 py-2 bg-gray-800 text-white rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
-                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
               />
               <button
-                onClick={sendMessage}
+                onClick={handleSendMessage}
                 disabled={!newMessage.trim()}
                 className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
                   !newMessage.trim()
@@ -386,23 +393,20 @@ const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose }) => {
             <h4 className="text-white font-medium">Recent Activity</h4>
 
             <div className="space-y-2">
-              {messages
-                .filter(msg => msg.type === 'system')
-                .map(message => (
-                  <div key={message.id} className="p-2 bg-gray-800 rounded border border-gray-700 text-sm">
-                    <div className="text-gray-400">{message.timestamp}</div>
-                    <div className="text-gray-200">{message.text}</div>
+              {actionFeed.map((event, idx) => (
+                <div key={event.id || idx} className="p-2 bg-gray-800 rounded border border-gray-700 text-sm">
+                  <div className="text-gray-400 text-xs">
+                    {event.timestamp?.toDate ? new Date(event.timestamp.toDate()).toLocaleTimeString() : 'Just now'}
                   </div>
-                ))}
-            </div>
-
-            <div className="mt-4 p-3 bg-gray-800/50 rounded border border-gray-700">
-              <h4 className="text-white font-medium mb-2">Workflow History</h4>
-              <div className="text-gray-400 text-sm">
-                {(workflows || []).length} workflows created • 
-                {(nodes || []).length} total nodes • 
-                {(edges || []).length} total connections
-              </div>
+                  <div className="text-gray-200">
+                    <span className="font-bold" style={{ color: event.userColor }}>{event.userName}</span>
+                    <span className="opacity-70 text-xs ml-1">{event.action} {event.target}</span>
+                  </div>
+                </div>
+              ))}
+              {actionFeed.length === 0 && (
+                <div className="text-center text-gray-500 text-xs py-4">No recent activity</div>
+              )}
             </div>
           </div>
         )}
@@ -416,32 +420,44 @@ const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose }) => {
  * Shows user presence status in the UI
  */
 export const CollaborationPresence: FC = () => {
-  const [collaborators, setCollaborators] = useState(2); // Would come from collaboration state
+  const { currentWorkflow } = useStore();
+  const { user } = useAuth();
+  const { collaborators } = useCollaboration({
+    workflowId: currentWorkflow?.id || null,
+    userId: user?.uid || null
+  });
+
+  const totalCount = collaborators.length + 1;
   
   return (
     <div className="fixed bottom-4 left-4 flex items-center space-x-2" style={{ zIndex: 10000 }}>
       <div className="flex -space-x-2">
-        {Array.from({ length: Math.min(collaborators, 3) }).map((_, index) => (
+        <div className="w-8 h-8 bg-blue-600 rounded-full border-2 border-gray-900 flex items-center justify-center text-xs shadow-lg z-30" title="You">
+          👤
+        </div>
+        {collaborators.slice(0, 2).map((collab, index) => (
           <div 
-            key={index}
-            className="w-8 h-8 bg-gray-600 rounded-full border-2 border-gray-900 flex items-center justify-center text-xs"
-            title={`Collaborator ${index + 1}`}
+            key={collab.id}
+            className="w-8 h-8 bg-gray-600 rounded-full border-2 border-gray-900 flex items-center justify-center text-xs shadow-lg"
+            style={{ zIndex: 20 - index, backgroundColor: collab.color + '80' }}
+            title={collab.name}
           >
-            👤
+            {collab.avatar || '👤'}
           </div>
         ))}
-        {collaborators > 3 && (
-          <div className="w-8 h-8 bg-gray-700 rounded-full border-2 border-gray-900 flex items-center justify-center text-xs">
-            +{collaborators - 3}
+        {totalCount > 3 && (
+          <div className="w-8 h-8 bg-gray-700 rounded-full border-2 border-gray-900 flex items-center justify-center text-xs shadow-lg z-10">
+            +{totalCount - 3}
           </div>
         )}
       </div>
-      <div className="bg-gray-900 px-3 py-1 rounded text-white text-sm">
-        {collaborators} {collaborators === 1 ? 'collaborator' : 'collaborators'} online
+      <div className="bg-gray-900/80 backdrop-blur px-3 py-1 rounded-full text-white text-sm border border-gray-700 shadow-xl">
+        <span className="font-bold text-blue-400">{totalCount}</span> {totalCount === 1 ? 'collaborator' : 'collaborators'} online
       </div>
     </div>
   );
 };
+
 
 /**
  * Mock collaboration utilities
@@ -488,5 +504,3 @@ export const CollaborationUtils = {
     };
   }
 };
-
-export default CollaborationHub;

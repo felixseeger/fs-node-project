@@ -1,6 +1,6 @@
 import createVideoGeneratorNode from './createVideoGeneratorNode';
 import { kling3OmniGenerate, pollKling3OmniStatus } from '../utils/api';
-import { compressImageBase64 } from '../utils/imageUtils';
+import { compressImageBase64, alignImageToMatch } from '../utils/imageUtils';
 
 export default createVideoGeneratorNode({
   displayName: 'Kling 3 Omni',
@@ -8,6 +8,11 @@ export default createVideoGeneratorNode({
   apiGeneratorFn: async (params) => {
     const { model, video_url, ...rest } = params;
     
+    // Backend Alignment for in-out frames
+    if (rest.start_image_url && rest.end_image_url) {
+      rest.end_image_url = await alignImageToMatch(rest.start_image_url, rest.end_image_url);
+    }
+
     // Compress images before sending to API
     if (rest.start_image_url) {
       rest.start_image_url = await compressImageBase64(rest.start_image_url);

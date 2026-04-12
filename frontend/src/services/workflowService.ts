@@ -28,6 +28,7 @@ import {
 import { getDb, isFirebaseConfigured } from '../config/firebase';
 import type { Workflow } from '../types/workflow';
 import { processAssetsInObject } from './storageService';
+import { WorkflowSchema } from '../schemas';
 
 // Collection name
 const WORKFLOWS_COLLECTION = 'workflows';
@@ -703,17 +704,24 @@ export function importWorkflowFromJSON(json: string): Omit<Workflow, 'id'> | nul
   try {
     const data = JSON.parse(json);
     
-    // Validate structure
-    if (!data.workflow || !data.workflow.nodes || !data.workflow.edges) {
-      throw new Error('Invalid workflow format');
+    // Validate structure using Zod
+    // Note: import might have a nested workflow object or be the workflow object itself
+    const workflowData = data.workflow || data;
+    const validation = WorkflowSchema.omit({ id: true }).safeParse(workflowData);
+    
+    if (!validation.success) {
+      console.error('[WorkflowService] Validation error:', validation.error);
+      return null;
     }
 
+    const validData = validation.data;
+
     return {
-      name: data.workflow.name || 'Imported Workflow',
-      description: data.workflow.description,
-      nodes: data.workflow.nodes,
-      edges: data.workflow.edges,
-      thumbnail: data.workflow.thumbnail,
+      name: validData.name || 'Imported Workflow',
+      description: validData.description,
+      nodes: validData.nodes,
+      edges: validData.edges,
+      thumbnail: validData.thumbnail,
     };
   } catch (error) {
     console.error('[WorkflowService] Import error:', error);

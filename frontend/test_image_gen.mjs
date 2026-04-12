@@ -76,8 +76,10 @@ async function run() {
     await page.waitForSelector('input[placeholder="Search"]', { timeout: 30000 });
 
     console.log("Creating new project...");
-    // Find the New Project button - it's a primary variant decode-button
-    await page.click('button.decode-button:has-text("New project")');
+    // Find the New Project button
+    await page.click('button:has-text("New Project")');
+    await page.waitForTimeout(1000);
+    await page.click('[data-testid="new-project-modal-confirm-new"]');
     await page.waitForTimeout(3000);
 
     // Now in editor. Add "Universal Image" node.

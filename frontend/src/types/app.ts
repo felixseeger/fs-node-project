@@ -26,14 +26,14 @@ export interface APIResponse<T> {
   message?: string;
 }
 
+import { WorkflowImportSchema } from '../schemas';
+
 export function isWorkflowImportData(data: any): data is WorkflowImportData {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    typeof data.name === 'string' &&
-    Array.isArray(data.nodes) &&
-    Array.isArray(data.edges)
-  );
+  return WorkflowImportSchema.safeParse(data).success;
+}
+
+export function validateWorkflowData(data: any) {
+  return WorkflowImportSchema.safeParse(data);
 }
 
 export interface WorkflowStat {

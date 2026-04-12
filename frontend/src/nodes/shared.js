@@ -10,6 +10,7 @@ export { OutputHandle, SecondaryOutputHandle, OutputPreview } from './NodeOutput
 export { default as UniversalSimplifiedNodeChrome } from './UniversalSimplifiedNodeChrome';
 export { default as NodeGenerateButton } from './NodeGenerateButton';
 export { default as NodeDownloadButton } from './NodeDownloadButton';
+export { NodeCapabilities } from './nodeCapabilities';
 
 // Re-export design tokens
 export { CATEGORY_COLORS, summaryRowStyle } from './nodeTokens';

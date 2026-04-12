@@ -8,83 +8,133 @@ import fs from 'fs';
   const page = await context.newPage();
 
   console.log('Navigating to http://localhost:5173...');
-  await page.goto('http://localhost:5173');
+  await page.goto('http://localhost:5173', { waitUntil: 'domcontentloaded' });
 
-  // Wait for the app to load
-  await page.waitForTimeout(3000);
+  console.log('Waiting for app to compile and load...');
+  // Wait until either "Log in" or "Get Started Free" appears, meaning the React app has mounted
+  await page.waitForFunction(() => {
+    return document.body.innerText.includes('Log in') || 
+           document.body.innerText.includes('Get Started') ||
+           document.body.innerText.includes('Sign in');
+  }, { timeout: 60000 });
 
-  // Check if we are on the landing page
-  let text = await page.evaluate(() => document.body.innerText);
-  if (text.includes('Get Started Free')) {
-    console.log('On landing page, clicking Get Started...');
-    await page.click('text="Get Started Free"').catch(() => page.click('text="Log in"'));
+  await page.waitForTimeout(2000);
+
+  const getStartedBtn = page.locator('button', { hasText: 'Get Started Free' }).first();
+  if (await getStartedBtn.isVisible()) {
+    console.log('Clicking Get Started Free...');
+    await getStartedBtn.click({ force: true });
+    await page.waitForTimeout(2000);
+  } else {
+    const loginLink = page.locator('*:has-text("Log in")').last();
+    if (await loginLink.isVisible()) {
+      console.log('Clicking Log in...');
+      await loginLink.click({ force: true });
+      await page.waitForTimeout(2000);
+    }
+  }
+
+  // Wait for auth page to load
+  await page.waitForFunction(() => {
+    return document.body.innerText.includes('Sign in') || 
+           document.body.innerText.includes('Create an account') ||
+           document.body.innerText.includes('Jane Doe');
+  }, { timeout: 10000 }).catch(() => console.log('Auth page wait timed out.'));
+
+  // Find signup link
+  const signupLink = page.locator('*:has-text("Sign up")').last();
+  if (await signupLink.isVisible()) {
+    console.log('Clicking Sign up...');
+    await signupLink.click({ force: true });
+    await page.waitForTimeout(1000);
+  }
+
+  // Fill signup
+  const randomEmail = `test_${Date.now()}@example.com`;
+  console.log(`Using email: ${randomEmail}`);
+  
+  const nameInputs = await page.locator('input[placeholder="Jane Doe"]').all();
+  if (nameInputs.length > 0) await nameInputs[0].fill('Test User');
+  
+  const emailInputs = await page.locator('input[placeholder="you@example.com"]').all();
+  if (emailInputs.length > 0) await emailInputs[0].fill(randomEmail);
+  
+  const passInputs = await page.locator('input[type="password"]').all();
+  if (passInputs.length >= 2) {
+    await passInputs[0].fill('password123');
+    await passInputs[1].fill('password123');
+  } else if (passInputs.length === 1) {
+    await passInputs[0].fill('password123');
+  }
+  
+  // Click terms
+  const label = page.locator('label', { hasText: 'Terms of Service' });
+  if (await label.isVisible()) {
+    await label.click({ force: true });
+  }
+
+  // Click create account
+  const createBtn = page.locator('button', { hasText: 'Create Account' });
+  if (await createBtn.isVisible()) {
+    await createBtn.click();
+    console.log('Clicked Create Account');
+  }
+
+  // Wait for the app to redirect
+  await page.waitForTimeout(4000);
+  
+  // Check if we need to click "New Project"
+  try {
+    console.log('Waiting for New Project button...');
+    await page.click('[data-testid="new-project-btn"]', { timeout: 15000 });
+    console.log('Clicked New Project...');
+    await page.waitForTimeout(2000);
+    
+    // In modal
+    console.log('Waiting for New Project option in modal...');
+    await page.click('text="Start a new workflow"', { timeout: 5000 }).catch(async () => {
+      await page.click('text="New project"');
+    });
+    
+    // Wait for navigation to the board or wait for "Board 01" to appear and click it
     await page.waitForTimeout(3000);
-    text = await page.evaluate(() => document.body.innerText);
-  }
-  
-  // Check if we are on the auth page
-  const isAuthPage = text.includes('Sign In') || 
-           text.includes('Sign in') ||
-           text.includes('Create an account') ||
-           text.includes('Welcome back');
-  
-  if (isAuthPage) {
-    console.log('On Auth page, creating a test account...');
     
-    // Switch to signup if needed
-    const signupLink = page.locator('text=Sign up').first();
-    if (await signupLink.isVisible()) {
-      await signupLink.click();
-      await page.waitForTimeout(1000);
-    }
-    
-    // Fill signup form
-    const randomEmail = `test_${Date.now()}@example.com`;
-    
-    const nameInputs = await page.locator('input[placeholder="Jane Doe"]').all();
-    if (nameInputs.length > 0) await nameInputs[0].fill('Test User');
-    
-    const emailInputs = await page.locator('input[placeholder="you@example.com"]').all();
-    if (emailInputs.length > 0) await emailInputs[0].fill(randomEmail);
-    
-    const passInputs = await page.locator('input[type="password"]').all();
-    if (passInputs.length >= 2) {
-      await passInputs[0].fill('password123');
-      await passInputs[1].fill('password123');
-    } else if (passInputs.length === 1) {
-      await passInputs[0].fill('password123');
-    }
-    
-    // Submit
-    await page.keyboard.press('Enter');
-    console.log(`Registered with ${randomEmail}`);
-    
-    // Wait for the main editor or dashboard
-    await page.waitForTimeout(5000); 
-  }
-
-  // Let's check if we are on the ProjectsDashboard and need to open a workflow
-  const currentText = await page.evaluate(() => document.body.innerText);
-  if (currentText.includes('New Workflow') || currentText.includes('My Projects')) {
-    console.log('On dashboard, creating/opening a workflow...');
-    const newWfBtn = page.locator('text="New Workflow"').first();
-    if (await newWfBtn.isVisible()) {
-      await newWfBtn.click();
+    const boardLink = page.locator('text="Board 01"').first();
+    if (await boardLink.isVisible()) {
+      console.log('Clicking on Board 01 to enter the editor...');
+      await boardLink.click({ force: true });
       await page.waitForTimeout(3000);
     }
+  } catch (e) {
+    console.log('Not on dashboard or New Project button not found.');
   }
 
-  // Take initial screenshot of the canvas
-  await page.screenshot({ path: 'test-debug-initial.png' });
-  console.log('Initial screenshot saved as test-debug-initial.png');
+  await page.screenshot({ path: 'test-debug-canvas.png' });
+  console.log('Initial canvas screenshot saved as test-debug-canvas.png');
+
+  // Skip welcome tour if present
+  console.log('Checking for welcome tour...');
+  const skipBtn = page.locator('*:has-text("Skip Tour")').last();
+  if (await skipBtn.isVisible()) {
+    await skipBtn.click({ force: true });
+    console.log('Clicked Skip Tour');
+    await page.waitForTimeout(1000);
+  }
 
   // Find and click the chat toggle button
   console.log('Opening chat...');
-  // The ChatButton uses data-testid="chat-toggle"
-  await page.click('button[data-testid="chat-toggle"]', { timeout: 5000 }).catch(async () => {
-    // fallback if testid is not there
-    await page.click('button[aria-label="Toggle Chat"]');
-  });
+  try {
+    await page.waitForTimeout(2000);
+    // Find the chat toggle
+    const toggleBtn = page.locator('button[data-testid="chat-toggle"]').first();
+    await toggleBtn.click({ force: true });
+    
+    // Wait for the chat to become visible (opacity 1)
+    await page.waitForTimeout(2000);
+  } catch (err) {
+    console.log('Chat toggle error:');
+    throw err;
+  }
 
   await page.waitForTimeout(1000);
   
@@ -93,14 +143,12 @@ import fs from 'fs';
   console.log('Chat open screenshot saved as test-debug-chat-open.png');
 
   console.log('Typing message...');
-  const chatInput = page.locator('textarea[data-testid="chat-input"]');
-  await chatInput.waitFor({ state: 'visible' });
-  await chatInput.fill('Please add an image generator node and a text node');
+  const chatInput = page.locator('textarea[data-testid="chat-input"]').first();
+  await chatInput.fill('Please add an image generator node and a text node', { force: true });
 
   console.log('Sending message...');
-  // The send button might have data-testid="chat-generate" or an SVG inside a button next to the input
-  await page.click('button[data-testid="chat-generate"]');
-
+  await chatInput.press('Enter');
+  
   console.log('Waiting for AI response...');
   // Wait for the "Apply Canvas Edits" button or "Import Workflow to Canvas"
   // It could take up to 20-30 seconds depending on the model

@@ -5,7 +5,7 @@ import { useNodeConnections } from './shared';
 import { getHandleColor } from '../utils/handleTypes';
 
 const CloudSyncNode: FC<NodeProps> = ({ id, data, selected }) => {
-  const { disconnectNode } = useNodeConnections(id, data);
+  const { onDisconnectNode } = useNodeConnections();
   const provider = (data.provider as string) || 'gdrive';
   const folderPath = (data.folderPath as string) || '/outputs';
   
@@ -20,7 +20,7 @@ const CloudSyncNode: FC<NodeProps> = ({ id, data, selected }) => {
       label={data.label as string || 'Cloud Sync'}
       dotColor="#06b6d4"
       selected={selected}
-      onDisconnect={() => disconnectNode()}
+      onDisconnect={() => onDisconnectNode && onDisconnectNode(id)}
       isGenerating={data.isGenerating as boolean}
       hasError={data.hasError as boolean}
     >

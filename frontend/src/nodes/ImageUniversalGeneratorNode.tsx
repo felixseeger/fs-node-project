@@ -225,6 +225,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
   const [isImprovingPrompt, setIsImprovingPrompt] = useState(false);
   const [isImageToPrompting, setIsImageToPrompting] = useState(false);
   const [isHoveringRun, setIsHoveringRun] = useState(false);
+  const [isNodeHovered, setIsNodeHovered] = useState(false);
   const [showReferenceMenu, setShowReferenceMenu] = useState(false);
   const [annotationOpen, setAnnotationOpen] = useState(false);
   const [dragOverImageZone, setDragOverImageZone] = useState(false);
@@ -883,7 +884,11 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
   };
 
   return (
-    <div className="relative pt-11">
+    <div 
+      className="relative pt-11"
+      onMouseEnter={() => setIsNodeHovered(true)}
+      onMouseLeave={() => setIsNodeHovered(false)}
+    >
       <div className="absolute top-0 left-0 right-0 flex items-center justify-end bg-slate-950 border border-slate-800 rounded-lg p-1 px-2 gap-2 shadow-lg z-10">
         <div className="mr-auto flex-1 min-w-0 flex items-center nodrag nopan">
           <EditableNodeTitle
@@ -896,7 +901,14 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
           />
         </div>
         {activeEditingModel && <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">editing</span>}
-        <div className="flex gap-1">
+        <div className="flex gap-1 items-center">
+          {(isNodeHovered || isGenerating) && (
+            <NodeGenerateButton 
+              onGenerate={handleGenerate} 
+              isGenerating={isGenerating} 
+              size="sm"
+            />
+          )}
           <button onClick={() => update({ locked: !locked })} className={`bg-transparent border-none p-0.5 cursor-pointer transition-colors ${locked ? 'text-pink-500' : 'text-slate-500 hover:text-slate-300'}`} title={locked ? 'Unlock settings' : 'Lock settings'}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               {locked ? <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> : <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></>}

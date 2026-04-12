@@ -135,7 +135,7 @@ export default function BaseNode({
         </div>
 
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          {onGenerate && (
+          {onGenerate && (isHovered || isExecuting) && (
             <NodeGenerateButton
               onGenerate={onGenerate}
               isGenerating={isExecuting}

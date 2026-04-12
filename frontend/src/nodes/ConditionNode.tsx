@@ -5,7 +5,7 @@ import { useNodeConnections } from './shared';
 import { getHandleColor } from '../utils/handleTypes';
 
 const ConditionNode: FC<NodeProps> = ({ id, data, selected }) => {
-  const { disconnectNode } = useNodeConnections(id, data);
+  const { onDisconnectNode } = useNodeConnections();
   const operator = (data.operator as string) || 'contains';
   const conditionValue = (data.conditionValue as string) || '';
 
@@ -20,7 +20,7 @@ const ConditionNode: FC<NodeProps> = ({ id, data, selected }) => {
       label={data.label as string || 'Condition'}
       dotColor="#f97316"
       selected={selected}
-      onDisconnect={() => disconnectNode()}
+      onDisconnect={() => onDisconnectNode && onDisconnectNode(id)}
       isGenerating={data.isGenerating as boolean}
       hasError={data.hasError as boolean}
     >

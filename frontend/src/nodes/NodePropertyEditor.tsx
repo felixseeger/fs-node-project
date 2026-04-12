@@ -403,6 +403,8 @@ interface NodePropertyEditorProps {
   onOpenModelMegaMenu?: () => void;
   onRunNode?: () => void;
   isRunning?: boolean;
+  readOnly?: boolean;
+  lockInfo?: { userName: string, userColor: string } | null;
 }
 
 const NodePropertyEditor: FC<NodePropertyEditorProps> = ({
@@ -415,7 +417,10 @@ const NodePropertyEditor: FC<NodePropertyEditorProps> = ({
   onOpenModelMegaMenu,
   onRunNode,
   isRunning = false,
+  readOnly = false,
+  lockInfo = null,
 }) => {
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isDataExpanded, setIsDataExpanded] = useState(true);
   const [isPointsExpanded, setIsPointsExpanded] = useState(false);
@@ -453,6 +458,8 @@ const NodePropertyEditor: FC<NodePropertyEditorProps> = ({
     showRunInInspector: compact && Boolean(onRunNode),
     onRunNode,
     isRunning,
+    readOnly,
+    lockInfo,
   };
 
   if (compact) {
@@ -494,6 +501,8 @@ interface EditorContentProps {
   showRunInInspector?: boolean;
   onRunNode?: () => void;
   isRunning?: boolean;
+  readOnly?: boolean;
+  lockInfo?: { userName: string, userColor: string } | null;
 }
 
 const EditorContent: FC<EditorContentProps> = ({
@@ -508,6 +517,8 @@ const EditorContent: FC<EditorContentProps> = ({
   showRunInInspector = false,
   onRunNode,
   isRunning = false,
+  readOnly = false,
+  lockInfo = null,
 }) => {
   const isUniversalGenerator =
     node.type === 'universalGeneratorImage' || node.type === 'universalGeneratorVideo';
@@ -656,6 +667,37 @@ const EditorContent: FC<EditorContentProps> = ({
 
   return (
     <>
+      {/* Lock Banner */}
+      {readOnly && lockInfo && (
+        <div style={{
+          backgroundColor: `${lockInfo.userColor}20`,
+          border: `1px solid ${lockInfo.userColor}40`,
+          borderRadius: '8px',
+          padding: '10px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <div style={{ 
+            width: '24px', height: '24px', borderRadius: '50%', 
+            backgroundColor: lockInfo.userColor, 
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'white', fontSize: '10px', fontWeight: 'bold'
+          }}>
+            {lockInfo.userName.slice(0, 1).toUpperCase()}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: lockInfo.userColor }}>Locked by {lockInfo.userName}</div>
+            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>Currently editing this node</div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={lockInfo.userColor} strokeWidth="2.5">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+      )}
+
       {/* Header Section */}
       {!inspectorSlimChrome && (
         <div style={styles.sectionHeader}>

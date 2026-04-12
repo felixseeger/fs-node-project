@@ -15,6 +15,7 @@ import {
 import { getDb, isFirebaseConfigured } from '../config/firebase';
 import { processAssetsInObject } from './storageService';
 import { type Asset, type CreateAssetPayload, type UpdateAssetPayload, type AssetOperationResult } from '../types/asset';
+import { CreateAssetPayloadSchema, UpdateAssetPayloadSchema } from '../schemas';
 
 const ASSETS_COLLECTION = 'assets';
 
@@ -75,6 +76,12 @@ export async function createAsset(userId: string, payload: CreateAssetPayload): 
   if (!isFirebaseConfigured()) return { success: false, error: 'Firebase not configured' };
   
   try {
+    // Validate payload
+    const validation = CreateAssetPayloadSchema.safeParse(payload);
+    if (!validation.success) {
+      return { success: false, error: `Invalid asset data: ${validation.error.errors.map(e => e.message).join(', ')}` };
+    }
+
     const db = getDb();
     const assetsRef = collection(db, ASSETS_COLLECTION);
     
@@ -120,6 +127,12 @@ export async function updateAsset(assetId: string, updates: UpdateAssetPayload, 
   if (!isFirebaseConfigured()) return { success: false, error: 'Firebase not configured' };
   
   try {
+    // Validate updates
+    const validation = UpdateAssetPayloadSchema.safeParse(updates);
+    if (!validation.success) {
+      return { success: false, error: `Invalid update data: ${validation.error.errors.map(e => e.message).join(', ')}` };
+    }
+
     const db = getDb();
     const docRef = doc(db, ASSETS_COLLECTION, assetId);
 

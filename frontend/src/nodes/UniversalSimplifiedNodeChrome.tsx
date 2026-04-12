@@ -267,7 +267,7 @@ export default function UniversalSimplifiedNodeChrome({
                 </svg>
               </button>
 
-              {showRunButton ? (
+              {showRunButton && (hovered || isRunning || chromeHovered) ? (
               <div
                 ref={runWrapRef}
                 style={{ position: 'relative' }}

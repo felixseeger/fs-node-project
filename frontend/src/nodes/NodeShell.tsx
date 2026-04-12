@@ -49,6 +49,7 @@ interface NodeShellProps {
   };
   folded?: boolean;
   onToggleFold?: () => void;
+  capabilities?: string[];
 }
 
 export default function NodeShell({
@@ -66,7 +67,8 @@ export default function NodeShell({
   hasError = false,
   data,
   folded: foldedProp,
-  onToggleFold
+  onToggleFold,
+  capabilities = []
 }: NodeShellProps) {
   const folded = foldedProp ?? data?.folded ?? false;
   const muted = data?.muted ?? false;
@@ -87,6 +89,7 @@ export default function NodeShell({
   const CORNER_RADIUS = 16;
   const hiddenRef = useRef<HTMLDivElement>(null);
   const [discoveredHandles, setDiscoveredHandles] = useState({ inputs: [] as string[], outputs: [] as string[] });
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     if (!folded || !hiddenRef.current) return;
@@ -272,6 +275,7 @@ export default function NodeShell({
   return (
     <div
       className="glass-card"
+      data-capabilities={capabilities.join(',')}
       style={{
         background: surface.base,
         backdropFilter: 'blur(20px) saturate(180%)',
@@ -290,12 +294,14 @@ export default function NodeShell({
         opacity: muted ? 0.4 : 1,
       }}
       onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
+        setIsHovered(true);
         // Skip hover during active canvas manipulation (pan, drag, connect)
         if (selected || isPanningRef.current || isDraggingNodeRef.current || isConnectingRef.current) return;
         e.currentTarget.style.borderColor = muted ? '#ef444480' : border.hover;
         e.currentTarget.style.boxShadow = '0 12px 48px rgba(0, 0, 0, 0.3)';
       }}
       onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
+        setIsHovered(false);
         // Skip un-hover during active canvas manipulation
         if (selected || isPanningRef.current || isDraggingNodeRef.current || isConnectingRef.current) return;
         e.currentTarget.style.borderColor = muted ? '#ef444480' : border.subtle;
@@ -391,7 +397,7 @@ export default function NodeShell({
         
 
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          {onGenerate && (
+          {onGenerate && (isHovered || isGenerating) && (
             <NodeGenerateButton 
               onGenerate={onGenerate} 
               isGenerating={isGenerating} 

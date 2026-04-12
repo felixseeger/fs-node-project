@@ -181,6 +181,7 @@ const GeneratorNode: FC<NodeProps<Node<GeneratorNodeData>>> = ({ id, data, selec
       isGenerating={isActive}
       hasError={!!data.outputError && !isActive}
       downloadUrl={data.outputImage || undefined}
+      capabilities={[isKora ? NodeCapabilities.IMAGE_GENERATE : NodeCapabilities.IMAGE_EDIT]}
     >
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
       <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />

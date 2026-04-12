@@ -85,14 +85,16 @@ import {
 import { CanvasSearch } from './components/CanvasSearch';
 import OnboardingTour from './components/OnboardingTour';
 import { useCanvasHistory } from './hooks/useCanvasHistory';
+import { useCollaboration } from './hooks/useCollaboration';
 import type { PageType, EditorMode } from './types';
-import { isWorkflowImportData } from './types';
+import { isWorkflowImportData, validateWorkflowData } from './types';
+import { AppThemeSchema, CanvasZoomModeSchema } from './schemas';
 import PromptRecipeGallery from './components/PromptRecipeGallery';
 import { WorkflowLineageTracker } from './components/WorkflowLineageTracker';
 import { SmartConnectorUI } from './components/SmartConnectorUI';
 import { WorkflowHealthMonitor } from './components/WorkflowHealthMonitor';
 import { SmartConnectorEngine } from './engine/SmartConnectorEngine';
-import { CollaboratorPresence, LiveActionFeed } from './components/CollaborationHub';
+import { CollaboratorPresence, LiveActionFeed, CollaborationHub, CollaborationPresence, NodeLocks } from './components/CollaborationHub';
 
 const nodeTypes: NodeTypes = {
   inputNode: createDynamicNodeWrapper(dynamicNodes.InputNode),
@@ -177,8 +179,12 @@ export default function App() {
   const [authError, setAuthError] = useState<string | undefined>(undefined);
   const [showSystemLoading, setShowSystemLoading] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('app_theme');
-    return (saved === 'light' || saved === 'dark') ? saved : 'dark';
+    try {
+      const saved = localStorage.getItem('app_theme');
+      return AppThemeSchema.parse(saved || undefined);
+    } catch {
+      return 'dark';
+    }
   });
 
   useEffect(() => {
@@ -189,6 +195,7 @@ export default function App() {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showPromptRecipes, setShowPromptRecipes] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [isCollaborationHubOpen, setIsCollaborationHubOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success'; id: string } | undefined>(undefined);
 
@@ -202,7 +209,22 @@ export default function App() {
     userId: currentUserId,
     workflowId: activeWorkflowId
   });
-  const { initialize: initializeProfile } = useUser(currentUserId);
+  const { profile, initialize: initializeProfile } = useUser(currentUserId);
+  const { updateCursor, trackAction, lockNode, unlockNode, locks } = useCollaboration({
+    workflowId: activeWorkflowId || null,
+    userId: currentUserId || null,
+    userName: profile?.displayName || currentUserEmail?.split('@')[0] || 'Anonymous',
+    userAvatar: profile?.avatarUri || '👤',
+    userColor: profile?.themeColor || '#3b82f6'
+  });
+
+  useEffect(() => {
+    return () => {
+      if (lastLockedNodeIdRef.current) {
+        unlockNode(lastLockedNodeIdRef.current);
+      }
+    };
+  }, [unlockNode]);
 
   const handleNavigate = useCallback((page: any) => {
     setCurrentPage(page as PageType);
@@ -354,6 +376,23 @@ export default function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [_connectionDrop, setConnectionDrop] = useState<any>(undefined);
   const [canvasSearch, setCanvasSearch] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+  const lastLockedNodeIdRef = useRef<string | null>(null);
+
+  const handleSelectionChange = useCallback(({ nodes: selectedNodes }: { nodes: any[] }) => {
+    if (selectedNodes.length === 1) {
+      const nodeId = selectedNodes[0].id;
+      if (lastLockedNodeIdRef.current && lastLockedNodeIdRef.current !== nodeId) {
+        unlockNode(lastLockedNodeIdRef.current);
+      }
+      lockNode(nodeId);
+      lastLockedNodeIdRef.current = nodeId;
+    } else {
+      if (lastLockedNodeIdRef.current) {
+        unlockNode(lastLockedNodeIdRef.current);
+        lastLockedNodeIdRef.current = null;
+      }
+    }
+  }, [lockNode, unlockNode]);
 
   useEffect(() => {
     const handleSendToChat = (e: any) => {
@@ -426,7 +465,8 @@ export default function App() {
 
   const [zoomMode] = useState<'scroll' | 'altScroll' | 'ctrlScroll'>(() => {
     try {
-      return (localStorage.getItem('canvas_zoom_mode') as 'scroll' | 'altScroll' | 'ctrlScroll') || 'ctrlScroll';
+      const saved = localStorage.getItem('canvas_zoom_mode');
+      return CanvasZoomModeSchema.parse(saved || undefined);
     } catch {
       return 'ctrlScroll';
     }
@@ -527,6 +567,13 @@ export default function App() {
   }, [originalSaveHistory]);
   const updateNodeData = useCallback(
     (nodeId: string, patch: any) => {
+      // Check if node is locked by someone else
+      const isLockedByOther = locks.some(l => l.id === nodeId && l.userId !== currentUserId);
+      if (isLockedByOther) {
+        showToast('This node is being edited by someone else', 'error');
+        return;
+      }
+
       saveHistory();
       isDirtyRef.current = true;
       setNodes((nds) =>
@@ -535,7 +582,7 @@ export default function App() {
         )
       );
     },
-    [setNodes, saveHistory]
+    [setNodes, saveHistory, locks, currentUserId]
   );
 
   const onUnlink = useCallback((targetNodeId: string, targetHandle: string) => {
@@ -877,27 +924,51 @@ const handleConnectEnd = useCallback(
   }, [handleRedoInternal, setNodes, setEdges]);
 
   const customOnNodesChange: OnNodesChange = useCallback((changes) => {
-    const isSignificantChange = changes.some(c => (c.type === 'position' && !c.dragging) || c.type === 'remove' || c.type === 'add');
+    // Filter out changes to nodes locked by other users
+    const filteredChanges = changes.filter(change => {
+      const nodeId = (change as any).id;
+      if (nodeId) {
+        const isLockedByOther = locks.some(l => l.id === nodeId && l.userId !== currentUserId);
+        if (isLockedByOther) return false;
+      }
+      return true;
+    });
+
+    if (filteredChanges.length === 0) return;
+
+    const isSignificantChange = filteredChanges.some(c => (c.type === 'position' && !c.dragging) || c.type === 'remove' || c.type === 'add');
     if (isSignificantChange && !isHistoryAction.current) {
       saveHistory();
       isDirtyRef.current = true;
+
+      // Track collaboration action
+      const primaryChange = filteredChanges.find(c => c.type === 'remove' || c.type === 'add' || (c.type === 'position' && !c.dragging));
+      if (primaryChange) {
+        if (primaryChange.type === 'remove') trackAction('removed', 'nodes');
+        else if (primaryChange.type === 'add') trackAction('added', 'node');
+        else if (primaryChange.type === 'position') trackAction('moved', 'node');
+      }
     }
-    if (changes.every(c => c.type !== 'position' || !c.dragging)) {
+    if (filteredChanges.every(c => c.type !== 'position' || !c.dragging)) {
       isHistoryAction.current = false;
     }
-    onNodesChange(changes);
-  }, [onNodesChange, saveHistory]);
+    onNodesChange(filteredChanges);
+  }, [onNodesChange, saveHistory, trackAction, locks, currentUserId]);
 
   const customOnEdgesChange: OnEdgesChange = useCallback((changes) => {
     const isSignificantChange = changes.some(c => c.type === 'remove' || c.type === 'add');
     if (isSignificantChange && !isHistoryAction.current) {
       saveHistory();
       isDirtyRef.current = true;
+
+      const primaryChange = changes.find(c => c.type === 'remove' || c.type === 'add');
+      if (primaryChange) {
+        trackAction(primaryChange.type === 'add' ? 'added' : 'removed', 'connection');
+      }
     }
     isHistoryAction.current = false;
     onEdgesChange(changes);
-  }, [onEdgesChange, saveHistory]);
-
+  }, [onEdgesChange, saveHistory, trackAction]);
 
   const canvasAllNodesSections = useMemo(
     () => buildCanvasAllNodesSections(Object.keys(nodeTypes)),
@@ -2084,7 +2155,7 @@ const handleConnectEnd = useCallback(
         </div>
       )}
       <EditorTopBar
-            currentUserId={currentUserId}
+        currentUserId={currentUserId}
         nodes={nodes}
         edges={edges}
         workflowId={activeWorkflowId || undefined}
@@ -2092,6 +2163,7 @@ const handleConnectEnd = useCallback(
         onTogglePublic={async (pub) => { if (activeWorkflowId) { const name = (getFirebaseAuth().currentUser?.displayName || getFirebaseAuth().currentUser?.email?.split('@')[0]) || 'User'; await toggleWorkflowPublic(activeWorkflowId, pub, name); setWorkflows(p => p.map(w => w.id === activeWorkflowId ? { ...w, isPublic: pub } : w)); } }}
         onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
         onOpenRecipes={() => setShowPromptRecipes(true)}
+        onToggleCollaboration={() => setIsCollaborationHubOpen(!isCollaborationHubOpen)}
         onSave={() => { if (activeWorkflowId) setWorkflows(p => p.map(w => w.id === activeWorkflowId ? { ...w, nodes: nodesRef.current, edges: edgesRef.current, nodeCount: nodesRef.current.length } : w)); }}
         onSaveWithEmbeddedWorkflow={async () => {
           if (!activeWorkflowId) return;
@@ -2118,14 +2190,19 @@ const handleConnectEnd = useCallback(
             r.onload = (ev: any) => {
               try {
                 const p = JSON.parse(ev.target.result);
-                if (!isWorkflowImportData(p)) {
-                  throw new Error('Invalid format: file must contain name, "nodes", and "edges" arrays');
+                const validation = validateWorkflowData(p);
+                
+                if (!validation.success) {
+                  const firstError = validation.error.errors[0];
+                  throw new Error(`Invalid format: ${firstError.path.join('.')} - ${firstError.message}`);
                 }
-                if (p.nodes.length === 0 && p.edges.length === 0) {
+                
+                const data = validation.data;
+                if (data.nodes.length === 0 && data.edges.length === 0) {
                   throw new Error('Empty workflow: file contains no nodes or edges');
                 }
-                setNodes(p.nodes);
-                setEdges(p.edges);
+                setNodes(data.nodes);
+                setEdges(data.edges);
               } catch (err) {
                 const msg = err instanceof Error ? err.message : 'Failed to import JSON';
                 alert(`Import Error: ${msg}`);
@@ -2192,7 +2269,10 @@ const handleConnectEnd = useCallback(
               }}
               onRunNode={(id) => handleRunWorkflow(new Set([id]))}
               isRunning={isRunning}
+              locks={locks}
+              currentUserId={currentUserId}
             />
+
           )}
           {viewMode === 'editor' && (
             <div style={{ position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)', zIndex: 2000 }}>
@@ -2229,9 +2309,24 @@ const handleConnectEnd = useCallback(
             onEdgesDelete={(d) => { saveHistory(); onEdgesDelete(d); }}
             onMoveStart={() => { isPanningRef.current = true; beginInteraction(); }}
             onMoveEnd={() => { isPanningRef.current = false; endInteraction(); }}
-            onNodeDragStart={() => { isDraggingNodeRef.current = true; beginInteraction(); }}
-            onNodeDragStop={() => { isDraggingNodeRef.current = false; endInteraction(); }}
+            onNodeDragStart={(e, node) => { 
+              isDraggingNodeRef.current = true; 
+              beginInteraction(); 
+              lockNode(node.id);
+            }}
+            onNodeDragStop={(e, node) => { 
+              isDraggingNodeRef.current = false; 
+              endInteraction(); 
+              unlockNode(node.id);
+            }}
+            onSelectionChange={handleSelectionChange}
             onConnectStart={handleConnectStart}
+            onMouseMove={(e) => {
+              if (rfInstance) {
+                const pos = rfInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
+                updateCursor(pos.x, pos.y);
+              }
+            }}
             isValidConnection={connectionValidator} nodeTypes={nodeTypes} defaultEdgeOptions={defaultEdgeOptions}
             fitView fitViewOptions={{ padding: 0.1, minZoom: 0.1, maxZoom: 2 }} minZoom={0.1} maxZoom={2}
             panOnDrag={isLocked ? false : (activeTool === 'hand' ? [0, 1, 2] : (activeTool === 'slice' ? [1, 2] : [1, 2]))} panOnScroll={false}
@@ -2287,7 +2382,13 @@ const handleConnectEnd = useCallback(
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={theme === 'light' ? '#94a3b8' : '#333'} />
           </ReactFlow>
           <CollaboratorPresence />
+          <NodeLocks />
           <LiveActionFeed />
+          <CollaborationHub 
+            isOpen={isCollaborationHubOpen} 
+            onClose={() => setIsCollaborationHubOpen(false)} 
+          />
+          <CollaborationPresence />
           <ChatButton isOpen={isChatOpen} onClick={() => setIsChatOpen(!isChatOpen)} />
           <ChatUI
             ref={chatUIRef} 
@@ -2295,7 +2396,7 @@ const handleConnectEnd = useCallback(
             onClose={() => setIsChatOpen(false)}
             externalMessages={chatMessages as any}
             onStartNewConversation={() => { startNewConversation(); setChatSuggestions([]); }}
-            isChatting={true}
+            isChatting={isRunning}
             suggestions={chatSuggestions}
             onSendMessage={async (_msg: any) => {
               setIsRunning(true);
@@ -2380,7 +2481,7 @@ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisio
                   let actions = res.commands;
                   let suggestions = res.suggestions || [];
                   
-                  const jsonMatch = res.response.match(/\`\`\`json\n([\s\S]*?)\n\`\`\`/);
+                  const jsonMatch = res.response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
                   if (jsonMatch) {
                     try {
                       const parsed = JSON.parse(jsonMatch[1]);

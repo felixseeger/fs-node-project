@@ -5,7 +5,7 @@ import { useNodeConnections } from './shared';
 import { getHandleColor } from '../utils/handleTypes';
 
 const IterationNode: FC<NodeProps> = ({ id, data, selected }) => {
-  const { disconnectNode } = useNodeConnections(id, data);
+  const { onDisconnectNode } = useNodeConnections();
   const maxIterations = (data.maxIterations as number) || 10;
   
   const handleUpdate = (patch: Record<string, any>) => {
@@ -19,7 +19,7 @@ const IterationNode: FC<NodeProps> = ({ id, data, selected }) => {
       label={data.label as string || 'Iteration'}
       dotColor="#8b5cf6"
       selected={selected}
-      onDisconnect={() => disconnectNode()}
+      onDisconnect={() => onDisconnectNode && onDisconnectNode(id)}
       isGenerating={data.isGenerating as boolean}
       hasError={data.hasError as boolean}
     >

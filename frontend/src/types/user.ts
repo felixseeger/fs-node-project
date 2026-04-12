@@ -54,6 +54,8 @@ export interface UserProfile {
   email: string;         // User email from Auth
   displayName: string;   // Full name or username
   photoURL?: string;     // URL to avatar image in Storage
+  avatarUri?: string;    // Legacy or alternative field for avatar
+  themeColor?: string;   // Personal brand color for collaboration
   avatarPath?: string;   // Internal path in Storage (e.g., 'avatars/{userId}.jpg')
   bio?: string;          // Short user biography
   socialLinks?: SocialLinks;
@@ -73,6 +75,8 @@ export interface FirestoreUserDocument {
   email: string;
   displayName: string;
   photoURL?: string;
+  avatarUri?: string;
+  themeColor?: string;
   avatarPath?: string;
   bio?: string;
   socialLinks?: SocialLinks;
@@ -90,6 +94,8 @@ export interface FirestoreUserDocument {
 export interface UpdateProfilePayload {
   displayName?: string;
   photoURL?: string;
+  avatarUri?: string;
+  themeColor?: string;
   avatarPath?: string;
   bio?: string;
   socialLinks?: SocialLinks;

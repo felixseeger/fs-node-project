@@ -16,6 +16,7 @@ interface EditorTopBarProps {
   onSaveAsTemplate?: () => void;
   onOpenKeyboardShortcuts?: () => void;
   onShare?: () => void;
+  onToggleCollaboration?: () => void;
   onOpenRecipes?: () => void;
   projectName?: string;
   onRenameProject?: (name: string) => void;
@@ -36,6 +37,7 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
   onSaveAsTemplate,
   onOpenKeyboardShortcuts,
   onShare,
+  onToggleCollaboration,
   onOpenRecipes,
   projectName = '',
   onRenameProject,
@@ -232,6 +234,37 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
 
         {/* Right side items container */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Collaboration Hub Toggle */}
+          <button
+            onClick={() => onToggleCollaboration?.()}
+            title="Open Collaboration Hub"
+            style={{
+              padding: '5px 12px',
+              fontSize: 12,
+              fontWeight: 600,
+              background: 'transparent',
+              border: '1px solid var(--color-border)',
+              borderRadius: 8,
+              color: 'var(--color-text)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--color-text-muted)';
+              e.currentTarget.style.background = 'var(--color-surface-hover)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--color-border)';
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <span style={{ fontSize: 14 }}>👥</span>
+            Collab
+          </button>
+
           {/* Share */}
           <button
             onClick={() => onShare?.()}
