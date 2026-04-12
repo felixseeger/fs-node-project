@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createExecutionEngine } from '../engine/executionEngine';
+import { createExecutionEngine } from '../executionEngine';
 import type { Node, Edge } from '@xyflow/react';
-import type { NodeData } from '../types';
+import type { NodeData } from '@/types';
 
 // Mock the API for full workflow validation
 vi.mock('@/utils/api', () => ({
