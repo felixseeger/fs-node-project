@@ -22,6 +22,8 @@ import { generateAIWorkflow, sendChat, uploadWorkflowThumbnail } from './utils/a
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirebaseAuth } from './config/firebase';
 import { useFirebaseWorkflows } from './hooks/useFirebaseWorkflows';
+import { AnimatePresence } from 'framer-motion';
+import PageTransition from './components/PageTransition';
 import { useFirebaseTemplates } from './hooks/useFirebaseTemplates';
 import { useFirebaseAssets } from './hooks/useFirebaseAssets';
 import { useFirebaseChat } from './hooks/useFirebaseChat';
@@ -2282,15 +2284,17 @@ const handleConnectEnd = useCallback(
     );
   }
 
+
+  const renderCurrentPage = () => {
   if (!isAuthenticated && currentPage !== 'landing' && !currentPage.startsWith('auth-')) setCurrentPage('landing');
   if (!isAuthenticated && currentPage.startsWith('auth-')) {
     const initial = currentPage.replace('auth-', '');
-    return <AuthPage initialScreen={initial === 'login' || initial === 'signup' ? initial : 'login'} onNavigate={handleNavigate} />;
+    return <PageTransition key="auth" className="h-screen w-screen"><AuthPage initialScreen={initial === 'login' || initial === 'signup' ? initial : 'login'} onNavigate={handleNavigate} /></PageTransition>;
   }
 
   if (showSystemLoading) {
     const total = IMAGE_MODELS.length + VIDEO_MODELS.length;
-    return <SystemLoadingProcess config={{ phases: [{ label: 'Phase 01', value: `Loading ${Object.keys(nodeTypes).length} nodes` }, { label: 'Signal Scan', value: `Loading ${total} models` }], code: `Felix Seeger | ${new Date().toISOString().split('T')[0]}` }} onComplete={() => { sessionStorage.setItem(SLP_KEY, '1'); setShowSystemLoading(false); }} />;
+    return <PageTransition key="loading" className="h-screen w-screen"><SystemLoadingProcess config={{ phases: [{ label: 'Phase 01', value: `Loading ${Object.keys(nodeTypes).length} nodes` }, { label: 'Signal Scan', value: `Loading ${total} models` }], code: `Felix Seeger | ${new Date().toISOString().split('T')[0]}` }} onComplete={() => { sessionStorage.setItem(SLP_KEY, '1'); setShowSystemLoading(false); }} /></PageTransition>;
   }
 
   if (!isAuthenticated || currentPage === 'landing') {
@@ -2851,5 +2855,14 @@ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisio
       )}
     </div>
     </CanvasProvider>
+  );
+  };
+
+  return (
+    <AnimatePresence mode="wait">
+      <PageTransition key={currentPage} className="h-screen w-screen overflow-hidden">
+        {renderCurrentPage()}
+      </PageTransition>
+    </AnimatePresence>
   );
 }
