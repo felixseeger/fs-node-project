@@ -348,16 +348,16 @@ export const TopBar: FC<TopBarProps> = ({
                 padding: '6px 14px',
                 fontSize: 12,
                 fontWeight: 600,
-                background: nodes.filter(n => n.selected).length > 2 ? 'var(--color-brand-blue)' : '#444',
+                background: nodes.filter(n => n.selected).length >= 2 ? 'var(--color-brand-blue)' : '#444',
                 border: 'none',
                 borderRadius: 8,
-                color: nodes.filter(n => n.selected).length > 2 ? 'white' : '#888',
-                cursor: nodes.filter(n => n.selected).length > 2 ? 'pointer' : 'not-allowed',
+                color: nodes.filter(n => n.selected).length >= 2 ? 'white' : '#888',
+                cursor: nodes.filter(n => n.selected).length >= 2 ? 'pointer' : 'not-allowed',
                 transition: 'all 0.15s',
                 marginLeft: 8,
               }}
               onMouseEnter={(e) => {
-                if (nodes.filter(n => n.selected).length > 2) {
+                if (nodes.filter(n => n.selected).length >= 2) {
                   e.currentTarget.style.transform = 'translateY(-1px)';
                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
                 }
@@ -366,7 +366,7 @@ export const TopBar: FC<TopBarProps> = ({
                 e.currentTarget.style.transform = 'none';
                 e.currentTarget.style.boxShadow = 'none';
               }}
-              title={nodes.filter(n => n.selected).length > 2 ? 'Create Workflow Template' : 'Select at least 3 nodes to create a workflow template'}
+              title={nodes.filter(n => n.selected).length >= 2 ? 'Create Workflow Template' : 'Select at least 2 nodes to create a workflow template'}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
