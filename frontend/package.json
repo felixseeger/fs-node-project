@@ -20,6 +20,7 @@
     "test:hooks": "vitest run src/hooks/__tests__"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
     "@paper-design/shaders": "^0.0.72",
     "@reduxjs/toolkit": "^2.11.2",
     "@tailwindcss/vite": "^4.2.2",

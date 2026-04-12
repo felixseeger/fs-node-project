@@ -3,6 +3,7 @@
 This PR implements Phase 7.4 of the hardening guide by integrating Backend Authentication to properly secure our API endpoints. Previously, the backend did not verify the user's identity, meaning any exposed endpoint could be accessed by malicious actors who knew the API URL, risking potential abuse of our paid AI services. 
 
 ### Key Changes
+- **GSAP Integration**: Installed `gsap` and `@gsap/react` and configured the `useGSAP` plugin in `frontend/src/main.tsx` for optimized, React-safe UI animations.
 - **Firebase Admin Integration**: Added `firebase-admin` to the backend to verify the Firebase ID tokens sent from the client.
 - **Auth Middleware (`requireAuth`)**: Created `lib/api/middleware/auth.js`. This middleware intercepts requests, extracts the `Authorization: Bearer <token>` header, verifies it via Firebase, and attaches the decoded user to `req.user`.
 - **Protected Routes**: Placed `requireAuth` on all AI generation and upload routes in `lib/api/routes/index.js`.

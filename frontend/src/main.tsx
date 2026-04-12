@@ -1,3 +1,9 @@
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+// Register GSAP plugins
+gsap.registerPlugin(useGSAP);
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ReactFlowProvider } from '@xyflow/react'
