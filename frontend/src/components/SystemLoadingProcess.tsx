@@ -4,6 +4,14 @@ import CustomEase from 'gsap/CustomEase';
 import ScrambleText from './ScrambleText';
 import './SystemLoadingProcess.css';
 
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'strudel-repl': any;
+    }
+  }
+}
+
 gsap.registerPlugin(CustomEase);
 
 // Guard against re-registration on hot-reload
@@ -53,6 +61,22 @@ const DEFAULT_CONFIG: Required<SystemLoadingProcessConfig> = {
   logoSrc: '/logo-light.svg',
 };
 
+// Generates a random and refreshing loading sound using Strudel syntax
+const generateLoadUpSound = () => {
+  const scales = ["C:major", "D:dorian", "E:phrygian", "F:lydian", "G:mixolydian", "A:minor"];
+  const notes = ["0 2 4 7", "0 4 7 12", "0 3 7 10", "0 7 12 14", "12 7 4 0", "0 [2 4] <7 12>"];
+  const sounds = ["sine", "sawtooth", "triangle", "glass", "gong", "piano", "jazz"];
+  const fx = [".room(1)", ".lpf(1000).room(0.5)", ".vowel('a e i o').room(0.8)", ".delay(0.5)", ".gain(0.8)"];
+  
+  const scale = scales[Math.floor(Math.random() * scales.length)];
+  const note = notes[Math.floor(Math.random() * notes.length)];
+  const sound = sounds[Math.floor(Math.random() * sounds.length)];
+  const effect = fx[Math.floor(Math.random() * fx.length)];
+
+  // Fast pattern that resolves quickly, suitable for a loading sting
+  return `n("${note}").scale("${scale}").sound("${sound}")${effect}.fast(4).gain(0.3)`;
+};
+
 interface MaskLineProps {
   innerRef?: React.RefObject<HTMLSpanElement | null> | ((el: HTMLSpanElement | null) => void);
   children: ReactNode;
@@ -68,6 +92,7 @@ const MaskLine: FC<MaskLineProps> = ({ innerRef, children }) => {
 };
 
 interface SystemLoadingProcessProps {
+  isProcessing?: boolean;
   onComplete?: () => void;
   autoStart?: boolean;
   requireInteraction?: boolean;
@@ -80,6 +105,7 @@ interface SystemLoadingProcessProps {
  * SystemLoadingProcess - Cyberpunk/Sci-fi preloader animation
  */
 const SystemLoadingProcess: FC<SystemLoadingProcessProps> = ({
+  isProcessing = false,
   onComplete,
   autoStart = true,
   requireInteraction = false,
@@ -101,6 +127,60 @@ const SystemLoadingProcess: FC<SystemLoadingProcessProps> = ({
   const outroLineRef = useRef<HTMLSpanElement>(null);
   const readyRef = useRef(false);
   const rowLinesRef = useRef<(HTMLSpanElement | null)[]>([]);
+
+  const timelineFinishedRef = useRef(false);
+  const replRef = useRef<any>(null);
+  const [loadupPattern] = useState(generateLoadUpSound);
+
+  useEffect(() => {
+    if (timelineFinishedRef.current && !isProcessing && !readyRef.current) {
+      readyRef.current = true;
+      setReady(true);
+    }
+  }, [isProcessing]);
+
+  // Handle Strudel pattern playback
+  useEffect(() => {
+    if (ready && replRef.current) {
+      setTimeout(() => {
+        if (replRef.current) {
+          replRef.current.code = loadupPattern;
+          // Trigger evaluation and play through the web component's custom events or attributes
+          // Some versions of the component automatically play when code is updated, 
+          // others need the start() or play() method. We try multiple ways safely.
+          try {
+            if (typeof replRef.current.play === 'function') {
+              replRef.current.play();
+            } else if (typeof replRef.current.start === 'function') {
+              replRef.current.start();
+            } else if (replRef.current.evaluate) {
+               replRef.current.evaluate();
+            } else {
+               // Force a re-render/re-evaluation through attribute mutation
+               replRef.current.setAttribute('code', loadupPattern);
+            }
+          } catch(e) {
+            console.warn('[Strudel] Could not autoplay loading sound:', e);
+          }
+        }
+      }, 250);
+    }
+  }, [ready, loadupPattern]);
+
+  useEffect(() => {
+    if (exiting && replRef.current) {
+      try {
+        if (typeof replRef.current.stop === 'function') {
+          replRef.current.stop();
+        } else if (replRef.current.hush) {
+           replRef.current.hush();
+        }
+      } catch (e) {
+        console.warn('[Strudel] Error stopping loading sound:', e);
+      }
+    }
+  }, [exiting]);
+
 
   const playSound = useCallback((soundName: string) => {
     const audio = new Audio(`/assets/sfx/${soundName}.mp3`);
@@ -209,8 +289,11 @@ const SystemLoadingProcess: FC<SystemLoadingProcessProps> = ({
         duration: 0.75,
         ease: 'power3.out',
         onComplete: () => {
-          readyRef.current = true;
-          setReady(true);
+          timelineFinishedRef.current = true;
+          if (!isProcessing) {
+            readyRef.current = true;
+            setReady(true);
+          }
         },
       }, '-=0.75');
 
@@ -235,6 +318,17 @@ const SystemLoadingProcess: FC<SystemLoadingProcessProps> = ({
     <div className={`slp-root slp-theme-${theme}`}>
       <div ref={revealerRef} className="slp-revealer" />
       <div className="slp-backdrop">
+        <div
+          className="slp-noise-overlay"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 0,
+            opacity: theme === 'light' ? 0.04 : 0.08,
+            pointerEvents: 'none',
+            backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")"
+          }}
+        />
         <div className="slp-backdrop-row">
           {cfg.backdropTop.map((group, gi) => (
             <div key={gi} className="slp-backdrop-col">
@@ -297,7 +391,7 @@ const SystemLoadingProcess: FC<SystemLoadingProcessProps> = ({
         <div
           ref={btnRef}
           className={`slp-btn-container${ready ? ' slp-ready' : ''}`}
-          onClick={handleEngage}
+          onClick={ready ? handleEngage : undefined}
           role="button"
           tabIndex={ready ? 0 : -1}
           aria-label={ready ? cfg.engageText : 'Loading...'}
@@ -347,7 +441,7 @@ const SystemLoadingProcess: FC<SystemLoadingProcessProps> = ({
 
           <p className="slp-engage-label">
             <MaskLine innerRef={labelLineRef}>
-              {ready ? <ScrambleText text={cfg.engageText} /> : cfg.engageText}
+              {ready ? <ScrambleText text={cfg.engageText} /> : (isProcessing ? <ScrambleText text="Processing..." /> : cfg.engageText)}
             </MaskLine>
           </p>
           <p className="slp-outro-label">
@@ -356,6 +450,9 @@ const SystemLoadingProcess: FC<SystemLoadingProcessProps> = ({
             </MaskLine>
           </p>
         </div>
+      </div>
+      <div style={{ display: 'none' }}>
+        <strudel-repl ref={replRef} theme="dark" hide-controls></strudel-repl>
       </div>
     </div>
   );
