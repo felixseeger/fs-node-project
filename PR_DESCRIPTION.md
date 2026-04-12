@@ -4,6 +4,7 @@ This PR implements Phase 7.4 of the hardening guide by integrating Backend Authe
 
 ### Key Changes
 - **GSAP Integration**: Installed `gsap` and `@gsap/react` and configured the `useGSAP` plugin in `frontend/src/main.tsx` for optimized, React-safe UI animations.
+- **Loading Animation**: Converted the loading logo to an inline SVG and animated its path (drawing effect) using GSAP in `SystemLoadingProcess.tsx`.
 - **Firebase Admin Integration**: Added `firebase-admin` to the backend to verify the Firebase ID tokens sent from the client.
 - **Auth Middleware (`requireAuth`)**: Created `lib/api/middleware/auth.js`. This middleware intercepts requests, extracts the `Authorization: Bearer <token>` header, verifies it via Firebase, and attaches the decoded user to `req.user`.
 - **Protected Routes**: Placed `requireAuth` on all AI generation and upload routes in `lib/api/routes/index.js`.
