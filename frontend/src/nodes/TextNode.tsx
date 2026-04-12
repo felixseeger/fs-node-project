@@ -8,15 +8,16 @@ import { getHandleColor } from '../utils/handleTypes';
  * TextNode - Simple text input/output node
  */
 const TextNode: FC<NodeProps> = ({ id, data, selected }) => {
-  const { disconnectNode } = useNodeConnections(id, data);
+  const { update, disconnectNode } = useNodeConnections(id, data);
   
   const onChange = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
+      update({ text: e.target.value });
       if (typeof data.onUpdate === 'function') {
         data.onUpdate(id, { text: e.target.value });
       }
     },
-    [id, data]
+    [id, data, update]
   );
 
   return (
@@ -51,8 +52,6 @@ const TextNode: FC<NodeProps> = ({ id, data, selected }) => {
             className="nodrag nopan"
             value={(data.text as string) || ''}
             onChange={onChange}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
             placeholder="Enter text..."
             rows={3}
             style={{

@@ -5,7 +5,7 @@ import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
 import { InfoIcon, ChevronDownIcon, MagicIcon, LinkIcon } from './NodeIcons';
 
-function LayerEditorMenu({ width, height, isLinked, onClose, onDisconnect }) {
+function LayerEditorMenu({ width, height, isLinked }) {
   const styles = {
     panelContainer: {
       position: 'absolute',
@@ -130,11 +130,12 @@ export default function LayerEditorNode({ id, data, selected }) {
   const { resolve, disconnectNode, update } = useNodeConnections(id, data);
   const [dimensions, setDimensions] = useState({ width: 1024, height: 1024 });
 
-  const bgImage = resolve.image('image-in')?.[0];
+  const incomingImages = resolve.image('image-in') || [];
+  const bgImage = incomingImages[0];
 
   useEffect(() => {
-    // Pass the input image directly to the output handle so downstream nodes can use it
-    if (bgImage !== data.outputImage) {
+    // Pass the primary input image to the output handle
+    if (bgImage && bgImage !== data.outputImage) {
       update({ outputImage: bgImage });
     }
   }, [bgImage, data.outputImage, update]);
@@ -161,36 +162,51 @@ export default function LayerEditorNode({ id, data, selected }) {
         alignItems: 'center',
         justifyContent: 'center',
          
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <Handle type="target" position={Position.Left} id="image-in" style={{ width: 14, height: 14, background: getHandleColor('image'), border: '2px solid #1a1a1a', left: -8, zIndex: 10 }} />
-        <Handle type="source" position={Position.Right} id="image-out" style={{ width: 14, height: 14, background: getHandleColor('image'), border: '2px solid #1a1a1a', right: -8, zIndex: 10 }} />
+        <Handle type="target" position={Position.Left} id="image-in" style={{ width: 14, height: 14, background: getHandleColor('image'), border: '2px solid #1a1a1a', left: -8, zIndex: 100 }} />
+        <Handle type="source" position={Position.Right} id="image-out" style={{ width: 14, height: 14, background: getHandleColor('image'), border: '2px solid #1a1a1a', right: -8, zIndex: 100 }} />
         
-        <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: '#fff', fontSize: 12, fontWeight: 600, pointerEvents: 'none', zIndex: 5 }}>
-          Image In
+        <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: '#fff', fontSize: 10, fontWeight: 700, pointerEvents: 'none', zIndex: 10, textTransform: 'uppercase', tracking: '0.05em' }}>
+          In
         </div>
-        <div style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: '#fff', fontSize: 12, fontWeight: 600, pointerEvents: 'none', zIndex: 5 }}>
-          Image Out
+        <div style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: '#fff', fontSize: 10, fontWeight: 700, pointerEvents: 'none', zIndex: 10, textTransform: 'uppercase', tracking: '0.05em' }}>
+          Out
         </div>
 
         <div style={{
           position: 'absolute',
           inset: 0,
-          opacity: bgImage ? 0 : 0.1,
+          opacity: incomingImages.length > 0 ? 0 : 0.1,
           backgroundImage: 'linear-gradient(45deg, #808080 25%, transparent 25%), linear-gradient(-45deg, #808080 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #808080 75%), linear-gradient(-45deg, transparent 75%, #808080 75%)',
           backgroundSize: '20px 20px',
           backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
         }} />
-        {bgImage && (
-          <img src={bgImage} alt="Canvas Background" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', zIndex: 0 }} />
-        )}
-        <span style={{ color: '#555', fontSize: 14, fontWeight: 500, zIndex: 1, textShadow: bgImage ? '0 1px 4px rgba(0,0,0,0.8)' : 'none' }}>
-          {bgImage ? '' : `Canvas ${dimensions.width}x${dimensions.height}`}
+
+        {incomingImages.map((img, idx) => (
+          <img 
+            key={`${img}-${idx}`}
+            src={img} 
+            alt={`Layer ${idx}`} 
+            style={{ 
+              position: 'absolute', 
+              inset: 0, 
+              width: '100%', 
+              height: '100%', 
+              objectFit: 'contain', 
+              zIndex: idx 
+            }} 
+          />
+        ))}
+
+        <span style={{ color: '#555', fontSize: 14, fontWeight: 500, zIndex: 100, textShadow: incomingImages.length > 0 ? '0 1px 4px rgba(0,0,0,0.8)' : 'none' }}>
+          {incomingImages.length > 0 ? '' : `Canvas ${dimensions.width}x${dimensions.height}`}
         </span>
       </div>
 
       {selected && createPortal(
-        <LayerEditorMenu width={dimensions.width} height={dimensions.height} isLinked={true} onDisconnect={disconnectNode} />,
+        <LayerEditorMenu width={dimensions.width} height={dimensions.height} isLinked={true} />,
         document.body
       )}
     </>

@@ -116,8 +116,6 @@ export default function FacialEditingNode({ id, data, selected }) {
               className="nodrag nopan"
               value={localEmotion}
               onChange={e => update({ emotion: e.target.value })}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
               style={{ width: '100%', background: '#111', border: '1px solid #333', padding: '6px 10px', borderRadius: 6, color: '#e0e0e0', fontSize: 12, outline: 'none', appearance: 'none', cursor: 'pointer' }}
             >
               <option value="Happiness">Happiness (Smile)</option>
@@ -145,8 +143,6 @@ export default function FacialEditingNode({ id, data, selected }) {
                 step="0.05"
                 value={localIntensity}
                 onChange={handleIntensityChange}
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
                 style={{ width: '100%', cursor: 'pointer', accentColor: '#ec4899' }}
                 className="nodrag nopan"
               />
@@ -166,8 +162,6 @@ export default function FacialEditingNode({ id, data, selected }) {
                 className="nodrag nopan"
                 checked={strictIdentity} 
                 onChange={e => update({ strictIdentity: e.target.checked })} 
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
                 style={{ display: 'none' }} 
               />
               <div style={{ width: 28, height: 16, background: strictIdentity ? '#ec4899' : '#333', borderRadius: 20, position: 'relative' }}>
@@ -184,8 +178,6 @@ export default function FacialEditingNode({ id, data, selected }) {
                 className="nodrag nopan"
                 checked={maskFace} 
                 onChange={e => update({ maskFace: e.target.checked })} 
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
                 style={{ display: 'none' }} 
               />
               <div style={{ width: 28, height: 16, background: maskFace ? '#ec4899' : '#333', borderRadius: 20, position: 'relative' }}>
@@ -198,8 +190,6 @@ export default function FacialEditingNode({ id, data, selected }) {
         {/* Generate Button (Manual Fallback) */}
         <button
           onClick={runGeneration}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
           className="nodrag nopan"
           disabled={isActive || !inputImage}
           style={{

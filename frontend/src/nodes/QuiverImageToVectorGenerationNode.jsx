@@ -171,7 +171,7 @@ export default function QuiverImageToVectorGenerationNode({ id, data, selected }
       </div>
 
       {hasImageConnection ? connectionInfoBox(imageConnection) : (
-        <div className="nodrag nopan" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="nodrag nopan" >
           <ImageUploadBox
             image={data.localImage || data.inputImagePreview || null}
             onImageChange={(img) => update({ localImage: img })}

@@ -377,8 +377,6 @@ export function AssetNode({ id, data, selected }: NodeProps<Node<AssetNodeData>>
       <div className="flex gap-2">
         <button
           onClick={handleShowUpdateModal}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
           className="nodrag nopan flex-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
         >
           Update Asset
@@ -393,8 +391,6 @@ export function AssetNode({ id, data, selected }: NodeProps<Node<AssetNodeData>>
               }));
             }
           }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
           className="nodrag nopan px-3 py-1.5 bg-gray-700 text-gray-200 text-sm rounded hover:bg-gray-600 transition-colors"
           title="Use images in Chat"
         >

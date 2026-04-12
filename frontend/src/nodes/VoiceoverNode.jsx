@@ -143,8 +143,6 @@ export default function VoiceoverNode({ id, data, selected }) {
             className="nodrag nopan"
             value={localVoiceId} 
             onChange={(e) => update({ localVoiceId: e.target.value })}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
             style={{
               width: '100%', background: '#111', border: '1px solid #3a3a3a',
               borderRadius: 6, color: '#e0e0e0', fontSize: 11, padding: '6px 8px', outline: 'none'

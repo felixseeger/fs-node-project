@@ -203,8 +203,6 @@ const ImageSegmentationNode: FC<NodeProps<Node<SegmentNodeData>>> = ({ id, data,
               className="nodrag nopan"
               value={(data.inputPrompt as string) || ''}
               onChange={(e) => update({ inputPrompt: e.target.value })}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
               placeholder="e.g. 'the red car'"
               disabled={data.inputMode === 'everything' || promptConn.connected}
               style={{

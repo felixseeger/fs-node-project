@@ -38,10 +38,10 @@ const TextLLMNode: FC<NodeProps> = ({ id, data, selected }) => {
     update({ resultText: '' });
 
     try {
-      const result = await sendChat(prompt, [], system);
+      const result = await sendChat(prompt, [], system, []);
       
-      if (result.error) {
-        update({ resultText: `Error: ${result.error}` });
+      if ((result as any).error) {
+        update({ resultText: `Error: ${(result as any).error}` });
       } else {
         update({ resultText: result.response || 'No response returned.' });
       }

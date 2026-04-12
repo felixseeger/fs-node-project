@@ -397,8 +397,6 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
             <select
               value={aspectRatio}
               onChange={e => update({ aspectRatio: e.target.value })}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
               disabled={locked}
               className="nodrag nopan"
               style={{
@@ -456,8 +454,6 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
             className="nodrag nopan nowheel"
             value={data.inputPrompt || ''}
             onChange={e => update({ inputPrompt: e.target.value })}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
             placeholder="e.g. A cinematic shot of a neon cyberpunk city..."
             rows={4}
             style={{
@@ -491,39 +487,53 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
                 <div className="nodrag nopan" style={{
                   position: 'absolute', top: '100%', left: 0, marginTop: 4,
                   background: surface.deep, border: `1px solid ${border.default}`,
-                  borderRadius: radius.md, padding: 4, zIndex: 10,
-                  display: 'flex', flexDirection: 'column', gap: 2,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.5)', width: 80
+                  borderRadius: radius.md, padding: 8, zIndex: 10,
+                  display: 'flex', flexDirection: 'column', gap: 6,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.5)', width: 120
                 }}>
-                  {['@img_1', '@img_2', '@img_3', '@img_4'].map(tag => (
-                    <div
-                      key={tag}
-                      onClick={() => {
-                        const input = promptRef.current;
-                        if (!input) return;
-                        const start = input.selectionStart || 0;
-                        const end = input.selectionEnd || 0;
-                        const val = input.value;
-                        const newVal = val.substring(0, start) + tag + val.substring(end);
-                        update({ inputPrompt: newVal });
-                        setTimeout(() => {
-                          input.focus();
-                          input.setSelectionRange(start + tag.length, start + tag.length);
-                        }, 0);
-                        setShowReferenceMenu(false);
-                      }}
-                      style={{
-                        padding: '4px 8px', borderRadius: radius.sm, cursor: 'pointer',
-                        color: text.primary, ...font.xs, fontFamily: 'monospace'
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = surface.hover}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      {tag}
-                    </div>
-                  ))}
+                  <div style={{ fontSize: 10, color: text.muted, fontWeight: 'bold', textTransform: 'uppercase' }}>Canvas Images</div>
+                  {(() => {
+                    const canvasImages = data.resolveInput?.(id, 'global-canvas-images') || [];
+                    if (canvasImages.length === 0) {
+                      return <div style={{ fontSize: 9, color: text.muted, fontStyle: 'italic' }}>No images on canvas</div>;
+                    }
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
+                        {canvasImages.map((img) => (
+                          <div 
+                            key={img.id} 
+                            onClick={() => {
+                              const input = promptRef.current;
+                              if (!input) return;
+                              const start = input.selectionStart || 0;
+                              const end = input.selectionEnd || 0;
+                              const val = input.value;
+                              const tag = ` @${img.label.replace(/\s+/g, '_').toLowerCase()} `;
+                              const newVal = val.substring(0, start) + tag + val.substring(end);
+                              update({ inputPrompt: newVal });
+
+                              window.dispatchEvent(new CustomEvent('send-to-chat', { 
+                                detail: { images: [img.url], name: img.label } 
+                              }));
+
+                              setTimeout(() => { input.focus(); input.setSelectionRange(start + tag.length, start + tag.length); }, 0);
+                              setShowReferenceMenu(false);
+                            }}
+                            style={{ 
+                              aspectRatio: '1/1', borderRadius: radius.sm, border: `1px solid ${border.default}`, 
+                              overflow: 'hidden', cursor: 'pointer', background: '#000'
+                            }}
+                            title={img.label}
+                          >
+                            <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
+
             </div>
 
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -574,9 +584,7 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
                   checked={data.pixverseSoundEnabled || false}
                   onChange={(e) => update({ pixverseSoundEnabled: e.target.checked })}
                   className="nodrag nopan"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                />
+                  />
                 <span style={{ ...font.xs, color: text.primary }}>Enable AI sound generation</span>
               </label>
             </div>
@@ -589,8 +597,6 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
                   className="nodrag nopan"
                   value={data.pixverseSoundContent || ''}
                   onChange={(e) => update({ pixverseSoundContent: e.target.value })}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
                   placeholder="e.g. Epic orchestral music, futuristic synth..."
                   style={{
                     background: surface.base,

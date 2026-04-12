@@ -203,8 +203,6 @@ export default function SoundEffectsNode({ id, data, selected }) {
           className="nodrag nopan"
           value={data.inputPrompt || ''}
           onChange={(e) => update({ inputPrompt: e.target.value })}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
           placeholder="e.g. A cat meowing softly indoors"
           rows={3}
           style={{

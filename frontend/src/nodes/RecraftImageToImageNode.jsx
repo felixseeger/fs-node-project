@@ -149,8 +149,6 @@ export default function RecraftImageToImageNode({ id, data, selected }) {
             className="nodrag nopan"
             value={localModel}
             onChange={(e) => update({ model: e.target.value })}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
             style={{
               width: '100%', padding: '4px 8px', borderRadius: radius.md,
               background: surface.deep, border: `1px solid ${border.default}`,

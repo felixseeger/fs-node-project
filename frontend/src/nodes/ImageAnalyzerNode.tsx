@@ -159,7 +159,7 @@ const ImageAnalyzerNode: FC<NodeProps> = ({ id, data, selected }) => {
 
   return (
     <NodeShell data={data}
-      label={(data.label as string) || 'Gemini 3 Pro'}
+      label={(data.label as string) || 'Claude Sonnet Vision'}
       dotColor="#f97316"
       selected={selected}
       onDisconnect={disconnectNode}
@@ -212,8 +212,6 @@ const ImageAnalyzerNode: FC<NodeProps> = ({ id, data, selected }) => {
             }} />
             <button
               onClick={() => removeImage(i)}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
               className="nodrag nopan"
               style={{
                 position: 'absolute', top: 2, right: 2,
@@ -232,8 +230,6 @@ const ImageAnalyzerNode: FC<NodeProps> = ({ id, data, selected }) => {
           <button
             key={`empty-${i}`}
             onClick={() => fileRef.current?.click()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
             className="nodrag nopan"
             style={{
               aspectRatio: '1', borderRadius: 6,
@@ -269,8 +265,6 @@ const ImageAnalyzerNode: FC<NodeProps> = ({ id, data, selected }) => {
         className="nodrag nopan"
         value={(data.localPrompt as string) || ''}
         onChange={(e: ChangeEvent<HTMLTextAreaElement>) => update({ localPrompt: e.target.value })}
-        onMouseDown={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
         placeholder="Enter prompt here..."
         rows={3}
         style={{
@@ -290,8 +284,6 @@ const ImageAnalyzerNode: FC<NodeProps> = ({ id, data, selected }) => {
           className="nodrag nopan"
           value={(data.systemDirections as string) || ''}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => update({ systemDirections: e.target.value })}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
           placeholder="Enter system prompt..."
           rows={expandSystem ? 8 : 3}
           style={{
@@ -303,8 +295,6 @@ const ImageAnalyzerNode: FC<NodeProps> = ({ id, data, selected }) => {
         />
         <button
           onClick={() => setExpandSystem(!expandSystem)}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
           className="nodrag nopan"
           style={{
             display: 'inline-block', marginTop: 4,
@@ -320,8 +310,6 @@ const ImageAnalyzerNode: FC<NodeProps> = ({ id, data, selected }) => {
       {/* ── Analyze Button ── */}
       <button
         onClick={handleAnalyze}
-        onMouseDown={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
         className="nodrag nopan"
         disabled={isAnalyzing}
         style={{

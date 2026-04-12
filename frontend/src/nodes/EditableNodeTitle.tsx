@@ -14,14 +14,14 @@ export interface EditableNodeTitleProps {
 
 const mdText: CSSProperties = {
   fontSize: 14,
-  fontWeight: 500,
-  letterSpacing: '0.02em',
+  fontWeight: 600,
+  letterSpacing: '0.01em',
 };
 
 const smText: CSSProperties = {
-  fontSize: 11,
-  fontWeight: 500,
-  letterSpacing: '0.04em',
+  fontSize: 12,
+  fontWeight: 600,
+  letterSpacing: '0.03em',
 };
 
 /**
@@ -40,6 +40,7 @@ export default function EditableNodeTitle({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   const baseText = size === 'sm' ? smText : mdText;
 
@@ -68,18 +69,19 @@ export default function EditableNodeTitle({
 
   const baseStyle: CSSProperties = {
     ...baseText,
-    color: 'var(--color-text)',
-    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+    color: '#f8fafc',
+    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     maxWidth,
+    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
     ...style,
   };
 
   if (disabled) {
     return (
-      <span style={baseStyle} title={display}>
+      <span style={{...baseStyle, opacity: 0.6}} title={display}>
         {display}
       </span>
     );
@@ -93,8 +95,6 @@ export default function EditableNodeTitle({
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
-        onMouseDown={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
         onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
           if (e.key === 'Enter') {
             e.preventDefault();
@@ -106,12 +106,14 @@ export default function EditableNodeTitle({
         }}
         style={{
           ...baseStyle,
-          background: 'rgba(0,0,0,0.35)',
-          border: '1px solid rgba(255,255,255,0.2)',
-          borderRadius: 4,
-          padding: size === 'sm' ? '2px 4px' : '2px 6px',
+          background: 'rgba(15, 23, 42, 0.6)',
+          border: '1px solid rgba(59, 130, 246, 0.6)',
+          boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2), inset 0 1px 2px rgba(0,0,0,0.2)',
+          borderRadius: 6,
+          padding: size === 'sm' ? '2px 6px' : '4px 8px',
           outline: 'none',
-          minWidth: 80,
+          minWidth: 100,
+          textShadow: 'none',
         }}
         aria-label="Node title"
       />
@@ -126,11 +128,15 @@ export default function EditableNodeTitle({
       style={{
         ...baseStyle,
         cursor: 'text',
-        color: value.trim() ? baseStyle.color : 'var(--color-text-muted)',
+        color: value.trim() ? baseStyle.color : 'rgba(255, 255, 255, 0.4)',
+        padding: size === 'sm' ? '2px 6px' : '4px 8px',
+        borderRadius: 6,
+        margin: size === 'sm' ? '-2px -6px' : '-4px -8px',
+        background: isHovered ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
       }}
       title={`${display} — double-click to edit`}
-      onMouseDown={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onDoubleClick={(e) => {
         e.stopPropagation();
         setEditing(true);
@@ -143,6 +149,9 @@ export default function EditableNodeTitle({
       }}
     >
       {display}
+      {isHovered && !value.trim() && (
+        <span style={{ fontSize: 10, marginLeft: 6, color: '#94a3b8', fontStyle: 'italic', fontWeight: 400 }}>Edit title</span>
+      )}
     </span>
   );
 }

@@ -27,7 +27,7 @@ const RESOLUTION_OPTIONS = ['1K', '2K', '4K'];
  * InputNode - Generic entry point for workflow data
  */
 const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
-  const { disconnectNode } = useNodeConnections(id, data);
+  const { update, disconnectNode } = useNodeConnections(id, data);
   const fileRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   
@@ -37,13 +37,16 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
 
   const updateField = useCallback(
     (field: string, value: any) => {
+      update({
+        fieldValues: { ...values, [field]: value },
+      });
       if (typeof data.onUpdate === 'function') {
         data.onUpdate(id, {
           fieldValues: { ...values, [field]: value },
         });
       }
     },
-    [id, data, values]
+    [id, data, values, update]
   );
 
   const handleImageUpload = useCallback(
@@ -53,6 +56,10 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
         const result = await uploadImages(Array.from(files));
         const current = images[field] || [];
         const updated = [...current, ...result.images].slice(0, 15);
+        update({
+          imagesByField: { ...images, [field]: updated },
+          fieldValues: { ...values, [field]: updated },
+        });
         if (typeof data.onUpdate === 'function') {
           data.onUpdate(id, {
             imagesByField: { ...images, [field]: updated },
@@ -63,13 +70,17 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
         console.error('Image upload failed:', error);
       }
     },
-    [id, data, images, values]
+    [id, data, images, values, update]
   );
 
   const removeImage = useCallback(
     (field: string, idx: number) => {
       const current = [...(images[field] || [])];
       current.splice(idx, 1);
+      update({
+        imagesByField: { ...images, [field]: current },
+        fieldValues: { ...values, [field]: current },
+      });
       if (typeof data.onUpdate === 'function') {
         data.onUpdate(id, {
           imagesByField: { ...images, [field]: current },
@@ -77,7 +88,7 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
         });
       }
     },
-    [id, data, images, values]
+    [id, data, images, values, update]
   );
 
   // Deduplicate field names with _2, _3 suffixes
@@ -165,8 +176,6 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
                 className="nodrag nopan"
                 value={values[handleId] || ''}
                 onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateField(handleId, e.target.value)}
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
                 placeholder={`Enter ${cfg.label.toLowerCase()}...`}
                 rows={3}
                 style={{

@@ -185,8 +185,6 @@ export default function PrecisionUpScaleNode({ id, data, selected }) {
               key={f.value}
               className="nodrag nopan"
               onClick={() => update({ localFlavor: localFlavor === f.value ? '' : f.value })}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
               style={{
                 padding: '8px 12px', fontSize: 11, textAlign: 'left',
                 borderRadius: 8, border: 'none', cursor: 'pointer',

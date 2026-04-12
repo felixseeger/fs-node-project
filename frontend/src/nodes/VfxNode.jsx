@@ -226,8 +226,6 @@ export default function VfxNode({ id, data, selected }) {
           className="nodrag nopan"
           value={data.localVideo || ''}
           onChange={(e) => update({ localVideo: e.target.value })}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
           placeholder="Video URL..."
           style={{
             width: '100%', background: '#1a1a1a', border: '1px solid #3a3a3a',
@@ -252,8 +250,6 @@ export default function VfxNode({ id, data, selected }) {
             className="nodrag nopan"
             value={localFilterType} 
             onChange={(e) => update({ localFilterType: Number(e.target.value) })}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
             style={{
               width: '100%', background: '#111', border: '1px solid #3a3a3a',
               borderRadius: 6, color: '#e0e0e0', fontSize: 11, padding: '6px 8px',

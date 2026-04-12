@@ -303,8 +303,6 @@ export default function MusicGenerationNode({
           className="nodrag nopan"
           value={data.inputPrompt || ''}
           onChange={(e) => update({ inputPrompt: e.target.value })}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
           placeholder="e.g. Upbeat jazz with piano and brushed drums"
           rows={4}
           style={{ 

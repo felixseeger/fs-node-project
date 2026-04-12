@@ -210,8 +210,6 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
             key={rs.value} 
             className="nodrag nopan"
             onClick={() => update({ localRenderingSpeed: rs.value })} 
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
             style={{
               flex: 1, padding: '8px 6px', fontSize: 11, textAlign: 'center',
               borderRadius: 8, border: 'none', cursor: 'pointer',
@@ -242,7 +240,6 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
       <button
         onClick={() => setShowAdvanced(!showAdvanced)}
         className="nodrag nopan"
-        onMouseDown={(e) => e.stopPropagation()}
         style={{
           width: '100%', padding: '8px 0', marginTop: 8, marginBottom: 4,
           background: 'transparent', border: 'none', cursor: 'pointer',

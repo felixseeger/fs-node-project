@@ -178,7 +178,6 @@ const ImageNode: FC<NodeProps> = ({ id, data, selected }) => {
                   title="Click to annotate"
                   role="button"
                   tabIndex={0}
-                  onMouseDown={(e) => e.stopPropagation()}
                   onKeyDown={(e: KeyboardEvent<HTMLImageElement>) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
@@ -205,8 +204,6 @@ const ImageNode: FC<NodeProps> = ({ id, data, selected }) => {
                     e.stopPropagation();
                     removeImage(i);
                   }}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
                   style={{
                     position: 'absolute',
                     top: 4,
@@ -235,8 +232,6 @@ const ImageNode: FC<NodeProps> = ({ id, data, selected }) => {
             {images.length < 3 && (
               <div
                 onClick={() => fileRef.current?.click()}
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
                 className="nodrag nopan"
                 style={{
                   width: '100%',

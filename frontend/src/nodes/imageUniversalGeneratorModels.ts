@@ -19,6 +19,14 @@ export const IMAGE_UNIVERSAL_MODEL_DEFS = {
     description: 'State-of-the-art image generation model',
     type: 'generation',
   },
+  'Nano Banana 2 Pro': {
+    name: 'Nano Banana 2 Pro',
+    provider: 'Freepik',
+    featured: true,
+    tags: ['Pro', 'JSON', 'High Fidelity'],
+    description: 'Advanced image generation with JSON control',
+    type: 'generation',
+  },
   recraftv4: {
     name: 'Recraft V4',
     provider: 'Recraft',

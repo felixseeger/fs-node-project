@@ -767,8 +767,6 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
               className="nodrag nopan w-full"
               value={es[key] ?? 0}
               onChange={e => setEditSetting(key, Number(e.target.value))}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
               style={numInput}
             />
           </div>
@@ -793,9 +791,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
               min="0" max="1" step="0.05" 
               value={Math.max(0, Math.min(1, es.creativity ?? 0))}
               onChange={e => setEditSetting('creativity', parseFloat(e.target.value))}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-            />
+              />
             <span className="text-[10px] text-slate-500 min-w-[24px]">{(Math.max(0, Math.min(1, es.creativity ?? 0))).toFixed(2)}</span>
           </div>
         </div>
@@ -816,9 +812,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
               min="0" max="10" step="1" 
               value={Math.max(0, Math.min(10, es.sharpen ?? 7))}
               onChange={e => setEditSetting('sharpen', Number(e.target.value))}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-            />
+              />
             <span className="text-[10px] text-slate-500 min-w-[16px]">{Math.max(0, Math.min(10, es.sharpen ?? 7))}</span>
           </div>
         </div>
@@ -835,16 +829,12 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
                 className="nodrag nopan nowheel flex-1"
                 value={val}
                 onChange={e => setEditSetting(key, Number(e.target.value))}
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-              />
+                />
               <input 
                 type="number" min={min} max={max} step={step}
                 className="nodrag nopan nowheel"
                 value={val}
                 onChange={e => setEditSetting(key, Number(e.target.value))}
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
                 style={numInput} 
               />
             </div>
@@ -992,8 +982,6 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
                 className="nodrag nopan nowheel bg-transparent border-none text-slate-100 text-sm resize-none outline-none w-full disabled:opacity-50 overflow-hidden min-h-[60px]"
                 value={data.inputPrompt || ''} 
                 onChange={e => update({ inputPrompt: e.target.value })} 
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
                 disabled={promptDisabled} 
                 placeholder={promptPlaceholder} 
                 rows={promptDisabled ? 2 : 4} 
@@ -1008,20 +996,48 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path></svg>
                 </button>
                 {showReferenceMenu && (
-                  <div className="nodrag nopan absolute top-full left-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg p-1 z-10 flex flex-col gap-1 shadow-2xl w-24">
-                    {['@img_1', '@img_2', '@img_3', '@img_4'].map(tag => (
-                      <div key={tag} onClick={() => {
-                        const input = promptRef.current;
-                        if (!input) return;
-                        const start = input.selectionStart || 0;
-                        const end = input.selectionEnd || 0;
-                        const val = input.value;
-                        const newVal = val.substring(0, start) + tag + val.substring(end);
-                        update({ inputPrompt: newVal });
-                        setTimeout(() => { input.focus(); input.setSelectionRange(start + tag.length, start + tag.length); }, 0);
-                        setShowReferenceMenu(false);
-                      }} className="p-1.5 px-2 rounded-md cursor-pointer text-slate-300 hover:bg-slate-800 hover:text-white text-[10px] font-mono transition-colors">{tag}</div>
-                    ))}
+                  <div className="nodrag nopan absolute top-full left-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2 z-10 flex flex-col gap-2 shadow-2xl min-w-[120px]">
+                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Canvas Images</div>
+                    {(() => {
+                      const canvasImages = data.resolveInput?.(id, 'global-canvas-images') || [];
+                      if (canvasImages.length === 0) {
+                        return <div className="text-[9px] text-slate-600 italic">No images on canvas</div>;
+                      }
+                      return (
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {canvasImages.map((img: any) => (
+                            <div 
+                              key={img.id} 
+                              onClick={() => {
+                                const input = promptRef.current;
+                                if (!input) return;
+                                const start = input.selectionStart || 0;
+                                const end = input.selectionEnd || 0;
+                                const val = input.value;
+                                // We don't have a specific tag mapping yet for backend, 
+                                // but we can insert the label or just use it as a visual reference for now.
+                                // The user's request was mainly about being ABLE to use them.
+                                const tag = ` @${img.label.replace(/\s+/g, '_').toLowerCase()} `;
+                                const newVal = val.substring(0, start) + tag + val.substring(end);
+                                update({ inputPrompt: newVal });
+                                
+                                // Also send to chat if they want to use it as reference there
+                                window.dispatchEvent(new CustomEvent('send-to-chat', { 
+                                  detail: { images: [img.url], name: img.label } 
+                                }));
+
+                                setTimeout(() => { input.focus(); input.setSelectionRange(start + tag.length, start + tag.length); }, 0);
+                                setShowReferenceMenu(false);
+                              }}
+                              className="aspect-square rounded border border-slate-800 overflow-hidden cursor-pointer hover:border-pink-500 transition-colors bg-black"
+                              title={img.label}
+                            >
+                              <img src={img.url} alt="" className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

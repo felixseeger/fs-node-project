@@ -123,13 +123,14 @@ export default function BaseNode({
           ) : (
             <span style={{
               fontSize: 14,
-              fontWeight: 500,
-              letterSpacing: '0.02em',
-              color: 'var(--color-text)',
-              textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+              fontWeight: 600,
+              letterSpacing: '0.01em',
+              color: '#f8fafc',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
+              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
             }}>{label || 'Untitled'}</span>
           )}
         </div>

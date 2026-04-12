@@ -164,8 +164,6 @@ export default function FluxReimagineNode({ id, data, selected }) {
               key={im.value} 
               className="nodrag nopan"
               onClick={() => update({ localImagination: im.value })} 
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
               style={{
                 flex: 1, padding: '8px 6px', fontSize: 11, textAlign: 'center',
                 borderRadius: 8, border: 'none', cursor: 'pointer',

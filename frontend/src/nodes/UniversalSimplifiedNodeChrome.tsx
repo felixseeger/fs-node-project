@@ -85,8 +85,7 @@ export default function UniversalSimplifiedNodeChrome({
               padding: sp[5],
               boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
             }}
-            onMouseDown={(e) => e.stopPropagation()}
-          >
+            >
             <h2
               id="universal-node-comment-heading"
               style={{
@@ -112,8 +111,6 @@ export default function UniversalSimplifiedNodeChrome({
               aria-label="Add a comment"
               value={draftComment}
               onChange={(e) => setDraftComment(e.target.value)}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
               placeholder="Add a comment..."
               rows={4}
               style={{
@@ -143,8 +140,6 @@ export default function UniversalSimplifiedNodeChrome({
                 type="button"
                 className="nodrag nopan"
                 onClick={() => toggleCommentModal(false)}
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -160,8 +155,6 @@ export default function UniversalSimplifiedNodeChrome({
                 type="button"
                 className="nodrag nopan"
                 onClick={saveComment}
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
                 style={{
                   background: border.active,
                   border: 'none',

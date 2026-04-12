@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
-import { useNodeConnections } from './shared';
+import { useNodeConnections, Toggle } from './shared';
 import { getHandleColor } from '../utils/handleTypes';
 import { CATEGORY_COLORS } from './nodeTokens';
 import { relightImage, pollRelightStatus } from '../utils/api';
@@ -318,8 +318,7 @@ export default function RelightNode({ id, data, selected }) {
           background: 'transparent', border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
+        >
         <span style={{ fontSize: 11, fontWeight: 600, color: '#999' }}>Advanced Settings</span>
         <span style={{ fontSize: 11, color: '#666', transform: showAdvanced ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>›</span>
       </button>

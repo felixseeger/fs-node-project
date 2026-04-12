@@ -16,8 +16,6 @@ export function Pill({ label, isActive, onClick, accentColor = '#5ee7df' }: Pill
   return (
     <button
       onClick={onClick}
-      onMouseDown={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
       className="nodrag nopan"
       aria-pressed={isActive}
       style={{
@@ -78,8 +76,6 @@ export function Toggle({ label, value, checked, onChange, accentColor = '#5ee7df
   const toggleBtn = (
     <button
       onClick={() => onChange(!isChecked)}
-      onMouseDown={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
       className="nodrag nopan"
       role="switch"
       aria-checked={isChecked}
@@ -153,8 +149,6 @@ export function Slider({
           className="nodrag nopan"
           min={min} max={max} step={step} value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
           aria-label={label}
           
           style={{ 
@@ -194,8 +188,6 @@ export function DirectionSlider({ label, value, onChange, max = 2048, step = 64,
         type="range" min={0} max={max} step={step} value={value}
         className="nodrag nopan"
         onChange={(e) => onChange(Number(e.target.value))}
-        onMouseDown={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
         aria-label={`${label} expansion`}
         style={{ flex: 1, accentColor }}
       />
@@ -232,8 +224,6 @@ export function PromptInput({ value, onChange, placeholder, rows = 3 }: PromptIn
       className="nodrag nopan"
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
-      onMouseDown={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
       placeholder={placeholder}
       rows={rows}
       style={{
@@ -271,8 +261,6 @@ export function TextInput({ value, onChange, placeholder, type = 'text' }: TextI
       className="nodrag nopan"
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
-      onMouseDown={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
       placeholder={placeholder}
       style={{
         width: '100%', background: surface.sunken, border: `1px solid ${border.input}`,

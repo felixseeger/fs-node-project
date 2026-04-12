@@ -123,7 +123,6 @@ export default function ImageUploadBox({
     <>
       <div
         onClick={() => fileRef.current?.click()}
-        onMouseDown={(e) => e.stopPropagation()}
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

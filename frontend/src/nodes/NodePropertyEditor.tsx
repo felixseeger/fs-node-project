@@ -8,6 +8,7 @@ import {
   AspectRatioIcon,
   ResolutionIcon,
   AspectFrameMini,
+  ClockIcon,
 } from './NodeIcons';
 import {
   IMAGE_SIZE_TIERS,
@@ -16,6 +17,7 @@ import {
   UNIVERSAL_ASPECT_LABELS,
 } from './universalImageSizes';
 import { VIDEO_UNIVERSAL_MODEL_DEFS } from './videoUniversalGeneratorModels';
+import { Toggle, Slider } from './NodeControls';
 // @ts-ignore
 import { text as textStyles, surface, border, radius, sp, font } from './nodeTokens';
 import { getHandleColor, getHandleDataType } from '../utils/handleTypes';
@@ -54,6 +56,14 @@ const VIDEO_MODEL_OPTIONS = [
   'ltx-video',
 ];
 
+const AUDIO_MODEL_OPTIONS = [
+  'Auto',
+  'strudelNode',
+  'musicGeneration',
+  'soundEffects',
+  'voiceover',
+];
+
 const FRIENDLY_MODEL_LABELS: Record<string, string> = {
   'Auto': 'Auto',
   'Nano Banana 2': 'Nano Banana 2',
@@ -80,6 +90,10 @@ const FRIENDLY_MODEL_LABELS: Record<string, string> = {
   'seedance': 'Seedance',
   'wan2.6': 'Wan 2.6',
   'ltx-video': 'LTX Video',
+  'strudelNode': 'Strudel Sound Generation',
+  'musicGeneration': 'ElevenLabs Music',
+  'soundEffects': 'ElevenLabs Sound Effects',
+  'voiceover': 'ElevenLabs Voiceover',
 };
 
 /** Matches ImageUniversalGeneratorNode / VideoUniversalGeneratorNode */
@@ -249,6 +263,106 @@ const UniversalAspectPicker: FC<{
   );
 };
 
+const UNIVERSAL_DURATIONS = ['3s', '5s', '8s'];
+
+const UniversalDurationPicker: FC<{
+  value: string;
+  onChange: (duration: string) => void;
+}> = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as globalThis.Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={`Duration, currently ${value}`}
+        title={`Duration: ${value}`}
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          ...universalIconSelectShell,
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          cursor: 'pointer',
+          padding: 0,
+        }}
+      >
+        <span
+          style={{
+            color: 'rgba(255,255,255,0.88)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          <ClockIcon style={{ display: 'block' }} />
+          {value}
+        </span>
+      </button>
+      {open && (
+        <div role="listbox" style={{...universalAspectPickerPopover, minWidth: 120}}>
+          {UNIVERSAL_DURATIONS.map((dur) => {
+            const selected = dur === value;
+            return (
+              <button
+                key={dur}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => {
+                  onChange(dur);
+                  setOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: selected ? 'rgba(59, 130, 246, 0.18)' : 'transparent',
+                  color: '#e8e8ec',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                }}
+              >
+                <ClockIcon style={{ flexShrink: 0 }} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, lineHeight: 1.25 }}>
+                    {dur}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 /** GeneratorNode (Kora vs Nano Banana) */
 const KORA_ASPECTS = ['Auto', '1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
 const NANO_ASPECTS = ['Auto', '1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
@@ -258,10 +372,12 @@ const NANO_RESOLUTIONS = ['1K', '2K', '4K'];
 function getModelOptionsByType(nodeType?: string) {
   if (nodeType === 'universalGeneratorImage') return IMAGE_MODEL_OPTIONS;
   if (nodeType === 'universalGeneratorVideo') return VIDEO_MODEL_OPTIONS;
+  if (nodeType === 'universalGeneratorAudio') return AUDIO_MODEL_OPTIONS;
   return [];
 }
 
 function getDefaultModelByType(nodeType?: string) {
+  if (nodeType === 'universalGeneratorAudio') return 'strudelNode';
   return nodeType === 'universalGeneratorVideo' ? 'kling3' : 'Nano Banana 2';
 }
 
@@ -270,6 +386,7 @@ function isInspectorRunnableGeneratorType(nodeType?: string): boolean {
   return (
     nodeType === 'universalGeneratorImage' ||
     nodeType === 'universalGeneratorVideo' ||
+    nodeType === 'universalGeneratorAudio' ||
     nodeType === 'musicGeneration' ||
     nodeType === 'tripo3d' ||
     nodeType === 'quiverImageToVector' ||
@@ -281,50 +398,53 @@ const styles: Record<string, React.CSSProperties> = {
   compactContainer: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
-    height: '100%',
-    padding: '20px',
+    gap: '24px',
+    maxHeight: '100%',
+    padding: '24px',
     overflowY: 'auto',
-    color: 'var(--color-text)',
+    color: '#e2e8f0',
   },
   panelContainer: {
     position: 'fixed',
     top: '20px',
     right: '20px',
     bottom: '20px',
-    width: '320px',
-    backgroundColor: 'var(--color-surface)',
-    backdropFilter: 'blur(20px)',
-    border: '1px solid var(--color-border)',
+    width: '340px',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    backdropFilter: 'blur(24px) saturate(150%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(150%)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
     borderRadius: '16px',
     zIndex: 1000,
-    color: 'var(--color-text)',
+    color: '#f8fafc',
     display: 'flex',
     flexDirection: 'column',
-    boxShadow: 'var(--shadow-lg)',
+    boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
+    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
   },
   wrapper: {
     padding: '24px',
     display: 'flex',
     flexDirection: 'column',
     gap: '20px',
-    height: '100%',
-    overflowY: 'auto'
+    maxHeight: '100%',
+    overflowY: 'auto',
+    scrollbarWidth: 'none',
   },
   sectionHeader: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingBottom: '12px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+    borderBottom: '1px solid rgba(255, 255, 255, 0.06)'
   },
   titleText: {
-    fontSize: '12px',
-    fontWeight: '700',
-    color: 'var(--color-text)',
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase'
+    fontSize: '11px',
+    fontWeight: 600,
+    color: '#94a3b8',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
   },
   sectionBody: {
     display: 'flex',
@@ -332,39 +452,41 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '16px'
   },
   labelText: {
-    fontSize: '10px',
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.4)',
-    letterSpacing: '0.05em',
-    textTransform: 'uppercase',
-    marginBottom: '8px'
+    fontSize: '11px',
+    fontWeight: 500,
+    color: '#cbd5e1',
+    letterSpacing: '0.02em',
+    marginBottom: '6px',
+    display: 'block',
   },
   valueText: {
-    fontSize: '12px',
-    color: 'var(--color-text-dim)',
-    backgroundColor: 'var(--color-card)',
-    padding: '8px 12px',
+    fontSize: '13px',
+    color: '#f1f5f9',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    padding: '10px 14px',
     borderRadius: '8px',
-    border: '1px solid var(--color-border-subtle)',
+    border: '1px solid rgba(255, 255, 255, 0.04)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)',
   },
   input: {
     width: '100%',
-    backgroundColor: 'var(--color-input)',
-    border: '1px solid var(--color-border)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: '8px',
-    color: 'var(--color-text)',
-    padding: '10px 12px',
-    fontSize: '12px',
+    color: '#f8fafc',
+    padding: '10px 14px',
+    fontSize: '13px',
     outline: 'none',
-    transition: 'border-color 0.2s',
-    boxSizing: 'border-box'
+    transition: 'all 0.2s ease',
+    boxSizing: 'border-box',
+    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)',
   },
   row: {
     display: 'flex',
-    gap: '12px'
+    gap: '16px'
   }
 };
 
@@ -376,12 +498,10 @@ interface InEndPointSearchProps {
 const InEndPointSearch: FC<InEndPointSearchProps> = ({ value, onChange }) => (
   <div style={{ position: 'relative', marginBottom: '12px' }}>
     <input 
-      className="nodrag nopan"
+      className="nodrag nopan node-property-editor-input"
       style={{ ...styles.input, paddingLeft: '32px' }}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      onMouseDown={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
       placeholder="Search properties..."
     />
     <svg 
@@ -462,21 +582,38 @@ const NodePropertyEditor: FC<NodePropertyEditorProps> = ({
     lockInfo,
   };
 
-  if (compact) {
-    return (
-      <div style={styles.compactContainer}>
-        <EditorContent {...editorProps} />
-      </div>
-    );
-  }
-
-  return createPortal(
-    <div style={styles.panelContainer} className="node-property-editor">
-      <div style={styles.wrapper}>
-        <EditorContent {...editorProps} />
-      </div>
-    </div>,
-    document.body
+  return (
+    <>
+      <style>{`
+        .node-property-editor-input:focus {
+          border-color: rgba(59, 130, 246, 0.6) !important;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2), inset 0 1px 2px rgba(0,0,0,0.1) !important;
+          background-color: rgba(0, 0, 0, 0.3) !important;
+        }
+        .node-property-editor-input {
+          transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1) !important;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+      {compact ? (
+        <div style={styles.compactContainer}>
+          <EditorContent {...editorProps} />
+        </div>
+      ) : createPortal(
+        <div style={styles.panelContainer} className="node-property-editor">
+          <div style={styles.wrapper}>
+            <EditorContent {...editorProps} />
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 };
 
@@ -521,7 +658,7 @@ const EditorContent: FC<EditorContentProps> = ({
   lockInfo = null,
 }) => {
   const isUniversalGenerator =
-    node.type === 'universalGeneratorImage' || node.type === 'universalGeneratorVideo';
+    node.type === 'universalGeneratorImage' || node.type === 'universalGeneratorVideo' || node.type === 'universalGeneratorAudio';
   const isGeneratorNode = node.type === 'generator';
   const generatorIsKora = node.data.generatorType === 'kora';
   const generatorAspects = generatorIsKora ? KORA_ASPECTS : NANO_ASPECTS;
@@ -557,6 +694,7 @@ const EditorContent: FC<EditorContentProps> = ({
     VIDEO_LTX_RESOLUTION_BY_ASPECT[universalAspect] ||
     VIDEO_LTX_RESOLUTION_BY_ASPECT['1:1'] ||
     '';
+  const universalVideoDuration = (node.data.localDuration as string) || '5s';
   const modelOptions = getModelOptionsByType(node.type);
   const currentModels = (node.data.models as string[]) || [];
   const pinnedModels = (node.data.pinnedModels as string[]) || [];
@@ -713,14 +851,12 @@ const EditorContent: FC<EditorContentProps> = ({
             <div>
               <div style={styles.labelText}>NODE LABEL</div>
               <input
-                className="nodrag nopan"
+                className="nodrag nopan node-property-editor-input"
                 style={styles.input}
                 value={(node.data.label as string) || ''}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   onUpdate(node.id, { label: e.target.value })
                 }
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
                 placeholder="Enter node label..."
               />
             </div>
@@ -767,9 +903,7 @@ const EditorContent: FC<EditorContentProps> = ({
                   onChange={(e: ChangeEvent<HTMLSelectElement>) =>
                     onUpdate(node.id, { localAspectRatio: e.target.value })
                   }
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                >
+                  >
                   {generatorAspects.map((ar) => (
                     <option key={ar} value={ar}>
                       {ar}
@@ -786,9 +920,7 @@ const EditorContent: FC<EditorContentProps> = ({
                   onChange={(e: ChangeEvent<HTMLSelectElement>) =>
                     onUpdate(node.id, { localResolution: e.target.value })
                   }
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                >
+                  >
                   {generatorResolutions.map((r) => (
                     <option key={r} value={r}>
                       {r}
@@ -799,7 +931,7 @@ const EditorContent: FC<EditorContentProps> = ({
             </div>
           )}
 
-          {isUniversalGenerator && (
+          {isUniversalGenerator && node.type !== 'universalGeneratorAudio' && (
             <div>
               <div
                 style={{
@@ -837,8 +969,6 @@ const EditorContent: FC<EditorContentProps> = ({
                       aria-label={`Image output tier, currently ${universalImageSizeTier}`}
                       style={universalIconSelectNative}
                       value={universalImageSizeTier}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
                       onChange={(e: ChangeEvent<HTMLSelectElement>) =>
                         onUpdate(node.id, { imageSizeTier: e.target.value })
                       }
@@ -871,8 +1001,6 @@ const EditorContent: FC<EditorContentProps> = ({
                       aria-label={`Output resolution, currently ${universalVideoCurrentPx.replace('x', ' × ')} pixels`}
                       style={universalIconSelectNative}
                       value={universalVideoCurrentPx}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
                       onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                         const ar = VIDEO_SIZE_TO_ASPECT[e.target.value];
                         if (ar) onUpdate(node.id, { aspectRatio: ar });
@@ -889,6 +1017,12 @@ const EditorContent: FC<EditorContentProps> = ({
                       })}
                     </select>
                   </div>
+                )}
+                {node.type === 'universalGeneratorVideo' && (
+                  <UniversalDurationPicker
+                    value={universalVideoDuration}
+                    onChange={(dur) => onUpdate(node.id, { localDuration: dur })}
+                  />
                 )}
               </div>
 
@@ -935,146 +1069,181 @@ const EditorContent: FC<EditorContentProps> = ({
                 </button>
               )}
               {!hideUniversalModelHeading && (
-                <div style={{ ...styles.titleText, marginBottom: '10px' }}>MODEL SELECTION</div>
+                <div style={{ ...styles.titleText, marginBottom: '12px', color: '#94a3b8', letterSpacing: '0.05em' }}>MODEL SELECTION</div>
               )}
 
               <div
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: '14px',
-                  marginBottom: '10px',
-                  flexWrap: 'wrap',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  marginBottom: '16px',
+                  padding: '12px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.05)'
                 }}
               >
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    cursor: 'pointer',
-                    flex: '1 1 0',
-                    minWidth: 0,
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    className="nodrag nopan"
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#e2e8f0' }}>Auto-pilot</span>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>Let AI pick the best model for your prompt</span>
+                  </div>
+                  <Toggle
                     checked={autoSelect}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => handleAutoSelectChange(e.target.checked)}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
+                    onChange={(v) => handleAutoSelectChange(v)}
+                    accentColor="#3b82f6"
+                    plain
                   />
-                  <span style={styles.labelText}>Auto select model</span>
-                </label>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    cursor: autoSelect ? 'not-allowed' : 'pointer',
-                    flex: '1 1 0',
-                    minWidth: 0,
-                    opacity: autoSelect ? 0.55 : 1,
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    className="nodrag nopan"
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: autoSelect ? 0.4 : 1, transition: 'opacity 0.2s', pointerEvents: autoSelect ? 'none' : 'auto' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#e2e8f0' }}>Multiple models</span>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>Run prompt through multiple models simultaneously</span>
+                  </div>
+                  <Toggle
                     checked={useMultiple}
-                    disabled={autoSelect}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => handleUseMultipleChange(e.target.checked)}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
+                    onChange={(v) => handleUseMultipleChange(v)}
+                    accentColor="#3b82f6"
+                    plain
                   />
-                  <span style={styles.labelText}>Use multiple models</span>
-                </label>
+                </div>
+
                 {node.type === 'universalGeneratorImage' && (
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      cursor: 'pointer',
-                      flex: '1 1 0',
-                      minWidth: 0,
-                    }}
-                    title="Generate as SVG vector using Quiver"
-                  >
-                    <input
-                      type="checkbox"
-                      className="nodrag nopan"
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 500, color: !!node.data.isVector ? '#ec4899' : '#e2e8f0' }}>Vector Output</span>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>Generate SVG instead of raster image</span>
+                    </div>
+                    <Toggle
                       checked={!!node.data.isVector}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { isVector: e.target.checked })}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
+                      onChange={(v) => onUpdate(node.id, { isVector: v })}
+                      accentColor="#ec4899"
+                      plain
                     />
-                    <span style={{ ...styles.labelText, color: node.data.isVector ? '#ec4899' : styles.labelText.color }}>Vector Output</span>
-                  </label>
+                  </div>
                 )}
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }} className="nodrag nopan" onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto', paddingRight: '4px' }} className="nodrag nopan scrollbar-hide" >
                 {orderedModelOptions.map((model) => {
                   const checked = currentModels.includes(model);
                   const pinned = pinnedModels.includes(model);
                   const modelLogo = getUniversalModelLogo(model);
+                  const isMulti = !!node.data.useMultiple;
+                  
                   return (
                     <div
                       key={model}
+                      onClick={() => {
+                        if (!autoSelect) handleModelToggle(model);
+                      }}
+                      className="nodrag nopan"
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         gap: '8px',
-                        padding: '6px 8px',
-                        borderRadius: '6px',
-                        backgroundColor: checked ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        opacity: autoSelect ? 0.6 : 1,
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        backgroundColor: checked ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+                        border: `1px solid ${checked ? 'rgba(59, 130, 246, 0.4)' : 'rgba(255, 255, 255, 0.05)'}`,
+                        opacity: autoSelect ? 0.4 : 1,
+                        cursor: autoSelect ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s cubic-bezier(0.23, 1, 0.32, 1)',
+                        boxShadow: checked ? '0 4px 12px rgba(59, 130, 246, 0.1)' : 'none',
+                        transform: 'translateZ(0)',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!autoSelect && !checked) {
+                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!autoSelect && !checked) {
+                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
+                          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+                        }
                       }}
                     >
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: autoSelect ? 'not-allowed' : 'pointer', minWidth: 0, flex: 1 }}>
-                        <input
-                          type="checkbox"
-                          className="nodrag nopan"
-                          checked={checked}
-                          disabled={autoSelect}
-                          onChange={() => handleModelToggle(model)}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
-                        />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1, pointerEvents: 'none' }}>
+                        <div 
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            borderRadius: isMulti ? '4px' : '50%',
+                            border: `2px solid ${checked ? '#3b82f6' : 'rgba(255, 255, 255, 0.3)'}`,
+                            backgroundColor: checked ? '#3b82f6' : 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          {checked && (
+                            isMulti ? (
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                            ) : (
+                              <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fff' }} />
+                            )
+                          )}
+                        </div>
+                        
                         {modelLogo ? (
-                          <img
-                            src={modelLogo}
-                            alt=""
-                            width={20}
-                            height={20}
-                            style={{ flexShrink: 0, objectFit: 'contain' }}
-                          />
+                          <div style={{
+                            width: 24, height: 24, borderRadius: 6, background: 'rgba(0,0,0,0.2)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 2, flexShrink: 0
+                          }}>
+                            <img src={modelLogo} alt="" width={18} height={18} style={{ objectFit: 'contain' }} />
+                          </div>
                         ) : (
-                          <span style={{ width: 20, flexShrink: 0 }} aria-hidden />
+                          <span style={{ width: 24, flexShrink: 0 }} aria-hidden />
                         )}
-                        <span style={{ fontSize: '12px', color: '#ddd', minWidth: 0 }}>
+                        <span style={{ fontSize: '13px', color: checked ? '#fff' : '#cbd5e1', fontWeight: checked ? 600 : 400, minWidth: 0, letterSpacing: '0.01em', transition: 'color 0.2s ease' }}>
                           {FRIENDLY_MODEL_LABELS[model] || model}
                         </span>
-                      </label>
+                      </div>
 
                       <button
                         type="button"
                         className="nodrag nopan"
-                        onClick={() => handleModelPinToggle(model)}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleModelPinToggle(model);
+                        }}
                         style={{
-                          border: '1px solid rgba(255,255,255,0.15)',
-                          background: pinned ? 'rgba(245,158,11,0.18)' : 'transparent',
-                          color: pinned ? '#f59e0b' : '#999',
+                          border: `1px solid ${pinned ? 'rgba(245, 158, 11, 0.4)' : 'transparent'}`,
+                          background: pinned ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
+                          color: pinned ? '#f59e0b' : '#64748b',
                           fontSize: '10px',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
                           lineHeight: 1,
                           borderRadius: '999px',
                           padding: '4px 8px',
                           cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          opacity: (pinned || checked) ? 1 : 0.4,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.opacity = '1';
+                          if (!pinned) {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                            e.currentTarget.style.color = '#94a3b8';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!pinned) {
+                            e.currentTarget.style.opacity = checked ? '1' : '0.4';
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = '#64748b';
+                          }
                         }}
                       >
                         {pinned ? 'Pinned' : 'Pin'}
@@ -1090,41 +1259,91 @@ const EditorContent: FC<EditorContentProps> = ({
           {node.type === 'universalGeneratorVideo' &&
             ((node.data.models as string[]) || []).includes('pixverse') &&
             VIDEO_UNIVERSAL_MODEL_DEFS.pixverse?.supportsSoundGeneration && (
-              <div style={{ marginTop: '16px', padding: '12px', backgroundColor: 'rgba(59,130,246,0.08)', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.25)' }}>
-                <div style={{ ...styles.titleText, marginBottom: '10px', color: '#93c5fd' }}>PIXVERSE SOUND</div>
-                
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '10px' }}>
-                  <input
-                    type="checkbox"
-                    className="nodrag nopan"
+              <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.15)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: Boolean(node.data.pixverseSoundEnabled) ? '12px' : '0' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#93c5fd' }}>Generate Audio</span>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>Synthesize matched sound effects</span>
+                  </div>
+                  <Toggle
                     checked={Boolean(node.data.pixverseSoundEnabled)}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { pixverseSoundEnabled: e.target.checked })}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
+                    onChange={(v) => onUpdate(node.id, { pixverseSoundEnabled: v })}
+                    accentColor="#3b82f6"
+                    plain
                   />
-                  <span style={styles.labelText}>Generate Sound Effects</span>
-                </label>
+                </div>
                 
-                {Boolean(node.data.pixverseSoundEnabled) && (
-                  <div>
-                    <div style={{ ...styles.labelText, marginBottom: '6px' }}>Sound Description</div>
-                    <textarea
-                      className="nodrag nopan"
-                      value={String(node.data.pixverseSoundContent || '')}
-                      onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onUpdate(node.id, { pixverseSoundContent: e.target.value })}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      placeholder="Describe the sound effects (e.g., ocean waves, birds chirping, futuristic sci-fi ambience)..."
-                      rows={3}
-                      style={{ ...styles.input, width: '100%', resize: 'vertical', minHeight: '60px' }}
-                    />
-                    <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-                      Leave empty for auto-generated sound based on your prompt
+                <div style={{
+                  display: 'grid',
+                  gridTemplateRows: Boolean(node.data.pixverseSoundEnabled) ? '1fr' : '0fr',
+                  transition: 'grid-template-rows 0.3s ease-out',
+                }}>
+                  <div style={{ overflow: 'hidden' }}>
+                    <div style={{ paddingTop: '8px' }}>
+                      <div style={{ ...styles.labelText, marginBottom: '6px', color: '#94a3b8' }}>Sound Description</div>
+                      <textarea
+                        className="nodrag nopan node-property-editor-input"
+                        value={String(node.data.pixverseSoundContent || '')}
+                        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onUpdate(node.id, { pixverseSoundContent: e.target.value })}
+                        placeholder="Leave empty for auto-generated sound based on video prompt..."
+                        rows={2}
+                        style={{ ...styles.input, width: '100%', resize: 'vertical', minHeight: '50px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', color: '#e2e8f0', fontSize: '13px' }}
+                      />
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             )}
+
+          {/* Audio Generation Settings */}
+          {node.type === 'universalGeneratorAudio' && currentModels[0] !== 'strudelNode' && (
+            <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(168, 85, 247, 0.05)', borderRadius: '8px', border: '1px solid rgba(168, 85, 247, 0.15)' }}>
+              <div style={{ ...styles.titleText, marginBottom: '12px', color: '#d8b4fe' }}>AUDIO SETTINGS</div>
+              
+              {['musicGeneration', 'soundEffects'].includes(currentModels[0]) && (
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={styles.labelText}>Duration</span>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>{node.data.localDuration || (currentModels[0] === 'musicGeneration' ? 30 : 5)}s</span>
+                  </div>
+                  <Slider
+                    value={Number(node.data.localDuration) || (currentModels[0] === 'musicGeneration' ? 30 : 5)}
+                    onChange={(v) => onUpdate(node.id, { localDuration: v })}
+                    min={1} max={30} step={1}
+                  />
+                </div>
+              )}
+
+              {currentModels[0] === 'soundEffects' && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={styles.labelText}>Loop Effect</span>
+                  <Toggle
+                    checked={Boolean(node.data.localLoop)}
+                    onChange={(v) => onUpdate(node.id, { localLoop: v })}
+                    accentColor="#a855f7"
+                  />
+                </div>
+              )}
+
+              {currentModels[0] === 'voiceover' && (
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ ...styles.labelText, marginBottom: '6px' }}>Voice Selection</div>
+                  <select
+                    className="nodrag nopan"
+                    style={{ ...styles.input, width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', color: '#e2e8f0', fontSize: '13px' }}
+                    value={(node.data.localVoiceId as string) || '21m00Tcm4TlvDq8ikWAM'}
+                    onChange={(e) => onUpdate(node.id, { localVoiceId: e.target.value })}
+                  >
+                    <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Female, Soft)</option>
+                    <option value="AZnzlk1XvdvUeBnXmlS6">Nicole (Female, Whisper)</option>
+                    <option value="EXAVITQu4vr4xnSDxMaL">Bella (Female, Soft)</option>
+                    <option value="ErXwSzhRrr21m0C4v38i">Antoni (Male, Deep)</option>
+                    <option value="GBv7mTt0atIp3Y8iX6jw">Thomas (Male, Calm)</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Text Element Content Section (only for TextElementNode) */}
           {node.type === 'textElement' && (
@@ -1156,20 +1375,16 @@ const EditorContent: FC<EditorContentProps> = ({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <input
                         type="color"
-                        className="nodrag nopan"
+                        className="nodrag nopan node-property-editor-input"
                         value={(node.data.textColor as string) || '#e0e0e0'}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { textColor: e.target.value })}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
                         style={{ width: '30px', height: '24px', padding: 0, border: '1px solid #333', background: 'transparent', cursor: 'pointer' }}
                       />
                       <input
                         type="text"
-                        className="nodrag nopan"
+                        className="nodrag nopan node-property-editor-input"
                         value={(node.data.textColor as string) || '#e0e0e0'}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { textColor: e.target.value })}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
                         style={{ ...styles.input, flex: 1, fontSize: '11px', padding: '4px 8px' }}
                       />
                     </div>
@@ -1182,20 +1397,16 @@ const EditorContent: FC<EditorContentProps> = ({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <input
                       type="color"
-                      className="nodrag nopan"
+                      className="nodrag nopan node-property-editor-input"
                       value={(node.data.bgColor as string) || '#00000000'}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { bgColor: e.target.value })}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
                       style={{ width: '30px', height: '24px', padding: 0, border: '1px solid #333', background: 'transparent', cursor: 'pointer' }}
                     />
                     <input
                       type="text"
-                      className="nodrag nopan"
+                      className="nodrag nopan node-property-editor-input"
                       value={(node.data.bgColor as string) || 'transparent'}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { bgColor: e.target.value })}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
                       style={{ ...styles.input, flex: 1, fontSize: '11px', padding: '4px 8px' }}
                       placeholder="transparent or hex..."
                     />
@@ -1207,7 +1418,7 @@ const EditorContent: FC<EditorContentProps> = ({
                     HTML Source
                   </div>
                   <textarea
-                    className="nodrag nopan"
+                    className="nodrag nopan node-property-editor-input"
                     style={{
                       ...styles.input,
                       minHeight: '100px',
@@ -1217,8 +1428,6 @@ const EditorContent: FC<EditorContentProps> = ({
                       lineHeight: '1.4',
                       resize: 'vertical'
                     }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
                     value={(node.data.text as string) || ''}
                     onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onUpdate(node.id, { text: e.target.value })}
                     placeholder="HTML content..."

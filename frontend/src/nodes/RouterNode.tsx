@@ -87,8 +87,6 @@ const RouterNode: FC<NodeProps> = ({ id, data, selected }) => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
                 <button 
                   onClick={() => removeOutput(out.id)}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
                   className="nodrag nopan"
                   disabled={outputs.length === 1}
                   style={{ 
@@ -102,8 +100,6 @@ const RouterNode: FC<NodeProps> = ({ id, data, selected }) => {
                   className="nodrag nopan"
                   value={out.label}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => updateOutputLabel(out.id, e.target.value)}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
                   style={{
                     background: 'transparent', border: 'none', color: '#ccc', fontSize: 12, width: '100%', outline: 'none'
                   }}

@@ -158,8 +158,6 @@ const SimplifiedGeneratorNode: FC<NodeProps<Node<GeneratorNodeData>>> = ({ id, d
               className="nodrag nopan"
               value={(data.inputPrompt as string) || ''}
               onChange={(e) => update({ inputPrompt: e.target.value })}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
               placeholder="What do you want to generate?"
               style={{
                 width: '100%',
