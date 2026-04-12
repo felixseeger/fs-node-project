@@ -19,8 +19,8 @@ export const NODE_MENU: NodeMenuSection[] = [
     items: [
       {
         type: 'imageAnalyzer',
-        label: 'Claude Sonnet Vision',
-        defaults: { label: 'Claude Sonnet Vision', systemDirections: '', localPrompt: '', analysisResult: '', localImages: [] },
+        label: 'Gemini 3 Pro',
+        defaults: { label: 'Gemini 3 Pro', systemDirections: '', localPrompt: '', analysisResult: '', localImages: [] },
       },
       {
         type: 'imageToPrompt',

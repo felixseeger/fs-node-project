@@ -139,10 +139,10 @@ app.listen(PORT, () => {
 ║                                                            ║
 ║   API Status:                                              ║
 ║   ${hasFreepikKey ? '✅' : '❌'} Freepik API (images, video, audio)               ║
-║   ${hasAnthropicKey ? '✅' : '❌'} Anthropic API (Claude Vision)                 ║
+║   ${hasAnthropicKey ? '✅' : '❌'} Anthropic API (Fallback Vision)                 ║
 ║   ${hasElevenLabsKey ? '✅' : '❌'} ElevenLabs API (Voiceover)                    ║
 ║   ${hasLtxKey ? '✅' : '❌'} LTX Video API (direct)                      ║
-║   ${hasGeminiKey ? '✅' : '❌'} Google Gemini API (Imagen 3)                 ║
+║   ${hasGeminiKey ? '✅' : '❌'} Google Gemini API (Gemini 3 Pro + Imagen 4)                 ║
 ║   ${hasCloudinaryConfig ? '✅' : '❌'} Cloudinary API (workflow thumbnails)         ║
 ║                                                            ║
 ║   Available endpoints:                                     ║

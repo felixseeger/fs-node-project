@@ -159,7 +159,7 @@ const ImageAnalyzerNode: FC<NodeProps> = ({ id, data, selected }) => {
 
   return (
     <NodeShell data={data}
-      label={(data.label as string) || 'Claude Sonnet Vision'}
+      label={(data.label as string) || 'Gemini 3 Pro'}
       dotColor="#f97316"
       selected={selected}
       onDisconnect={disconnectNode}

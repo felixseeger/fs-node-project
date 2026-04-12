@@ -83,7 +83,7 @@ export const PRICING_CATALOG: Record<string, NodePricing> = {
     name: 'Claude 3.5 Sonnet', 
     baseCost: 1, 
     category: 'text',
-    description: 'Anthropic reasoning and text processing'
+    description: 'Google reasoning and text processing'
   },
   'gpt-4o': { 
     id: 'gpt-4o', 

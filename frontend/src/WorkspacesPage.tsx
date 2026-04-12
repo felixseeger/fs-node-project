@@ -25,7 +25,7 @@ const HeroPreview: FC = () => {
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
         Input
       </div>
-      {/* Claude Haiku node */}
+      {/* Gemini 3 Flash node */}
       <div style={{
         position: 'absolute', top: 20, left: 160,
         background: '#1e1e1e', border: '1px solid #333', borderRadius: 6,
@@ -33,7 +33,7 @@ const HeroPreview: FC = () => {
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f97316' }} />
-        Claude Haiku
+        Gemini 3 Flash
       </div>
       {/* Generator node */}
       <div style={{
@@ -49,9 +49,9 @@ const HeroPreview: FC = () => {
       <svg
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
       >
-        {/* Input -> Claude Haiku */}
+        {/* Input -> Gemini 3 Flash */}
         <path d="M 100 68 C 130 68, 150 38, 170 38" stroke="#22c55e" strokeWidth="1.5" fill="none" opacity="0.6" />
-        {/* Claude Haiku -> Generate (going down) */}
+        {/* Gemini 3 Flash -> Generate (going down) */}
         <path d="M 270 38 C 290 38, 290 68, 310 68" stroke="#f97316" strokeWidth="1.5" fill="none" opacity="0.6" />
         {/* Input -> Generate */}
         <path d="M 100 72 C 190 72, 230 72, 310 72" stroke="#3b82f6" strokeWidth="1.5" fill="none" opacity="0.4" />

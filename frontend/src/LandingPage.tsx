@@ -127,7 +127,7 @@ const HeroWorkflowDiagram: FC = () => {
         </div>
       </div>
 
-      {/* Node 2: Claude Vision */}
+      {/* Node 2: Gemini 3 Pro */}
       <div style={{
         position: 'absolute', top: 140, left: '40%',
         background: 'var(--color-input)', border: '1px solid var(--color-border)', borderRadius: 10,
@@ -140,7 +140,7 @@ const HeroWorkflowDiagram: FC = () => {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 11, fontWeight: 700, color: 'var(--color-accent)'
           }}>2</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>Claude Vision</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>Gemini 3 Pro</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -185,11 +185,11 @@ const HeroWorkflowDiagram: FC = () => {
             <stop offset="100%" stopColor="var(--color-brand-purple)" stopOpacity="0.8" />
           </linearGradient>
         </defs>
-        {/* Image Input -> Claude Vision */}
+        {/* Image Input -> Gemini 3 Pro */}
         <path d="M 180 115 C 240 115, 240 175, 430 175" stroke="var(--color-brand-pink)" strokeWidth="2" strokeDasharray="4 4" fill="none" opacity="0.4">
           <animate attributeName="stroke-dashoffset" from="40" to="0" dur="2s" repeatCount="indefinite" />
         </path>
-        {/* Claude Vision -> Response */}
+        {/* Gemini 3 Pro -> Response */}
         <path d="M 570 195 C 620 195, 620 135, 760 135" stroke="var(--color-brand-purple)" strokeWidth="2" strokeDasharray="4 4" fill="none" opacity="0.4">
           <animate attributeName="stroke-dashoffset" from="40" to="0" dur="2s" repeatCount="indefinite" />
         </path>
@@ -313,14 +313,14 @@ const HowToWorkflowDemo: FC = () => {
           {/* Column 1 */}
           <div style={{ display: 'flex', gap: 80, position: 'absolute', top: 0, left: 0 }}>
              <NodeMini label="Clothing Input" id="1" color="var(--color-accent)" top={0} left={0} />
-             <NodeMini label="Claude Vision" id="3" color="var(--color-brand-purple)" top={0} left={250} />
+             <NodeMini label="Gemini 3 Pro" id="3" color="var(--color-brand-purple)" top={0} left={250} />
              <NodeMini label="Nano Banana" id="5" color="var(--color-brand-pink)" top={60} left={480} />
              <NodeMini label="Response" id="6" color="var(--color-success)" top={70} left={720} />
           </div>
           {/* Column 2 */}
           <div style={{ display: 'flex', gap: 100, position: 'absolute', top: 120, left: 0 }}>
              <NodeMini label="Model Input" id="2" color="var(--color-accent)" top={0} left={0} />
-             <NodeMini label="Claude Haiku" id="4" color="var(--color-brand-purple)" top={0} left={250} />
+             <NodeMini label="Gemini 3 Flash" id="4" color="var(--color-brand-purple)" top={0} left={250} />
           </div>
         </div>
       </div>

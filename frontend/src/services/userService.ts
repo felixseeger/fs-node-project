@@ -65,9 +65,9 @@ export async function createUserProfile(uid: string, email: string, displayName:
       variationBehavior: 'history',
       multiModelBehavior: 'canvas',
       defaultModels: {
-        textToText: 'Claude Sonnet 4.6',
-        imageToText: 'Claude Sonnet 4.6',
-        videoToText: 'Claude Sonnet 4.6',
+        textToText: 'Gemini 3 Pro',
+        imageToText: 'Gemini 3 Pro',
+        videoToText: 'Gemini 3 Pro',
         textToImage: 'Flux 2',
         imageToImage: 'Flux 2',
         imagesToImage: 'Flux 2',

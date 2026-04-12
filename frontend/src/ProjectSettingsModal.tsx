@@ -41,7 +41,7 @@ export function loadProjectSettingsFromStorage(): ProjectSettings {
   }
 }
 
-const LLM_PROVIDERS = ['Google', 'OpenAI', 'Anthropic'] as const;
+const LLM_PROVIDERS = ['Google', 'OpenAI', 'Google'] as const;
 type LLMProvider = typeof LLM_PROVIDERS[number];
 
 const LLM_MODELS: Record<string, string[]> = {

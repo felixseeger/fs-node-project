@@ -13,7 +13,7 @@ export const PROVIDER_CONFIG = {
     rateLimit: 60 // requests per minute
   },
   anthropic: {
-    name: 'Anthropic',
+    name: 'Google',
     apiKey: process.env.ANTHROPIC_API_KEY,
     baseUrl: 'https://api.anthropic.com/v1',
     capabilities: ['text', 'vision', 'analysis'],

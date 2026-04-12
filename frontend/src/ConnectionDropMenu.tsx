@@ -9,7 +9,7 @@ type NodeOption = { type: string; label: string };
 // ── Node type lists organized by what they accept (targets) or produce (sources) ──
 
 const IMAGE_TARGET_OPTIONS: NodeOption[] = [
-  { type: 'imageAnalyzer', label: 'Claude Sonnet Vision' },
+  { type: 'imageAnalyzer', label: 'Gemini 3 Pro' },
   { type: 'imageToPrompt', label: 'Image to Prompt' },
   { type: 'universalGeneratorImage', label: 'Universal Image (Edit)' },
   { type: 'quiverImageToVector', label: 'Quiver Image to Vector' },

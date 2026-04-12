@@ -62,10 +62,10 @@ export const PROMPT_RECIPES: PromptRecipe[] = [
   {
     id: 'recipe-image-analysis',
     title: 'Image Analysis & Auto-Prompting',
-    description: 'Analyzes an uploaded image with Claude Vision to generate a detailed description, which is then fed into an image generator to create a variation.',
+    description: 'Analyzes an uploaded image with Gemini 3 Pro to generate a detailed description, which is then fed into an image generator to create a variation.',
     nodes: [
       { type: 'sourceMediaNode', position: { x: 0, y: 0 }, data: { label: 'Source Image' } },
-      { type: 'imageAnalyzer', position: { x: 350, y: 0 }, data: { label: 'Claude Sonnet Vision', systemDirections: 'Describe the main subject, style, and lighting of this image in a single paragraph, suitable for an image generation prompt.' } },
+      { type: 'imageAnalyzer', position: { x: 350, y: 0 }, data: { label: 'Gemini 3 Pro', systemDirections: 'Describe the main subject, style, and lighting of this image in a single paragraph, suitable for an image generation prompt.' } },
       { type: 'universalGeneratorImage', position: { x: 750, y: 0 }, data: { label: 'Variation Generator', models: ['Nano Banana 2'] } },
       { type: 'imageOutput', position: { x: 1150, y: 0 }, data: { label: 'Final Output' } }
     ],

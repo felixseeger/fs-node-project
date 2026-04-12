@@ -89,7 +89,7 @@ export const NODE_DATA = [
   {
     section: 'LLMs',
     items: [
-      { label: 'Claude Sonnet Vision', inputs: ['image-in', 'prompt-in'], outputs: ['analysis-out'] },
+      { label: 'Gemini 3 Pro', inputs: ['image-in', 'prompt-in'], outputs: ['analysis-out'] },
       { label: 'Image to Prompt', inputs: ['image-in'], outputs: ['prompt-out'] },
       { label: 'Improve Prompt', inputs: ['prompt-in'], outputs: ['prompt-out'] },
       { label: 'AI Image Classifier', inputs: ['image-in'], outputs: ['text-out'] },

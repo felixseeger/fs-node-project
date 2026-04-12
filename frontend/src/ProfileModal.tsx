@@ -513,28 +513,28 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Text to text</label>
                     <select className="pm-select" value={defaultModels.textToText} onChange={e => handleDefaultModelChange('textToText', e.target.value)}>
-                      <option>Claude Sonnet 4.6</option>
+                      <option>Gemini 3 Pro</option>
                       <option>GPT-4o</option>
                       <option>Gemini 1.5 Pro</option>
-                      <option>Claude Opus 4.1</option>
+                      <option>Gemini 3 Ultra</option>
                     </select>
                   </div>
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Image to text</label>
                     <select className="pm-select" value={defaultModels.imageToText} onChange={e => handleDefaultModelChange('imageToText', e.target.value)}>
-                      <option>Claude Sonnet 4.6</option>
+                      <option>Gemini 3 Pro</option>
                       <option>GPT-4o</option>
                       <option>Gemini 1.5 Pro</option>
-                      <option>Claude Opus 4.1</option>
+                      <option>Gemini 3 Ultra</option>
                     </select>
                   </div>
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Video to text</label>
                     <select className="pm-select" value={defaultModels.videoToText} onChange={e => handleDefaultModelChange('videoToText', e.target.value)}>
-                      <option>Claude Sonnet 4.6</option>
+                      <option>Gemini 3 Pro</option>
                       <option>GPT-4o</option>
                       <option>Gemini 1.5 Pro</option>
-                      <option>Claude Opus 4.1</option>
+                      <option>Gemini 3 Ultra</option>
                     </select>
                   </div>
                 </div>

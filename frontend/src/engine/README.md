@@ -282,7 +282,7 @@ The following node types have built-in executors:
 - `assetNode` - Returns asset images
 
 ### Vision Nodes
-- `imageAnalyzer` - Analyzes images with Claude Vision
+- `imageAnalyzer` - Analyzes images with Gemini 3 Pro
 - `imageToPrompt` - Generates prompts from images
 - `improvePrompt` - Enhances prompts with AI
 - `aiImageClassifier` - Classifies images

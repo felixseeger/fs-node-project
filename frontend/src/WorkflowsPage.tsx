@@ -1,7 +1,7 @@
 import React, { useState, useCallback, type FC, type ReactNode } from 'react';
 import { type Workflow } from './types/workflow';
 
-// Workflow diagram for hero section (Image Input → Claude Vision → Response)
+// Workflow diagram for hero section (Image Input → Gemini 3 Pro → Response)
 const HeroWorkflowDiagram: FC = () => {
   return (
     <div
@@ -50,7 +50,7 @@ const HeroWorkflowDiagram: FC = () => {
         </div>
       </div>
 
-      {/* Node 2: Claude Vision */}
+      {/* Node 2: Gemini 3 Pro */}
       <div style={{
         position: 'absolute', top: 140, left: 200,
         background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 10,
@@ -62,7 +62,7 @@ const HeroWorkflowDiagram: FC = () => {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 11, fontWeight: 700, color: '#60a5fa'
           }}>2</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#e0e0e0' }}>Claude Vision</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#e0e0e0' }}>Gemini 3 Pro</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -100,9 +100,9 @@ const HeroWorkflowDiagram: FC = () => {
       <svg
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
       >
-        {/* Image Input -> Claude Vision */}
+        {/* Image Input -> Gemini 3 Pro */}
         <path d="M 180 115 C 190 115, 190 175, 200 175" stroke="#ec4899" strokeWidth="2" fill="none" opacity="0.6" />
-        {/* Claude Vision -> Response */}
+        {/* Gemini 3 Pro -> Response */}
         <path d="M 340 195 C 360 195, 360 135, 380 135" stroke="#a855f7" strokeWidth="2" fill="none" opacity="0.6" />
       </svg>
     </div>
@@ -1350,19 +1350,19 @@ export const WorkflowsPage: FC<WorkflowsPageProps> = ({
                 height: '100%',
                 pointerEvents: 'none'
               }}>
-                {/* Line 1: Clothing Input -> Claude Vision */}
+                {/* Line 1: Clothing Input -> Gemini 3 Pro */}
                 <path d="M 180 70 Q 230 70 250 70" stroke="#3b82f6" strokeWidth="2" fill="none" />
                 <circle cx="215" cy="70" r="3" fill="#3b82f6" />
 
-                {/* Line 2: Model Input -> Claude Haiku */}
+                {/* Line 2: Model Input -> Gemini 3 Flash */}
                 <path d="M 180 190 Q 230 190 250 190" stroke="#3b82f6" strokeWidth="2" fill="none" />
                 <circle cx="215" cy="190" r="3" fill="#3b82f6" />
 
-                {/* Line 3: Claude Vision -> Nano Banana */}
+                {/* Line 3: Gemini 3 Pro -> Nano Banana */}
                 <path d="M 410 70 Q 460 70 480 100" stroke="#8b5cf6" strokeWidth="2" fill="none" />
                 <circle cx="445" cy="70" r="3" fill="#8b5cf6" />
 
-                {/* Line 4: Claude Haiku -> Nano Banana */}
+                {/* Line 4: Gemini 3 Flash -> Nano Banana */}
                 <path d="M 410 190 Q 460 190 480 160" stroke="#8b5cf6" strokeWidth="2" fill="none" />
                 <circle cx="445" cy="190" r="3" fill="#8b5cf6" />
 
@@ -1467,7 +1467,7 @@ export const WorkflowsPage: FC<WorkflowsPageProps> = ({
                 </div>
               </div>
 
-              {/* Node 3: Claude Vision */}
+              {/* Node 3: Gemini 3 Pro */}
               <div style={{
                 position: 'absolute',
                 left: 260,
@@ -1501,7 +1501,7 @@ export const WorkflowsPage: FC<WorkflowsPageProps> = ({
                     fontSize: 12,
                     fontWeight: 600,
                     color: '#e0e0e0'
-                  }}>Claude Vision</span>
+                  }}>Gemini 3 Pro</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1515,7 +1515,7 @@ export const WorkflowsPage: FC<WorkflowsPageProps> = ({
                 </div>
               </div>
 
-              {/* Node 4: Claude Haiku */}
+              {/* Node 4: Gemini 3 Flash */}
               <div style={{
                 position: 'absolute',
                 left: 260,
@@ -1549,7 +1549,7 @@ export const WorkflowsPage: FC<WorkflowsPageProps> = ({
                     fontSize: 12,
                     fontWeight: 600,
                     color: '#e0e0e0'
-                  }}>Claude Haiku</span>
+                  }}>Gemini 3 Flash</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

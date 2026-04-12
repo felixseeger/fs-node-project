@@ -120,7 +120,7 @@ const REFERENCE_SECTIONS: CanvasAllNodeSection[] = [
 const EXTRA_LABELS: Record<string, string> = {
   inputNode: 'Input',
   workflowTemplate: 'Workflow Template',
-  imageAnalyzer: 'Claude Sonnet Vision',
+  imageAnalyzer: 'Gemini 3 Pro',
   creativeUpscale: 'Creative Upscale',
   precisionUpscale: 'Precision Upscale',
   relight: 'Relight',
