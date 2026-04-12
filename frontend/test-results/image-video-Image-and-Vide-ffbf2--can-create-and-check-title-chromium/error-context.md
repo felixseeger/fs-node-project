@@ -1,0 +1,961 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: image-video.spec.js >> Image and Video Node Operations >> ImageUniversalGeneratorNode - can create and check title
+- Location: tests/e2e/image-video.spec.js:58:3
+
+# Error details
+
+```
+TimeoutError: locator.waitFor: Timeout 10000ms exceeded.
+Call log:
+  - waiting for getByTestId('new-project-btn') to be visible
+
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e6]:
+    - img "Logo" [ref=e7]
+    - generic [ref=e8]: Nodespace
+  - generic [ref=e10]:
+    - navigation [ref=e11]:
+      - generic [ref=e12]:
+        - link "How it works" [ref=e13] [cursor=pointer]:
+          - /url: "#how-it-works"
+        - link "Builders" [ref=e14] [cursor=pointer]:
+          - /url: "#built-for-builders"
+        - link "Models" [ref=e15] [cursor=pointer]:
+          - /url: "#models"
+        - link "Nodes" [ref=e16] [cursor=pointer]:
+          - /url: "#nodes"
+      - generic [ref=e17]:
+        - button "Log in" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - text: Log in
+        - button "Switch to light mode" [ref=e24] [cursor=pointer]:
+          - img [ref=e26]
+    - generic [ref=e28]:
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e31]:
+            - generic [ref=e32]: New
+            - generic [ref=e33]: Visual AI Programming is here
+          - 'heading "Build AI Pipelines __l{." [level=1] [ref=e34]':
+            - generic [ref=e35]: Build AI Pipelines
+            - generic [ref=e38]:
+              - text: __
+              - text: l
+              - text: "{."
+          - paragraph [ref=e39]: The elite node-based editor for professional AI workflows. Connect vision models, generators, and enhancers into sophisticated logic, then deploy as a live API.
+          - generic [ref=e40]:
+            - button "Get Started Free" [ref=e41] [cursor=pointer]
+            - button "Watch Demo" [ref=e42] [cursor=pointer]
+        - generic [ref=e43] [cursor=pointer]:
+          - generic [ref=e46]:
+            - text: C
+            - text: ">!"
+            - text: =
+          - img [ref=e48]
+      - generic [ref=e51]:
+        - heading "Talk to your workflow" [level=2] [ref=e52]
+        - paragraph [ref=e53]: Ask questions, get explanations, and receive guidance directly from your AI pipelines
+        - generic [ref=e54]:
+          - generic [ref=e55] [cursor=pointer]:
+            - generic [ref=e56]: 💬
+            - heading "Natural Language" [level=3] [ref=e57]
+            - paragraph [ref=e58]: Ask questions in plain English about your workflow
+          - generic [ref=e59] [cursor=pointer]:
+            - generic [ref=e60]: 🔍
+            - heading "Smart Analysis" [level=3] [ref=e61]
+            - paragraph [ref=e62]: Get intelligent insights about node connections and data flow
+          - generic [ref=e63] [cursor=pointer]:
+            - generic [ref=e64]: 🎯
+            - heading "Actionable Guidance" [level=3] [ref=e65]
+            - paragraph [ref=e66]: Receive specific recommendations for optimization
+        - generic [ref=e68]:
+          - img [ref=e70]
+          - generic [ref=e74]: "Try asking: \"How does this workflow process images?\""
+        - paragraph [ref=e75]: Powered by AI-driven natural language understanding
+      - generic [ref=e76]:
+        - generic [ref=e77]:
+          - generic [ref=e80]: Introducing Workflows
+          - heading "Introducing Workflows." [level=2] [ref=e81]:
+            - text: Introducing
+            - text: Workflows.
+          - paragraph [ref=e82]: "Workflows are visual AI pipelines you build by connecting nodes on a canvas. Each node is one step in your feature: accept input, process it through AI models, and return the result. Build any AI-powered feature you can imagine, then deploy it as a live API endpoint. Use it in your own apps or sell it to clients. No code, no backend, no infrastructure."
+          - generic [ref=e83]:
+            - generic [ref=e84]:
+              - generic [ref=e85]: 20+
+              - generic [ref=e86]: AI nodes available
+            - generic [ref=e87]:
+              - generic [ref=e88]: "6"
+              - generic [ref=e89]: Pre-built templates
+            - generic [ref=e90]:
+              - generic [ref=e91]: H100
+              - generic [ref=e92]: GPU infrastructure
+            - generic [ref=e93]:
+              - generic [ref=e94]: 1-click
+              - generic [ref=e95]: API deployment
+        - generic [ref=e97]:
+          - generic [ref=e100]: RUNNING WORKFLOW
+          - generic [ref=e101]:
+            - generic [ref=e102]:
+              - generic [ref=e103]: "1"
+              - generic [ref=e104]: Image Input
+            - generic [ref=e105]:
+              - generic [ref=e108]: IMAGE
+              - generic [ref=e111]: PROMPT
+          - generic [ref=e112]:
+            - generic [ref=e113]:
+              - generic [ref=e114]: "2"
+              - generic [ref=e115]: Claude Vision
+            - generic [ref=e116]:
+              - generic [ref=e119]: SYSTEM PROMPT
+              - generic [ref=e122]: OUTPUT
+          - generic [ref=e123]:
+            - generic [ref=e124]:
+              - generic [ref=e125]: "3"
+              - generic [ref=e126]: Response
+            - generic [ref=e129]: OUTPUT
+          - img
+      - generic [ref=e130]:
+        - generic [ref=e131]:
+          - heading "Describe your feature. Get a workflow." [level=2] [ref=e132]:
+            - text: Describe your feature.
+            - text: Get a workflow.
+          - paragraph [ref=e133]: Tell our AI what feature you want to build (virtual try-on, image enhancement, content generation) and it creates the entire workflow for you. It picks the models, writes the system prompts, connects every node, and deploys your API.
+        - generic [ref=e134]:
+          - generic [ref=e135]:
+            - generic [ref=e138]: VIBE-NODING
+            - generic [ref=e139]:
+              - generic [ref=e140]: ✓
+              - generic [ref=e141]: Workflow ready
+          - generic [ref=e142]:
+            - generic [ref=e143]: 🪄
+            - generic [ref=e144]: Build me a virtual try-on feature. Users upload a clothing photo and a model photo, and the workflow generates a realistic try-on image.
+          - generic [ref=e145]:
+            - img
+            - generic:
+              - generic:
+                - generic [ref=e147]:
+                  - generic [ref=e148]: "1"
+                  - generic [ref=e149]: Clothing Input
+                - generic [ref=e158]:
+                  - generic [ref=e159]: "3"
+                  - generic [ref=e160]: Claude Vision
+                - generic [ref=e169]:
+                  - generic [ref=e170]: "5"
+                  - generic [ref=e171]: Nano Banana
+                - generic [ref=e180]:
+                  - generic [ref=e181]: "6"
+                  - generic [ref=e182]: Response
+              - generic:
+                - generic [ref=e191]:
+                  - generic [ref=e192]: "2"
+                  - generic [ref=e193]: Model Input
+                - generic [ref=e202]:
+                  - generic [ref=e203]: "4"
+                  - generic [ref=e204]: Claude Haiku
+          - generic [ref=e212]:
+            - generic [ref=e213]:
+              - generic [ref=e214]: ✓ 6 nodes
+              - generic [ref=e215]: ✓ 5 connections
+              - generic [ref=e216]: ✓ API generated
+            - generic [ref=e217]: "\"Deployed to nodespace.ai/api/try-on\""
+      - generic [ref=e218]:
+        - generic [ref=e219]:
+          - heading "Built for builders." [level=2] [ref=e220]
+          - paragraph [ref=e221]: You don't need to be a developer. If you have an idea for an AI-powered feature, you can build and ship it here.
+        - generic [ref=e222]:
+          - generic [ref=e223]:
+            - generic [ref=e224]:
+              - generic [ref=e225]: "1"
+              - heading "Creators & Agencies" [level=3] [ref=e226]
+            - paragraph [ref=e227]: Build AI photo and video tools for your clients. Deploy as APIs and charge per call.
+            - generic [ref=e231]:
+              - generic [ref=e232]: E-commerce
+              - generic [ref=e233]: Fashion
+              - generic [ref=e234]: Content creation
+          - generic [ref=e235]:
+            - generic [ref=e236]:
+              - generic [ref=e237]: "2"
+              - heading "Indie Builders & Makers" [level=3] [ref=e238]
+            - paragraph [ref=e239]: Ship AI features without writing backend code. Plug a workflow into your app with a single API call.
+            - generic [ref=e243]:
+              - generic [ref=e244]: SaaS products
+              - generic [ref=e245]: MVPs
+              - generic [ref=e246]: Side projects
+          - generic [ref=e247]:
+            - generic [ref=e248]:
+              - generic [ref=e249]: "3"
+              - heading "Teams Starting with AI" [level=3] [ref=e250]
+            - paragraph [ref=e251]: Explore AI models visually. No ML expertise required. Experiment, find what works, and deploy it. Plug and play.
+            - generic [ref=e255]:
+              - generic [ref=e256]: No-code teams
+              - generic [ref=e257]: Plug & play
+              - generic [ref=e258]: Visual builders
+        - button "Start building →" [ref=e260] [cursor=pointer]:
+          - text: Start building
+          - generic [ref=e261]: →
+      - generic [ref=e263]:
+        - generic [ref=e264]:
+          - heading "Unmatched Model Access." [level=2] [ref=e265]:
+            - text: Unmatched
+            - text: Model Access.
+          - paragraph [ref=e266]: Our unified visual engine bridges the world's most powerful AI models into a single drag-and-drop workspace. One canvas, infinite possibilities.
+        - generic [ref=e272]:
+          - heading "FLUX.1 [DEV]" [level=3] [ref=e273]
+          - paragraph [ref=e274]: State-of-the-Art Image Gen
+      - generic [ref=e277]:
+        - generic [ref=e278]:
+          - generic:
+            - generic [ref=e279]:
+              - generic: IMAGE
+            - generic [ref=e281]:
+              - generic [ref=e284]: INPUTS
+              - heading "Text" [level=2] [ref=e286]
+              - generic [ref=e287]:
+                - generic [ref=e291]: text
+                - generic [ref=e296]: text
+            - generic [ref=e298]:
+              - generic [ref=e301]: INPUTS
+              - heading "Image" [level=2] [ref=e303]
+              - generic [ref=e304]:
+                - generic [ref=e308]: image
+                - generic [ref=e313]: image
+            - generic [ref=e315]:
+              - generic [ref=e318]: INPUTS
+              - heading "Asset" [level=2] [ref=e320]
+              - generic [ref=e321]:
+                - generic [ref=e325]: image
+                - generic [ref=e330]: image
+            - generic [ref=e332]:
+              - generic [ref=e335]: INPUTS
+              - heading "Source Media Upload" [level=2] [ref=e337]
+              - generic [ref=e338]:
+                - generic [ref=e342]: video / audio
+                - generic [ref=e347]: video
+            - generic [ref=e348]:
+              - generic: VISION
+            - generic [ref=e350]:
+              - generic [ref=e353]: LLMS
+              - heading "Image to Prompt" [level=2] [ref=e355]
+              - generic [ref=e356]:
+                - generic [ref=e360]: image
+                - generic [ref=e365]: prompt
+            - generic [ref=e367]:
+              - generic [ref=e370]: LLMS
+              - heading "Improve Prompt" [level=2] [ref=e372]
+              - generic [ref=e373]:
+                - generic [ref=e377]: prompt
+                - generic [ref=e382]: prompt
+            - generic [ref=e384]:
+              - generic [ref=e387]: LLMS
+              - heading "AI Image Classifier" [level=2] [ref=e389]
+              - generic [ref=e390]:
+                - generic [ref=e394]: image
+                - generic [ref=e399]: text
+            - generic [ref=e401]:
+              - generic [ref=e404]: IMAGE GENERATION
+              - heading "Nano Banana 2 Edit" [level=2] [ref=e406]
+              - generic [ref=e407]:
+                - generic [ref=e408]:
+                  - generic [ref=e411]: prompt
+                  - generic [ref=e414]: image
+                - generic [ref=e419]: image
+            - generic [ref=e420]:
+              - generic: IMAGE
+            - generic [ref=e422]:
+              - generic [ref=e425]: IMAGE GENERATION
+              - heading "Text to Icon" [level=2] [ref=e427]
+              - generic [ref=e428]:
+                - generic [ref=e432]: prompt
+                - generic [ref=e437]: image
+            - generic [ref=e439]:
+              - generic [ref=e442]: IMAGE GENERATION
+              - heading "Universal Image" [level=2] [ref=e444]
+              - generic [ref=e445]:
+                - generic [ref=e446]:
+                  - generic [ref=e449]: prompt
+                  - generic [ref=e452]: image
+                - generic [ref=e457]: image
+            - generic [ref=e459]:
+              - generic [ref=e462]: IMAGE GENERATION
+              - heading "Quiver Text to Vector" [level=2] [ref=e464]
+              - generic [ref=e465]:
+                - generic [ref=e469]: prompt
+                - generic [ref=e474]: image
+            - generic [ref=e476]:
+              - generic [ref=e479]: IMAGE GENERATION
+              - heading "Quiver Image to Vector" [level=2] [ref=e481]
+              - generic [ref=e482]:
+                - generic [ref=e486]: image
+                - generic [ref=e491]: image
+            - generic [ref=e492]:
+              - generic: IMAGE
+            - generic [ref=e494]:
+              - generic [ref=e497]: IMAGE GENERATION
+              - heading "Precision Upscale" [level=2] [ref=e499]
+              - generic [ref=e500]:
+                - generic [ref=e504]: image
+                - generic [ref=e509]: image
+            - generic [ref=e511]:
+              - generic [ref=e514]: IMAGE GENERATION
+              - heading "Relight" [level=2] [ref=e516]
+              - generic [ref=e517]:
+                - generic [ref=e521]: image
+                - generic [ref=e526]: image
+            - generic [ref=e528]:
+              - generic [ref=e531]: IMAGE GENERATION
+              - heading "Style Transfer" [level=2] [ref=e533]
+              - generic [ref=e534]:
+                - generic [ref=e538]: image
+                - generic [ref=e543]: image
+            - generic [ref=e545]:
+              - generic [ref=e548]: IMAGE GENERATION
+              - heading "Remove Background" [level=2] [ref=e550]
+              - generic [ref=e551]:
+                - generic [ref=e555]: image
+                - generic [ref=e560]: image
+            - generic [ref=e561]:
+              - generic: IMAGE
+            - generic [ref=e563]:
+              - generic [ref=e566]: IMAGE GENERATION
+              - heading "Seedream Expand" [level=2] [ref=e568]
+              - generic [ref=e569]:
+                - generic [ref=e573]: image
+                - generic [ref=e578]: image
+            - generic [ref=e580]:
+              - generic [ref=e583]: IMAGE GENERATION
+              - heading "Ideogram Expand" [level=2] [ref=e585]
+              - generic [ref=e586]:
+                - generic [ref=e590]: image
+                - generic [ref=e595]: image
+            - generic [ref=e597]:
+              - generic [ref=e600]: IMAGE GENERATION
+              - heading "Skin Enhancer" [level=2] [ref=e602]
+              - generic [ref=e603]:
+                - generic [ref=e607]: image
+                - generic [ref=e612]: image
+            - generic [ref=e614]:
+              - generic [ref=e617]: IMAGE GENERATION
+              - heading "Ideogram Inpaint" [level=2] [ref=e619]
+              - generic [ref=e620]:
+                - generic [ref=e624]: image
+                - generic [ref=e629]: image
+            - generic [ref=e630]:
+              - generic: IMAGE
+            - generic [ref=e632]:
+              - generic [ref=e635]: IMAGE GENERATION
+              - heading "Group Editing" [level=2] [ref=e637]
+              - generic [ref=e638]:
+                - generic [ref=e642]: images
+                - generic [ref=e647]: images
+            - generic [ref=e649]:
+              - generic [ref=e652]: IMAGE GENERATION
+              - heading "Facial Editing" [level=2] [ref=e654]
+              - generic [ref=e655]:
+                - generic [ref=e659]: image
+                - generic [ref=e664]: image
+            - generic [ref=e666]:
+              - generic [ref=e669]: VIDEO GENERATION
+              - heading "Kling 3" [level=2] [ref=e671]
+              - generic [ref=e672]:
+                - generic [ref=e673]:
+                  - generic [ref=e676]: prompt
+                  - generic [ref=e679]: image
+                - generic [ref=e684]: video
+            - generic [ref=e686]:
+              - generic [ref=e689]: VIDEO GENERATION
+              - heading "Kling 3 Omni" [level=2] [ref=e691]
+              - generic [ref=e692]:
+                - generic [ref=e693]:
+                  - generic [ref=e696]: prompt
+                  - generic [ref=e699]: image
+                - generic [ref=e704]: video
+            - generic [ref=e705]:
+              - generic: VIDEO
+            - generic [ref=e707]:
+              - generic [ref=e710]: VIDEO GENERATION
+              - heading "Kling Elements Pro" [level=2] [ref=e712]
+              - generic [ref=e713]:
+                - generic [ref=e714]:
+                  - generic [ref=e717]: prompt
+                  - generic [ref=e720]: image
+                - generic [ref=e725]: video
+            - generic [ref=e727]:
+              - generic [ref=e730]: VIDEO GENERATION
+              - heading "Kling O1" [level=2] [ref=e732]
+              - generic [ref=e733]:
+                - generic [ref=e734]:
+                  - generic [ref=e737]: prompt
+                  - generic [ref=e740]: image
+                - generic [ref=e745]: video
+            - generic [ref=e747]:
+              - generic [ref=e750]: VIDEO GENERATION
+              - heading "MiniMax Live" [level=2] [ref=e752]
+              - generic [ref=e753]:
+                - generic [ref=e754]:
+                  - generic [ref=e757]: prompt
+                  - generic [ref=e760]: image
+                - generic [ref=e765]: video
+            - generic [ref=e767]:
+              - generic [ref=e770]: VIDEO GENERATION
+              - heading "Wan 2.6" [level=2] [ref=e772]
+              - generic [ref=e773]:
+                - generic [ref=e774]:
+                  - generic [ref=e777]: prompt
+                  - generic [ref=e780]: image
+                - generic [ref=e785]: video
+            - generic [ref=e786]:
+              - generic: VIDEO
+            - generic [ref=e788]:
+              - generic [ref=e791]: VIDEO GENERATION
+              - heading "LTX Video 2.0 Pro" [level=2] [ref=e793]
+              - generic [ref=e794]:
+                - generic [ref=e795]:
+                  - generic [ref=e798]: prompt
+                  - generic [ref=e801]: image
+                - generic [ref=e806]: video
+            - generic [ref=e808]:
+              - generic [ref=e811]: VIDEO GENERATION
+              - heading "Runway Gen-4.5" [level=2] [ref=e813]
+              - generic [ref=e814]:
+                - generic [ref=e815]:
+                  - generic [ref=e818]: prompt
+                  - generic [ref=e821]: image
+                - generic [ref=e826]: video
+            - generic [ref=e828]:
+              - generic [ref=e831]: VIDEO GENERATION
+              - heading "Runway Gen-4 Turbo" [level=2] [ref=e833]
+              - generic [ref=e834]:
+                - generic [ref=e835]:
+                  - generic [ref=e838]: prompt
+                  - generic [ref=e841]: image
+                - generic [ref=e846]: video
+            - generic [ref=e848]:
+              - generic [ref=e851]: VIDEO GENERATION
+              - heading "Runway Act Two" [level=2] [ref=e853]
+              - generic [ref=e854]:
+                - generic [ref=e855]:
+                  - generic [ref=e858]: prompt
+                  - generic [ref=e861]: image
+                - generic [ref=e866]: video
+            - generic [ref=e867]:
+              - generic: VIDEO
+            - generic [ref=e869]:
+              - generic [ref=e872]: VIDEO GENERATION
+              - heading "PixVerse V5 Transition" [level=2] [ref=e874]
+              - generic [ref=e875]:
+                - generic [ref=e876]:
+                  - generic [ref=e879]: prompt
+                  - generic [ref=e882]: image
+                - generic [ref=e887]: video
+            - generic [ref=e889]:
+              - generic [ref=e892]: VIDEO GENERATION
+              - heading "OmniHuman" [level=2] [ref=e894]
+              - generic [ref=e895]:
+                - generic [ref=e896]:
+                  - generic [ref=e899]: prompt
+                  - generic [ref=e902]: image
+                - generic [ref=e907]: video
+            - generic [ref=e909]:
+              - generic [ref=e912]: VIDEO GENERATION
+              - heading "Universal Video" [level=2] [ref=e914]
+              - generic [ref=e915]:
+                - generic [ref=e916]:
+                  - generic [ref=e919]: prompt
+                  - generic [ref=e922]: image
+                - generic [ref=e927]: video
+            - generic [ref=e929]:
+              - generic [ref=e932]: VIDEO GENERATION
+              - heading "VFX" [level=2] [ref=e934]
+              - generic [ref=e935]:
+                - generic [ref=e939]: video
+                - generic [ref=e944]: video
+            - generic [ref=e945]:
+              - generic: VIDEO
+            - generic [ref=e947]:
+              - generic [ref=e950]: VIDEO GENERATION
+              - heading "Precision Video Upscale" [level=2] [ref=e952]
+              - generic [ref=e953]:
+                - generic [ref=e957]: video
+                - generic [ref=e962]: video
+            - generic [ref=e964]:
+              - generic [ref=e967]: AUDIO GENERATION
+              - heading "ElevenLabs Music" [level=2] [ref=e969]
+              - generic [ref=e970]:
+                - generic [ref=e974]: prompt
+                - generic [ref=e979]: audio
+            - generic [ref=e981]:
+              - generic [ref=e984]: AUDIO GENERATION
+              - heading "ElevenLabs Sound Effects" [level=2] [ref=e986]
+              - generic [ref=e987]:
+                - generic [ref=e991]: prompt
+                - generic [ref=e996]: audio
+            - generic [ref=e998]:
+              - generic [ref=e1001]: AUDIO GENERATION
+              - heading "SAM Audio Isolation" [level=2] [ref=e1003]
+              - generic [ref=e1004]:
+                - generic [ref=e1005]:
+                  - generic [ref=e1008]: audio
+                  - generic [ref=e1011]: video
+                - generic [ref=e1016]: audio
+            - generic [ref=e1017]:
+              - generic: AUDIO
+            - generic [ref=e1019]:
+              - generic [ref=e1022]: UTILITIES
+              - heading "Response" [level=2] [ref=e1024]
+              - generic [ref=e1029]: any
+            - generic [ref=e1032]:
+              - generic [ref=e1035]: UTILITIES
+              - heading "Layer Editor" [level=2] [ref=e1037]
+              - generic [ref=e1038]:
+                - generic [ref=e1042]: image
+                - generic [ref=e1047]: image
+            - generic [ref=e1049]:
+              - generic [ref=e1052]: UTILITIES
+              - heading "Router" [level=2] [ref=e1054]
+              - generic [ref=e1055]:
+                - generic [ref=e1059]: any
+                - generic [ref=e1061]:
+                  - generic [ref=e1064]: out-1
+                  - generic [ref=e1067]: out-2
+            - generic [ref=e1069]:
+              - generic [ref=e1072]: UTILITIES
+              - heading "Comment" [level=2] [ref=e1074]
+            - generic [ref=e1077]:
+              - generic: IMAGE
+            - generic [ref=e1079]:
+              - generic [ref=e1082]: INPUTS
+              - heading "Input" [level=2] [ref=e1084]
+              - generic [ref=e1085]:
+                - generic [ref=e1089]: config
+                - generic [ref=e1094]: variable
+            - generic [ref=e1096]:
+              - generic [ref=e1099]: INPUTS
+              - heading "Text" [level=2] [ref=e1101]
+              - generic [ref=e1102]:
+                - generic [ref=e1106]: text
+                - generic [ref=e1111]: text
+            - generic [ref=e1113]:
+              - generic [ref=e1116]: INPUTS
+              - heading "Image" [level=2] [ref=e1118]
+              - generic [ref=e1119]:
+                - generic [ref=e1123]: image
+                - generic [ref=e1128]: image
+            - generic [ref=e1130]:
+              - generic [ref=e1133]: INPUTS
+              - heading "Asset" [level=2] [ref=e1135]
+              - generic [ref=e1136]:
+                - generic [ref=e1140]: image
+                - generic [ref=e1145]: image
+            - generic [ref=e1146]:
+              - generic: VIDEO
+            - generic [ref=e1148]:
+              - generic [ref=e1151]: LLMS
+              - heading "Claude Sonnet Vision" [level=2] [ref=e1153]
+              - generic [ref=e1154]:
+                - generic [ref=e1155]:
+                  - generic [ref=e1158]: image
+                  - generic [ref=e1161]: prompt
+                - generic [ref=e1166]: analysis
+            - generic [ref=e1168]:
+              - generic [ref=e1171]: LLMS
+              - heading "Image to Prompt" [level=2] [ref=e1173]
+              - generic [ref=e1174]:
+                - generic [ref=e1178]: image
+                - generic [ref=e1183]: prompt
+            - generic [ref=e1185]:
+              - generic [ref=e1188]: LLMS
+              - heading "Improve Prompt" [level=2] [ref=e1190]
+              - generic [ref=e1191]:
+                - generic [ref=e1195]: prompt
+                - generic [ref=e1200]: prompt
+            - generic [ref=e1202]:
+              - generic [ref=e1205]: LLMS
+              - heading "AI Image Classifier" [level=2] [ref=e1207]
+              - generic [ref=e1208]:
+                - generic [ref=e1212]: image
+                - generic [ref=e1217]: text
+            - generic [ref=e1218]:
+              - generic: IMAGE
+            - generic [ref=e1220]:
+              - generic [ref=e1223]: IMAGE GENERATION
+              - heading "Flux Reimagine" [level=2] [ref=e1225]
+              - generic [ref=e1226]:
+                - generic [ref=e1230]: image
+                - generic [ref=e1235]: image
+            - generic [ref=e1237]:
+              - generic [ref=e1240]: IMAGE GENERATION
+              - heading "Text to Icon" [level=2] [ref=e1242]
+              - generic [ref=e1243]:
+                - generic [ref=e1247]: prompt
+                - generic [ref=e1252]: image
+            - generic [ref=e1254]:
+              - generic [ref=e1257]: IMAGE GENERATION
+              - heading "Universal Image" [level=2] [ref=e1259]
+              - generic [ref=e1260]:
+                - generic [ref=e1261]:
+                  - generic [ref=e1264]: prompt
+                  - generic [ref=e1267]: image
+                - generic [ref=e1272]: image
+            - generic [ref=e1274]:
+              - generic [ref=e1277]: IMAGE GENERATION
+              - heading "Quiver Text to Vector" [level=2] [ref=e1279]
+              - generic [ref=e1280]:
+                - generic [ref=e1284]: prompt
+                - generic [ref=e1289]: image
+            - generic [ref=e1290]:
+              - generic: IMAGE
+            - generic [ref=e1292]:
+              - generic [ref=e1295]: IMAGE GENERATION
+              - heading "Creative Upscale" [level=2] [ref=e1297]
+              - generic [ref=e1298]:
+                - generic [ref=e1302]: image
+                - generic [ref=e1307]: image
+            - generic [ref=e1309]:
+              - generic [ref=e1312]: IMAGE GENERATION
+              - heading "Precision Upscale" [level=2] [ref=e1314]
+              - generic [ref=e1315]:
+                - generic [ref=e1319]: image
+                - generic [ref=e1324]: image
+            - generic [ref=e1326]:
+              - generic [ref=e1329]: IMAGE GENERATION
+              - heading "Relight" [level=2] [ref=e1331]
+              - generic [ref=e1332]:
+                - generic [ref=e1336]: image
+                - generic [ref=e1341]: image
+            - generic [ref=e1343]:
+              - generic [ref=e1346]: IMAGE GENERATION
+              - heading "Style Transfer" [level=2] [ref=e1348]
+              - generic [ref=e1349]:
+                - generic [ref=e1353]: image
+                - generic [ref=e1358]: image
+            - generic [ref=e1359]:
+              - generic: IMAGE
+            - generic [ref=e1361]:
+              - generic [ref=e1364]: IMAGE GENERATION
+              - heading "Flux Image Expand" [level=2] [ref=e1366]
+              - generic [ref=e1367]:
+                - generic [ref=e1371]: image
+                - generic [ref=e1376]: image
+            - generic [ref=e1378]:
+              - generic [ref=e1381]: IMAGE GENERATION
+              - heading "Seedream Expand" [level=2] [ref=e1383]
+              - generic [ref=e1384]:
+                - generic [ref=e1388]: image
+                - generic [ref=e1393]: image
+            - generic [ref=e1395]:
+              - generic [ref=e1398]: IMAGE GENERATION
+              - heading "Ideogram Expand" [level=2] [ref=e1400]
+              - generic [ref=e1401]:
+                - generic [ref=e1405]: image
+                - generic [ref=e1410]: image
+            - generic [ref=e1412]:
+              - generic [ref=e1415]: IMAGE GENERATION
+              - heading "Skin Enhancer" [level=2] [ref=e1417]
+              - generic [ref=e1418]:
+                - generic [ref=e1422]: image
+                - generic [ref=e1427]: image
+            - generic [ref=e1428]:
+              - generic: IMAGE
+            - generic [ref=e1430]:
+              - generic [ref=e1433]: IMAGE GENERATION
+              - heading "Change Camera" [level=2] [ref=e1435]
+              - generic [ref=e1436]:
+                - generic [ref=e1440]: image
+                - generic [ref=e1445]: image
+            - generic [ref=e1447]:
+              - generic [ref=e1450]: IMAGE GENERATION
+              - heading "Group Editing" [level=2] [ref=e1452]
+              - generic [ref=e1453]:
+                - generic [ref=e1457]: images
+                - generic [ref=e1462]: images
+            - generic [ref=e1464]:
+              - generic [ref=e1467]: IMAGE GENERATION
+              - heading "Facial Editing" [level=2] [ref=e1469]
+              - generic [ref=e1470]:
+                - generic [ref=e1474]: image
+                - generic [ref=e1479]: image
+            - generic [ref=e1481]:
+              - generic [ref=e1484]: VIDEO GENERATION
+              - heading "Kling 3" [level=2] [ref=e1486]
+              - generic [ref=e1487]:
+                - generic [ref=e1488]:
+                  - generic [ref=e1491]: prompt
+                  - generic [ref=e1494]: image
+                - generic [ref=e1499]: video
+            - generic [ref=e1500]:
+              - generic: VIDEO
+            - generic [ref=e1502]:
+              - generic [ref=e1505]: VIDEO GENERATION
+              - heading "Kling 3 Motion Control" [level=2] [ref=e1507]
+              - generic [ref=e1508]:
+                - generic [ref=e1509]:
+                  - generic [ref=e1512]: prompt
+                  - generic [ref=e1515]: image
+                - generic [ref=e1520]: video
+            - generic [ref=e1522]:
+              - generic [ref=e1525]: VIDEO GENERATION
+              - heading "Kling Elements Pro" [level=2] [ref=e1527]
+              - generic [ref=e1528]:
+                - generic [ref=e1529]:
+                  - generic [ref=e1532]: prompt
+                  - generic [ref=e1535]: image
+                - generic [ref=e1540]: video
+            - generic [ref=e1542]:
+              - generic [ref=e1545]: VIDEO GENERATION
+              - heading "Kling O1" [level=2] [ref=e1547]
+              - generic [ref=e1548]:
+                - generic [ref=e1549]:
+                  - generic [ref=e1552]: prompt
+                  - generic [ref=e1555]: image
+                - generic [ref=e1560]: video
+            - generic [ref=e1562]:
+              - generic [ref=e1565]: VIDEO GENERATION
+              - heading "MiniMax Live" [level=2] [ref=e1567]
+              - generic [ref=e1568]:
+                - generic [ref=e1569]:
+                  - generic [ref=e1572]: prompt
+                  - generic [ref=e1575]: image
+                - generic [ref=e1580]: video
+            - generic [ref=e1581]:
+              - generic: VIDEO
+            - generic [ref=e1583]:
+              - generic [ref=e1586]: VIDEO GENERATION
+              - heading "Seedance 1.5 Pro" [level=2] [ref=e1588]
+              - generic [ref=e1589]:
+                - generic [ref=e1590]:
+                  - generic [ref=e1593]: prompt
+                  - generic [ref=e1596]: image
+                - generic [ref=e1601]: video
+            - generic [ref=e1603]:
+              - generic [ref=e1606]: VIDEO GENERATION
+              - heading "LTX Video 2.0 Pro" [level=2] [ref=e1608]
+              - generic [ref=e1609]:
+                - generic [ref=e1610]:
+                  - generic [ref=e1613]: prompt
+                  - generic [ref=e1616]: image
+                - generic [ref=e1621]: video
+            - generic [ref=e1623]:
+              - generic [ref=e1626]: VIDEO GENERATION
+              - heading "Runway Gen-4.5" [level=2] [ref=e1628]
+              - generic [ref=e1629]:
+                - generic [ref=e1630]:
+                  - generic [ref=e1633]: prompt
+                  - generic [ref=e1636]: image
+                - generic [ref=e1641]: video
+            - generic [ref=e1643]:
+              - generic [ref=e1646]: VIDEO GENERATION
+              - heading "Runway Gen-4 Turbo" [level=2] [ref=e1648]
+              - generic [ref=e1649]:
+                - generic [ref=e1650]:
+                  - generic [ref=e1653]: prompt
+                  - generic [ref=e1656]: image
+                - generic [ref=e1661]: video
+            - generic [ref=e1662]:
+              - generic: VIDEO
+            - generic [ref=e1664]:
+              - generic [ref=e1667]: VIDEO GENERATION
+              - heading "PixVerse V5" [level=2] [ref=e1669]
+              - generic [ref=e1670]:
+                - generic [ref=e1671]:
+                  - generic [ref=e1674]: prompt
+                  - generic [ref=e1677]: image
+                - generic [ref=e1682]: video
+            - generic [ref=e1684]:
+              - generic [ref=e1687]: VIDEO GENERATION
+              - heading "PixVerse V5 Transition" [level=2] [ref=e1689]
+              - generic [ref=e1690]:
+                - generic [ref=e1691]:
+                  - generic [ref=e1694]: prompt
+                  - generic [ref=e1697]: image
+                - generic [ref=e1702]: video
+            - generic [ref=e1704]:
+              - generic [ref=e1707]: VIDEO GENERATION
+              - heading "OmniHuman" [level=2] [ref=e1709]
+              - generic [ref=e1710]:
+                - generic [ref=e1711]:
+                  - generic [ref=e1714]: prompt
+                  - generic [ref=e1717]: image
+                - generic [ref=e1722]: video
+            - generic [ref=e1724]:
+              - generic [ref=e1727]: VIDEO GENERATION
+              - heading "Universal Video" [level=2] [ref=e1729]
+              - generic [ref=e1730]:
+                - generic [ref=e1731]:
+                  - generic [ref=e1734]: prompt
+                  - generic [ref=e1737]: image
+                - generic [ref=e1742]: video
+            - generic [ref=e1743]:
+              - generic: VIDEO
+            - generic [ref=e1745]:
+              - generic [ref=e1748]: VIDEO GENERATION
+              - heading "Creative Video Upscale" [level=2] [ref=e1750]
+              - generic [ref=e1751]:
+                - generic [ref=e1755]: video
+                - generic [ref=e1760]: video
+            - generic [ref=e1762]:
+              - generic [ref=e1765]: VIDEO GENERATION
+              - heading "Precision Video Upscale" [level=2] [ref=e1767]
+              - generic [ref=e1768]:
+                - generic [ref=e1772]: video
+                - generic [ref=e1777]: video
+            - generic [ref=e1779]:
+              - generic [ref=e1782]: AUDIO GENERATION
+              - heading "ElevenLabs Music" [level=2] [ref=e1784]
+              - generic [ref=e1785]:
+                - generic [ref=e1789]: prompt
+                - generic [ref=e1794]: audio
+            - generic [ref=e1796]:
+              - generic [ref=e1799]: AUDIO GENERATION
+              - heading "ElevenLabs Sound Effects" [level=2] [ref=e1801]
+              - generic [ref=e1802]:
+                - generic [ref=e1806]: prompt
+                - generic [ref=e1811]: audio
+            - generic [ref=e1812]:
+              - generic: AUDIO
+            - generic [ref=e1814]:
+              - generic [ref=e1817]: AUDIO GENERATION
+              - heading "ElevenLabs Voiceover" [level=2] [ref=e1819]
+              - generic [ref=e1820]:
+                - generic [ref=e1824]: prompt
+                - generic [ref=e1829]: audio
+            - generic [ref=e1831]:
+              - generic [ref=e1834]: UTILITIES
+              - heading "Response" [level=2] [ref=e1836]
+              - generic [ref=e1841]: any
+            - generic [ref=e1844]:
+              - generic [ref=e1847]: UTILITIES
+              - heading "Layer Editor" [level=2] [ref=e1849]
+              - generic [ref=e1850]:
+                - generic [ref=e1854]: image
+                - generic [ref=e1859]: image
+            - generic [ref=e1861]:
+              - generic [ref=e1864]: UTILITIES
+              - heading "Router" [level=2] [ref=e1866]
+              - generic [ref=e1867]:
+                - generic [ref=e1871]: any
+                - generic [ref=e1873]:
+                  - generic [ref=e1876]: out-1
+                  - generic [ref=e1879]: out-2
+            - generic [ref=e1880]:
+              - generic: IMAGE
+            - generic [ref=e1882]:
+              - generic [ref=e1885]: UTILITIES
+              - heading "Adapted Prompt" [level=2] [ref=e1887]
+              - generic [ref=e1888]:
+                - generic [ref=e1892]: prompt
+                - generic [ref=e1897]: prompt
+        - generic:
+          - generic:
+            - generic: NODESPACE.CORE_OS [ACTIVE]
+            - generic:
+              - text: "FPS:"
+              - strong: "60"
+          - generic:
+            - text: SCROLL_VECTORS //
+            - strong: "0.00"
+          - generic:
+            - generic:
+              - text: "OFFSET_Z:"
+              - strong: "000"
+            - generic: NODE_ENV::PRODUCTION
+      - contentinfo [ref=e2048]:
+        - generic [ref=e2049]:
+          - generic [ref=e2050]:
+            - img "Logo" [ref=e2051]
+            - generic [ref=e2052]: Nodespace
+          - generic [ref=e2055]:
+            - text: =
+            - text: _—
+            - text: "}/"
+            - text: =
+            - text: R
+        - generic [ref=e2056]:
+          - generic [ref=e2057]: © 2026 Felix Seeger. All rights reserved.
+          - generic [ref=e2058]:
+            - link "Privacy Policy" [ref=e2059] [cursor=pointer]:
+              - /url: "#"
+            - link "Terms of Service" [ref=e2060] [cursor=pointer]:
+              - /url: "#"
+            - link "Twitter" [ref=e2061] [cursor=pointer]:
+              - /url: "#"
+            - link "GitHub" [ref=e2062] [cursor=pointer]:
+              - /url: "#"
+```
+
+# Test source
+
+```ts
+  1  | import { test as base, expect } from '@playwright/test';
+  2  | import fs from 'fs';
+  3  | import path from 'path';
+  4  | 
+  5  | let creds;
+  6  | try {
+  7  |   creds = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'test-credentials.json'), 'utf8'));
+  8  | } catch (e) {
+  9  |   creds = { email: 'test@example.com', password: 'password123' };
+  10 | }
+  11 | 
+  12 | export const test = base.extend({
+  13 |   page: async ({ page }, use) => {
+  14 |     // Skip SLP by overwriting the function on window or ignoring it
+  15 |     await page.goto('/');
+  16 |     
+  17 |     // Check if we need to log in
+  18 |     await page.waitForTimeout(1000);
+  19 |     let html = await page.content();
+  20 |     
+  21 |     if (html.includes('Log in') && !html.includes('Email Address')) {
+  22 |       await page.click('text=Log in', { timeout: 3000 }).catch(() => {});
+  23 |       await page.waitForTimeout(1000);
+  24 |       html = await page.content();
+  25 |     }
+  26 |     
+  27 |     if (html.includes('Sign in') || html.includes('Welcome Back')) {
+  28 |       await page.fill('input[placeholder="you@example.com"]', creds.email);
+  29 |       await page.fill('input[type="password"]', creds.password);
+  30 |       await page.click('button[type="submit"]').catch(() => page.click('button:has-text("Sign In")'));
+  31 |     }
+  32 |     
+  33 |     // The SLP will show once per session, log in or not
+  34 |     try {
+  35 |       await page.waitForSelector('.slp-ready', { timeout: 15000 });
+  36 |       await page.click('.slp-ready', { timeout: 3000 });
+  37 |       await page.waitForTimeout(1000);
+  38 |     } catch(e) { /* ignore */ }
+  39 |     
+  40 |     // Verify dashboard
+> 41 |     await page.getByTestId('new-project-btn').waitFor({ state: 'visible', timeout: 10000 });
+     |                                               ^ TimeoutError: locator.waitFor: Timeout 10000ms exceeded.
+  42 | 
+  43 |     await use(page);
+  44 |   },
+  45 |   
+  46 |   editorPage: async ({ page }, use) => {
+  47 |     const newProjectBtn = page.getByTestId('new-project-btn').first();
+  48 |     await expect(newProjectBtn).toBeVisible({ timeout: 15000 });
+  49 |     await newProjectBtn.click();
+  50 |     await page.getByTestId('new-project-modal-confirm-new').click();
+  51 | 
+  52 |     const flowWrapper = page.locator('.react-flow').first();
+  53 |     await expect(flowWrapper).toBeVisible({ timeout: 10000 });
+  54 |     
+  55 |     await use(page);
+  56 |   }
+  57 | });
+  58 | 
+  59 | export { expect };
+  60 | 
+```
