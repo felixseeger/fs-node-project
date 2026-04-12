@@ -1,7 +1,7 @@
 import React, { type FC } from 'react';
 import { Position, Handle, type NodeProps } from '@xyflow/react';
 import NodeShell from './NodeShell';
-import useNodeConnections from './useNodeConnections';
+import { useNodeConnections } from './shared';
 import { getHandleColor } from '../utils/handleTypes';
 
 const CloudSyncNode: FC<NodeProps> = ({ id, data, selected }) => {

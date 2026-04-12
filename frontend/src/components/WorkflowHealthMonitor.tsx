@@ -58,6 +58,45 @@ export const WorkflowHealthMonitor: React.FC<{ onAutoFix?: (nodeId: string, issu
       }
     });
 
+    // Check for mismatched aspect ratios and other edge-level constraints
+    edges.forEach(edge => {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+
+      if (sourceNode && targetNode) {
+        const sourceData = sourceNode.data as any;
+        const targetData = targetNode.data as any;
+
+        if (sourceData.aspectRatio && targetData.aspectRatio && sourceData.aspectRatio !== targetData.aspectRatio) {
+          if (
+            (sourceNode.type?.toLowerCase().includes('image') || sourceNode.type === 'generator') && 
+            (targetNode.type?.toLowerCase().includes('video') || targetNode.type === 'universalGeneratorVideo')
+          ) {
+            newIssues.push({
+              id: `aspect-mismatch-${edge.id}`,
+              type: 'warning',
+              message: `Aspect ratio mismatch: Image '${sourceData.label || sourceNode.id}' (${sourceData.aspectRatio}) -> Video '${targetData.label || targetNode.id}' (${targetData.aspectRatio}). Video may be cropped or letterboxed.`,
+              nodeId: targetNode.id
+            });
+          }
+        }
+      }
+    });
+
+    // Cost / performance warning
+    const heavyNodes = nodes.filter(n => {
+      const type = (n.type || '').toLowerCase();
+      return type.includes('generator') || type.includes('upscale') || type.includes('generation') || type === 'vfx';
+    });
+
+    if (heavyNodes.length > 3) {
+      newIssues.push({
+        id: 'high-cost-warning',
+        type: 'info',
+        message: `This workflow contains ${heavyNodes.length} generative AI nodes. Execution may be slow and consume significant API credits.`
+      });
+    }
+
     // Check for isolated nodes
     nodes.forEach(node => {
       const isConnected = edges.some(e => e.source === node.id || e.target === node.id);
@@ -102,6 +141,7 @@ export const WorkflowHealthMonitor: React.FC<{ onAutoFix?: (nodeId: string, issu
       <AnimatePresence>
         {isOpen && issues.length > 0 && (
           <motion.div
+            key="health-monitor-dropdown"
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}

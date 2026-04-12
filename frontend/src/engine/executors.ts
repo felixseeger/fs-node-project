@@ -808,6 +808,13 @@ export function registerBuiltinExecutors(): void {
 // Auto-register on module load
 registerBuiltinExecutors();
 
+import * as logicExecutors from "./logicExecutors";
+  registerExecutor("condition", logicExecutors.conditionExecutor);
+  registerExecutor("iteration", logicExecutors.iterationExecutor);
+  registerExecutor("variable", logicExecutors.variableExecutor);
+  registerExecutor("socialPublisher", logicExecutors.socialPublisherExecutor);
+  registerExecutor("cloudSync", logicExecutors.cloudSyncExecutor);
+
 export default {
   getNodeMetadata,
   registerExecutor,

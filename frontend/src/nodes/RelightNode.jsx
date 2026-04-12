@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import { useNodeConnections } from './shared';
 import { getHandleColor } from '../utils/handleTypes';
+import { CATEGORY_COLORS } from './nodeTokens';
 import { relightImage, pollRelightStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';

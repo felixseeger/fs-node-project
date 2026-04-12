@@ -2218,7 +2218,7 @@ const handleConnectEnd = useCallback(
           <PromptRecipeGallery isOpen={showPromptRecipes} onClose={() => setShowPromptRecipes(false)} />
           <MegaMenuModelSearch open={browseModelsOpen} onClose={() => setBrowseModelsOpen(false)} onSelect={(k: string, m: string) => handleApplyModelToAll(k, m)} />
           <div style={{ position: 'absolute', bottom: 96, right: 24, zIndex: 10 }}><Queue nodes={nodes} /></div>
-          <WorkflowLineageTracker />
+          <WorkflowLineageTracker workflowId={activeWorkflowId} />
           <WorkflowHealthMonitor onAutoFix={handleHealthAutoFix} />
           <SmartConnectorUI activeConnection={activeConnection} onAutoConnect={handleAutoConnect} />
           <MatrixDot dotSize={2} dotColor={theme === 'light' ? '#cbd5e1' : '#3a3a3a'} spacing={28} opacity={theme === 'light' ? 0.45 : 0.6} />

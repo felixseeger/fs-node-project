@@ -80,7 +80,16 @@ export const SmartConnectorUI: React.FC<SmartConnectorUIProps> = ({ activeConnec
                 onAutoConnect?.(s.nodeId, s.handleId);
               }}
             >
-              {/* Outer Glow (Invisible hit area for easier tapping) */}
+              {/* Invisible Hit Area (guaranteed pointer events on mobile) */}
+              <circle
+                cx={s.x}
+                cy={s.y}
+                r={60}
+                fill="transparent"
+                style={{ pointerEvents: 'all' }}
+              />
+
+              {/* Outer Glow (Visible hit area styling) */}
               <circle
                 cx={s.x}
                 cy={s.y}
@@ -89,7 +98,7 @@ export const SmartConnectorUI: React.FC<SmartConnectorUIProps> = ({ activeConnec
                 stroke={isHovered ? '#3b82f6' : 'transparent'}
                 strokeWidth={isHovered ? 3 : 2}
                 strokeDasharray={isHovered ? "4 4" : "0"}
-                style={{ transition: 'all 0.2s ease' }}
+                style={{ transition: 'all 0.2s ease', pointerEvents: 'none' }}
               />
               
               {/* Pulse Animation */}

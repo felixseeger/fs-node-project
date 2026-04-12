@@ -13,7 +13,68 @@ import fs from 'fs';
   // Wait for the app to load
   await page.waitForTimeout(3000);
 
-  // Take initial screenshot
+  // Check if we are on the landing page
+  let text = await page.evaluate(() => document.body.innerText);
+  if (text.includes('Get Started Free')) {
+    console.log('On landing page, clicking Get Started...');
+    await page.click('text="Get Started Free"').catch(() => page.click('text="Log in"'));
+    await page.waitForTimeout(3000);
+    text = await page.evaluate(() => document.body.innerText);
+  }
+  
+  // Check if we are on the auth page
+  const isAuthPage = text.includes('Sign In') || 
+           text.includes('Sign in') ||
+           text.includes('Create an account') ||
+           text.includes('Welcome back');
+  
+  if (isAuthPage) {
+    console.log('On Auth page, creating a test account...');
+    
+    // Switch to signup if needed
+    const signupLink = page.locator('text=Sign up').first();
+    if (await signupLink.isVisible()) {
+      await signupLink.click();
+      await page.waitForTimeout(1000);
+    }
+    
+    // Fill signup form
+    const randomEmail = `test_${Date.now()}@example.com`;
+    
+    const nameInputs = await page.locator('input[placeholder="Jane Doe"]').all();
+    if (nameInputs.length > 0) await nameInputs[0].fill('Test User');
+    
+    const emailInputs = await page.locator('input[placeholder="you@example.com"]').all();
+    if (emailInputs.length > 0) await emailInputs[0].fill(randomEmail);
+    
+    const passInputs = await page.locator('input[type="password"]').all();
+    if (passInputs.length >= 2) {
+      await passInputs[0].fill('password123');
+      await passInputs[1].fill('password123');
+    } else if (passInputs.length === 1) {
+      await passInputs[0].fill('password123');
+    }
+    
+    // Submit
+    await page.keyboard.press('Enter');
+    console.log(`Registered with ${randomEmail}`);
+    
+    // Wait for the main editor or dashboard
+    await page.waitForTimeout(5000); 
+  }
+
+  // Let's check if we are on the ProjectsDashboard and need to open a workflow
+  const currentText = await page.evaluate(() => document.body.innerText);
+  if (currentText.includes('New Workflow') || currentText.includes('My Projects')) {
+    console.log('On dashboard, creating/opening a workflow...');
+    const newWfBtn = page.locator('text="New Workflow"').first();
+    if (await newWfBtn.isVisible()) {
+      await newWfBtn.click();
+      await page.waitForTimeout(3000);
+    }
+  }
+
+  // Take initial screenshot of the canvas
   await page.screenshot({ path: 'test-debug-initial.png' });
   console.log('Initial screenshot saved as test-debug-initial.png');
 

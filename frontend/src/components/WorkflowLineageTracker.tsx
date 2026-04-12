@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useReactFlow, type Edge, type Node } from '@xyflow/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { saveWorkflowSnapshot, getWorkflowSnapshots, clearWorkflowSnapshots } from '../services/workflowService';
 
 interface Snapshot {
   id: string;
@@ -10,48 +11,107 @@ interface Snapshot {
   edges: Edge[];
 }
 
-export const WorkflowLineageTracker: React.FC = () => {
+export const WorkflowLineageTracker: React.FC<{ workflowId?: string }> = ({ workflowId }) => {
   const { getNodes, getEdges, setNodes, setEdges } = useReactFlow();
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Load from local storage on mount
-  useEffect(() => {
+  const loadSnapshots = useCallback(async () => {
+    if (workflowId) {
+      try {
+        const cloudSnapshots = await getWorkflowSnapshots(workflowId);
+        if (cloudSnapshots && cloudSnapshots.length > 0) {
+          setSnapshots(cloudSnapshots as Snapshot[]);
+          return;
+        }
+      } catch (e) {
+        console.error('Failed to load cloud snapshots', e);
+      }
+    }
+    
+    // Fallback to local storage if no workflowId or no cloud snapshots
     try {
-      const saved = localStorage.getItem('workflow_lineage_snapshots');
+      const storageKey = workflowId ? `workflow_lineage_${workflowId}` : 'workflow_lineage_snapshots';
+      const saved = localStorage.getItem(storageKey);
       if (saved) {
         setSnapshots(JSON.parse(saved));
+      } else {
+        setSnapshots([]); // Clear snapshots if switching to a new workflow with no history
       }
     } catch (e) {
-      console.error('Failed to load snapshots', e);
+      console.error('Failed to load local snapshots', e);
     }
-  }, []);
+  }, [workflowId]);
 
-  const takeSnapshot = () => {
+  // Load snapshots when workflowId changes
+  useEffect(() => {
+    loadSnapshots();
+  }, [loadSnapshots]);
+
+  const takeSnapshot = async () => {
+    setIsSaving(true);
     const nodes = getNodes();
     const edges = getEdges();
-    const newSnapshot: Snapshot = {
-      id: Math.random().toString(36).substring(7),
-      timestamp: Date.now(),
-      label: `Snapshot ${snapshots.length + 1}`,
+    
+    // Prompt the user for a name, cancel if null
+    const defaultName = `Snapshot ${snapshots.length + 1}`;
+    const snapshotName = window.prompt('Name this snapshot:', defaultName);
+    
+    if (snapshotName === null) {
+      setIsSaving(false);
+      return;
+    }
+    
+    const snapshotData = {
+      label: snapshotName.trim() || defaultName,
       nodes: JSON.parse(JSON.stringify(nodes)),
       edges: JSON.parse(JSON.stringify(edges)),
+    };
+
+    let newId = Math.random().toString(36).substring(7);
+    
+    if (workflowId) {
+      try {
+        newId = await saveWorkflowSnapshot(workflowId, snapshotData);
+      } catch (e) {
+        console.error('Failed to save snapshot to cloud', e);
+      }
+    }
+
+    const newSnapshot: Snapshot = {
+      ...snapshotData,
+      id: newId,
+      timestamp: Date.now(),
     };
     
     const newSnapshots = [newSnapshot, ...snapshots];
     setSnapshots(newSnapshots);
     
+    // Always save locally as a backup
     try {
-      localStorage.setItem('workflow_lineage_snapshots', JSON.stringify(newSnapshots));
+      const storageKey = workflowId ? `workflow_lineage_${workflowId}` : 'workflow_lineage_snapshots';
+      localStorage.setItem(storageKey, JSON.stringify(newSnapshots));
     } catch (e) {
       console.warn('Failed to save to localStorage', e);
     }
+    setIsSaving(false);
   };
 
-  const clearSnapshots = () => {
+  const clearSnapshots = async () => {
     if (window.confirm('Are you sure you want to clear all history?')) {
       setSnapshots([]);
-      localStorage.removeItem('workflow_lineage_snapshots');
+      
+      if (workflowId) {
+        try {
+          await clearWorkflowSnapshots(workflowId);
+        } catch (e) {
+          console.error('Failed to clear cloud snapshots', e);
+        }
+      }
+      
+      const storageKey = workflowId ? `workflow_lineage_${workflowId}` : 'workflow_lineage_snapshots';
+      localStorage.removeItem(storageKey);
     }
   };
 
@@ -68,17 +128,18 @@ export const WorkflowLineageTracker: React.FC = () => {
       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
         <button
           onClick={takeSnapshot}
+          disabled={isSaving}
           style={{
             background: '#1a1a1a',
-            color: '#fff',
+            color: isSaving ? '#888' : '#fff',
             border: '1px solid #333',
             padding: '6px 12px',
             borderRadius: '6px',
-            cursor: 'pointer',
+            cursor: isSaving ? 'not-allowed' : 'pointer',
             fontSize: '12px'
           }}
         >
-          Take Snapshot
+          {isSaving ? 'Saving...' : 'Take Snapshot'}
         </button>
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -99,6 +160,7 @@ export const WorkflowLineageTracker: React.FC = () => {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            key="lineage-dropdown"
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}

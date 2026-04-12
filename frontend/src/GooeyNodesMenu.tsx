@@ -132,6 +132,7 @@ export const GooeyNodesMenu: FC<GooeyNodesMenuProps> = ({
   nodeMenu, 
   templates = [], 
   assets = [], 
+  publicAssets = [],
   onCreateAsset, 
   onAddNode, 
   onOpenProfile 
@@ -457,14 +458,14 @@ export const GooeyNodesMenu: FC<GooeyNodesMenuProps> = ({
                     onDragStart={(e) => {
                       if (item.type) {
                         e.dataTransfer.setData('application/reactflow', item.type);
-                        if (item.defaults) {
-                          e.dataTransfer.setData('application/reactflow-defaults', JSON.stringify(item.defaults));
+                        if ((item as any).defaults) {
+                          e.dataTransfer.setData('application/reactflow-defaults', JSON.stringify((item as any).defaults));
                         }
                         e.dataTransfer.effectAllowed = 'move';
                       }
                     }}
                     onClick={() => {
-                      onAddNode(item.type, item.defaults);
+                      onAddNode(item.type, (item as any).defaults);
                       setSearchQuery('');
                       setIsOpen(false);
                     }}
@@ -501,8 +502,8 @@ export const GooeyNodesMenu: FC<GooeyNodesMenuProps> = ({
                         onDragStart={(e) => {
                           if (item.type) {
                             e.dataTransfer.setData('application/reactflow', item.type);
-                            if (item.defaults) {
-                              e.dataTransfer.setData('application/reactflow-defaults', JSON.stringify(item.defaults));
+                            if ((item as any).defaults) {
+                              e.dataTransfer.setData('application/reactflow-defaults', JSON.stringify((item as any).defaults));
                             }
                             e.dataTransfer.effectAllowed = 'move';
                           }
@@ -552,14 +553,14 @@ export const GooeyNodesMenu: FC<GooeyNodesMenuProps> = ({
                   onDragStart={(e) => {
                     if (item.type) {
                       e.dataTransfer.setData('application/reactflow', item.type);
-                      if (item.defaults) {
-                        e.dataTransfer.setData('application/reactflow-defaults', JSON.stringify(item.defaults));
+                      if ((item as any).defaults) {
+                        e.dataTransfer.setData('application/reactflow-defaults', JSON.stringify((item as any).defaults));
                       }
                       e.dataTransfer.effectAllowed = 'move';
                     }
                   }}
                   onClick={() => {
-                    onAddNode(item.type, item.defaults);
+                    onAddNode(item.type, (item as any).defaults);
                     setIsOpen(false);
                     setActiveSubMenu(null);
                   }}
