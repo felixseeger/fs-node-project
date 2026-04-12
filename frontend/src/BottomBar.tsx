@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, FC, MouseEvent } from 'react';
-import { Workflow } from './types/workflow';
+import { useState, useEffect, useRef, type FC, type MouseEvent } from 'react';
+import { type Workflow } from './types/workflow';
 
 interface BottomBarProps {
   workflows?: (Workflow & { deleted?: boolean })[];

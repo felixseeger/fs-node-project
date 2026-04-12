@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, FC } from 'react';
+import React, { useState, useRef, useEffect, type FC } from 'react';
 import { createPortal } from 'react-dom';
 
 interface UpdateAssetModalProps {

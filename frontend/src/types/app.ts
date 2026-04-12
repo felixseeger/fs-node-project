@@ -1,4 +1,4 @@
-import { Node, Edge } from '@xyflow/react';
+import { type Node, type Edge } from '@xyflow/react';
 
 export type PageType = 'landing' | 'home' | 'editor' | 'project-dashboard' | 'auth-signin' | 'auth-signup' | 'workspaces' | 'workflow-settings' | 'drawflow' | 'node-banana';
 

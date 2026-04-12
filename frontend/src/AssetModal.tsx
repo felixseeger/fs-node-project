@@ -9,8 +9,8 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { CreateAssetPayload, validateCreateAssetPayload } from './types/asset';
-import { AssetOperationResult, Asset } from './types/asset';
+import { type CreateAssetPayload, validateCreateAssetPayload } from './types/asset';
+import { type AssetOperationResult, type Asset } from './types/asset';
 
 /**
  * Modal mode for different asset creation scenarios

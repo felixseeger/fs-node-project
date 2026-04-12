@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState, FC, PointerEvent, CSSProperties } from 'react';
+import React, { useCallback, useEffect, useRef, useState, type FC, type PointerEvent, type CSSProperties } from 'react';
 import AnnotationMenu, { ANNOTATION_COLORS } from './AnnotationMenu';
 
 const defaultColor = ANNOTATION_COLORS[0].hex;

@@ -1,6 +1,6 @@
-import { useReactFlow, Node, Edge } from '@xyflow/react';
+import { useReactFlow, type Node, type Edge } from '@xyflow/react';
 import { nextId } from '../app/nextId';
-import { PROMPT_RECIPES, PromptRecipe } from '../data/promptRecipes';
+import { PROMPT_RECIPES, type PromptRecipe } from '../data/promptRecipes';
 
 interface PromptRecipeGalleryProps {
   isOpen: boolean;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, FC, ChangeEvent, FormEvent, ReactNode } from 'react';
+import React, { useState, useEffect, type FC, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 

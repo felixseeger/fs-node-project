@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, FC, FormEvent, ChangeEvent } from 'react';
+import React, { useState, useRef, useEffect, useCallback, type FC, type FormEvent, type ChangeEvent } from 'react';
 // @ts-ignore
 import { useStore } from '../store';
 // @ts-ignore

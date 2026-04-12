@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { getDb, isFirebaseConfigured } from '../config/firebase';
 import { processAssetsInObject } from './storageService';
-import { Asset, CreateAssetPayload, UpdateAssetPayload, AssetOperationResult } from '../types/asset';
+import { type Asset, type CreateAssetPayload, type UpdateAssetPayload, type AssetOperationResult } from '../types/asset';
 
 const ASSETS_COLLECTION = 'assets';
 

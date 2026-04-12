@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, forwardRef, useImperativeHandle, CSSProperties } from 'react';
+import React, { useEffect, useRef, forwardRef, useImperativeHandle, type CSSProperties } from 'react';
 import Drawflow from 'drawflow';
 import 'drawflow/dist/drawflow.min.css';
 

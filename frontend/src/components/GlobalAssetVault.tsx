@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Asset, AssetMediaType } from '../types/asset';
+import { type Asset, type AssetMediaType } from '../types/asset';
 import { GenerationLineageViewer } from './GenerationLineageViewer';
 import { HighBitratePreviewer } from './HighBitratePreviewer';
 
-export function GlobalAssetVault() {
+export function GlobalAssetVault({ assetsAPI }: { assetsAPI?: any }) {
   const [search, setSearch] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('All');
@@ -11,71 +11,8 @@ export function GlobalAssetVault() {
   const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
   const [lineageAsset, setLineageAsset] = useState<Asset | null>(null);
 
-  // Mock data for vault demonstrating advanced capabilities
-  const [assets] = useState<Asset[]>([
-    {
-      id: '1',
-      name: 'Cyberpunk Cityscape 4K',
-      userId: 'user1',
-      images: ['https://images.unsplash.com/photo-1534067783941-51c9c23ecefd?w=800&q=80'],
-      status: 'ready',
-      tags: ['cyberpunk', 'city', 'neon', '4k'],
-      category: 'Images',
-      isDeleted: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      metadata: {
-        prompt: 'A futuristic cyberpunk cityscape at night, neon lights, rain-slicked streets, hyper-detailed, 8k resolution',
-        model: 'Midjourney v6',
-        nodeConfig: { seed: 42, cfg_scale: 7.5, steps: 30 }
-      }
-    },
-    {
-      id: '2',
-      name: 'Sci-fi Engine Loop',
-      userId: 'user1',
-      images: [],
-      mediaItems: [
-        { 
-          id: 'm1', 
-          url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', 
-          type: 'video', 
-          filename: 'engine.mp4', 
-          mimeType: 'video/mp4', 
-          thumbnail: 'https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?w=800&q=80',
-          createdAt: new Date().toISOString() 
-        }
-      ],
-      status: 'ready',
-      tags: ['video', 'scifi', 'engine'],
-      category: 'Videos',
-      isDeleted: false,
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      updatedAt: new Date().toISOString(),
-      metadata: {
-        prompt: 'A glowing sci-fi spaceship engine core rotating slowly, high bitrate, 4k 60fps',
-        model: 'Runway Gen-2',
-        nodeConfig: { motion_score: 5, upscale: true }
-      }
-    },
-    {
-      id: '3',
-      name: 'Cinematic Portrait',
-      userId: 'user1',
-      images: ['https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80'],
-      status: 'ready',
-      tags: ['portrait', 'cinematic', 'lighting'],
-      category: 'Images',
-      isDeleted: false,
-      createdAt: new Date(Date.now() - 172800000).toISOString(),
-      updatedAt: new Date().toISOString(),
-      metadata: {
-        prompt: 'Cinematic portrait of a woman, dramatic rim lighting, 85mm lens, f/1.8',
-        model: 'DALL-E 3',
-        nodeConfig: { style: 'vivid', quality: 'hd' }
-      }
-    }
-  ]);
+  // Extract assets from API or default to empty
+  const assets = assetsAPI?.assets || [];
 
   // Derived state
   const allTags = useMemo(() => {

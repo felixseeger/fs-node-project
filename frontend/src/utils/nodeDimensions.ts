@@ -6,7 +6,7 @@
  * adapted for FS Node Project's requirements.
  */
 
-import { Node } from "@xyflow/react";
+import { type Node } from "@xyflow/react";
 
 /**
  * Default node dimension constants

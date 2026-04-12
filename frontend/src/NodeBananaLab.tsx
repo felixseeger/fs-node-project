@@ -1,4 +1,4 @@
-import React, { useMemo, FC } from 'react';
+import React, { useMemo, type FC } from 'react';
 
 const surface = {
   bg: 'var(--color-bg, #1a1a1a)',

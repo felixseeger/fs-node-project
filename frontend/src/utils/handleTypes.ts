@@ -1,4 +1,4 @@
-import { HandleType } from '../types';
+import { type HandleType } from '../types';
 
 export const HANDLE_COLORS: Record<HandleType, string> = {
   image: '#ec4899',

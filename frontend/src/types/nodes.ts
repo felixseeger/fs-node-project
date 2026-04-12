@@ -6,7 +6,7 @@
  * for FS Node Project's architecture and 63+ node types.
  */
 
-import { Node } from "@xyflow/react";
+import { type Node } from "@xyflow/react";
 
 /**
  * Node execution status

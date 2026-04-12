@@ -4,7 +4,7 @@
  * to prevent XSS, code injection, and other security vulnerabilities.
  */
 
-import { Workflow } from '../types/workflow';
+import { type Workflow } from '../types/workflow';
 
 // =============================================================================
 // VALIDATION ERROR TYPES

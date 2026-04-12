@@ -10,8 +10,8 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
-import { Asset, AssetMediaItem } from '../types/asset';
-import { BaseNodeData } from '../types/nodes';
+import { type Asset, type AssetMediaItem } from '../types/asset';
+import { type BaseNodeData } from '../types/nodes';
 import useNodeConnections from './useNodeConnections';
 
 /**

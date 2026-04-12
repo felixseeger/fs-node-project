@@ -1,4 +1,4 @@
-import React, { useMemo, FC, CSSProperties } from 'react';
+import React, { useMemo, type FC, type CSSProperties } from 'react';
 
 interface MatrixDotProps {
   dotSize?: number;

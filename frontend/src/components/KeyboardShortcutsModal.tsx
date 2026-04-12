@@ -1,4 +1,4 @@
-import React, { useState, useEffect, FC, ChangeEvent } from 'react';
+import React, { useState, useEffect, type FC, type ChangeEvent } from 'react';
 
 interface Shortcut {
   keys: string[];

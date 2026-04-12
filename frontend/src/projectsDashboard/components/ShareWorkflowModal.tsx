@@ -1,4 +1,4 @@
-import React, { FC, Dispatch, SetStateAction, useState, useRef, useEffect } from 'react';
+import React, { type FC, type Dispatch, type SetStateAction, useState, useRef, useEffect } from 'react';
 import type { ShareModalState } from '../types';
 import { truncate } from '../utils';
 

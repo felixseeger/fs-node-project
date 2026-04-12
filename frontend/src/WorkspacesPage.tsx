@@ -1,4 +1,4 @@
-import React, { useState, FC, ReactNode, ChangeEvent } from 'react';
+import React, { useState, type FC, type ReactNode, type ChangeEvent } from 'react';
 
 // Mini preview canvas (static SVG illustration)
 const HeroPreview: FC = () => {

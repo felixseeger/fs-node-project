@@ -3,8 +3,8 @@
  * This is a mock implementation that generates reasonable workflows based on prompt analysis
  */
 
-import { Node, Edge } from '@xyflow/react';
-import { NodeData } from '../types';
+import { type Node, type Edge } from '@xyflow/react';
+import { type NodeData } from '../types';
 
 interface WorkflowConstraints {
   maxNodes?: number;

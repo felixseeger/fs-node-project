@@ -1,6 +1,6 @@
 /* eslint-disable react-compiler/react-compiler */
-import React, { useEffect, useMemo, useRef, useState, FC, ChangeEvent } from 'react';
-import { Node, Edge } from '@xyflow/react';
+import React, { useEffect, useMemo, useRef, useState, type FC, type ChangeEvent } from 'react';
+import { type Node, type Edge } from '@xyflow/react';
 
 interface IOPoint {
   id: string;

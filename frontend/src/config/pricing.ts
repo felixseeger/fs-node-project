@@ -1,4 +1,4 @@
-import { NodePricing } from '../types/billing';
+import { type NodePricing } from '../types/billing';
 
 export const DEFAULT_STARTING_CREDITS = 100;
 

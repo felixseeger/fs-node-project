@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, FC, KeyboardEvent } from 'react';
+import React, { useState, useEffect, useCallback, type FC, type KeyboardEvent } from 'react';
 // @ts-ignore
 import { useStore } from '../store';
 // @ts-ignore

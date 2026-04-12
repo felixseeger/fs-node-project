@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef, FC, ReactNode } from 'react';
+import React, { useCallback, useState, useEffect, useRef, type FC, type ReactNode } from 'react';
 import { Position, Handle, type Node, type NodeProps } from '@xyflow/react';
 import {
   NodeShell,

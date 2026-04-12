@@ -1,5 +1,5 @@
 import React from 'react';
-import { Asset } from '../types/asset';
+import { type Asset } from '../types/asset';
 
 export interface GenerationLineageViewerProps {
   asset: Asset;

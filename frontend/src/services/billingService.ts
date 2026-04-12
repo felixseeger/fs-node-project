@@ -12,10 +12,10 @@ import {
   orderBy,
   limit,
   getDocs,
-  Unsubscribe
+  type Unsubscribe
 } from 'firebase/firestore';
 import { getDb, isFirebaseConfigured } from '../config/firebase';
-import { Wallet, CreditTransaction, TransactionType } from '../types/billing';
+import { type Wallet, type CreditTransaction, type TransactionType } from '../types/billing';
 import { DEFAULT_STARTING_CREDITS } from '../config/pricing';
 
 const WALLETS_COLLECTION = 'wallets';

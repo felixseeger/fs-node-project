@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState, useCallback, FC, ReactNode, KeyboardEvent } from 'react';
-import { ReactFlow, useReactFlow, ReactFlowProvider, Viewport } from '@xyflow/react';
+import React, { useRef, useEffect, useState, useCallback, type FC, type ReactNode, type KeyboardEvent } from 'react';
+import { ReactFlow, useReactFlow, ReactFlowProvider, type Viewport } from '@xyflow/react';
 // @ts-ignore
 import { useStore } from '../store';
 

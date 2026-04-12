@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, ReactNode, CSSProperties } from 'react';
+import { useState, useRef, useEffect, useCallback, type ReactNode, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import { getHandleColor } from '../utils/handleTypes';
@@ -37,7 +37,7 @@ import {
   imageToPromptGenerate, pollImageToPromptStatus,
 } from '../utils/api';
 import { compressImageBase64 } from '../utils/imageUtils';
-import { IMAGE_UNIVERSAL_MODEL_DEFS, ImageUniversalModelId } from './imageUniversalGeneratorModels';
+import { IMAGE_UNIVERSAL_MODEL_DEFS, type ImageUniversalModelId } from './imageUniversalGeneratorModels';
 import {
   normalizeImageSizeTier,
   recraftPixelSizeForAspectAndTier,

@@ -1,5 +1,5 @@
-import React, { useState, useCallback, FC, ReactNode } from 'react';
-import { Workflow } from './types/workflow';
+import React, { useState, useCallback, type FC, type ReactNode } from 'react';
+import { type Workflow } from './types/workflow';
 
 // Workflow diagram for hero section (Image Input → Claude Vision → Response)
 const HeroWorkflowDiagram: FC = () => {

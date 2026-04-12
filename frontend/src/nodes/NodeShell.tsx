@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { surface, border, sp, radius, text, ui } from './nodeTokens';
 import NodeGenerateButton from './NodeGenerateButton';
 import NodeDownloadButton from './NodeDownloadButton';

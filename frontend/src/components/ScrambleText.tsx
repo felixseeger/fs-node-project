@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, FC, ReactNode } from 'react';
+import React, { useEffect, useRef, useState, useCallback, type FC, type ReactNode } from 'react';
 
 interface QueueItem {
   to: string;

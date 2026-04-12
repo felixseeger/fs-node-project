@@ -1,4 +1,4 @@
-import React, { FC, ReactNode, CSSProperties, MouseEvent } from 'react';
+import React, { type FC, type ReactNode, type CSSProperties, type MouseEvent } from 'react';
 
 /* eslint-disable react-refresh/only-export-components */
 

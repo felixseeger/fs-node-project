@@ -1,4 +1,4 @@
-import React, { useState, useRef, FC, ChangeEvent, DragEvent } from 'react';
+import React, { useState, useRef, type FC, type ChangeEvent, type DragEvent } from 'react';
 
 interface ReferenceSelectionProps {
   selectedImages?: string[];

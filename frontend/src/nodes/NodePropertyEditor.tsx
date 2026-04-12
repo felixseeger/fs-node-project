@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, FC, ChangeEvent, ReactNode } from 'react';
+import React, { useState, useMemo, useRef, useEffect, type FC, type ChangeEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   InfoIcon,
@@ -20,7 +20,7 @@ import { VIDEO_UNIVERSAL_MODEL_DEFS } from './videoUniversalGeneratorModels';
 import { text as textStyles, surface, border, radius, sp, font } from './nodeTokens';
 import { getHandleColor, getHandleDataType } from '../utils/handleTypes';
 import { getUniversalModelLogo } from '../utils/universalModelLogo';
-import { Node, Edge } from '@xyflow/react';
+import { type Node, type Edge } from '@xyflow/react';
 
 const IMAGE_MODEL_OPTIONS = [
   'Auto',

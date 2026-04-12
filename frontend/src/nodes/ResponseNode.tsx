@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 import { Position, Handle, type Node, type NodeProps } from '@xyflow/react';
 import BaseNode from './BaseNode';
 import useNodeConnections from './useNodeConnections';

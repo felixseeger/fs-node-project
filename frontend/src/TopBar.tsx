@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, FC } from 'react';
+import { useState, useRef, useEffect, type FC } from 'react';
 import { Avatar } from 'blue-ether';
 
 interface MenuItem {

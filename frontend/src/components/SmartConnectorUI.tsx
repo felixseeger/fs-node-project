@@ -56,7 +56,7 @@ export const SmartConnectorUI: React.FC<SmartConnectorUIProps> = ({ activeConnec
 
   return (
     <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 100 }}>
-      <g transform={viewportTransform} style={{ pointerEvents: 'all' }}>
+      <g transform={viewportTransform} style={{ pointerEvents: 'all', touchAction: 'manipulation' }}>
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" opacity={0.6} />
@@ -67,23 +67,28 @@ export const SmartConnectorUI: React.FC<SmartConnectorUIProps> = ({ activeConnec
           return (
             <g 
               key={i} 
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: 'pointer', touchAction: 'manipulation' }}
               onMouseEnter={() => setHoveredIndex(i)}
               onMouseLeave={() => setHoveredIndex(null)}
               onClick={(e) => {
                 e.stopPropagation();
                 onAutoConnect?.(s.nodeId, s.handleId);
               }}
+              onTouchEnd={(e) => {
+                e.preventDefault(); // Prevent ghost clicks
+                e.stopPropagation();
+                onAutoConnect?.(s.nodeId, s.handleId);
+              }}
             >
-              {/* Outer Glow */}
+              {/* Outer Glow (Invisible hit area for easier tapping) */}
               <circle
                 cx={s.x}
                 cy={s.y}
                 r={isHovered ? 55 : 45}
                 fill={isHovered ? 'rgba(59, 130, 246, 0.2)' : 'transparent'}
-                stroke="#3b82f6"
+                stroke={isHovered ? '#3b82f6' : 'transparent'}
                 strokeWidth={isHovered ? 3 : 2}
-                strokeDasharray="4 4"
+                strokeDasharray={isHovered ? "4 4" : "0"}
                 style={{ transition: 'all 0.2s ease' }}
               />
               
@@ -114,7 +119,7 @@ export const SmartConnectorUI: React.FC<SmartConnectorUIProps> = ({ activeConnec
                 fill={isHovered ? '#3b82f6' : '#1a1a1a'}
                 stroke="#3b82f6"
                 strokeWidth="1"
-                style={{ transition: 'all 0.2s ease' }}
+                style={{ transition: 'all 0.2s ease', pointerEvents: 'none' }}
               />
               
               <text 
@@ -124,7 +129,7 @@ export const SmartConnectorUI: React.FC<SmartConnectorUIProps> = ({ activeConnec
                 fontSize="11" 
                 textAnchor="middle" 
                 fontWeight="bold"
-                style={{ userSelect: 'none' }}
+                style={{ userSelect: 'none', pointerEvents: 'none' }}
               >
                 {isHovered ? 'Click to Snap' : `Match ${s.score}%`}
               </text>

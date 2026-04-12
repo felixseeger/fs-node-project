@@ -7,8 +7,8 @@
  * All JSX components are imported from separate files
  */
 
-import { createElement, lazy, ComponentType } from 'react';
-import { NodeProps } from '@xyflow/react';
+import { createElement, lazy, type ComponentType } from 'react';
+import { type NodeProps } from '@xyflow/react';
 
 // Common nodes are imported directly to prevent React Flow "Couldn't create edge" 
 // race conditions and improve initial canvas rendering performance.

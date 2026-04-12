@@ -4,8 +4,8 @@
  */
 
 import { vi, expect } from 'vitest';
-import React, { ReactElement } from 'react';
-import { render, RenderOptions } from '@testing-library/react';
+import React, { type ReactElement } from 'react';
+import { render, type RenderOptions } from '@testing-library/react';
 import type { Node, Edge } from '@xyflow/react';
 import type { NodeData } from '../types';
 import type { RenderResult } from '@testing-library/react';

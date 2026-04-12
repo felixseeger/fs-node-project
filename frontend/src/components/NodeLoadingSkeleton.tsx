@@ -1,4 +1,4 @@
-import React, { FC, ReactNode, Component, ErrorInfo } from 'react';
+import React, { type FC, type ReactNode, Component, type ErrorInfo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { surface, border, radius, ui } from '../nodes/nodeTokens';
 

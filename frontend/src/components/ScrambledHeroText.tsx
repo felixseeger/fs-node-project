@@ -1,4 +1,4 @@
-import React, { useState, useEffect, FC, CSSProperties } from 'react';
+import React, { useState, useEffect, type FC, type CSSProperties } from 'react';
 import ScrambleText from './ScrambleText';
 
 interface ScrambledHeroTextProps {

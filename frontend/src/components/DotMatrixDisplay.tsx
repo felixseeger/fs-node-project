@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, FC } from 'react';
+import React, { useEffect, useRef, useState, type FC } from 'react';
 
 interface DotMatrixDisplayProps {
   iconUrl: string;

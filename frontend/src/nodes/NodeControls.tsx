@@ -1,4 +1,4 @@
-import { useRef, useEffect, ReactNode } from 'react';
+import { useRef, useEffect, type ReactNode } from 'react';
 import { text, surface, border, radius, sp, font, control } from './nodeTokens';
 
 /**

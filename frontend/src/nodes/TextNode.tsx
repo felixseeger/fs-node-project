@@ -1,5 +1,5 @@
-import React, { useCallback, FC, ChangeEvent } from 'react';
-import { Position, Handle, NodeProps } from '@xyflow/react';
+import React, { useCallback, type FC, type ChangeEvent } from 'react';
+import { Position, Handle, type NodeProps } from '@xyflow/react';
 import BaseNode from './BaseNode';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNodes, useEdges } from '@xyflow/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface HealthIssue {
   id: string;
@@ -98,71 +99,80 @@ export const WorkflowHealthMonitor: React.FC<{ onAutoFix?: (nodeId: string, issu
         Health {issues.length > 0 ? `(${issues.length} issues)` : '(Good)'}
       </button>
 
-      {isOpen && issues.length > 0 && (
-        <div style={{
-          position: 'absolute',
-          bottom: '100%',
-          right: 0,
-          marginBottom: '10px',
-          background: '#1a1a1a',
-          border: '1px solid #333',
-          borderRadius: '8px',
-          width: '300px',
-          maxHeight: '400px',
-          overflowY: 'auto',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <div style={{ padding: '12px', borderBottom: '1px solid #333', fontWeight: 600, color: '#fff' }}>
-            Workflow Health
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {issues.map(issue => (
-              <div
-                key={issue.id}
-                style={{
-                  padding: '10px 12px',
-                  borderBottom: '1px solid #222',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '8px',
-                  fontSize: '13px'
-                }}
-              >
-                <div style={{
-                  width: 8, height: 8, borderRadius: '50%', marginTop: 5, flexShrink: 0,
-                  background: issue.type === 'error' ? '#ef4444' : issue.type === 'warning' ? '#f59e0b' : '#3b82f6'
-                }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: '#ccc', lineHeight: 1.4 }}>{issue.message}</div>
-                  {issue.action && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        issue.action?.handler(issue);
-                      }}
-                      style={{
-                        marginTop: '6px',
-                        background: '#2563eb',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '11px',
-                        fontWeight: 600
-                      }}
-                    >
-                      {issue.action.label}
-                    </button>
-                  )}
+      <AnimatePresence>
+        {isOpen && issues.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            style={{
+              position: 'absolute',
+              bottom: '100%',
+              right: 0,
+              marginBottom: '10px',
+              background: '#1a1a1a',
+              border: '1px solid #333',
+              borderRadius: '8px',
+              width: '300px',
+              maxHeight: '400px',
+              overflowY: 'auto',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+              transformOrigin: 'bottom right'
+            }}
+          >
+            <div style={{ padding: '12px', borderBottom: '1px solid #333', fontWeight: 600, color: '#fff' }}>
+              Workflow Health
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {issues.map(issue => (
+                <div
+                  key={issue.id}
+                  style={{
+                    padding: '10px 12px',
+                    borderBottom: '1px solid #222',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                    fontSize: '13px'
+                  }}
+                >
+                  <div style={{
+                    width: 8, height: 8, borderRadius: '50%', marginTop: 5, flexShrink: 0,
+                    background: issue.type === 'error' ? '#ef4444' : issue.type === 'warning' ? '#f59e0b' : '#3b82f6'
+                  }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: '#ccc', lineHeight: 1.4 }}>{issue.message}</div>
+                    {issue.action && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          issue.action?.handler(issue);
+                        }}
+                        style={{
+                          marginTop: '6px',
+                          background: '#2563eb',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '11px',
+                          fontWeight: 600
+                        }}
+                      >
+                        {issue.action.label}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, ReactNode } from 'react';
+import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { border, font, radius, sp, surface, text } from './nodeTokens';
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { surface, border, sp, radius, text, ui } from './nodeTokens';
-import { BaseNodeProps, NodeStatus } from './BaseNode.types';
+import { type BaseNodeProps, type NodeStatus } from './BaseNode.types';
 import NodeGenerateButton from './NodeGenerateButton';
 import NodeDownloadButton from './NodeDownloadButton';
 import EditableNodeTitle from './EditableNodeTitle';

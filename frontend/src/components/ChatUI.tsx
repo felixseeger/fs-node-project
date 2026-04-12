@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback, FC, ChangeEvent, KeyboardEvent, ReactNode } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback, type FC, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { NODE_TYPE_CAPABILITIES } from '../config/nodeCapabilities';
 import DecodedText from './DecodedText';
 import AssetPickerOverlay from './AssetPickerOverlay';
-import { Asset, CreateAssetPayload, AssetOperationResult } from '../types/asset';
+import { type Asset, type CreateAssetPayload, type AssetOperationResult } from '../types/asset';
 import {
   exportWorkflowToFile,
   openFilePicker,

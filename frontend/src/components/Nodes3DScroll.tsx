@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo, FC } from 'react';
+import React, { useEffect, useRef, useState, useMemo, type FC } from 'react';
 // @ts-ignore
 import { NODE_DATA, SECTIONS_META, getHandleDot } from '../data/nodeMetadata';
 

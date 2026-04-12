@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef, FC, ReactElement, ChangeEvent } from 'react';
+import { useState, useEffect, useRef, type FC, type ReactElement, type ChangeEvent } from 'react';
 import './ProfileModal.css';
 import { getFirebaseAuth } from './config/firebase';
-import { updateEmail, updatePassword, deleteUser, User } from 'firebase/auth';
+import { updateEmail, updatePassword, deleteUser, type User } from 'firebase/auth';
 import { useUser } from './hooks/useUser';
 import { useBilling } from './hooks/useBilling';
 import { PRICING_CATALOG } from './config/pricing';
-import { UpdateProfilePayload } from './types/user';
+import { type UpdateProfilePayload } from './types/user';
 import AvatarCropper from './components/AvatarCropper';
 
 interface IconsType {

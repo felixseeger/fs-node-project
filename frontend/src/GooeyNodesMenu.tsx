@@ -1,9 +1,9 @@
-import React, { useState, useMemo, FC, useEffect } from 'react';
+import React, { useState, useMemo, type FC, useEffect } from 'react';
 import './GooeyNodesMenu.css';
 import UpdateAssetModal from './UpdateAssetModal';
 import SearchHistoryMenu from './SearchHistoryMenu';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
-import { NodeMenuSection } from './types';
+import { type NodeMenuSection } from './types';
 
 interface Asset {
   id: string;

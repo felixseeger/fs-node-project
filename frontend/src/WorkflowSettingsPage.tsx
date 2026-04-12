@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, FC, ReactNode, ReactElement, CSSProperties } from 'react';
+import React, { useState, useEffect, useRef, type FC, type ReactNode, type ReactElement, type CSSProperties } from 'react';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&

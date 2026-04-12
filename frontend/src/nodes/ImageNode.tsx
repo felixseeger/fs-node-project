@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState, FC, ChangeEvent, DragEvent, KeyboardEvent } from 'react';
+import React, { useCallback, useEffect, useRef, useState, type FC, type ChangeEvent, type DragEvent, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { Position, Handle, NodeProps } from '@xyflow/react';
+import { Position, Handle, type NodeProps } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';

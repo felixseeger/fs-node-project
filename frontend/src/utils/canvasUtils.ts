@@ -3,7 +3,7 @@
  */
 // @ts-ignore
 import domtoimage from 'dom-to-image-more';
-import { Node, Edge, Viewport } from '@xyflow/react';
+import { type Node, type Edge, type Viewport } from '@xyflow/react';
 
 /**
  * Calculate optimal node positions for new nodes

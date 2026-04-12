@@ -4,7 +4,7 @@
  * This keeps JSX out of the utility files to prevent build issues
  */
 
-import React, { Suspense, FC, LazyExoticComponent, useMemo } from 'react';
+import React, { Suspense, type FC, type LazyExoticComponent, useMemo } from 'react';
 import NodeLoadingSkeleton, { NodeErrorBoundary } from './NodeLoadingSkeleton';
 import { useCanvas } from '../context/CanvasContext';
 

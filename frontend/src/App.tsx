@@ -7,13 +7,13 @@ import {
   Background,
   BackgroundVariant,
   useReactFlow,
-  Node,
-  Edge,
-  OnNodesChange,
-  OnEdgesChange,
-  Connection,
-  ReactFlowInstance,
-  OnConnect,
+  type Node,
+  type Edge,
+  type OnNodesChange,
+  type OnEdgesChange,
+  type Connection,
+  type ReactFlowInstance,
+  type OnConnect,
   SelectionMode,
   type NodeTypes,
 } from '@xyflow/react';
@@ -2011,7 +2011,7 @@ const handleConnectEnd = useCallback(
     return (
       <div className="app-container">
         <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
-        <div className="app-content" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}><GlobalAssetVault /></div>
+        <div className="app-content" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}><GlobalAssetVault assetsAPI={firebaseAssets} /></div>
         <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
       </div>
     );

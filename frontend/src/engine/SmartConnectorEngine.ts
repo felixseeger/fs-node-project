@@ -1,4 +1,4 @@
-import { Node, Edge } from '@xyflow/react';
+import { type Node, type Edge } from '@xyflow/react';
 import { getHandleDataType } from '../utils/handleTypes';
 import { NODE_MENU } from '../config/nodeMenu';
 

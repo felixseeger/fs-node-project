@@ -1,5 +1,5 @@
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
 import { 
   getFirestore, 
   Firestore, 
@@ -7,7 +7,7 @@ import {
   persistentLocalCache, 
   persistentMultipleTabManager 
 } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
 
 // Replace this with your new config

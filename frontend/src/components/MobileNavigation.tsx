@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, FC, ReactNode } from 'react';
+import React, { useEffect, useRef, useState, type FC, type ReactNode } from 'react';
 import gsap from 'gsap';
 import './MobileNavigation.css';
 

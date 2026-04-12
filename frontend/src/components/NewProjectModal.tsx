@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState, FC, ReactNode, ChangeEvent } from 'react';
+import React, { useCallback, useEffect, useRef, useState, type FC, type ReactNode, type ChangeEvent } from 'react';
 
 const iconWrap: React.CSSProperties = {
   width: 48,

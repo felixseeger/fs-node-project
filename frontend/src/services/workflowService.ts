@@ -781,3 +781,79 @@ export async function getWorkflowStats(userId: string): Promise<WorkflowStats> {
     popularNodeTypes,
   };
 }
+
+export interface WorkflowSnapshot {
+  id: string;
+  workflowId: string;
+  timestamp: number;
+  label: string;
+  nodes: any[];
+  edges: any[];
+}
+
+/**
+ * Save a workflow snapshot to a subcollection
+ */
+export async function saveWorkflowSnapshot(workflowId: string, snapshot: Omit<WorkflowSnapshot, 'id' | 'workflowId' | 'timestamp'>): Promise<string> {
+  const db = getDb();
+  if (!db) throw new Error('Firebase not initialized');
+
+  const snapshotRef = collection(db, WORKFLOWS_COLLECTION, workflowId, 'snapshots');
+  const docRef = await addDoc(snapshotRef, {
+    ...snapshot,
+    timestamp: serverTimestamp()
+  });
+  
+  return docRef.id;
+}
+
+/**
+ * Fetch all snapshots for a workflow
+ */
+export async function getWorkflowSnapshots(workflowId: string): Promise<WorkflowSnapshot[]> {
+  const db = getDb();
+  if (!db) return [];
+
+  try {
+    const snapshotsRef = collection(db, WORKFLOWS_COLLECTION, workflowId, 'snapshots');
+    const q = query(snapshotsRef, orderBy('timestamp', 'desc'));
+    const snapshotQuery = await getDocs(q);
+    
+    return snapshotQuery.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        workflowId,
+        timestamp: data.timestamp?.toMillis() || Date.now(),
+        label: data.label || 'Snapshot',
+        nodes: data.nodes || [],
+        edges: data.edges || []
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching snapshots:', error);
+    return [];
+  }
+}
+
+/**
+ * Clear all snapshots for a workflow
+ */
+export async function clearWorkflowSnapshots(workflowId: string): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+
+  try {
+    const snapshotsRef = collection(db, WORKFLOWS_COLLECTION, workflowId, 'snapshots');
+    const snapshotQuery = await getDocs(snapshotsRef);
+    
+    const batch = writeBatch(db);
+    snapshotQuery.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
+  } catch (error) {
+    console.error('Error clearing snapshots:', error);
+  }
+}

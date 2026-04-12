@@ -3,7 +3,7 @@
  * Visual progress indicator for node execution
  */
 
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 
 interface NodeProgressProps {
   progress?: number;

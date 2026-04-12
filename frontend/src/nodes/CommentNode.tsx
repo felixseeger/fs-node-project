@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback, FC, ChangeEvent } from 'react';
-import { NodeResizer, NodeProps } from '@xyflow/react';
+import React, { useState, useEffect, useRef, useCallback, type FC, type ChangeEvent } from 'react';
+import { NodeResizer, type NodeProps } from '@xyflow/react';
 
 /**
  * CommentNode - A text-only node for documenting workflows

@@ -8,7 +8,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { getDb, isFirebaseConfigured } from '../config/firebase';
-import { UserProfile, FirestoreUserDocument, UpdateProfilePayload } from '../types/user';
+import { type UserProfile, type FirestoreUserDocument, type UpdateProfilePayload } from '../types/user';
 import { uploadUserAvatar } from './storageService';
 
 const USERS_COLLECTION = 'users';

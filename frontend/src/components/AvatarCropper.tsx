@@ -1,5 +1,5 @@
-import { useState, useCallback, FC } from 'react';
-import Cropper, { Area, Point } from 'react-easy-crop';
+import { useState, useCallback, type FC } from 'react';
+import Cropper, { type Area, type Point } from 'react-easy-crop';
 import getCroppedImg from '../utils/cropUtils';
 import './AvatarCropper.css';
 

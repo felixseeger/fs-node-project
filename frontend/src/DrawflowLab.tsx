@@ -1,5 +1,5 @@
-import React, { useRef, useState, useCallback, FC } from 'react';
-import DrawflowEditor, { DrawflowEditorRef } from './components/DrawflowEditor';
+import React, { useRef, useState, useCallback, type FC } from 'react';
+import DrawflowEditor, { type DrawflowEditorRef } from './components/DrawflowEditor';
 
 const surface = {
   bg: 'var(--color-bg, #1a1a1a)',

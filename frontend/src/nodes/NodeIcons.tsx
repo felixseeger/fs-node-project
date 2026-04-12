@@ -1,4 +1,4 @@
-import React, { FC, CSSProperties } from 'react';
+import React, { type FC, type CSSProperties } from 'react';
 
 interface IconProps {
   style?: CSSProperties;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Unsubscribe } from 'firebase/firestore';
-import { UserProfile, UpdateProfilePayload } from '../types/user';
+import { type Unsubscribe } from 'firebase/firestore';
+import { type UserProfile, type UpdateProfilePayload } from '../types/user';
 import {
   getUserProfile,
   createUserProfile,

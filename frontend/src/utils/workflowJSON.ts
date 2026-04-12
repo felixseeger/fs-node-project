@@ -14,7 +14,7 @@
 
 import type { Workflow, WorkflowEdge } from '../types/workflow';
 import type { NodeData } from '../types/nodes';
-import { Node } from '@xyflow/react';
+import { type Node } from '@xyflow/react';
 
 // =============================================================================
 // Constants

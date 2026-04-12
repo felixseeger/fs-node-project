@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useReactFlow, Edge, Node } from '@xyflow/react';
+import { useReactFlow, type Edge, type Node } from '@xyflow/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Snapshot {
   id: string;
@@ -64,7 +65,7 @@ export const WorkflowLineageTracker: React.FC = () => {
 
   return (
     <div style={{ position: 'absolute', top: 60, right: 20, zIndex: 1000 }}>
-      <div style={{ display: 'flex', gap: '8px' }}>
+      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
         <button
           onClick={takeSnapshot}
           style={{
@@ -95,69 +96,81 @@ export const WorkflowLineageTracker: React.FC = () => {
         </button>
       </div>
 
-      {isOpen && (
-        <div style={{
-          marginTop: '8px',
-          background: '#1a1a1a',
-          border: '1px solid #333',
-          borderRadius: '8px',
-          width: '250px',
-          maxHeight: '300px',
-          overflowY: 'auto',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
-        }}>
-          {snapshots.length === 0 ? (
-            <div style={{ padding: '12px', color: '#888', fontSize: '12px', textAlign: 'center' }}>
-              No snapshots yet.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ padding: '8px 12px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'flex-end' }}>
-                <button 
-                  onClick={clearSnapshots}
-                  style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '11px', cursor: 'pointer' }}
-                >
-                  Clear All
-                </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: '8px',
+              background: '#1a1a1a',
+              border: '1px solid #333',
+              borderRadius: '8px',
+              width: '250px',
+              maxHeight: '300px',
+              overflowY: 'auto',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+              transformOrigin: 'top right'
+            }}
+          >
+            {snapshots.length === 0 ? (
+              <div style={{ padding: '12px', color: '#888', fontSize: '12px', textAlign: 'center' }}>
+                No snapshots yet.
               </div>
-              {snapshots.map(s => (
-                <div
-                  key={s.id}
-                  style={{
-                    padding: '10px 12px',
-                    borderBottom: '1px solid #222',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontSize: '13px'
-                  }}
-                >
-                  <div>
-                    <div style={{ color: '#fff', fontWeight: 500 }}>{s.label}</div>
-                    <div style={{ color: '#666', fontSize: '11px' }}>
-                      {new Date(s.timestamp).toLocaleTimeString()}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => restoreSnapshot(s)}
-                    style={{
-                      background: '#2563eb',
-                      color: '#fff',
-                      border: 'none',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '11px'
-                    }}
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '8px 12px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button 
+                    onClick={clearSnapshots}
+                    style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '11px', cursor: 'pointer' }}
                   >
-                    Restore
+                    Clear All
                   </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                {snapshots.map(s => (
+                  <div
+                    key={s.id}
+                    style={{
+                      padding: '10px 12px',
+                      borderBottom: '1px solid #222',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '13px'
+                    }}
+                  >
+                    <div>
+                      <div style={{ color: '#fff', fontWeight: 500 }}>{s.label}</div>
+                      <div style={{ color: '#666', fontSize: '11px' }}>
+                        {new Date(s.timestamp).toLocaleTimeString()}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => restoreSnapshot(s)}
+                      style={{
+                        background: '#2563eb',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '11px'
+                      }}
+                    >
+                      Restore
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

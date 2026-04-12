@@ -12,12 +12,12 @@
 
 "use client";
 
-import React, { ReactNode, useCallback, useRef, useLayoutEffect, useState, useEffect } from "react";
-import { Node, NodeResizer, OnResize, useReactFlow } from "@xyflow/react";
+import React, { type ReactNode, useCallback, useRef, useLayoutEffect, useState, useEffect } from "react";
+import { type Node, NodeResizer, type OnResize, useReactFlow } from "@xyflow/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/utils/cn";
 import { getMediaDimensions } from "@/utils/nodeDimensions";
-import { BaseNodeData, NodeStatus } from "@/types/nodes";
+import { type BaseNodeData, type NodeStatus } from "@/types/nodes";
 
 // SECURITY: All dynamic content sanitization happens in render, not via imports
 // to keep the dependency footprint minimal and avoid DOM Clobbering vectors.

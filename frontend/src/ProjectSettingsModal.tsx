@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, FC } from 'react';
+import React, { useState, useEffect, useCallback, type FC } from 'react';
 import { createPortal } from 'react-dom';
 
 export const PROJECT_SETTINGS_STORAGE_KEY = 'nodespace-project-settings-v1';

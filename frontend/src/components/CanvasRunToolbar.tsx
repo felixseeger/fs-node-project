@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState, FC, ReactNode, CSSProperties, MouseEvent } from 'react';
-import { Edge } from '@xyflow/react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, type FC, type ReactNode, type CSSProperties, type MouseEvent } from 'react';
+import { type Edge } from '@xyflow/react';
 // @ts-ignore
 import { collectDownstreamNodeIds } from '../utils/workflowRunScope';
 

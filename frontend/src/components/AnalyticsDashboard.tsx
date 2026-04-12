@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, FC } from 'react';
+import React, { useState, useEffect, useCallback, type FC } from 'react';
 import { useStore } from '../store';
 import { BarChart, LineChart, PieChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, Line, Pie, Cell } from 'recharts';
 import { getProviderStats, PerformanceUtils } from '../utils';

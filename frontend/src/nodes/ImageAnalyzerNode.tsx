@@ -1,5 +1,5 @@
-import React, { useCallback, useRef, useState, useEffect, FC, ChangeEvent, DragEvent } from 'react';
-import { Position, Handle, NodeProps } from '@xyflow/react';
+import React, { useCallback, useRef, useState, useEffect, type FC, type ChangeEvent, type DragEvent } from 'react';
+import { Position, Handle, type NodeProps } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';

@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect } from 'react';
+import React, { type FC, useState, useEffect } from 'react';
 import { useBilling } from './hooks/useBilling';
 import ApiExportModal from './ApiExportModal';
 import ProjectSettingsModal from './ProjectSettingsModal';

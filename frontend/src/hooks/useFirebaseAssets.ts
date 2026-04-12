@@ -9,12 +9,12 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Unsubscribe } from 'firebase/firestore';
+import { type Unsubscribe } from 'firebase/firestore';
 import {
-  Asset,
-  CreateAssetPayload,
-  UpdateAssetPayload,
-  AssetOperationResult,
+  type Asset,
+  type CreateAssetPayload,
+  type UpdateAssetPayload,
+  type AssetOperationResult,
   isAsset,
 } from '../types/asset';
 import {

@@ -1,5 +1,5 @@
-import React, { FC } from 'react';
-import { Asset } from '../types/asset';
+import React, { type FC } from 'react';
+import { type Asset } from '../types/asset';
 
 interface AssetPickerOverlayProps {
   isOpen: boolean;

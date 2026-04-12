@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 import { getWallet, subscribeToWallet, getRecentTransactions } from '../services/billingService';
-import { Wallet, CreditTransaction } from '../types/billing';
+import { type Wallet, type CreditTransaction } from '../types/billing';
 
 export function useBilling(uid: string | null | undefined) {
   

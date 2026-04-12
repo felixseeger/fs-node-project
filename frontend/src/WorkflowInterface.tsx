@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useCallback, FC, ChangeEvent } from 'react';
-import { Node, Edge } from '@xyflow/react';
+import React, { useState, useMemo, useCallback, type FC, type ChangeEvent } from 'react';
+import { type Node, type Edge } from '@xyflow/react';
 import { getHandleDataType, getHandleColor } from './utils/handleTypes';
 
 const ASPECT_OPTIONS = ['1:1', '16:9', '9:16', '4:3', '3:4', '21:9'];

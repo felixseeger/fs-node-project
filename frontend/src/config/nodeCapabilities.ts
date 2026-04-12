@@ -1,4 +1,4 @@
-import { NodeCapability, NodeCapabilities } from '../nodes/nodeCapabilities';
+import { type NodeCapability, NodeCapabilities } from '../nodes/nodeCapabilities';
 
 export const NODE_TYPE_CAPABILITIES: Record<string, NodeCapability[]> = {
   // Input/Output
