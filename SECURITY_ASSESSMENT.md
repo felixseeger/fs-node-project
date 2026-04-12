@@ -345,3 +345,24 @@ Addressing the P0 and P1 items will significantly improve the security posture a
 
 *Report generated: 2026-04-11*  
 *Next review recommended: After implementing P0 items*
+
+---
+
+## 11. Security Assessment Update (2026-04-12)
+
+**Update Assessor**: Security Hardening Agent
+
+### Phase 7.4 Authentication Updates
+
+The critical missing auth layer (**Issue #10: Missing Auth Layer**) has now been addressed.
+
+- **Backend Authentication Integration (`lib/api/middleware/auth.js`)**: `firebase-admin` is now used to verify Firebase Auth ID tokens sent from the frontend.
+- **Frontend Integration (`frontend/src/utils/api.js`)**: All `fetch` calls dynamically resolve the current user's ID token and attach it as an `Authorization: Bearer <token>` header.
+- **Graceful Degradation**: The middleware falls back or skips evaluation automatically during local dev scenarios lacking `FIREBASE_PROJECT_ID` or configured with `REQUIRE_AUTH=false`.
+
+**Updated Controls**:
+| Control | Previous Status | Current Status | Notes |
+|---------|--------|--------|-------|
+| **Authentication** | ❌ Missing | ✅ Implemented | Firebase Admin middleware verifying ID tokens for all `/api` routes. |
+
+With these changes, the backend proxy endpoints are protected against unauthenticated API abuse, mitigating the risk of unauthorized AI generation requests and excessive cost overruns.

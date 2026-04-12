@@ -1,3 +1,4 @@
+import { getFirebaseAuth } from '../config/firebase';
 const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
 
 async function safeJson(res) {
@@ -14,13 +15,29 @@ async function safeJson(res) {
 }
 
 
+
+async function getAuthHeaders(extraHeaders = {}) {
+  const headers = { ...extraHeaders };
+  try {
+    const auth = getFirebaseAuth();
+    if (auth && auth.currentUser) {
+      const token = await auth.currentUser.getIdToken();
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  } catch (e) {
+    // Firebase might not be configured, proceed without token
+    console.warn("Could not get Firebase Auth token for API request");
+  }
+  return headers;
+}
+
 /**
  * Generic POST helper
  */
 async function postToApi(endpoint, params) {
   const res = await fetch(`${API_BASE}${endpoint}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(params),
   });
   return safeJson(res);
@@ -29,7 +46,7 @@ async function postToApi(endpoint, params) {
 export async function uploadWorkflowThumbnail(imageDataUrl, workflowId) {
   const res = await fetch(`${API_BASE}/api/workflow-thumbnail`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ imageDataUrl, workflowId }),
   });
 
@@ -56,7 +73,7 @@ export async function pollGenericStatus(endpoint, taskId, {
   endpointSuffix = ''
 } = {}) {
   for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(`${API_BASE}${endpoint}/${taskId}${endpointSuffix}`);
+    const res = await fetch(`${API_BASE}${endpoint}/${taskId}${endpointSuffix}`, { headers: await getAuthHeaders() });
     const data = await safeJson(res);
 
     if (onProgress) {
@@ -277,7 +294,7 @@ export async function pollLtxVideo2ProStatus(mode, taskId, maxAttempts = 120, in
 export async function ltxVideoDirectGenerate(mode, params) {
   const res = await fetch(`${API_BASE}/api/ltx-direct/${mode}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(params),
   });
 
@@ -501,10 +518,7 @@ export { API_BASE };
 export async function uploadImages(files) {
   const formData = new FormData();
   files.forEach((f) => formData.append('images', f));
-  const res = await fetch(`${API_BASE}/api/upload-image`, {
-    method: 'POST',
-    body: formData,
-  });
+  const res = await fetch(`${API_BASE}/api/upload-image`, { method: 'POST', headers: await getAuthHeaders(), body: formData });
   return safeJson(res);
 }
 
@@ -512,7 +526,7 @@ export async function uploadImages(files) {
 export async function groupEditGenerate(params) {
   const res = await fetch(`${API_BASE}/api/group-edit`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(params),
   });
   if (!res.ok) {
@@ -529,7 +543,7 @@ export async function pollGroupEditStatus(taskId, maxAttempts = 240, intervalMs 
 export async function facialEditGenerate(params) {
   const res = await fetch(`${API_BASE}/api/facial-edit`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(params),
   });
   if (!res.ok) {
@@ -555,7 +569,7 @@ export async function facialEditGenerate(params) {
 export async function generateAIWorkflow(prompt, mode = 'standard', context = null, images = []) {
   const res = await fetch(`${API_BASE}/api/ai-workflow/generate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ prompt, mode, context, images }),
   });
   return safeJson(res);
@@ -573,7 +587,7 @@ export async function generateAIWorkflow(prompt, mode = 'standard', context = nu
 export async function sendChat(message, history = [], system = null, images = []) {
   const res = await fetch(`${API_BASE}/api/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ message, history, system, images }),
   });
   return safeJson(res);
@@ -588,7 +602,7 @@ export async function sendChat(message, history = [], system = null, images = []
 export async function suggestNodes(prompt, currentNodes = []) {
   const res = await fetch(`${API_BASE}/api/ai-workflow/suggest`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ prompt, currentNodes }),
   });
   return safeJson(res);
@@ -599,7 +613,7 @@ export async function suggestNodes(prompt, currentNodes = []) {
  * @returns {Promise<{success: boolean, patterns: array}>}
  */
 export async function getWorkflowPatterns() {
-  const res = await fetch(`${API_BASE}/api/ai-workflow/patterns`);
+  const res = await fetch(`${API_BASE}/api/ai-workflow/patterns`, { headers: await getAuthHeaders() });
   return safeJson(res);
 }
 
@@ -608,7 +622,7 @@ export async function getWorkflowPatterns() {
  * @returns {Promise<{success: boolean, categories: object}>}
  */
 export async function getAINodeTypes() {
-  const res = await fetch(`${API_BASE}/api/ai-workflow/nodes`);
+  const res = await fetch(`${API_BASE}/api/ai-workflow/nodes`, { headers: await getAuthHeaders() });
   return safeJson(res);
 }
 
@@ -664,7 +678,7 @@ export async function tripoCreateTask(params) {
 
 export async function tripoGetTask(taskId) {
   if (!taskId) throw new Error('taskId is required');
-  const res = await fetch(`${API_BASE}/api/tripo/task/${encodeURIComponent(taskId)}`);
+  const res = await fetch(`${API_BASE}/api/tripo/task/${encodeURIComponent(taskId)}`, { headers: await getAuthHeaders() });
   const data = await safeJson(res);
   if (!res.ok) {
     throw new Error(data?.error || `Failed to fetch Tripo task: ${res.status}`);
@@ -674,7 +688,7 @@ export async function tripoGetTask(taskId) {
 
 export async function fetchGeneratedProjectName() {
   try {
-    const res = await fetch(`${API_BASE}/api/generate-name`);
+    const res = await fetch(`${API_BASE}/api/generate-name`, { headers: await getAuthHeaders() });
     const data = await safeJson(res);
     return data.name || "Untitled-Board-001";
   } catch (error) {
@@ -705,10 +719,7 @@ export async function processVoiceInput(audioData, language = 'en-US') {
   formData.append('audio', audioData, 'voice-input.webm');
   formData.append('language', language);
 
-  const res = await fetch(`${API_BASE}/api/process-voice`, {
-    method: 'POST',
-    body: formData,
-  });
+  const res = await fetch(`${API_BASE}/api/process-voice`, { method: 'POST', headers: await getAuthHeaders(), body: formData });
 
   return safeJson(res);
 }

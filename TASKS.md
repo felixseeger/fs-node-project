@@ -17,3 +17,9 @@
 - [x] TASK-012: Implement Connection -> Edge adapter in App.tsx
 - [x] TASK-013: Add type narrowing for workflow data JSON parsing
 - [x] TASK-014: Fix nodeTypes registry typing
+
+## Backend Authentication (Phase 7.4)
+- [x] TASK-015: Install firebase-admin for backend authentication.
+- [x] TASK-016: Create auth middleware (`lib/api/middleware/auth.js`) to verify Firebase ID tokens.
+- [x] TASK-017: Protect all generation and upload API routes by applying the auth middleware.
+- [x] TASK-018: Update frontend API client (`frontend/src/utils/api.js`) to fetch and send `Authorization: Bearer <token>`.
