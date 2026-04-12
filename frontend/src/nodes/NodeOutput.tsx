@@ -9,14 +9,15 @@ import { text, surface, border, radius, sp, font } from './nodeTokens';
 interface OutputHandleProps {
   id?: string;
   label?: string;
-  type?: 'image' | 'video' | 'audio' | '3d';
+  type?: 'image' | 'video' | 'audio' | '3d' | 'text';
+  color?: string;
 }
 
-export function OutputHandle({ id = 'output', label, type = 'image' }: OutputHandleProps) {
+export function OutputHandle({ id = 'output', label, type = 'image', color }: OutputHandleProps) {
   const handleId =
-    type === 'video' ? 'output-video' : type === 'audio' ? 'output-audio' : type === '3d' ? 'model-out' : id;
+    type === 'video' ? 'output-video' : type === 'audio' ? 'output-audio' : type === '3d' ? 'model-out' : type === 'text' ? 'text-out' : id;
   const defaultLabel =
-    type === 'video' ? 'Video' : type === 'audio' ? 'Audio' : type === '3d' ? '3D' : 'Image';
+    type === 'video' ? 'Video' : type === 'audio' ? 'Audio' : type === '3d' ? '3D' : type === 'text' ? 'Text' : 'Image';
   const displayLabel = label ?? defaultLabel;
   return (
     <div style={{
@@ -30,7 +31,7 @@ export function OutputHandle({ id = 'output', label, type = 'image' }: OutputHan
         id={handleId}
         style={{
           width: 10, height: 10, borderRadius: '50%',
-          background: getHandleColor(handleId), border: 'none',
+          background: color || getHandleColor(handleId), border: 'none',
           position: 'relative', right: -12, transform: 'none',
         }}
       />
@@ -68,8 +69,8 @@ export function SecondaryOutputHandle({ id = 'prompt-out' }: SecondaryOutputHand
  */
 interface OutputPreviewProps {
   isLoading: boolean;
-  output?: string;         // URL string (image, video, audio, or 3D asset URL)
-  error?: string;
+  output?: string | null;         // URL string (image, video, audio, or 3D asset URL)
+  error?: string | null;
   accentColor?: string;
   type?: 'image' | 'video' | 'audio' | 'model';
   label?: string;

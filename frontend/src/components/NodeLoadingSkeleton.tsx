@@ -1,6 +1,6 @@
 import React, { FC, ReactNode, Component, ErrorInfo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { surface, border, radius } from '../nodes/nodeTokens';
+import { surface, border, radius, ui } from '../nodes/nodeTokens';
 
 interface NodeLoadingSkeletonProps {
   width?: number;
@@ -20,7 +20,7 @@ const NodeLoadingSkeleton: FC<NodeLoadingSkeletonProps> = ({ width = 240, height
         height: `${height}px`,
         background: surface.sunken,
         border: `1px solid ${border.default}`,
-        borderRadius: `${radius.medium}px`,
+        borderRadius: `${radius.md}px`,
         position: 'relative',
         overflow: 'hidden',
         animation: 'pulse 1.5s ease-in-out infinite',
@@ -161,8 +161,8 @@ export class NodeErrorBoundary extends Component<NodeErrorBoundaryProps, NodeErr
             width: '240px',
             height: '120px',
             background: surface.sunken,
-            border: `1px solid ${border.error || '#ff4444'}`,
-            borderRadius: `${radius.medium}px`,
+            border: `1px solid ${ui.errorBorder || '#ff4444'}`,
+            borderRadius: `${radius.md}px`,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',

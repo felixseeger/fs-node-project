@@ -200,7 +200,7 @@ export default function RelightNode({ id, data, selected }) {
   const ACCENT = '#f59e0b';
 
   return (
-    <NodeShell data={data} label={data.label || 'Relight'} dotColor={ACCENT} selected={selected} onGenerate={handleRelight} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'Relight'} dotColor={ACCENT} selected={selected} onGenerate={handleRelight} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
       <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />
 

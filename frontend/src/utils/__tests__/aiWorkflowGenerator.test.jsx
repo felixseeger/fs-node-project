@@ -8,11 +8,11 @@ import { generateWorkflowFromPrompt } from '../aiWorkflowGenerator';
 describe('AI Workflow Generator', () => {
   // Mock timer for faster tests
   beforeAll(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterAll(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('generateWorkflowFromPrompt', () => {

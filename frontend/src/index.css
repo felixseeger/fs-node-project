@@ -616,12 +616,25 @@ html.canvas-interacting .react-flow__handle {
 .animate-bounce { animation: bounce 1s infinite; }
 .animate-shake { animation: shake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
 
-/* Node Transition Effects */
-.transition-all { transition-property: all; }
-.transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; }
-.transition-opacity { transition-property: opacity; }
-.transition-shadow { transition-property: box-shadow; }
-.transition-transform { transition-property: transform; }
+/* ── Connection Highlighting ── */
+.react-flow__container.connecting .react-flow__handle {
+  opacity: 0.4;
+}
+
+.react-flow__container.connecting .react-flow__handle.connectable {
+  opacity: 1;
+  transform: scale(1.4);
+  box-shadow: 0 0 12px currentColor, 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+.react-flow__container.connecting .react-flow__node {
+  transition: opacity 0.2s;
+}
+
+.react-flow__container.connecting .react-flow__node:not(.has-connectable-handle) {
+  opacity: 0.6;
+}
+
 
 .duration-100 { transition-duration: 100ms; }
 .duration-200 { transition-duration: 200ms; }

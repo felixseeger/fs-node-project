@@ -16,11 +16,12 @@ import { useState } from 'react';
 interface NodeDownloadButtonProps {
   url: string;
   filename?: string;
+  nodeLabel?: string;
   size?: 'sm' | 'md';
   type?: 'image' | 'video' | 'audio' | 'svg' | string;
 }
 
-export default function NodeDownloadButton({ url, filename, size = 'md', type = 'image' }: NodeDownloadButtonProps) {
+export default function NodeDownloadButton({ url, filename, nodeLabel, size = 'md', type = 'image' }: NodeDownloadButtonProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   if (!url) return null;
@@ -40,7 +41,12 @@ export default function NodeDownloadButton({ url, filename, size = 'md', type = 
     else if (type === 'audio') extension = 'mp3';
     else if (type === 'svg') extension = 'svg';
 
-    link.download = filename || `generated-${type}-${Date.now()}.${extension}`;
+    // Generate a meaningful filename if not provided
+    const baseName = filename || (nodeLabel 
+      ? `${nodeLabel.toLowerCase().replace(/\s+/g, '-')}-${type}` 
+      : `generated-${type}`);
+    
+    link.download = `${baseName}-${Date.now()}.${extension}`;
     link.style.display = 'none';
     document.body.appendChild(link);
     link.click();

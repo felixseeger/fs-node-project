@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef, FC, ReactElement, ChangeEvent } from 'react';
+import { useState, useEffect, useRef, FC, ReactElement, ChangeEvent } from 'react';
 import './ProfileModal.css';
 import { getFirebaseAuth } from './config/firebase';
 import { updateEmail, updatePassword, deleteUser, User } from 'firebase/auth';
 import { useUser } from './hooks/useUser';
+import { UpdateProfilePayload } from './types/user';
+import AvatarCropper from './components/AvatarCropper';
 
 interface IconsType {
   [key: string]: ReactElement;
@@ -10,6 +12,7 @@ interface IconsType {
 
 const Icons: IconsType = {
   Profile: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>,
+  Account: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>,
   Preferences: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
   Settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>,
   People: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>,
@@ -31,7 +34,9 @@ interface MessageState {
 
 export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
   const [avatar, setAvatar] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [isCropping, setIsCropping] = useState(false);
+  const [croppedAvatarDataUrl, setCroppedAvatarDataUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [user, setUser] = useState<User | null>(null);
@@ -40,7 +45,24 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [bio, setBio] = useState('');
+  const [website, setWebsite] = useState('');
+  const [twitter, setTwitter] = useState('');
+  const [github, setGithub] = useState('');
+  const [linkedin, setLinkedin] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  
+  // Preference States
+  const [perfMode, setPerfMode] = useState(false);
+  const [snapGrid, setSnapGrid] = useState(true);
+  const [promptImp, setPromptImp] = useState(true);
+  const [legacyAssets, setLegacyAssets] = useState(false);
+  const [creditBal, setCreditBal] = useState(true);
+  const [dashBehavior, setDashBehavior] = useState<'new-tab' | 'current-tab'>('new-tab');
+  const [varBehavior, setVarBehavior] = useState<'history' | 'canvas'>('history');
+  const [mmBehavior, setMmBehavior] = useState<'canvas' | 'history'>('canvas');
+  const [defaultModels, setDefaultModels] = useState<any>({});
+
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<MessageState | null>(null);
   const [activeTab, setActiveTab] = useState('Profile');
@@ -54,7 +76,9 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
       }
       setMessage(null);
       setNewPassword('');
-      setAvatarFile(null);
+      setCroppedAvatarDataUrl(null);
+      setIsCropping(false);
+      setImageToCrop(null);
     }
   }, [isOpen]);
 
@@ -65,6 +89,24 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
       setFirstName(parts[0] || '');
       setLastName(parts.slice(1).join(' ') || '');
       setAvatar(profile.photoURL || null);
+      setBio(profile.bio || '');
+      if (profile.socialLinks) {
+        setWebsite(profile.socialLinks.website || '');
+        setTwitter(profile.socialLinks.twitter || '');
+        setGithub(profile.socialLinks.github || '');
+        setLinkedin(profile.socialLinks.linkedin || '');
+      }
+      if (profile.preferences) {
+        setPerfMode(profile.preferences.performanceMode);
+        setSnapGrid(profile.preferences.snapToGrid);
+        setPromptImp(profile.preferences.promptImprover);
+        setLegacyAssets(profile.preferences.showLegacyAssets);
+        setCreditBal(profile.preferences.showCreditBalance);
+        setDashBehavior(profile.preferences.dashboardOpenBehavior);
+        setVarBehavior(profile.preferences.variationBehavior);
+        setMmBehavior(profile.preferences.multiModelBehavior);
+        setDefaultModels(profile.preferences.defaultModels || {});
+      }
     }
   }, [profile]);
 
@@ -76,24 +118,33 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
       const newDisplayName = `${firstName} ${lastName}`.trim();
 
       // Update Firestore Profile
-      const profileUpdates: any = { displayName: newDisplayName };
+      const profileUpdates: UpdateProfilePayload = { 
+        displayName: newDisplayName,
+        bio,
+        socialLinks: {
+          website,
+          twitter,
+          github,
+          linkedin
+        },
+        preferences: {
+          performanceMode: perfMode,
+          snapToGrid: snapGrid,
+          promptImprover: promptImp,
+          showLegacyAssets: legacyAssets,
+          showCreditBalance: creditBal,
+          dashboardOpenBehavior: dashBehavior,
+          variationBehavior: varBehavior,
+          multiModelBehavior: mmBehavior,
+          defaultModels
+        }
+      };
       await updateFirestoreProfile(profileUpdates);
 
       // Handle Avatar Upload if file selected
-      if (avatarFile) {
-        const reader = new FileReader();
-        const uploadPromise = new Promise<string>((resolve, reject) => {
-          reader.onload = async (e) => {
-            if (e.target?.result) {
-              const url = await updateAvatar(e.target.result as string);
-              if (url) resolve(url);
-              else reject(new Error('Avatar upload failed'));
-            }
-          };
-          reader.readAsDataURL(avatarFile);
-        });
-        await uploadPromise;
-        setAvatarFile(null);
+      if (croppedAvatarDataUrl) {
+        await updateAvatar(croppedAvatarDataUrl);
+        setCroppedAvatarDataUrl(null);
       }
 
       if (email !== user.email) {
@@ -133,21 +184,39 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatarFile(file);
       const reader = new FileReader();
       reader.onload = (ev) => {
         if (ev.target?.result) {
-          setAvatar(ev.target.result as string);
+          setImageToCrop(ev.target.result as string);
+          setIsCropping(true);
         }
       };
       reader.readAsDataURL(file);
     }
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
+  const handleCropComplete = (croppedImage: string) => {
+    setAvatar(croppedImage);
+    setCroppedAvatarDataUrl(croppedImage);
+    setIsCropping(false);
+    setImageToCrop(null);
+  };
+
+  const handleCropCancel = () => {
+    setIsCropping(false);
+    setImageToCrop(null);
+  };
+
+  const handleDefaultModelChange = (key: string, value: string) => {
+    setDefaultModels((prev: any) => ({ ...prev, [key]: value }));
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="pm-overlay" onClick={onClose}>
+    <div className="pm-overlay" onClick={onClose} role="presentation" tabIndex={-1}>
       <div className="pm-modal" onClick={e => e.stopPropagation()}>
 
         {/* Sidebar */}
@@ -157,10 +226,12 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
             <button className={`pm-nav-btn ${activeTab === 'Profile' ? 'active' : ''}`} onClick={() => setActiveTab('Profile')}>
               <span className="pm-icon">{Icons.Profile}</span> Profile
             </button>
+            <button className={`pm-nav-btn ${activeTab === 'Account' ? 'active' : ''}`} onClick={() => setActiveTab('Account')}>
+              <span className="pm-icon">{Icons.Account}</span> Account
+            </button>
             <button className={`pm-nav-btn ${activeTab === 'Preferences' ? 'active' : ''}`} onClick={() => setActiveTab('Preferences')}>
               <span className="pm-icon">{Icons.Preferences}</span> Preferences
             </button>
-
           </div>
 
           <div className="pm-section">
@@ -204,16 +275,70 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                 ) : (
                   <div className="pm-avatar-placeholder">{(firstName[0] || '') + (lastName[0] || '') || 'U'}</div>
                 )}
-                <button className="pm-edit-btn" onClick={handleAvatarClick}>Edit</button>
+                <button className="pm-edit-btn" onClick={handleAvatarClick}>Edit Avatar</button>
+              </div>
+
+              <div className="pm-form-group pm-form-group-full">
+                <label>Biography</label>
+                <textarea 
+                  className="pm-textarea" 
+                  value={bio} 
+                  onChange={e => setBio(e.target.value)} 
+                  placeholder="Tell us about yourself..."
+                  rows={4}
+                />
+              </div>
+
+              <div className="pm-divider"></div>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#fff', margin: '16px 0 8px 0' }}>Social Links</h3>
+
+              <div className="pm-form-group pm-form-group-full">
+                <label>Website</label>
+                <input type="url" value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourwebsite.com" />
               </div>
 
               <div className="pm-form-row">
                 <div className="pm-form-group">
+                  <label>Twitter</label>
+                  <input type="text" value={twitter} onChange={e => setTwitter(e.target.value)} placeholder="@username" />
+                </div>
+                <div className="pm-form-group">
+                  <label>GitHub</label>
+                  <input type="text" value={github} onChange={e => setGithub(e.target.value)} placeholder="username" />
+                </div>
+              </div>
+
+              <div className="pm-form-group pm-form-group-full">
+                <label>LinkedIn</label>
+                <input type="text" value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="username or profile URL" />
+              </div>
+
+              {message && activeTab === 'Profile' && (
+                <div style={{
+                  padding: '12px', borderRadius: '8px', marginTop: '16px',
+                  background: message.type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                  color: message.type === 'error' ? '#ef4444' : '#22c55e',
+                  border: `1px solid ${message.type === 'error' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
+                  fontSize: '13px'
+                }}>
+                  {message.text}
+                </div>
+              )}
+
+              <div className="pm-actions">
+                <button className="pm-save-btn" onClick={handleSave} disabled={isLoading}>
+                  {isLoading ? 'Saving...' : 'Save Profile'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'Account' && (
+            <div className="pm-profile-body">
+              <div className="pm-form-row">
+                <div className="pm-form-group">
                   <label>First Name</label>
                   <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First Name" />
-                </div>
-                <div className="pm-menu-dots-btn">
-                  <button>{Icons.MenuDots}</button>
                 </div>
                 <div className="pm-form-group">
                   <label>Last Name</label>
@@ -231,7 +356,7 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                 <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Leave blank to keep current password" />
               </div>
 
-              {message && (
+              {message && activeTab === 'Account' && (
                 <div style={{
                   padding: '12px', borderRadius: '8px', marginTop: '16px',
                   background: message.type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
@@ -278,7 +403,7 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                     <span>Reduces animations and motion to enhance Editor performance</span>
                   </div>
                   <label className="pm-toggle">
-                    <input type="checkbox" />
+                    <input type="checkbox" checked={perfMode} onChange={e => setPerfMode(e.target.checked)} />
                     <span className="pm-slider"></span>
                   </label>
                 </div>
@@ -289,7 +414,7 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                     <span>If enabled, nodes will snap to the editor grid</span>
                   </div>
                   <label className="pm-toggle">
-                    <input type="checkbox" defaultChecked />
+                    <input type="checkbox" checked={snapGrid} onChange={e => setSnapGrid(e.target.checked)} />
                     <span className="pm-slider"></span>
                   </label>
                 </div>
@@ -300,7 +425,7 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                     <span>Automatically optimize prompts for each model behind the scenes during generation</span>
                   </div>
                   <label className="pm-toggle">
-                    <input type="checkbox" defaultChecked />
+                    <input type="checkbox" checked={promptImp} onChange={e => setPromptImp(e.target.checked)} />
                     <span className="pm-slider"></span>
                   </label>
                 </div>
@@ -311,7 +436,7 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                     <span>Controls visibility of the Legacy assets migration folder in Library</span>
                   </div>
                   <label className="pm-toggle">
-                    <input type="checkbox" />
+                    <input type="checkbox" checked={legacyAssets} onChange={e => setLegacyAssets(e.target.checked)} />
                     <span className="pm-slider"></span>
                   </label>
                 </div>
@@ -322,7 +447,7 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                     <span>Display your remaining credit balance in the credits indicator</span>
                   </div>
                   <label className="pm-toggle">
-                    <input type="checkbox" defaultChecked />
+                    <input type="checkbox" checked={creditBal} onChange={e => setCreditBal(e.target.checked)} />
                     <span className="pm-slider"></span>
                   </label>
                 </div>
@@ -332,9 +457,9 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                     <label>Open dashboard projects</label>
                     <span>Choose whether projects from the dashboard open in a new tab or the current tab</span>
                   </div>
-                  <select className="pm-select">
-                    <option>New tab</option>
-                    <option>Current tab</option>
+                  <select className="pm-select" value={dashBehavior} onChange={e => setDashBehavior(e.target.value as any)}>
+                    <option value="new-tab">New tab</option>
+                    <option value="current-tab">Current tab</option>
                   </select>
                 </div>
               </div>
@@ -349,9 +474,9 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                     <label>Variation behavior</label>
                     <span>Choose how variations appear</span>
                   </div>
-                  <select className="pm-select">
-                    <option>In node history</option>
-                    <option>On canvas</option>
+                  <select className="pm-select" value={varBehavior} onChange={e => setVarBehavior(e.target.value as any)}>
+                    <option value="history">In node history</option>
+                    <option value="canvas">On canvas</option>
                   </select>
                 </div>
               </div>
@@ -366,9 +491,9 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                     <label>Multi-model behavior</label>
                     <span>Choose where multi-model generations appear</span>
                   </div>
-                  <select className="pm-select">
-                    <option>On canvas</option>
-                    <option>In node history</option>
+                  <select className="pm-select" value={mmBehavior} onChange={e => setMmBehavior(e.target.value as any)}>
+                    <option value="canvas">On canvas</option>
+                    <option value="history">In node history</option>
                   </select>
                 </div>
               </div>
@@ -384,8 +509,7 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
 
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Text to text</label>
-                    <select className="pm-select">
-
+                    <select className="pm-select" value={defaultModels.textToText} onChange={e => handleDefaultModelChange('textToText', e.target.value)}>
                       <option>Claude Sonnet 4.6</option>
                       <option>GPT-4o</option>
                       <option>Gemini 1.5 Pro</option>
@@ -394,8 +518,7 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                   </div>
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Image to text</label>
-                    <select className="pm-select">
-
+                    <select className="pm-select" value={defaultModels.imageToText} onChange={e => handleDefaultModelChange('imageToText', e.target.value)}>
                       <option>Claude Sonnet 4.6</option>
                       <option>GPT-4o</option>
                       <option>Gemini 1.5 Pro</option>
@@ -404,8 +527,7 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                   </div>
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Video to text</label>
-                    <select className="pm-select">
-
+                    <select className="pm-select" value={defaultModels.videoToText} onChange={e => handleDefaultModelChange('videoToText', e.target.value)}>
                       <option>Claude Sonnet 4.6</option>
                       <option>GPT-4o</option>
                       <option>Gemini 1.5 Pro</option>
@@ -420,22 +542,16 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
 
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Text to image</label>
-                    <select className="pm-select">
-
-                      <option>Flux 2</option>
-
+                    <select className="pm-select" value={defaultModels.textToImage} onChange={e => handleDefaultModelChange('textToImage', e.target.value)}>
                       <option>Flux 2</option>
                       <option>Nano Banana 2</option>
-                      <option>Midjourney v6</option>
-                      <option>DALL-E 3</option>
                       <option>Midjourney v6</option>
                       <option>DALL-E 3</option>
                     </select>
                   </div>
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Image to image</label>
-                    <select className="pm-select">
-
+                    <select className="pm-select" value={defaultModels.imageToImage} onChange={e => handleDefaultModelChange('imageToImage', e.target.value)}>
                       <option>Flux 2</option>
                       <option>Nano Banana 2</option>
                       <option>Midjourney v6</option>
@@ -444,8 +560,7 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                   </div>
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Images to image</label>
-                    <select className="pm-select">
-
+                    <select className="pm-select" value={defaultModels.imagesToImage} onChange={e => handleDefaultModelChange('imagesToImage', e.target.value)}>
                       <option>Flux 2</option>
                       <option>Nano Banana 2</option>
                       <option>Midjourney v6</option>
@@ -460,164 +575,51 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
 
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Text to video</label>
-                    <select className="pm-select">
-
-                      <option>Seedance 1.5 Pro</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-
+                    <select className="pm-select" value={defaultModels.textToVideo} onChange={e => handleDefaultModelChange('textToVideo', e.target.value)}>
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
                       <option>Kling O1 Edit</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-                      <option>Kling O1 Edit</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-                      <option>Kling O1 Edit</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-                      <option>Kling O1 Edit</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
                       <option>Sora</option>
                       <option>Runway Gen-4</option>
                     </select>
                   </div>
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Image to video</label>
-                    <select className="pm-select">
-
-                      <option>Seedance 1.5 Pro</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-
+                    <select className="pm-select" value={defaultModels.imageToVideo} onChange={e => handleDefaultModelChange('imageToVideo', e.target.value)}>
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
                       <option>Kling O1 Edit</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-                      <option>Kling O1 Edit</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-                      <option>Kling O1 Edit</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-                      <option>Kling O1 Edit</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
                       <option>Sora</option>
                       <option>Runway Gen-4</option>
                     </select>
                   </div>
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>First frame last frame</label>
-                    <select className="pm-select">
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-
+                    <select className="pm-select" value={defaultModels.firstFrameLastFrame} onChange={e => handleDefaultModelChange('firstFrameLastFrame', e.target.value)}>
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
                       <option>Kling O1 Edit</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-                      <option>Kling O1 Edit</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
                       <option>Sora</option>
                       <option>Runway Gen-4</option>
                     </select>
                   </div>
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Images to video</label>
-                    <select className="pm-select">
-
-                      <option>Seedance 1.5 Pro</option>
-                      <option>Veo 3.1 Frames</option>
-                      <option>Veo 3.1 Ingredients</option>
-
+                    <select className="pm-select" value={defaultModels.imagesToVideo} onChange={e => handleDefaultModelChange('imagesToVideo', e.target.value)}>
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
                       <option>Kling O1 Edit</option>
                       <option>Sora</option>
                       <option>Runway Gen-4</option>
-                      <option>Sora</option>
-                      <option>Runway Gen-4</option>
                     </select>
                   </div>
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Video to video</label>
-                    <select className="pm-select">
-
+                    <select className="pm-select" value={defaultModels.videoToVideo} onChange={e => handleDefaultModelChange('videoToVideo', e.target.value)}>
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
@@ -628,8 +630,7 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                   </div>
                   <div className="pm-pref-row pm-pref-row-compact">
                     <label>Mixed to video</label>
-                    <select className="pm-select">
-
+                    <select className="pm-select" value={defaultModels.mixedToVideo} onChange={e => handleDefaultModelChange('mixedToVideo', e.target.value)}>
                       <option>Seedance 1.5 Pro</option>
                       <option>Veo 3.1 Frames</option>
                       <option>Veo 3.1 Ingredients</option>
@@ -639,6 +640,24 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                     </select>
                   </div>
                 </div>
+              </div>
+
+              {message && activeTab === 'Preferences' && (
+                <div style={{
+                  padding: '12px', borderRadius: '8px', marginTop: '16px',
+                  background: message.type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                  color: message.type === 'error' ? '#ef4444' : '#22c55e',
+                  border: `1px solid ${message.type === 'error' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
+                  fontSize: '13px'
+                }}>
+                  {message.text}
+                </div>
+              )}
+
+              <div className="pm-actions">
+                <button className="pm-save-btn" onClick={handleSave} disabled={isLoading}>
+                  {isLoading ? 'Saving...' : 'Save Preferences'}
+                </button>
               </div>
 
             </div>
@@ -741,7 +760,7 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {activeTab !== 'Profile' && activeTab !== 'Preferences' && activeTab !== 'Settings' && (
+          {activeTab !== 'Profile' && activeTab !== 'Account' && activeTab !== 'Preferences' && activeTab !== 'Settings' && (
 
             <div className="pm-placeholder-body">
               <p>Content for {activeTab} goes here.</p>
@@ -749,6 +768,13 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
           )}
         </div>
       </div>
+      {isCropping && imageToCrop && (
+        <AvatarCropper
+          image={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+        />
+      )}
     </div>
   );
 };

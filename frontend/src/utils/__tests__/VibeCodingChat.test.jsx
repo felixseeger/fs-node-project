@@ -11,24 +11,24 @@ import { useStore } from '../../store';
 import { generateWorkflowFromPrompt } from '../aiWorkflowGenerator';
 
 // Mock the store
-jest.mock('../../store', () => ({
-  useStore: jest.fn(() => ({
-    addNodes: jest.fn(),
-    addEdges: jest.fn(),
-    setWorkflow: jest.fn()
+vi.mock('../../store', () => ({
+  useStore: vi.fn(() => ({
+    addNodes: vi.fn(),
+    addEdges: vi.fn(),
+    setWorkflow: vi.fn()
   }))
 }));
 
 // Mock the AI workflow generator
-jest.mock('../aiWorkflowGenerator', () => ({
-  generateWorkflowFromPrompt: jest.fn()
+vi.mock('../aiWorkflowGenerator', () => ({
+  generateWorkflowFromPrompt: vi.fn()
 }));
 
 describe('VibeCodingChat Component', () => {
-  const mockOnClose = jest.fn();
+  const mockOnClose = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders chat interface when open', () => {

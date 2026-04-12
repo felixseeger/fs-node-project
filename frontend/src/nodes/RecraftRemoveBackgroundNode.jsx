@@ -45,6 +45,7 @@ export default function RecraftRemoveBackgroundNode({ id, data, selected }) {
       label="Recraft Remove BG"
       dotColor={CATEGORY_COLORS.imageEditing}
       selected={selected}
+      downloadUrl={data.outputImage || undefined}
     >
       <SectionHeader title="Input Image" />
       <div style={{ position: 'relative', marginBottom: sp[4] }}>
@@ -79,7 +80,7 @@ export default function RecraftRemoveBackgroundNode({ id, data, selected }) {
       {error && <div style={{ ...font.xs, color: '#ef4444', marginBottom: sp[2] }}>{error}</div>}
 
       <OutputHandle label="Output" id="output" />
-      <OutputPreview image={data.outputImage} label="No BG Output" />
+      <OutputPreview output={data.outputImage} label="No BG Output" isLoading={isProcessing} />
     </NodeShell>
   );
 }

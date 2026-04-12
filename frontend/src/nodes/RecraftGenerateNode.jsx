@@ -99,6 +99,7 @@ export default function RecraftGenerateNode({ id, data, selected }) {
       selected={selected}
       onGenerate={handleGenerate}
       isGenerating={isGenerating}
+      downloadUrl={data.outputImage || undefined}
     >
       <OutputHandle label="image" id="output" color={getHandleColor('output')} />
 
@@ -185,7 +186,7 @@ export default function RecraftGenerateNode({ id, data, selected }) {
 
       {error && <div style={{ ...font.xs, color: '#ef4444', marginBottom: sp[2] }}>{error}</div>}
 
-      <OutputPreview image={data.outputImage} label="Recraft Output" accentColor={ACCENT} />
+      <OutputPreview output={data.outputImage} label="Recraft Output" accentColor={ACCENT} isLoading={isGenerating} />
     </NodeShell>
   );
 }

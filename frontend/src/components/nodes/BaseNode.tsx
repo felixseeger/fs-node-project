@@ -178,6 +178,18 @@ export function BaseNode<T extends BaseNodeData = BaseNodeData>({
   const { getNodes, setNodes } = useReactFlow();
   const [isHovered, setIsHovered] = useState(false);
   const [, setIsResizing] = useState(false);
+  const shellRef = useRef<HTMLDivElement>(null);
+  
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (shellRef.current) {
+      const rect = shellRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      shellRef.current.style.setProperty('--mouse-x', `${x}px`);
+      shellRef.current.style.setProperty('--mouse-y', `${y}px`);
+    }
+  }, []);
+
   const [, setMediaDimensions] = useState<{
     width: number;
     height: number;
@@ -428,6 +440,8 @@ export function BaseNode<T extends BaseNodeData = BaseNodeData>({
 
   return (
     <div
+      ref={shellRef}
+      onMouseMove={handleMouseMove}
       className={cn(
         "group relative flex flex-col bg-node-background border border-node-border rounded-lg overflow-hidden",
         {
@@ -436,6 +450,7 @@ export function BaseNode<T extends BaseNodeData = BaseNodeData>({
           "border-gray-600": isHovered && !selected,
           "shadow-lg": selected,
           "shadow-md": isHovered && !selected,
+          "animate-pulse-node": status === "loading",
         },
         getStatusStyles(),
         className || ''
@@ -444,12 +459,70 @@ export function BaseNode<T extends BaseNodeData = BaseNodeData>({
         width: currentWidth,
         height: currentHeight,
       }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
+        setIsHovered(true);
+        const glare = e.currentTarget.querySelector('.glass-glare') as HTMLElement;
+        if (glare) glare.style.opacity = '1';
+      }}
+      onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
+        setIsHovered(false);
+        const glare = e.currentTarget.querySelector('.glass-glare') as HTMLElement;
+        if (glare) glare.style.opacity = '0';
+      }}
       aria-label={`${data.label} node`}
       aria-describedby={hasError ? `${id}-error` : undefined}
       role="article"
     >
+      {/* Interactive Glare overlay */}
+      <div 
+        className="glass-glare"
+        style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          pointerEvents: 'none',
+          opacity: 0,
+          transition: 'opacity 0.3s ease',
+          background: 'radial-gradient(600px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(255,255,255,0.06), transparent 40%)',
+          zIndex: 0,
+        }}
+      />
+
+      {/* Generating Scanline overlay */}
+      {status === 'loading' && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, height: '150%',
+            pointerEvents: 'none',
+            background: `linear-gradient(to bottom, 
+              transparent, 
+              rgba(59, 130, 246, 0.1) 50%, 
+              rgba(59, 130, 246, 0.4) 50%, 
+              transparent 50.1%)`,
+            backgroundSize: '100% 200%',
+            animation: 'scanline 2.5s linear infinite',
+            zIndex: 1,
+            mixBlendMode: 'screen',
+          }}
+        />
+      )}
+      {status === 'loading' && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            pointerEvents: 'none',
+            border: `2px solid #3b82f6`,
+            borderRadius: 'inherit',
+            animation: 'border-pulse 2s ease-in-out infinite',
+            zIndex: 11,
+          }}
+        />
+      )}
+
+      {/* Content wrapper with higher z-index */}
+      <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
+
       {/* Execution Indicator */}
       <ExecutionIndicator />
       
@@ -536,6 +609,18 @@ export function BaseNode<T extends BaseNodeData = BaseNodeData>({
           selected ? "border-blue-500" : isHovered ? "border-gray-500" : ""
         )} />
       </div>
+      </div>
+      <style>{`
+        @keyframes scanline {
+          0% { background-position: 0 -100%; }
+          100% { background-position: 0 100%; }
+        }
+        @keyframes border-pulse {
+          0% { opacity: 0.5; box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.5); }
+          50% { opacity: 1; box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.9); }
+          100% { opacity: 0.5; box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.5); }
+        }
+      `}</style>
     </div>
   );
 }

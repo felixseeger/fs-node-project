@@ -44,6 +44,20 @@ service cloud.firestore {
       // Users can only read/write their own profile
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // CONVERSATIONS
+    match /conversations/{conversationId} {
+      // Allow users to read/write their own conversations
+      allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Allow creation if authenticated
+      allow create: if request.auth != null;
+      
+      // MESSAGES
+      match /messages/{messageId} {
+        // Inherit permissions from conversation
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid;
+      }
+    }
   }
 }
 ```

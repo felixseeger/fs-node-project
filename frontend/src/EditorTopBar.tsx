@@ -14,8 +14,12 @@ interface EditorTopBarProps {
   onSaveAsTemplate?: () => void;
   onOpenKeyboardShortcuts?: () => void;
   onShare?: () => void;
+  onOpenRecipes?: () => void;
   projectName?: string;
   onRenameProject?: (name: string) => void;
+  nodes?: any[];
+  edges?: any[];
+  workflowId?: string;
 }
 
 export const EditorTopBar: FC<EditorTopBarProps> = ({
@@ -30,8 +34,12 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
   onSaveAsTemplate,
   onOpenKeyboardShortcuts,
   onShare,
+  onOpenRecipes,
   projectName = '',
   onRenameProject,
+  nodes = [],
+  edges = [],
+  workflowId,
 }) => {
   const [showApiModal, setShowApiModal] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
@@ -54,6 +62,9 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
       <ApiExportModal
         isOpen={showApiModal}
         onClose={() => setShowApiModal(false)}
+        nodes={nodes}
+        edges={edges}
+        workflowId={workflowId}
       />
 
       <div
@@ -143,17 +154,56 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
                 strokeLinejoin="round"
               />
               <path
-                d="M12.6 9.9l-.3 1.7 1.5 1.5-1.7 1.7-1.9-.8a6.5 6.5 0 01-2.2 0l-1.9.8-1.7-1.7 1.5-1.5-.3-1.7a6.4 6.4 0 010-1.8l.3-1.7L2.5 6.6l1.7-1.7 1.9.8c.7-.4 1.4-.7 2.2-.8l.3-1.9h2.4l.3 1.9c.8.1 1.5.4 2.2.8l1.9-.8 1.7 1.7-1.5 1.5.3 1.7c.1.6.1 1.2 0 1.8z"
-                stroke="var(--color-text-dim)"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Project settings
-          </button>
+              d="M12.6 9.9l-.3 1.7 1.5 1.5-1.7 1.7-1.9-.8a6.5 6.5 0 01-2.2 0l-1.9.8-1.7-1.7 1.5-1.5-.3-1.7a6.4 6.4 0 010-1.8l.3-1.7L2.5 6.6l1.7-1.7 1.9.8c.7-.4 1.4-.7 2.2-.8l.3-1.9h2.4l.3 1.9c.8.1 1.5.4 2.2.8l1.9-.8 1.7 1.7-1.5 1.5.3 1.7c.1.6.1 1.2 0 1.8z"
+              stroke="var(--color-text-dim)"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Project settings
+        </button>
 
+        {/* Prompt Recipes */}
+        <button
+          className="recipes-btn"
+          onClick={() => onOpenRecipes?.()}
+          title="Prompt Recipes"
+          style={{
+            padding: '5px 12px',
+            fontSize: 12,
+            fontWeight: 600,
+            background: 'transparent',
+            border: '1px solid var(--color-border)',
+            borderRadius: 8,
+            color: 'var(--color-text-dim)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            transition: 'all 0.15s',
+            marginRight: 'auto', // Pushes the rest of the items to the right
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'var(--color-border-hover)';
+            e.currentTarget.style.background = 'var(--color-surface-hover)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--color-border)';
+            e.currentTarget.style.background = 'transparent';
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+          Recipes
+        </button>
+        </div>
 
+        {/* Right side items container */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* Share */}
           <button
             onClick={() => onShare?.()}

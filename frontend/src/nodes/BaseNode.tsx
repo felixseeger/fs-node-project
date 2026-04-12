@@ -146,6 +146,7 @@ export default function BaseNode({
             <NodeDownloadButton
               url={downloadUrl}
               type={downloadType === 'svg' ? 'image' : downloadType}
+              nodeLabel={label}
               size="sm"
             />
           )}

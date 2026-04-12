@@ -9,15 +9,17 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { Asset, AssetMediaItem } from '../types/asset';
+import { BaseNodeData } from '../types/nodes';
+import useNodeConnections from './useNodeConnections';
 
 /**
  * AssetNode data structure
  */
-export interface AssetNodeData {
+export interface AssetNodeData extends BaseNodeData {
   /** Node display label */
-  label?: string;
+  label: string;
   /** Asset ID reference */
   assetId?: string;
   /** Full asset data (when embedded) */
@@ -28,8 +30,8 @@ export interface AssetNodeData {
   mediaItems?: AssetMediaItem[];
   /** Whether asset has unsaved changes */
   isDirty?: boolean;
-  /** Callback to update node data */
-  onUpdate?: (data: Partial<AssetNodeData>) => void;
+  /** Callback to update node data (legacy) */
+  onDataUpdate?: (data: Partial<AssetNodeData>) => void;
   /** Callback to show update modal */
   onShowUpdateModal?: (nodeId: string, data: AssetNodeData) => void;
   /** Callback to add images */
@@ -66,8 +68,8 @@ function isAssetNodeData(data: unknown): data is AssetNodeData {
   const d = data as Record<string, unknown>;
   return (
     Array.isArray(d.images) &&
-    (d.label === undefined || typeof d.label === 'string') &&
-    (d.nodeId === undefined || typeof d.nodeId === 'string')
+    typeof d.label === 'string' &&
+    typeof d.nodeId === 'string'
   );
 }
 
@@ -96,8 +98,7 @@ function validateFile(file: File): FileValidationResult {
  * 
  * @param props - Node props from React Flow
  */
-export function AssetNode(props: NodeProps<Record<string, unknown>>): React.ReactElement {
-  const { data, id } = props;
+export function AssetNode({ id, data, selected }: NodeProps<Node<AssetNodeData>>): React.ReactElement {
   
   // Validate data structure
   if (!isAssetNodeData(data)) {
@@ -117,6 +118,8 @@ export function AssetNode(props: NodeProps<Record<string, unknown>>): React.Reac
     isValidating: false,
     errors: {},
   });
+
+  const { update, disconnectNode } = useNodeConnections(id, nodeData);
 
   // Safe property access with defaults
   const nodeLabel = nodeData.label ?? 'Asset Repository';
@@ -205,12 +208,13 @@ export function AssetNode(props: NodeProps<Record<string, unknown>>): React.Reac
       // Update via callback
       if (nodeData.onAddImages) {
         nodeData.onAddImages(id, imagesToAdd);
-      } else if (nodeData.onUpdate) {
-        nodeData.onUpdate({
+      } else {
+        update({
           images: [...images, ...imagesToAdd],
           isDirty: true,
         });
       }
+
     }
   }, [images, nodeData, id, processFiles]);
 
@@ -265,12 +269,13 @@ export function AssetNode(props: NodeProps<Record<string, unknown>>): React.Reac
 
       if (nodeData.onAddImages) {
         nodeData.onAddImages(id, imagesToAdd);
-      } else if (nodeData.onUpdate) {
-        nodeData.onUpdate({
+      } else {
+        update({
           images: [...images, ...imagesToAdd],
           isDirty: true,
         });
       }
+
     }
 
     // Reset input
@@ -369,6 +374,7 @@ export function AssetNode(props: NodeProps<Record<string, unknown>>): React.Reac
       )}
 
       {/* Actions */}
+      <div className="flex gap-2">
         <button
           onClick={handleShowUpdateModal}
           onMouseDown={(e) => e.stopPropagation()}
@@ -377,6 +383,26 @@ export function AssetNode(props: NodeProps<Record<string, unknown>>): React.Reac
         >
           Update Asset
         </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            const validImages = images || [];
+            if (validImages.length > 0) {
+              window.dispatchEvent(new CustomEvent('send-to-chat', { 
+                detail: { images: validImages, name: assetName } 
+              }));
+            }
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="nodrag nopan px-3 py-1.5 bg-gray-700 text-gray-200 text-sm rounded hover:bg-gray-600 transition-colors"
+          title="Use images in Chat"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </button>
+      </div>
 
       {/* React Flow handles */}
       <Handle

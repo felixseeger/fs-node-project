@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
+import { useState, useRef, useEffect, useCallback, ReactNode, CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import { getHandleColor } from '../utils/handleTypes';
@@ -50,6 +50,7 @@ interface ImageUniversalGeneratorData {
   autoSelect?: boolean;
   useMultiple?: boolean;
   pinnedModels?: string[];
+  isVector?: boolean;
   locked?: boolean;
   numOutputs?: number;
   aspectRatio?: string;
@@ -292,13 +293,19 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
     return analysis.recommended;
   }, [analyzePromptForModel]);
 
-  const effectiveModels = models.map(m => m === 'Auto' ? selectAutoImageModel(promptValue, hasImage) : m);
+  const effectiveModels = models.map(m => {
+    if (data.isVector) {
+      return hasImage ? 'quiver-image-to-vector' : 'quiver-text-to-vector';
+    }
+    return m === 'Auto' ? selectAutoImageModel(promptValue, hasImage) : m;
+  });
   const activeEditingModel = effectiveModels.find(m => isEditingModel(m)) || null;
 
   // ── API dispatch ────────────────────────────────────────────────────────────
 
   const runGenerationModel = useCallback(async (model: string, prompt: string | null | undefined, hasImg: boolean = false): Promise<string[]> => {
     let effectiveModel = model;
+    
     if (model === 'Auto') {
       effectiveModel = selectAutoImageModel(prompt, hasImg);
     }
@@ -343,8 +350,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
       const result = await quiverTextToSvg({ prompt: prompt || '' });
       if (result.error) throw new Error(result.error?.message || 'Vector generation failed');
       const sanitized = sanitizeSvg(result.svg);
-      update({ outputSvg: sanitized });
-      return [];
+      return [`data:image/svg+xml;utf8,${encodeURIComponent(sanitized)}`];
     }
 
     // Default: Nano Banana 2 (Mystic) or Imagen
@@ -354,7 +360,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
     });
     if (result.error) throw new Error(result.error?.message || 'Generation failed');
     return (result.data || []).map((d: any) => d.url);
-  }, [aspectRatio, numOutputs, imageSizeTier, selectAutoImageModel, update]);
+  }, [aspectRatio, numOutputs, imageSizeTier, selectAutoImageModel]);
 
 
   const runEditingModelFn = useCallback(async (model: string, prompt: string, imageUrl: string, refImageUrl: string | null): Promise<string[]> => {
@@ -501,7 +507,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
         update({ outputError: 'A prompt is required to generate images' });
         return;
       }
-      const activeModels = models.filter(Boolean);
+      const activeModels = Array.from(new Set(effectiveModels.filter(Boolean)));
       if (activeModels.length === 0) {
         update({ outputError: 'Select at least one model to generate' });
         return;
@@ -550,7 +556,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
         setIsGenerating(false);
       }
     }
-  }, [id, data, update, models, activeEditingModel, isGenerating, runGenerationModel, runEditingModelFn, start, complete, fail, promptValue, image1, hasImage]);
+  }, [id, data, update, models, effectiveModels, activeEditingModel, isGenerating, runGenerationModel, runEditingModelFn, start, complete, fail, promptValue, image1, hasImage]);
 
   const handleImprovePrompt = useCallback(async () => {
     const prompt = data.inputPrompt || '';
@@ -603,11 +609,13 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
   const handleDownload = useCallback(() => {
     const url = data.outputImage;
     if (!url) return;
+    const isSvg = url.startsWith('data:image/svg+xml');
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'generated-image.jpg';
+    const label = (data.label || 'Generate Image').toLowerCase().replace(/\s+/g, '-');
+    a.download = `${label}-${Date.now()}${isSvg ? '.svg' : '.jpg'}`;
     a.click();
-  }, [data.outputImage]);
+  }, [data.outputImage, data.label]);
 
   const readFileAsDataURL = useCallback(
     (file: File) =>
@@ -712,7 +720,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
 
   const settingRow = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 };
   const settingLabel = { fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' };
-  const numInput = {
+  const numInput: CSSProperties = {
     width: 52, padding: '2px 6px', background: '#0a0a0a', border: '1px solid #1e293b',
     borderRadius: 4, color: '#f8fafc', fontSize: 11, outline: 'none', textAlign: 'center',
   };
@@ -844,7 +852,27 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
     };
 
     const panel = panels[activeEditingModel];
-    if (!panel) return null;
+    if (!panel) {
+      return (
+        <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 mt-2">
+          <div className="text-[10px] text-slate-500 mb-2 uppercase font-bold tracking-wider">Generation Settings</div>
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input 
+                type="checkbox" 
+                checked={!!data.isVector} 
+                onChange={e => update({ isVector: e.target.checked })}
+                className="w-3.5 h-3.5 rounded border-slate-700 bg-slate-950 accent-pink-600 cursor-pointer"
+              />
+              <span className={`text-[11px] font-medium transition-colors ${data.isVector ? 'text-pink-400' : 'text-slate-400 group-hover:text-slate-300'}`}>Vector Output (SVG)</span>
+            </label>
+          </div>
+          {data.isVector && (
+            <div className="text-[9px] text-pink-400/60 mt-1 leading-relaxed">Uses Quiver Text-to-Vector model. Perfect for logos and icons.</div>
+          )}
+        </div>
+      );
+    }
 
     return (
       <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 mt-2">
@@ -1012,7 +1040,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
         </div>
         <div className="px-4 pb-4">
           <OutputHandle label="Output" id="output" />
-          <OutputPreview output={data.outputImage} isLoading={isGenerating} error={data.outputError} accentColor={CATEGORY_COLORS.imageGeneration} label="Generation Output" />
+          <OutputPreview output={data.outputImage} isLoading={isGenerating} error={data.outputError} accentColor={CATEGORY_COLORS.imageGeneration} label={data.outputImage?.startsWith('data:image/svg') ? "SVG Vector Output" : "Generation Output"} />
         </div>
       </div>
 

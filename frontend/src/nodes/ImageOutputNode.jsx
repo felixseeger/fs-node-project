@@ -62,7 +62,8 @@ export default function ImageOutputNode({ id, data, selected }) {
             onClick={() => {
               const a = document.createElement('a');
               a.href = imageUrl;
-              a.download = 'generated-image.jpg';
+              const label = (data.label || 'Image Output').toLowerCase().replace(/\s+/g, '-');
+              a.download = `${label}-${Date.now()}.jpg`;
               a.click();
             }}
             style={{

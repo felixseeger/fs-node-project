@@ -18,6 +18,8 @@ export interface BaseNodeProps {
   selected?: boolean;
   status?: NodeStatus;
   dotColor?: string;
+  // Capabilities
+  capabilities?: string[];
   // Execution & State
   isExecuting?: boolean;
   hasError?: boolean;

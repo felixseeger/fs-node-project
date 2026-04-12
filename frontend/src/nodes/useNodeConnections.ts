@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useRef } from 'react';
-import { useReactFlow } from '@xyflow/react';
+import { useReactFlow, type Node, type Edge } from '@xyflow/react';
 import { isHandleConnected, getConnectionInfo as getConnectionInfoBase, resolveInput as resolveInputBase } from '../helpers/nodeData';
+import type { NodeData } from '../types';
 
-interface NodeData {
+interface NodeConnectionHandlers {
   onUpdate?: (nodeId: string, patch: Record<string, any>) => void;
   getConnectionInfo?: (nodeId: string, handleId: string) => any;
   hasConnection?: (nodeId: string, handleId: string) => boolean;
@@ -11,7 +12,7 @@ interface NodeData {
   onDisconnectNode?: (nodeId: string) => void;
 }
 
-export default function useNodeConnections(id: string, data: NodeData) {
+export default function useNodeConnections(id: string, data: NodeConnectionHandlers) {
   const { setNodes, setEdges, getEdges, getNodes } = useReactFlow();
 
   const dataRef = useRef(data);
@@ -41,7 +42,7 @@ export default function useNodeConnections(id: string, data: NodeData) {
   const getConnInfo = useCallback(
     (handleId: string) => {
       if (dataRef.current?.getConnectionInfo) return dataRef.current.getConnectionInfo(id, handleId);
-      return getConnectionInfoBase(id, handleId, getEdges(), getNodes());
+      return getConnectionInfoBase(id, handleId, getEdges(), getNodes() as Node<NodeData>[]);
     },
     [id, getEdges, getNodes]
   );
@@ -58,7 +59,7 @@ export default function useNodeConnections(id: string, data: NodeData) {
     (handleId: string) => {
       if (dataRef.current?.resolveInput) return dataRef.current.resolveInput(id, handleId);
       const edges = getEdges();
-      const nodes = getNodes();
+      const nodes = getNodes() as Node<NodeData>[];
       // simplified local fallback
       const incoming = edges.filter((e) => e.target === id && e.targetHandle === handleId);
       if (incoming.length === 0) return null;
@@ -108,6 +109,12 @@ export default function useNodeConnections(id: string, data: NodeData) {
     },
     text: (handleId: string, localFallback?: string) => {
       return resolveInput(handleId) || localFallback || '';
+    },
+    audio: (handleId: string, localFallback?: string) => {
+      return resolveInput(handleId) || localFallback;
+    },
+    video: (handleId: string, localFallback?: string) => {
+      return resolveInput(handleId) || localFallback;
     },
     raw: (handleId: string) => resolveInput(handleId),
   }), [resolveInput]);

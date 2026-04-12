@@ -105,7 +105,7 @@ export default function VoiceoverNode({ id, data, selected }) {
   const ACCENT = '#a855f7';
 
   return (
-    <NodeShell data={data} label={data.label || 'Voiceover'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'Voiceover'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive} downloadUrl={data.outputAudio || undefined} downloadType="audio">
       <OutputHandle id="output" label="audio" color={getHandleColor('audio-out')} />
 
       {/* ── 1. Prompt ── */}

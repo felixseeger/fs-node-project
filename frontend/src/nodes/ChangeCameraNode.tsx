@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import {
   NodeShell,
   SectionHeader,
@@ -14,23 +14,10 @@ import {
 import { changeCamera, pollChangeCameraStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import useNodeProgress from '../hooks/useNodeProgress';
-import type { NodeData } from '../types';
+import type { ChangeCameraNodeData } from '../types';
 
-export interface ChangeCameraNodeData extends NodeData {
-  localHorizontal?: number;
-  localVertical?: number;
-  localZoom?: number;
-  localSeed?: string | number;
-  localImage?: string;
-  inputImagePreview?: string;
-  triggerGenerate?: number;
-  outputImage?: string | null;
-  outputImages?: string[];
-  outputError?: string | null;
-}
-
-export default function ChangeCameraNode({ id, data, selected }: NodeProps) {
-  const nodeData = data as unknown as ChangeCameraNodeData;
+export default function ChangeCameraNode({ id, data, selected }: NodeProps<Node<ChangeCameraNodeData>>) {
+  const nodeData = data;
   const { isActive, start, complete, fail } = useNodeProgress();
   const { update, conn, resolve, disconnectNode } = useNodeConnections(id, nodeData);
 

@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import type { Node, Edge } from '@xyflow/react';
+import type { Node, Edge, OnNodesChange, OnEdgesChange, OnConnect, applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
 import type { Workflow, NodeData, ProviderStats } from '../types';
 
 /**
@@ -13,6 +13,7 @@ import type { Workflow, NodeData, ProviderStats } from '../types';
 interface StoreState {
   // Workflow data
   workflows: Workflow[];
+  currentWorkflow: Workflow | null;
   nodes: Node<NodeData>[];
   edges: Edge[];
   
@@ -21,10 +22,18 @@ interface StoreState {
   
   // Actions
   setWorkflows: (workflows: Workflow[]) => void;
+  setWorkflow: (workflow: Workflow | null) => void;
   setNodes: (nodes: Node<NodeData>[]) => void;
   setEdges: (edges: Edge[]) => void;
+  addNodes: (nodes: Node<NodeData>[]) => void;
+  addEdges: (edges: Edge[]) => void;
   addWorkflow: (workflow: Workflow) => void;
   updateProviderStats: (providerId: string, stats: Partial<ProviderStats>) => void;
+  
+  // React Flow Handlers (optional integration)
+  onNodesChange?: OnNodesChange;
+  onEdgesChange?: OnEdgesChange;
+  onConnect?: OnConnect;
 }
 
 /**
@@ -33,15 +42,27 @@ interface StoreState {
 export const useStore = create<StoreState>((set) => ({
   // Initial state
   workflows: [],
+  currentWorkflow: null,
   nodes: [],
   edges: [],
   providerStats: {},
   
   // Actions
   setWorkflows: (workflows) => set({ workflows }),
+  setWorkflow: (currentWorkflow) => set({ currentWorkflow }),
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
   
+  addNodes: (newNodes) => 
+    set((state) => ({
+      nodes: [...state.nodes, ...newNodes]
+    })),
+    
+  addEdges: (newEdges) =>
+    set((state) => ({
+      edges: [...state.edges, ...newEdges]
+    })),
+
   addWorkflow: (workflow) => 
     set((state) => ({
       workflows: [...state.workflows, workflow]

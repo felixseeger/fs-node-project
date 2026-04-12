@@ -117,11 +117,13 @@ export default function PixVerseSoundEffectNode({ id, data, selected }) {
   return (
     <NodeShell
       data={data}
-      label={data.label || 'PixVerse Sound Effect'}
+      label={data.label || 'PixVerse Sound'}
       dotColor={ACCENT}
       selected={selected}
       onGenerate={handleGenerate}
-      isGenerating={isActive}
+      isGenerating={data.isLoading}
+      downloadUrl={data.outputVideo || undefined}
+      downloadType="video"
     >
       {/* Video Input */}
       <SectionHeader

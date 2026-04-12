@@ -32,5 +32,6 @@ export interface NodeMenuSection {
 export interface NodeMenuItem {
   type: string;
   label: string;
+  description?: string;
   defaults: Record<string, unknown>;
 }

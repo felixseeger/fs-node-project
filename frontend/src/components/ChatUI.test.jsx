@@ -4,6 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { render } from '../test/utils';
 import ChatUI from './ChatUI';
 
+// Mock DecodedText to avoid animation issues in tests
+vi.mock('./DecodedText', () => ({
+  default: ({ text }) => <span>{text}</span>
+}));
+
 describe('ChatUI', () => {
   it('renders nothing when closed', () => {
     const { container } = render(
@@ -22,7 +27,7 @@ describe('ChatUI', () => {
       />
     );
     expect(screen.getByTestId('chat-ui')).toBeInTheDocument();
-    expect(screen.getByText(/I'm here to help you build your AI workflow/i)).toBeInTheDocument();
+    expect(screen.getByText(/Welcome to the AI Workflow Builder/i)).toBeInTheDocument();
   });
 
   it('calls onClose when close is clicked', async () => {
@@ -31,7 +36,7 @@ describe('ChatUI', () => {
     render(
       <ChatUI isOpen onClose={onClose} onSendMessage={vi.fn()} onGenerate={vi.fn()} />
     );
-    await user.click(screen.getByTestId('chat-close'));
+    await user.click(screen.getByLabelText(/Close chat/i));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -43,12 +48,12 @@ describe('ChatUI', () => {
         isOpen
         onClose={vi.fn()}
         onSendMessage={onSendMessage}
-        onGenerate={vi.fn()}
+        tags={[]}
       />
     );
-    const input = screen.getByTestId('chat-input');
+    const input = screen.getByLabelText(/Chat input message/i);
     await user.type(input, 'Hello pipeline');
-    await user.click(screen.getByTestId('chat-send'));
+    await user.click(screen.getByTestId('chat-generate'));
     expect(onSendMessage).toHaveBeenCalledWith('Hello pipeline');
   });
 
@@ -61,9 +66,10 @@ describe('ChatUI', () => {
         onClose={vi.fn()}
         onSendMessage={vi.fn()}
         onGenerate={onGenerate}
+        tags={[]}
       />
     );
-    await user.type(screen.getByTestId('chat-input'), '  image upscale chain  ');
+    await user.type(screen.getByLabelText(/Chat input message/i), '  image upscale chain  ');
     await user.click(screen.getByTestId('chat-generate'));
     await waitFor(() => {
       expect(onGenerate).toHaveBeenCalledWith('image upscale chain');

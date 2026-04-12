@@ -12,6 +12,38 @@ export interface UserPreferences {
   theme: 'light' | 'dark' | 'system';
   notifications: boolean;
   language: string;
+  performanceMode: boolean;
+  snapToGrid: boolean;
+  promptImprover: boolean;
+  showLegacyAssets: boolean;
+  showCreditBalance: boolean;
+  dashboardOpenBehavior: 'new-tab' | 'current-tab';
+  variationBehavior: 'history' | 'canvas';
+  multiModelBehavior: 'canvas' | 'history';
+  defaultModels: {
+    textToText?: string;
+    imageToText?: string;
+    videoToText?: string;
+    textToImage?: string;
+    imageToImage?: string;
+    imagesToImage?: string;
+    textToVideo?: string;
+    imageToVideo?: string;
+    firstFrameLastFrame?: string;
+    imagesToVideo?: string;
+    videoToVideo?: string;
+    mixedToVideo?: string;
+  };
+}
+
+/**
+ * User social links
+ */
+export interface SocialLinks {
+  website?: string;
+  twitter?: string;
+  github?: string;
+  linkedin?: string;
 }
 
 /**
@@ -24,6 +56,7 @@ export interface UserProfile {
   photoURL?: string;     // URL to avatar image in Storage
   avatarPath?: string;   // Internal path in Storage (e.g., 'avatars/{userId}.jpg')
   bio?: string;          // Short user biography
+  socialLinks?: SocialLinks;
   preferences: UserPreferences;
   role: UserRole;
   createdAt: string;     // ISO String for frontend
@@ -42,6 +75,7 @@ export interface FirestoreUserDocument {
   photoURL?: string;
   avatarPath?: string;
   bio?: string;
+  socialLinks?: SocialLinks;
   preferences: UserPreferences;
   role: UserRole;
   createdAt: Timestamp;
@@ -58,5 +92,6 @@ export interface UpdateProfilePayload {
   photoURL?: string;
   avatarPath?: string;
   bio?: string;
+  socialLinks?: SocialLinks;
   preferences?: Partial<UserPreferences>;
 }

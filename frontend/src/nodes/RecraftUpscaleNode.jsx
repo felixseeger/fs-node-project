@@ -48,6 +48,7 @@ export default function RecraftUpscaleNode({ id, data, selected }) {
       label="Recraft Upscale"
       dotColor={CATEGORY_COLORS.imageEditing}
       selected={selected}
+      downloadUrl={data.outputImage || undefined}
     >
       <SectionHeader title="Input Image" />
       <div style={{ position: 'relative', marginBottom: sp[4] }}>
@@ -92,7 +93,7 @@ export default function RecraftUpscaleNode({ id, data, selected }) {
       {error && <div style={{ ...font.xs, color: '#ef4444', marginBottom: sp[2] }}>{error}</div>}
 
       <OutputHandle label="Output" id="output" />
-      <OutputPreview image={data.outputImage} label="Upscaled Output" />
+      <OutputPreview output={data.outputImage} label="Upscaled Output" isLoading={isProcessing} />
     </NodeShell>
   );
 }

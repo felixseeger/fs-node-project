@@ -192,6 +192,8 @@ export function createVideoGeneratorNode(config) {
         selected={selected}
         onGenerate={handleGenerate}
         isGenerating={isActive}
+        downloadUrl={data.outputVideo}
+        downloadType="video"
       >
         <OutputHandle type="video" label="video" />
 

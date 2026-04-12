@@ -106,7 +106,7 @@ export default function SkinEnhancerNode({ id, data, selected }) {
   const ACCENT = '#e879f9';
 
   return (
-    <NodeShell data={data} label={data.label || 'Skin Enhancer'} dotColor={ACCENT} selected={selected} onGenerate={handleEnhance} isGenerating={data.isLoading}>
+    <NodeShell data={data} label={data.label || 'Skin Enhancer'} dotColor={ACCENT} selected={selected} onGenerate={handleEnhance} isGenerating={data.isLoading} downloadUrl={data.outputImage || undefined}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
 
       {/* ── 1. Image ── */}

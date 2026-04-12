@@ -9,6 +9,11 @@
 import { Node } from "@xyflow/react";
 
 /**
+ * Node execution status
+ */
+export type NodeStatus = 'idle' | 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'skipped' | 'loading' | 'complete' | 'error' | 'paused';
+
+/**
  * Base interface for all node data
  * Common properties shared across all node types
  * Extends Record<string, unknown> for @xyflow/react Node<Data> generic constraint.
@@ -23,6 +28,23 @@ export interface BaseNodeData extends Record<string, unknown> {
   updatedAt?: string;
   metadata?: Record<string, unknown>;
   _settingsPanelHeight?: number; // Internal: tracked height for settings panel
+  
+  // Injected handlers from DynamicNodeLoader
+  onUpdate?: (nodeId: string, patch: Record<string, any>) => void;
+  resolveInput?: (nodeId: string, handleId: string) => any;
+  hasConnection?: (nodeId: string, handleId: string) => boolean;
+  getConnectionInfo?: (nodeId: string, handleId: string) => any;
+  onAnalyzeComplete?: (id: string) => void;
+  onUnlink?: (nodeId: string, handleId: string) => void;
+  onDisconnectNode?: (nodeId: string) => void;
+  onCreateNode?: (type: string, dataPatch: any, sh: string, th: string) => void;
+  nodeId?: string;
+
+  // Execution state (used by ExecutionEngine and NodeProgress)
+  executionStatus?: NodeStatus;
+  executionProgress?: number;
+  executionMessage?: string;
+  executionError?: string;
 }
 
 /**
@@ -30,6 +52,20 @@ export interface BaseNodeData extends Record<string, unknown> {
  */
 export interface CreativeUpScaleNodeData extends BaseNodeData {
   type: "creativeUpScale";
+  localScaleFactor?: string;
+  localOptimizedFor?: string;
+  localEngine?: string;
+  localCreativity?: number;
+  localHdr?: number;
+  localResemblance?: number;
+  localFractality?: number;
+  localImage?: string;
+  inputImagePreview?: string;
+  inputPrompt?: string;
+  triggerGenerate?: number;
+  outputImage?: string | null;
+  outputImages?: string[];
+  outputError?: string | null;
   image: string | null;
   scaleFactor?: number;
   algorithm?: "esrgan" | "waifu2x" | "realesrgan";
@@ -58,6 +94,85 @@ export interface TextToIconNodeData extends BaseNodeData {
 }
 
 /**
+ * Response Node - Final output node
+ */
+export interface ResponseField {
+  id: string;
+  label: string;
+  source?: {
+    nodeLabel: string;
+    handle: string;
+  };
+  color?: string;
+}
+
+export interface ResponseNodeData extends BaseNodeData {
+  type: "response";
+  responseFields?: ResponseField[];
+  isLoading?: boolean;
+  outputImage?: string | null;
+}
+
+/**
+ * Audio Isolation Node - Separates stems from audio or video
+ */
+export interface AudioIsolationNodeData extends BaseNodeData {
+  type: "audioIsolation";
+  localInputType?: 'audio' | 'video';
+  localRerankingCandidates?: number;
+  localPredictSpans?: boolean;
+  localSampleFps?: number;
+  localX1?: number;
+  localY1?: number;
+  localX2?: number;
+  localY2?: number;
+  localAudio?: string;
+  localVideo?: string;
+  inputPrompt?: string;
+  triggerGenerate?: number;
+  outputAudio?: string | null;
+  outputError?: string | null;
+  audio?: string | null;
+  video?: string | null;
+  vocals?: string | null;
+  drums?: string | null;
+  bass?: string | null;
+  other?: string | null;
+  isLoading?: boolean;
+}
+
+/**
+ * Change Camera Node - Modifies camera perspectives in images
+ */
+export interface ChangeCameraNodeData extends BaseNodeData {
+  type: "changeCamera";
+  localHorizontal?: number;
+  localVertical?: number;
+  localZoom?: number;
+  localSeed?: string | number;
+  localImage?: string;
+  inputImagePreview?: string;
+  triggerGenerate?: number;
+  outputImage?: string | null;
+  outputImages?: string[];
+  outputError?: string | null;
+  image?: string | null;
+  isLoading?: boolean;
+}
+
+/**
+ * Adapted Prompt Node - Modifies prompts for specific AI models
+ */
+export interface AdaptedPromptNodeData extends BaseNodeData {
+  type: "adaptedPrompt";
+  prompt?: string;
+  adaptedPrompt?: string | null;
+  modelTarget?: string;
+  triggerGenerate?: number;
+  isLoading?: boolean;
+}
+
+/**
  * Union type for all possible node data types
  */
 export type NodeData =
@@ -68,14 +183,19 @@ export type NodeData =
   | PromptNodeData
   | GeneratorNodeData
   | ImageAnalyzerNodeData
+  | AIImageClassifierNodeData
+  | AdaptedPromptNodeData
   | ImageToPromptNodeData
+  | ChangeCameraNodeData
   | CreativeUpScaleNodeData
   | FluxReimagineNodeData
   | TextToIconNodeData
   | UpScaleNodeData
   | VideoGenerationNodeData
   | AudioGenerationNodeData
+  | AudioIsolationNodeData
   | OutputNodeData
+  | ResponseNodeData
   | RouterNodeData
   | SwitchNodeData
   | ConditionalSwitchNodeData
@@ -83,12 +203,6 @@ export type NodeData =
   | GroupNodeData
   | AnnotationNodeData
   | WorkflowNodeData;
-
-/**
- * Node execution status
- * Represents the current state of a node during workflow execution
- */
-export type NodeStatus = "idle" | "loading" | "complete" | "error" | "skipped" | "paused";
 
 /**
  * All available node types in the FS Node Project workflow editor
@@ -198,6 +312,12 @@ export interface GeneratorNodeData extends BaseNodeData {
   steps?: number;
   output?: string[]; // Generated image URLs
   generationId?: string; // For tracking generations
+  outputImage?: string | null;
+  outputError?: string | null;
+  localImage?: string;
+  inputImagePreview?: string;
+  triggerGenerate?: number;
+  isLoading?: boolean;
 }
 
 /**
@@ -210,6 +330,21 @@ export interface ImageAnalyzerNodeData extends BaseNodeData {
   model?: string; // Analysis model (e.g., "claude-sonnet-vision")
   analysisType?: "general" | "technical" | "aesthetic" | "content";
   confidence?: number; // Confidence score 0-1
+}
+
+/**
+ * AI Image Classifier Node - Categorizes images using AI
+ */
+export interface AIImageClassifierNodeData extends BaseNodeData {
+  type: "aiImageClassifier";
+  localImage?: string;
+  inputImagePreview?: string;
+  outputText?: string | null;
+  rawResult?: any;
+  outputError?: string | null;
+  isLoading?: boolean;
+  onAnalyzeComplete?: (id: string) => void;
+  triggerAnalyze?: number;
 }
 
 /**

@@ -10,8 +10,8 @@ import InfiniteCanvas from '../../components/InfiniteCanvas';
 import { useStore } from '../../store';
 
 // Mock the store
-jest.mock('../../store', () => ({
-  useStore: jest.fn(() => ({
+vi.mock('../../store', () => ({
+  useStore: vi.fn(() => ({
     nodes: [
       { id: 'node1', position: { x: 100, y: 100 }, data: { label: 'Test Node 1' } },
       { id: 'node2', position: { x: 200, y: 200 }, data: { label: 'Test Node 2' } },
@@ -20,9 +20,9 @@ jest.mock('../../store', () => ({
     edges: [
       { id: 'edge1', source: 'node1', target: 'node2' }
     ],
-    onNodesChange: jest.fn(),
-    onEdgesChange: jest.fn(),
-    onConnect: jest.fn()
+    onNodesChange: vi.fn(),
+    onEdgesChange: vi.fn(),
+    onConnect: vi.fn()
   }))
 }));
 
@@ -47,7 +47,7 @@ describe('InfiniteCanvas Component', () => {
     const canvas = screen.getByRole('application');
     
     // Mock viewport change
-    const mockViewportChange = jest.fn();
+    const mockViewportChange = vi.fn();
     // This would need more sophisticated mocking for full test
     fireEvent.keyDown(canvas, { key: 'ArrowUp' });
     fireEvent.keyDown(canvas, { key: 'ArrowDown' });

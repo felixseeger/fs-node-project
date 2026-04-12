@@ -16,7 +16,7 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, onClick, onContextM
   const authorName = project.authorName;
 
   return (
-    <div onClick={onClick} onContextMenu={(e) => onContextMenu(e, project)} className="project-card">
+    <div onClick={onClick} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }} role="button" tabIndex={0} onContextMenu={(e) => onContextMenu(e, project)} className="project-card">
       <ProjectThumbnail src={thumbnail} />
       <div className="project-card-content">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

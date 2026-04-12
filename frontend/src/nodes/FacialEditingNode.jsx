@@ -74,6 +74,7 @@ export default function FacialEditingNode({ id, data, selected }) {
       onDisconnect={disconnectNode}
       onGenerate={runGeneration}
       isGenerating={isActive}
+      downloadUrl={outputImage || undefined}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: sp[4] }}>
 

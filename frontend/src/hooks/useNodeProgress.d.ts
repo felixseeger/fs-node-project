@@ -2,9 +2,11 @@
  * Types for useNodeProgress.js (JS hook consumed from TSX).
  */
 
+export type NodeProgressStatus = 'idle' | 'running' | 'pending' | 'completed' | 'failed' | 'cancelled';
+
 export interface UseNodeProgressState {
   progress: number;
-  status: string;
+  status: NodeProgressStatus;
   message: string;
   error: Error | null;
 }
@@ -26,7 +28,7 @@ export interface UseNodeProgressReturn extends UseNodeProgressState {
   setProgress: (progress: number, message?: string) => void;
   setMessage: (message: string) => void;
   complete: (message?: string) => void;
-  fail: (error: unknown) => void;
+  fail: (error?: unknown) => void;
   reset: () => void;
   pollWithProgress: <T extends PollWithProgressResult>(
     pollFn: () => Promise<T>,

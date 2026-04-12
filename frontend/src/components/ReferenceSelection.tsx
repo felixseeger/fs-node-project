@@ -1,41 +1,46 @@
 import React, { useState, useRef, FC, ChangeEvent, DragEvent } from 'react';
 
 interface ReferenceSelectionProps {
-  selectedImage?: string | null;
-  onImageSelect?: (image: string | null) => void;
+  selectedImages?: string[];
+  onImagesChange?: (images: string[]) => void;
 }
 
-const ReferenceSelection: FC<ReferenceSelectionProps> = ({ selectedImage, onImageSelect }) => {
+const ReferenceSelection: FC<ReferenceSelectionProps> = ({ selectedImages = [], onImagesChange }) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleFiles = (files: FileList | null) => {
+    if (!files) return;
+    const newImages: string[] = [];
+    let processedCount = 0;
+
+    Array.from(files).forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            newImages.push(event.target.result as string);
+          }
+          processedCount++;
+          if (processedCount === files.length) {
+            onImagesChange?.([...selectedImages, ...newImages]);
+          }
+        };
+        reader.readAsDataURL(file);
+      } else {
+        processedCount++;
+      }
+    });
+  };
+
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          onImageSelect?.(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    handleFiles(e.target.files);
   };
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          onImageSelect?.(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    handleFiles(e.dataTransfer.files);
   };
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
@@ -47,8 +52,13 @@ const ReferenceSelection: FC<ReferenceSelectionProps> = ({ selectedImage, onImag
     setIsDragging(false);
   };
 
+  const handleRemove = (index: number) => {
+    const updated = selectedImages.filter((_, i) => i !== index);
+    onImagesChange?.(updated);
+  };
+
   const handleClear = () => {
-    onImageSelect?.(null);
+    onImagesChange?.([]);
   };
 
   return (
@@ -66,117 +76,160 @@ const ReferenceSelection: FC<ReferenceSelectionProps> = ({ selectedImage, onImag
         style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: 6,
           marginBottom: 8,
+          width: 220,
         }}
       >
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            color: '#666',
-            letterSpacing: 1,
-            textTransform: 'uppercase',
-          }}
-        >
-          Reference Image
-        </span>
-        <span style={{ color: '#ef4444', fontSize: 10 }}>*</span>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          style={{
-            width: 16,
-            height: 16,
-            borderRadius: '50%',
-            border: '1px solid #444',
-            background: 'transparent',
-            color: '#888',
-            fontSize: 10,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 0,
-            marginLeft: 4,
-          }}
-          title="Select reference image"
-        >
-          &#43;
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              color: '#666',
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+            }}
+          >
+            Reference Images ({selectedImages.length})
+          </span>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              width: 16,
+              height: 16,
+              borderRadius: '50%',
+              border: '1px solid #444',
+              background: 'transparent',
+              color: '#888',
+              fontSize: 10,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+            }}
+            title="Add reference image"
+          >
+            &#43;
+          </button>
+        </div>
+        {selectedImages.length > 0 && (
+          <button
+            onClick={handleClear}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#666',
+              fontSize: 9,
+              cursor: 'pointer',
+              textDecoration: 'underline'
+            }}
+          >
+            Clear All
+          </button>
+        )}
       </div>
 
       {/* Image Box */}
       <div
-        onClick={() => !selectedImage && fileInputRef.current?.click()}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         style={{
           width: 220,
-          height: selectedImage ? 'auto' : 60,
-          minHeight: 60,
           background: isDragging ? 'rgba(59, 130, 246, 0.1)' : '#141414',
-          border: `1px dashed ${isDragging ? '#3b82f6' : selectedImage ? '#22c55e' : '#444'}`,
+          border: `1px dashed ${isDragging ? '#3b82f6' : selectedImages.length > 0 ? '#22c55e' : '#444'}`,
           borderRadius: 10,
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: selectedImage ? 'center' : 'flex-start',
-          padding: selectedImage ? 8 : '0 12px',
-          cursor: selectedImage ? 'default' : 'pointer',
+          flexDirection: 'column',
+          padding: 8,
+          cursor: 'default',
           transition: 'all 0.2s',
           position: 'relative',
+          maxHeight: 300,
+          overflowY: 'auto'
         }}
       >
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
+          multiple
           onChange={handleFileSelect}
           style={{ display: 'none' }}
         />
 
-        {selectedImage ? (
-          <div style={{ position: 'relative', width: '100%' }}>
-            <img
-              src={selectedImage}
-              alt="Reference"
+        {selectedImages.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+            {selectedImages.map((img, idx) => (
+              <div key={idx} style={{ position: 'relative', aspectRatio: '1/1', background: '#0a0a0a', borderRadius: 6, overflow: 'hidden' }}>
+                <img
+                  src={img}
+                  alt={`Ref ${idx}`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(idx);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: 2,
+                    right: 2,
+                    width: 16,
+                    height: 16,
+                    borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.7)',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: 10,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="Remove image"
+                >
+                  &times;
+                </button>
+              </div>
+            ))}
+            <button 
+              onClick={() => fileInputRef.current?.click()}
               style={{
-                width: '100%',
-                height: 'auto',
-                maxHeight: 120,
-                objectFit: 'cover',
+                aspectRatio: '1/1',
                 borderRadius: 6,
-              }}
-            />
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClear();
-              }}
-              style={{
-                position: 'absolute',
-                top: 4,
-                right: 4,
-                width: 20,
-                height: 20,
-                borderRadius: '50%',
-                background: 'rgba(0,0,0,0.7)',
-                border: 'none',
-                color: '#fff',
-                fontSize: 12,
+                border: '1px dashed #444',
+                background: '#0a0a0a',
+                color: '#444',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                fontSize: 20
               }}
-              title="Remove reference"
             >
-              &times;
+              +
             </button>
           </div>
         ) : (
-          <>
-            {/* Checkbox placeholder */}
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            style={{ 
+              height: 44, 
+              display: 'flex', 
+              alignItems: 'center', 
+              cursor: 'pointer',
+              color: '#888'
+            }}
+          >
             <div
               style={{
                 width: 18,
@@ -191,27 +244,10 @@ const ReferenceSelection: FC<ReferenceSelectionProps> = ({ selectedImage, onImag
             >
               <span style={{ color: '#444', fontSize: 10 }}>&#10003;</span>
             </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: '#888',
-                  marginBottom: 2,
-                }}
-              >
-                No reference image selected
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: '#555',
-                }}
-              >
-                Select an image and click to set
-              </div>
+            <div style={{ fontSize: 12 }}>
+              Drag or click to add context images
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

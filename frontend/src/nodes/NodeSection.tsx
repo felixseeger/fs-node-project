@@ -11,9 +11,12 @@ interface SectionHeaderProps {
   handleType: 'target' | 'source';
   color: string;
   extra?: React.ReactNode;
+  isConnected?: boolean;
+  onUnlink?: () => void;
+  onAdd?: () => void;
 }
 
-export function SectionHeader({ label, handleId, handleType, color, extra }: SectionHeaderProps) {
+export function SectionHeader({ label, handleId, handleType, color, extra, isConnected, onUnlink, onAdd }: SectionHeaderProps) {
   return (
     <div
       style={{
@@ -37,8 +40,36 @@ export function SectionHeader({ label, handleId, handleType, color, extra }: Sec
           }}
         />
         <span style={font.label}>{label}</span>
+        {isConnected && onUnlink && (
+          <button 
+            onClick={(e) => { e.stopPropagation(); onUnlink(); }}
+            className="nodrag nopan"
+            style={{
+              background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+              fontSize: 10, color: ui.error, marginLeft: 4, display: 'flex', alignItems: 'center'
+            }}
+            title="Unlink"
+          >
+            ✕
+          </button>
+        )}
       </div>
-      {extra && <div style={{ display: 'flex', alignItems: 'center', gap: sp[1] }}>{extra}</div>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: sp[1] }}>
+        {onAdd && (
+          <button 
+            onClick={(e) => { e.stopPropagation(); onAdd(); }}
+            className="nodrag nopan"
+            style={{
+              background: ui.linkBg, border: `1px solid ${ui.linkBorder}`, 
+              borderRadius: radius.sm, color: ui.linkText, fontSize: 9, 
+              padding: '1px 4px', cursor: 'pointer'
+            }}
+          >
+            + Add
+          </button>
+        )}
+        {extra}
+      </div>
     </div>
   );
 }
@@ -85,14 +116,14 @@ export function LinkedBadges({ nodeId, handleId, onUnlink }: LinkedBadgesProps) 
 /**
  * Blue info box showing which node is linked.
  */
-interface ConnectionInfoProps {
+interface ConnectionBadgeProps {
   connInfo?: {
     nodeLabel: string;
     handle: string;
   };
 }
 
-export function ConnectionInfo({ connInfo }: ConnectionInfoProps) {
+export function ConnectionBadge({ connInfo }: ConnectionBadgeProps) {
   return (
     <div
       style={{
@@ -113,7 +144,7 @@ export function ConnectionInfo({ connInfo }: ConnectionInfoProps) {
 }
 
 /**
- * Convenience wrapper: renders either ConnectionInfo (when connected)
+ * Convenience wrapper: renders either ConnectionBadge (when connected)
  * or children (the local input fallback).
  */
 interface ConnectedOrLocalProps {
@@ -126,5 +157,5 @@ interface ConnectedOrLocalProps {
 }
 
 export function ConnectedOrLocal({ connected, connInfo, children }: ConnectedOrLocalProps) {
-  return connected ? <ConnectionInfo connInfo={connInfo} /> : <>{children}</>;
+  return connected ? <ConnectionBadge connInfo={connInfo} /> : <>{children}</>;
 }

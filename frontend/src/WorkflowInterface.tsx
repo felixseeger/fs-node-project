@@ -209,18 +209,30 @@ const OutputDisplay: FC<OutputDisplayProps> = ({ point, node }) => {
 
   if (handleDataType === 'image') {
     const imgs = Array.isArray(val) ? val : [val];
+    const filenameBase = `${point.nodeLabel.toLowerCase().replace(/\s+/g, '-')}-${point.pointKey.toLowerCase().replace(/\s+/g, '-')}`;
+    
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {imgs.map((src, i) => (
           <div key={i} style={{ position: 'relative' }}>
             <img src={src} alt="" style={fieldStyles.outputImage} />
-            <a href={src} download style={fieldStyles.downloadBtn} title="Download">
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                const a = document.createElement('a');
+                a.href = src;
+                a.download = `${filenameBase}-${i + 1}-${Date.now()}.jpg`;
+                a.click();
+              }}
+              style={{ ...fieldStyles.downloadBtn, border: 'none', cursor: 'pointer' }} 
+              title="Download"
+            >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-            </a>
+            </button>
           </div>
         ))}
       </div>
@@ -231,13 +243,24 @@ const OutputDisplay: FC<OutputDisplayProps> = ({ point, node }) => {
     return (
       <div style={{ position: 'relative' }}>
         <video src={val} controls style={{ width: '100%', borderRadius: 6 }} />
-        <a href={val} download style={fieldStyles.downloadBtn} title="Download">
+        <button 
+          onClick={(e) => {
+            e.preventDefault();
+            const a = document.createElement('a');
+            a.href = val;
+            const filename = `${point.nodeLabel.toLowerCase().replace(/\s+/g, '-')}-${point.pointKey.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.mp4`;
+            a.download = filename;
+            a.click();
+          }}
+          style={{ ...fieldStyles.downloadBtn, border: 'none', cursor: 'pointer' }} 
+          title="Download"
+        >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-        </a>
+        </button>
       </div>
     );
   }

@@ -28,7 +28,7 @@ export function useProjectContextAction({
       const projectName = project.name || project.title || 'Untitled';
       const projectId = project.id;
 
-      const safeCall = (fn: ((...args: unknown[]) => void) | undefined, ...args: unknown[]) => {
+      const safeCall = (fn: ((...args: any[]) => void) | undefined, ...args: any[]) => {
         try {
           fn?.(...args);
         } catch (err) {

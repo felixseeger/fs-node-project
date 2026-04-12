@@ -548,28 +548,33 @@ export async function facialEditGenerate(params) {
  * Generate a workflow from natural language prompt
  * @param {string} prompt - Natural language description of the workflow
  * @param {string} mode - Layout mode: 'standard' or 'compact'
+ * @param {Object} context - Optional context
+ * @param {Array} images - Optional reference images
  * @returns {Promise<{success: boolean, workflow: object}>}
  */
-export async function generateAIWorkflow(prompt, mode = 'standard') {
+export async function generateAIWorkflow(prompt, mode = 'standard', context = null, images = []) {
   const res = await fetch(`${API_BASE}/api/ai-workflow/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt, mode }),
+    body: JSON.stringify({ prompt, mode, context, images }),
   });
   return safeJson(res);
 }
+
 
 /**
  * Send a chat message to the AI
  * @param {string} message - User message
  * @param {Array} history - Message history
- * @returns {Promise<{success: boolean, response: string}>}
+ * @param {Object} context - Optional context (e.g., current canvas state)
+ * @param {Array} images - Optional reference images
+ * @returns {Promise<{success: boolean, response: string, commands?: Array}>}
  */
-export async function sendChat(message, history = []) {
+export async function sendChat(message, history = [], context = null, images = []) {
   const res = await fetch(`${API_BASE}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, history }),
+    body: JSON.stringify({ message, history, context, images }),
   });
   return safeJson(res);
 }

@@ -1,10 +1,18 @@
-import { Position, Handle } from '@xyflow/react';
+import React from 'react';
+import { Position, Handle, type NodeProps } from '@xyflow/react';
 import BaseNode from './BaseNode';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
+import type { NodeData } from '../types';
 
-export default function AdaptedPromptNode({ id, data, selected }) {
-  const { disconnectNode } = useNodeConnections(id, data);
+export interface AdaptedPromptNodeData extends NodeData {
+  adaptedPrompt?: string;
+}
+
+export default function AdaptedPromptNode({ id, data, selected }: NodeProps) {
+  const nodeData = data as unknown as AdaptedPromptNodeData;
+  const { disconnectNode } = useNodeConnections(id, nodeData);
+
   return (
     <BaseNode
       id={id}
@@ -37,7 +45,7 @@ export default function AdaptedPromptNode({ id, data, selected }) {
               lineHeight: 1.4,
             }}
           >
-            {data.adaptedPrompt || 'Waiting for input...'}
+            {nodeData.adaptedPrompt || 'Waiting for input...'}
           </div>
         </div>
         <Handle

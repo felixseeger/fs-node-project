@@ -115,6 +115,7 @@ export default function Tripo3DNode({ id, data, selected }) {
       onGenerate={handleGenerate}
       isGenerating={data.isLoading}
       onDisconnect={(h) => data.onUnlink?.(id, h)}
+      downloadUrl={data.outputPreviewImage || undefined}
     >
       <OutputHandle id="model-out" label="3d out" color={CATEGORY_COLORS.utility} />
 

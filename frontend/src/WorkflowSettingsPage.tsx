@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef, FC, ReactNode, CSSProperties } from 'react';
+import React, { useState, useEffect, useRef, FC, ReactNode, ReactElement, CSSProperties } from 'react';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function useInView(threshold = 0.15): [React.RefObject<HTMLDivElement | null>, boolean] {
-  const ref = useRef<HTMLDivElement>(null);
+function useInView<T extends HTMLElement = HTMLDivElement>(threshold = 0.15): [React.RefObject<T | null>, boolean] {
+  const ref = useRef<T>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const el = ref.current;
@@ -260,7 +260,7 @@ interface NavItemProps {
 }
 
 const NavItem: FC<NavItemProps> = ({ label, icon, active, onClick, delay = 0 }) => {
-  const [ref, visible] = useInView();
+  const [ref, visible] = useInView<HTMLButtonElement>();
   const [hovered, setHovered] = useState(false);
   return (
     <button

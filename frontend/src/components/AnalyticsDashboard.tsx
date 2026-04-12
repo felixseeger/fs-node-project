@@ -127,7 +127,9 @@ const AnalyticsDashboard: FC<AnalyticsDashboardProps> = ({ isOpen, onClose }) =>
       memoryUsage: complexity * 2,
       nodeCount,
       edgeCount,
-      renderTime: Math.min(50, complexity * 1.5)
+      renderTime: Math.min(50, complexity * 1.5),
+      avgResponseTime: 0,
+      successRate: 100
     };
     
     const optimizationLevel = PerformanceUtils?.needsOptimization?.(nodeCount, edgeCount) || 'none';
@@ -277,9 +279,9 @@ const AnalyticsDashboard: FC<AnalyticsDashboardProps> = ({ isOpen, onClose }) =>
                       fill="#8884d8"
                       dataKey="value"
                       nameKey="name"
-                      label={({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }: any) => `${name || 'Unknown'} ${(percent * 100).toFixed(0)}%`}
                     >
-                      {analyticsData.nodeTypeDistribution.map((entry, index: number) => (
+                      {analyticsData.nodeTypeDistribution.map((_, index: number) => (
                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>

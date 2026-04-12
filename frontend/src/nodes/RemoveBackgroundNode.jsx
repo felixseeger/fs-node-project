@@ -49,12 +49,17 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
 
       // Synchronous response — results come back immediately
       const outputUrl = result.high_resolution || result.preview || result.url || null;
+      const base = (data.label || 'Remove Background').toLowerCase().replace(/\s+/g, '-');
+      const now = Date.now();
+      
       update({
         outputImage: outputUrl,
         outputHighRes: result.high_resolution || null,
         outputPreview: result.preview || null,
         outputUrl: result.url || null,
         originalUrl: result.original || null,
+        outputHighResFilename: `${base}-highres-${now}.png`,
+        outputPreviewFilename: `${base}-preview-${now}.png`,
         isLoading: false,
         outputError: null,
       });
@@ -139,6 +144,7 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
       selected={selected}
       onGenerate={handleRemove}
       isGenerating={isActive}
+      downloadUrl={data.outputHighRes || undefined}
     >
 
       {/* ── Image Output Handle (top, aligned with image-in) ── */}
@@ -227,11 +233,17 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
           display: 'flex', gap: 6, marginTop: 6,
         }}>
           {data.outputHighRes && (
-            <a href={data.outputHighRes} target="_blank" rel="noopener noreferrer" style={{
-              fontSize: 9, color: '#06b6d4', textDecoration: 'none',
-              padding: '3px 8px', background: 'rgba(6,182,212,0.1)',
-              border: '1px solid rgba(6,182,212,0.25)', borderRadius: 4,
-            }}>
+            <a 
+              href={data.outputHighRes} 
+              download={data.outputHighResFilename || 'cutout-highres.png'}
+              target="_blank" 
+              rel="noopener noreferrer" 
+              style={{
+                fontSize: 9, color: '#06b6d4', textDecoration: 'none',
+                padding: '3px 8px', background: 'rgba(6,182,212,0.1)',
+                border: '1px solid rgba(6,182,212,0.25)', borderRadius: 4,
+              }}
+            >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 2, verticalAlign: 'middle' }}>
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
@@ -241,11 +253,17 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
             </a>
           )}
           {data.outputPreview && (
-            <a href={data.outputPreview} target="_blank" rel="noopener noreferrer" style={{
-              fontSize: 9, color: '#06b6d4', textDecoration: 'none',
-              padding: '3px 8px', background: 'rgba(6,182,212,0.1)',
-              border: '1px solid rgba(6,182,212,0.25)', borderRadius: 4,
-            }}>
+            <a 
+              href={data.outputPreview} 
+              download={data.outputPreviewFilename || 'cutout-preview.png'}
+              target="_blank" 
+              rel="noopener noreferrer" 
+              style={{
+                fontSize: 9, color: '#06b6d4', textDecoration: 'none',
+                padding: '3px 8px', background: 'rgba(6,182,212,0.1)',
+                border: '1px solid rgba(6,182,212,0.25)', borderRadius: 4,
+              }}
+            >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 2, verticalAlign: 'middle' }}>
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />

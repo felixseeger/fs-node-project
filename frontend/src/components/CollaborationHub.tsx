@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, FC, KeyboardEvent } from 'reac
 import { useStore } from '../store';
 // @ts-ignore
 import { usePresence, useUser } from '../utils/collaboration';
+import { useViewport } from '@xyflow/react';
 
 interface Collaborator {
   id: string;
@@ -10,6 +11,10 @@ interface Collaborator {
   avatar: string;
   status: string;
   role: string;
+  x?: number;
+  y?: number;
+  action?: string;
+  color?: string;
 }
 
 interface Message {
@@ -26,11 +31,97 @@ interface CollaborationHubProps {
 }
 
 /**
+ * CollaboratorPresence - Renders avatars and activity on the canvas
+ */
+export const CollaboratorPresence: FC = () => {
+  const { x, y, zoom } = useViewport();
+  
+  // Mock active collaborators on the canvas
+  const activeCollaborators: Collaborator[] = [
+    { id: 'user1', name: 'Alex Johnson', avatar: 'AJ', color: '#3b82f6', x: 200, y: 150, action: 'Editing Image Generator', status: 'online', role: 'Editor' },
+    { id: 'user2', name: 'Sam Wilson', avatar: 'SW', color: '#10b981', x: 500, y: 300, action: 'Adding connection', status: 'online', role: 'Editor' }
+  ];
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
+      {activeCollaborators.map(collaborator => {
+        const screenX = (collaborator.x || 0) * zoom + x;
+        const screenY = (collaborator.y || 0) * zoom + y;
+        
+        return (
+          <div 
+            key={collaborator.id}
+            className="absolute flex flex-col items-center"
+            style={{ 
+              transform: `translate(${screenX}px, ${screenY}px)`,
+              transition: 'transform 0.2s ease-out'
+            }}
+          >
+            {/* Cursor SVG */}
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ color: collaborator.color, transform: 'rotate(-20deg)', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}>
+              <path d="M2.5 14.5L14.5 8.5L2.5 2.5V14.5Z" fill="currentColor" stroke="white" strokeWidth="1" />
+            </svg>
+            <div 
+              className="mt-1 px-2 py-1 rounded text-white text-xs whitespace-nowrap shadow-lg flex items-center gap-1.5"
+              style={{ backgroundColor: collaborator.color }}
+            >
+              <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[8px] font-bold">
+                {collaborator.avatar}
+              </div>
+              <div>
+                <div className="font-bold leading-tight">{collaborator.name}</div>
+                <div className="opacity-80 text-[9px] leading-tight">{collaborator.action}</div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+/**
+ * LiveActionFeed - Sidebar showing real-time collaborative events
+ */
+export const LiveActionFeed: FC = () => {
+  const [feed] = useState([
+    { id: 1, user: 'Alex Johnson', action: 'edited', target: 'Image Generator Node', time: 'Just now', color: '#3b82f6' },
+    { id: 2, user: 'Sam Wilson', action: 'commented', target: '"Should we increase steps?"', time: '2m ago', color: '#10b981' },
+    { id: 3, user: 'System', action: 'completed', target: 'Video Generation Task', time: '5m ago', color: '#8b5cf6' },
+  ]);
+
+  return (
+    <div className="absolute right-4 top-20 w-64 bg-gray-900/90 backdrop-blur border border-gray-700 rounded-lg shadow-xl overflow-hidden z-40 flex flex-col max-h-96">
+      <div className="p-3 border-b border-gray-700 bg-gray-800/50 flex justify-between items-center">
+        <h3 className="text-white text-sm font-bold flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+          Live Action Feed
+        </h3>
+      </div>
+      <div className="p-2 overflow-y-auto flex-1 flex flex-col gap-2">
+        {feed.map(item => (
+          <div key={item.id} className="p-2 rounded bg-gray-800/50 border border-gray-700/50 text-xs">
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-bold" style={{ color: item.color }}>{item.user}</span>
+              <span className="text-gray-500 text-[10px]">{item.time}</span>
+            </div>
+            <div className="text-gray-300">
+              <span className="opacity-80">{item.action} </span>
+              <span className="font-medium text-white">{item.target}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/**
  * CollaborationHub - Real-time collaboration interface
  * Enables multi-user workflow editing with presence and communication
  */
 const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose }) => {
-  const { workflows, currentWorkflow, setWorkflow } = useStore();
+  const { workflows, currentWorkflow, setWorkflow, nodes, edges } = useStore();
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');

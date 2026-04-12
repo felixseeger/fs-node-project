@@ -52,16 +52,69 @@ function CopyIcon(): React.ReactElement {
 interface ApiExportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  nodes?: any[];
+  edges?: any[];
+  workflowId?: string;
 }
 
-export default function ApiExportModal({ isOpen, onClose }: ApiExportModalProps): React.ReactElement | null {
+export default function ApiExportModal({ isOpen, onClose, nodes = [], edges = [], workflowId = 'wf_abc123' }: ApiExportModalProps): React.ReactElement | null {
   const [activeTab, setActiveTab] = useState<TabKey>('Javascript');
   const [copied, setCopied] = useState<boolean>(false);
   const [linkCopied, setLinkCopied] = useState<boolean>(false);
 
+  const API_URL = `https://api.kora.ai/v1/workflows/${workflowId}`;
+
+  const getDynamicCode = useCallback((tab: TabKey): string => {
+    const nodeCount = nodes.length;
+    const edgeCount = edges.length;
+    const nodeTypes = Array.from(new Set(nodes.map(n => n.type))).join(', ');
+
+    if (tab === 'Javascript') {
+      return `// Workflow: ${workflowId} (${nodeCount} nodes, ${edgeCount} edges)
+// Node Types: ${nodeTypes}
+
+import { Kora } from '@kora/sdk';
+
+const client = new Kora({
+  apiKey: process.env.KORA_API_KEY,
+});
+
+const result = await client.runWorkflow('${workflowId}', {
+  input: {
+    // Add your input parameters here
+  }
+});
+
+console.log('Workflow result:', result);`;
+    }
+
+    if (tab === 'Python') {
+      return `# Workflow: ${workflowId} (${nodeCount} nodes, ${edgeCount} edges)
+# Node Types: ${nodeTypes}
+
+from kora import Kora
+import os
+
+client = Kora(
+    api_key=os.environ.get("KORA_API_KEY")
+)
+
+result = client.run_workflow(
+    "${workflowId}",
+    input={
+        # Add your input parameters here
+    }
+)
+
+print(f"Workflow result: {result}")`;
+    }
+
+    return `npx kora run ${workflowId}`;
+  }, [nodes, edges, workflowId]);
+
   const getCode = useCallback((): string => {
-    return TAB_DATA[activeTab];
-  }, [activeTab]);
+    return getDynamicCode(activeTab);
+  }, [activeTab, getDynamicCode]);
 
   const handleCopyCode = useCallback((): void => {
     navigator.clipboard.writeText(getCode());

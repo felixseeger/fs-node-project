@@ -197,6 +197,8 @@ export default function VfxNode({ id, data, selected }) {
       selected={selected}
       onGenerate={handleGenerate}
       isGenerating={isActive}
+      downloadUrl={data.outputVideo || undefined}
+      downloadType="video"
     >
 
       {/* ── Video Output Handle (top) ── */}

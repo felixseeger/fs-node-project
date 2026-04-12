@@ -37,38 +37,47 @@ export function isWorkflowImportData(data: any): data is WorkflowImportData {
 }
 
 export interface WorkflowStat {
-  id: string;
   name: string;
-  count: number;
+  nodes: number;
+  edges: number;
+  complexity: number;
+  created: string;
+  lastUsed: string;
 }
 
 export interface NodeTypeDistribution {
-  type: string;
-  count: number;
-}
-
-export interface PerformanceTrend {
-  date: string;
+  name: string;
   value: number;
 }
 
+export interface PerformanceTrend {
+  day: string;
+  fps: number;
+  memory: number;
+  renderTime: number;
+}
+
 export interface ProviderUsage {
-  provider: string;
-  count: number;
+  name: string;
+  requests: number;
+  successRate: number;
+  avgResponse: number;
 }
 
 export interface ComplexityAnalysis {
-  low: number;
-  medium: number;
-  high: number;
+  complexity: number;
+  optimizationLevel: 'none' | 'optional' | 'recommended' | 'critical';
+  recommendations: string[];
+  nodeCount: number;
+  edgeCount: number;
 }
 
 export interface AnalyticsData {
-  stats: WorkflowStat[];
-  distribution: NodeTypeDistribution[];
-  trends: PerformanceTrend[];
-  usage: ProviderUsage[];
-  complexity: ComplexityAnalysis;
+  workflowStats: WorkflowStat[];
+  nodeTypeDistribution: NodeTypeDistribution[];
+  performanceTrends: PerformanceTrend[];
+  providerUsage: ProviderUsage[];
+  complexityAnalysis: ComplexityAnalysis;
 }
 
 export interface ProviderStats {

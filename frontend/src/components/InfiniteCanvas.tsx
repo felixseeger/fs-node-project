@@ -131,4 +131,17 @@ export const InfiniteCanvasWrapper: FC<InfiniteCanvasWrapperProps> = ({ children
   );
 };
 
+/**
+ * Hook to interact with the infinite canvas
+ */
+export const useInfiniteCanvas = () => {
+  const { fitView } = useReactFlow();
+  
+  const centerCanvas = useCallback(() => {
+    fitView({ duration: 800, padding: 0.1 });
+  }, [fitView]);
+  
+  return { centerCanvas };
+};
+
 export default InfiniteCanvas;

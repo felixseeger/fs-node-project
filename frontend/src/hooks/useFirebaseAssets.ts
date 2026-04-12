@@ -66,7 +66,7 @@ type UseFirebaseAssetsReturn = UseFirebaseAssetsState & UseFirebaseAssetsActions
  * @param userId - The current user's ID
  * @returns Asset state and actions
  */
-export function useFirebaseAssets(userId: string | null): UseFirebaseAssetsReturn {
+export function useFirebaseAssets(userId: string | null | undefined): UseFirebaseAssetsReturn {
   // State
   const [state, setState] = useState<UseFirebaseAssetsState>({
     assets: [],
@@ -294,11 +294,12 @@ export function useFirebaseAssets(userId: string | null): UseFirebaseAssetsRetur
   // Subscribe to assets
   useEffect(() => {
     // Reset state when userId changes
-    setState({
+    setState(prev => ({
+      ...prev,
       assets: [],
       isLoading: true,
       error: null,
-    });
+    }));
 
     if (!userId) {
       setState(prev => ({ ...prev, isLoading: false }));
@@ -325,11 +326,12 @@ export function useFirebaseAssets(userId: string | null): UseFirebaseAssetsRetur
             return true;
           });
           
-          setState({
+          setState(prev => ({
+            ...prev,
             assets: validAssets,
             isLoading: false,
             error: null,
-          });
+          }));
         }
       },
       (error) => {

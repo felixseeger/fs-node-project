@@ -211,6 +211,23 @@
   border-color: #555;
 }
 
+.pm-textarea {
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: #e0e0e0;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease;
+  resize: vertical;
+}
+
+.pm-textarea:focus {
+  border-color: #555;
+}
+
 .pm-menu-dots-btn {
   display: flex;
   padding-bottom: 10px;

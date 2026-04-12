@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback, FC, ChangeEvent, KeyboardEvent, ReactNode } from 'react';
+import { NODE_TYPE_CAPABILITIES } from '../config/nodeCapabilities';
 import DecodedText from './DecodedText';
+import AssetPickerOverlay from './AssetPickerOverlay';
+import { Asset, CreateAssetPayload, AssetOperationResult } from '../types/asset';
 import {
   exportWorkflowToFile,
   openFilePicker,
@@ -42,7 +45,7 @@ interface Message {
   type: 'assistant' | 'user';
   role?: string;
   content: string;
-  timestamp: Date;
+  timestamp: Date | any;
 }
 
 export interface ChatUIRef {
@@ -59,12 +62,20 @@ interface ChatUIProps {
   isChatting?: boolean;
   tags?: Tag[];
   disabled?: boolean;
-  referenceImage?: string | null;
-  setReferenceImage?: (image: string | null) => void;
+  referenceImages?: string[];
+  setReferenceImages?: (images: string[]) => void;
+  assets?: Asset[];
   lastGeneratedWorkflow?: any;
   onSetNodes?: (nodes: any[]) => void;
   onSetEdges?: (edges: any[]) => void;
+  onImportWorkflow?: (workflow: { name?: string; nodes: any[]; edges: any[] }) => void;
   onNotify?: (message: string, type: 'info' | 'success' | 'error' | 'warning') => void;
+  externalMessages?: Message[];
+  onStartNewConversation?: () => void;
+  onApplyActions?: (actions: any[]) => void;
+  onCreateAsset?: (payload: CreateAssetPayload) => Promise<AssetOperationResult<Asset>>;
+  selectedNodes?: any[];
+  suggestions?: string[];
 }
 
 const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
@@ -76,27 +87,60 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
   isChatting = false,
   tags = DEFAULT_TAGS,
   disabled = false,
-  referenceImage = null,
-  setReferenceImage,
+  referenceImages = [],
+  setReferenceImages,
+  assets = [],
   lastGeneratedWorkflow = null,
   onSetNodes,
   onSetEdges,
+  onImportWorkflow,
   onNotify,
+  externalMessages,
+  onStartNewConversation,
+  onApplyActions,
+  onCreateAsset,
+  selectedNodes = [],
+  suggestions = [],
 }, ref) => {
   const [inputValue, setInputValue] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  
+  const messages = externalMessages || localMessages;
+  
+  const displaySuggestions = (suggestions && suggestions.length > 0) ? suggestions : (
+    messages.length > 1 ? [
+      "How does this workflow work?",
+      "Can you add an upscaler?",
+      "What other nodes are available?",
+      "How do I run this?"
+    ] : []
+  );
+
   const [activeTags, setActiveTags] = useState<Set<string>>(() => new Set(tags.map(t => t.label)));
   const [thinkingIndex, setThinkingIndex] = useState(0);
   const [showImportExport, setShowImportExport] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
+  const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
+  const notifyUser = useCallback((msg: string, type: 'info' | 'success' | 'error' | 'warning') => {
+    if (onNotify) {
+      onNotify(msg, type);
+    } else if (type === 'error' || type === 'warning') {
+      setLocalError(msg);
+      setTimeout(() => setLocalError(null), 5000);
+    }
+  }, [onNotify]);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (typeof messagesEndRef.current?.scrollIntoView === 'function') {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, isGenerating, isChatting]);
 
   useEffect(() => {
@@ -160,7 +204,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
 
   const handleVoiceInput = useCallback(() => {
     if (!recognition) {
-      onNotify?.('Voice recognition is not supported in your browser.', 'warning');
+      notifyUser('Voice recognition is not supported in your browser.', 'warning');
       return;
     }
     if (isListening) {
@@ -170,7 +214,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
         recognition.start();
       } catch (error) {
         console.error('Failed to start voice recognition:', error);
-        onNotify?.('Failed to start voice recognition. Please check microphone permissions.', 'error');
+        notifyUser('Failed to start voice recognition. Please check microphone permissions.', 'error');
       }
     }
   }, [recognition, isListening, onNotify]);
@@ -184,12 +228,12 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
     });
   };
 
-  const submitText = useCallback((text: string) => {
+  const submitText = useCallback((text: string, forceGenerate = false) => {
     const trimmedInput = text.trim();
-    if (!trimmedInput || isGenerating || isChatting || disabled) return;
+    if (!trimmedInput || isGenerating || disabled) return;
 
     if (trimmedInput.length > 4000) {
-      onNotify?.('Message is too long. Please shorten it to under 4000 characters.', 'warning');
+      notifyUser('Message is too long. Please shorten it to under 4000 characters.', 'warning');
       return;
     }
 
@@ -199,22 +243,28 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
       content: trimmedInput,
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMessage]);
+    
+    if (!externalMessages) {
+      setLocalMessages((prev) => [...prev, userMessage]);
+    }
+    
     setInputValue('');
     
     // Apply tags if any
     const activeModifiers = Array.from(activeTags).map(t => `[${t}]`).join(' ');
     const fullPrompt = activeModifiers ? `${activeModifiers} ${trimmedInput}` : trimmedInput;
     
-    if (onSendMessage && isChatting) {
+    if (forceGenerate && onGenerate) {
+      onGenerate(fullPrompt);
+    } else if (onSendMessage) {
       onSendMessage(fullPrompt);
-    } else {
-      onGenerate?.(fullPrompt);
+    } else if (onGenerate) {
+      onGenerate(fullPrompt);
     }
-  }, [activeTags, isGenerating, isChatting, disabled, onGenerate, onSendMessage, onNotify]);
+  }, [activeTags, isGenerating, disabled, onGenerate, onSendMessage, onNotify, externalMessages]);
 
   const handleGenerate = useCallback(() => {
-    submitText(inputValue);
+    submitText(inputValue, true);
   }, [inputValue, submitText]);
 
   useImperativeHandle(ref, () => ({
@@ -226,9 +276,11 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
         content: message.content,
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, msg]);
+      if (!externalMessages) {
+        setLocalMessages((prev) => [...prev, msg]);
+      }
     }
-  }), [handleGenerate]);
+  }), [handleGenerate, externalMessages]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -246,22 +298,52 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
     }
   };
 
+  const handleExportChat = useCallback(() => {
+    if (messages.length === 0) {
+      notifyUser('No messages to export.', 'info');
+      return;
+    }
+    
+    try {
+      const chatData = {
+        exportedAt: new Date().toISOString(),
+        messages: messages.map(m => ({
+          role: m.role || m.type,
+          content: m.content,
+          timestamp: m.timestamp
+        }))
+      };
+      
+      const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chat-export-${new Date().getTime()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      notifyUser('Chat history exported successfully!', 'success');
+    } catch (err) {
+      console.error('[ChatUI] Export chat error:', err);
+      notifyUser('Failed to export chat history.', 'error');
+    }
+  }, [messages, notifyUser]);
+
   const handleExportWorkflow = () => {
     if (!lastGeneratedWorkflow) {
-      onNotify?.('No workflow to export. Generate a workflow first!', 'info');
+      notifyUser('No workflow to export. Generate a workflow first!', 'info');
       return;
     }
     try {
       const workflow = prepareWorkflowForExport(lastGeneratedWorkflow);
       if (!workflow) { 
-        onNotify?.('Failed to prepare workflow for export: Invalid structure', 'error'); 
+        notifyUser('Failed to prepare workflow for export: Invalid structure', 'error'); 
         return; 
       }
       exportWorkflowToFile(workflow);
-      onNotify?.(`Exported: ${getWorkflowSummary(workflow)}`, 'success');
+      notifyUser(`Exported: ${getWorkflowSummary(workflow)}`, 'success');
     } catch (err) {
       console.error('[ChatUI] Export error:', err);
-      onNotify?.('Failed to export workflow due to an internal error', 'error');
+      notifyUser('Failed to export workflow due to an internal error', 'error');
     }
   };
 
@@ -272,21 +354,21 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
       
       // Basic file validation
       if (file.size > 2 * 1024 * 1024) { // 2MB limit for JSON
-        onNotify?.('File is too large. Max size is 2MB.', 'warning');
+        notifyUser('File is too large. Max size is 2MB.', 'warning');
         return;
       }
 
       const workflow = await importWorkflowFromFile(file);
       if (!workflow) {
-        onNotify?.('Failed to import workflow: Invalid file format', 'error');
+        notifyUser('Failed to import workflow: Invalid file format', 'error');
         return;
       }
 
       handleImportedWorkflow(workflow, {
         onSetNodes, onSetEdges,
         onNotify: (msg, type) => {
-          onNotify?.(msg, type as any);
-          setMessages(prev => [...prev, {
+          notifyUser(msg, type as any);
+          setLocalMessages(prev => [...prev, {
             id: Date.now(),
             type: 'assistant',
             content: `${type === 'success' ? '✅' : '❌'} ${msg}`,
@@ -296,7 +378,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
       });
     } catch (err) {
       console.error('[ChatUI] Import error:', err);
-      onNotify?.('Failed to import workflow', 'error');
+      notifyUser('Failed to import workflow', 'error');
     }
   };
 
@@ -305,13 +387,13 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
       const workflow = generateTestWorkflow();
       const result = testRoundTrip(workflow);
       if (result.success) {
-        onNotify?.('Round-trip test passed! ✅', 'success');
+        notifyUser('Round-trip test passed! ✅', 'success');
       } else {
-        onNotify?.(`Round-trip test failed: ${result.errors.join(', ')}`, 'error');
+        notifyUser(`Round-trip test failed: ${result.errors.join(', ')}`, 'error');
       }
     } catch (err) {
       console.error('[ChatUI] Test error:', err);
-      onNotify?.('Round-trip test failed due to an error', 'error');
+      notifyUser('Round-trip test failed due to an error', 'error');
     }
   };
 
@@ -321,23 +403,23 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      onNotify?.('Selected file is not an image.', 'warning');
+      notifyUser('Selected file is not an image.', 'warning');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      onNotify?.('Image is too large. Max size is 5MB.', 'warning');
+      notifyUser('Image is too large. Max size is 5MB.', 'warning');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (ev) => {
       if (ev.target?.result) {
-        setReferenceImage?.(ev.target.result as string);
+        setReferenceImages?.([...referenceImages, ev.target.result as string]);
       }
     };
     reader.onerror = () => {
-      onNotify?.('Failed to read image file.', 'error');
+      notifyUser('Failed to read image file.', 'error');
     };
     reader.readAsDataURL(file);
     
@@ -346,7 +428,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
   };
 
   const renderMessageContent = (content: string, isActive: boolean) => {
-    const parts: { type: 'text' | 'workflow' | 'code'; content?: string; data?: any }[] = [];
+    const parts: { type: 'text' | 'workflow' | 'canvas_actions' | 'code'; content?: string; data?: any }[] = [];
     // Ensure content is a string
     const safeContent = typeof content === 'string' ? content : String(content);
     const jsonRegex = /```(?:json)?\n([\s\S]*?)\n```/g;
@@ -359,7 +441,9 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
         }
         try {
           const parsed = JSON.parse(match[1]);
-          if (parsed.nodes || (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type)) {
+          if (parsed.canvas_actions) {
+            parts.push({ type: 'canvas_actions', data: parsed.canvas_actions });
+          } else if (parsed.nodes || (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type)) {
             parts.push({ type: 'workflow', data: parsed });
           } else {
             parts.push({ type: 'code', content: match[0] });
@@ -395,20 +479,62 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
                 try {
                   const nodes = part.data.nodes || part.data;
                   const edges = part.data.edges || [];
+                  const name = part.data.name || 'AI Generated Workflow';
                   if (Array.isArray(nodes)) {
-                    onSetNodes?.(nodes); 
-                    onSetEdges?.(edges);
-                    onNotify?.(`Imported ${nodes.length} nodes to canvas`, 'success');
+                    if (onImportWorkflow) {
+                      onImportWorkflow({ name, nodes, edges });
+                    } else {
+                      onSetNodes?.(nodes); 
+                      onSetEdges?.(edges);
+                    }
+                    notifyUser(`Imported ${nodes.length} nodes to canvas`, 'success');
                   } else {
-                    onNotify?.('Invalid workflow data in message', 'error');
+                    notifyUser('Invalid workflow data in message', 'error');
                   }
                 } catch (e) {
-                  onNotify?.('Failed to import workflow from message', 'error');
+                  notifyUser('Failed to import workflow from message', 'error');
                 }
               }} 
               style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
             >              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Import Workflow to Canvas
+            </button>
+          </div>
+        );
+      if (part.type === 'canvas_actions')
+        return (
+          <div key={i} style={{ marginTop: 12, marginBottom: 12, padding: 12, background: '#1e293b', borderRadius: 8, border: '1px solid #334155' }}>
+            <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              AI Suggested Canvas Edits ({part.data?.length || 0})
+            </div>
+            
+            <div style={{ maxHeight: 100, overflowY: 'auto', marginBottom: 10, fontSize: 11, color: '#cbd5e1', background: '#0f172a', padding: 8, borderRadius: 4, border: '1px solid #1e293b' }}>
+              {part.data?.map((action: any, idx: number) => (
+                <div key={idx} style={{ marginBottom: 4 }}>
+                  <span style={{ color: '#38bdf8', fontWeight: 600 }}>{action.action}</span>
+                  {action.id ? ` ${action.id}` : ''}
+                  {action.type ? ` (${action.type})` : ''}
+                </div>
+              ))}
+            </div>
+
+            <button 
+              aria-label="Apply actions"
+              className="nodrag nopan"
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => {
+                if (onApplyActions) {
+                  onApplyActions(part.data);
+                  notifyUser(`Applied ${part.data.length} actions to canvas`, 'success');
+                }
+              }} 
+              style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center', transition: 'background 0.2s' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#1d4ed8'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#2563eb'}
+            >              
+              Apply Canvas Edits
             </button>
           </div>
         );
@@ -444,6 +570,17 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <button 
+            onClick={onStartNewConversation}
+            className="nodrag nopan"
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{ width: 28, height: 28, borderRadius: 8, background: 'transparent', border: 'none', color: '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}
+            title="New Conversation"
+            aria-label="Start new conversation"
+          >
+            ➕
+          </button>
+          <button 
             onClick={() => setShowImportExport(!showImportExport)}
             className="nodrag nopan"
             onMouseDown={(e) => e.stopPropagation()}
@@ -474,7 +611,12 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
             className="nodrag nopan"
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
-            style={{ padding: '5px 10px', borderRadius: 6, background: lastGeneratedWorkflow ? '#22c55e' : '#2a2a2a', border: 'none', color: lastGeneratedWorkflow ? '#fff' : '#555', fontSize: 11, fontWeight: 500, cursor: lastGeneratedWorkflow ? 'pointer' : 'default' }}>📤 Export</button>
+            style={{ padding: '5px 10px', borderRadius: 6, background: lastGeneratedWorkflow ? '#22c55e' : '#2a2a2a', border: 'none', color: lastGeneratedWorkflow ? '#fff' : '#555', fontSize: 11, fontWeight: 500, cursor: lastGeneratedWorkflow ? 'pointer' : 'default' }}>📤 Workflow</button>
+          <button onClick={handleExportChat} disabled={messages.length === 0}
+            className="nodrag nopan"
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{ padding: '5px 10px', borderRadius: 6, background: messages.length > 0 ? '#10b981' : '#2a2a2a', border: 'none', color: messages.length > 0 ? '#fff' : '#555', fontSize: 11, fontWeight: 500, cursor: messages.length > 0 ? 'pointer' : 'default' }}>💬 Export Chat</button>
           <button onClick={handleImportWorkflow}
             className="nodrag nopan"
             onMouseDown={(e) => e.stopPropagation()}
@@ -489,6 +631,14 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
       )}
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {selectedNodes.some(n => n.type === 'assetNode') && (
+          <div style={{ padding: '8px 12px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff' }}>i</div>
+            <span style={{ fontSize: 11, color: '#93c5fd' }}>
+              Asset selected: <strong>{selectedNodes.find(n => n.type === 'assetNode')?.data?.label || 'Asset'}</strong>
+            </span>
+          </div>
+        )}
         {messages.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', justifyContent: 'center', height: '100%', padding: '20px', color: '#888', textAlign: 'center' }}>
             <div style={{ background: '#222', width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
@@ -557,15 +707,58 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
       </div>
 
       <div style={{ padding: '12px 16px 16px', borderTop: '1px solid #2a2a2a', background: '#121212' }}>
-        {referenceImage && (
-          <div style={{ padding: '6px 10px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10, background: '#1a1a1a', borderRadius: 8, border: '1px solid #2a2a2a' }}>
-            <img src={referenceImage} alt="Ref" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4 }} />
-            <span style={{ flex: 1, fontSize: 11, color: '#666' }}>Reference attached</span>
-            <button onClick={() => setReferenceImage?.(null)}
-              className="nodrag nopan"
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              style={{ width: 18, height: 18, borderRadius: '50%', background: '#2a2a2a', border: 'none', color: '#888', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+        {localError && (
+          <div style={{ padding: '8px 12px', marginBottom: 8, background: '#7f1d1d', borderRadius: 8, border: '1px solid #dc2626', color: '#fca5a5', fontSize: 12, wordWrap: 'break-word' }}>
+            {localError}
+          </div>
+        )}
+
+        {referenceImages.length > 0 && (
+          <div style={{ padding: '8px 12px', marginBottom: 8, display: 'flex', flexWrap: 'wrap', gap: 8, background: '#1a1a1a', borderRadius: 10, border: '1px solid #2a2a2a' }}>
+            {referenceImages.map((img, idx) => (
+              <div key={idx} style={{ position: 'relative', width: 36, height: 36, borderRadius: 6, overflow: 'hidden', border: '1px solid #333' }}>
+                <img src={img} alt={`Ref ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <button 
+                  onClick={() => setReferenceImages?.(referenceImages.filter((_, i) => i !== idx))}
+                  className="nodrag nopan"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  style={{ position: 'absolute', top: 0, right: 0, width: 14, height: 14, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', fontSize: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >✕</button>
+              </div>
+            ))}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+               <span style={{ fontSize: 10, color: '#555' }}>{referenceImages.length} context items</span>
+            </div>
+          </div>
+        )}
+
+        {displaySuggestions && displaySuggestions.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+            {displaySuggestions.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => submitText(s)}
+                disabled={isGenerating || isChatting || disabled}
+                className="nodrag nopan"
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                style={{ 
+                  background: 'rgba(139, 92, 246, 0.1)', 
+                  border: '1px solid rgba(139, 92, 246, 0.25)', 
+                  borderRadius: 20, 
+                  padding: '5px 12px', 
+                  color: '#a78bfa', 
+                  fontSize: 12, 
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)'; e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)'; e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.25)'; }}
+              >
+                {s}
+              </button>
+            ))}
           </div>
         )}
 
@@ -577,10 +770,12 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
           display: 'flex',
           flexDirection: 'column',
           gap: 10,
-          transition: 'border-color 0.2s, box-shadow 0.2s',
+          transition: 'border-color 0.2s, box-shadow 0.2s, opacity 0.2s',
+          opacity: isGenerating || isChatting || disabled ? 0.7 : 1,
         }}>
           <textarea
             ref={textareaRef}
+            data-testid="chat-input"
             className="nodrag nopan nowheel"
             value={inputValue}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
@@ -588,7 +783,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onFocus={(e) => {
-              if (e.currentTarget.parentElement) {
+              if (e.currentTarget.parentElement && !isGenerating && !isChatting && !disabled) {
                 e.currentTarget.parentElement.style.borderColor = '#8b5cf6';
                 e.currentTarget.parentElement.style.boxShadow = '0 0 0 2px rgba(139, 92, 246, 0.2)';
               }
@@ -599,7 +794,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
                 e.currentTarget.parentElement.style.boxShadow = 'none';
               }
             }}
-            placeholder="Describe what you want to create…"
+            placeholder={isGenerating || isChatting ? "AI is generating..." : "Describe what you want to create…"}
             disabled={isGenerating || isChatting || disabled}
             maxLength={4000}
             aria-label="Chat input message"
@@ -608,6 +803,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
               padding: 0, background: 'transparent', border: 'none',
               color: '#e0e0e0', fontSize: 13, fontFamily: 'inherit',
               resize: 'none', outline: 'none', lineHeight: 1.55,
+              cursor: isGenerating || isChatting || disabled ? 'not-allowed' : 'text',
             }}
           />
 
@@ -621,17 +817,36 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
               aria-hidden="true"
             />
             <button onClick={handleImageClick} disabled={isGenerating || disabled}
-              className="nodrag nopan"
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              aria-label="Attach reference image"
-              style={{ width: 28, height: 28, borderRadius: 8, background: referenceImage ? 'rgba(34,197,94,0.15)' : 'transparent', border: referenceImage ? '1px solid #22c55e44' : '1px solid #2a2a2a', color: referenceImage ? '#22c55e' : '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-              title="Attach reference image">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-              </svg>
+             className="nodrag nopan"
+             onMouseDown={(e) => e.stopPropagation()}
+             onPointerDown={(e) => e.stopPropagation()}
+             aria-label="Attach context image"
+             style={{ width: 28, height: 28, borderRadius: 8, background: referenceImages.length > 0 ? 'rgba(34,197,94,0.15)' : 'transparent', border: referenceImages.length > 0 ? '1px solid #22c55e44' : '1px solid #2a2a2a', color: referenceImages.length > 0 ? '#22c55e' : '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+             title="Attach context image">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+             </svg>
             </button>
 
+            <div style={{ position: 'relative' }}>
+             <button onClick={() => setIsAssetPickerOpen(!isAssetPickerOpen)} disabled={isGenerating || disabled}
+               className="nodrag nopan"
+               onMouseDown={(e) => e.stopPropagation()}
+               onPointerDown={(e) => e.stopPropagation()}
+               aria-label="Pick from assets"
+               style={{ width: 28, height: 28, borderRadius: 8, background: isAssetPickerOpen ? 'rgba(59,130,246,0.15)' : 'transparent', border: isAssetPickerOpen ? '1px solid #3b82f644' : '1px solid #2a2a2a', color: isAssetPickerOpen ? '#3b82f6' : '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+               title="Pick from assets">
+               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+               </svg>
+             </button>
+             <AssetPickerOverlay 
+               isOpen={isAssetPickerOpen} 
+               onClose={() => setIsAssetPickerOpen(false)} 
+               assets={assets}
+               onSelectImage={(url) => setReferenceImages?.([...referenceImages, url])}
+             />
+            </div>
             <button onClick={handleVoiceInput} disabled={isGenerating || disabled}
               className="nodrag nopan"
               onMouseDown={(e) => e.stopPropagation()}

@@ -306,9 +306,10 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
     if (!url) return;
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'generated-video.mp4';
+    const label = (data.label || 'Generate Video').toLowerCase().replace(/\s+/g, '-');
+    a.download = `${label}-${Date.now()}.mp4`;
     a.click();
-  }, [data.outputVideo]);
+  }, [data.outputVideo, data.label]);
 
   // External trigger from global Generate button
   useEffect(() => {

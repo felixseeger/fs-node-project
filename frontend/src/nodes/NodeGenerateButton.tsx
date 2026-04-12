@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 
 /**
  * Generate button that appears on hover
@@ -26,7 +27,10 @@ export default function NodeGenerateButton({ onGenerate, isGenerating, size = 'm
   const dimensions = size === 'sm' ? { width: 28, height: 28, icon: 14 } : { width: 32, height: 32, icon: 16 };
 
   return (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.08 }}
+      whileTap={{ scale: 0.92 }}
+      transition={{ type: "spring", stiffness: 400, damping: 20 }}
       onClick={(e: React.MouseEvent) => {
         e.stopPropagation();
         if (!isGenerating) {
@@ -54,8 +58,8 @@ export default function NodeGenerateButton({ onGenerate, isGenerating, size = 'm
         alignItems: 'center',
         justifyContent: 'center',
         padding: 0,
-        transition: 'all 0.15s ease',
         opacity: isHovered || isGenerating ? 1 : 0.85,
+        outline: 'none',
       }}
     >
       {isGenerating ? (
@@ -99,6 +103,6 @@ export default function NodeGenerateButton({ onGenerate, isGenerating, size = 'm
           to { transform: rotate(360deg); }
         }
       `}</style>
-    </button>
+    </motion.button>
   );
 }

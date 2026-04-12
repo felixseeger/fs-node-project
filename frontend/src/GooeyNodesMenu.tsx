@@ -312,9 +312,9 @@ export const GooeyNodesMenu: FC<GooeyNodesMenuProps> = ({
           </li>
 
           <li className="ms-li ms-avatar ms-li-last">
-            <a href="#" onClick={(e) => { e.preventDefault(); onOpenProfile?.(); setIsOpen(false); setShowHelpMenu(false); }} data-tooltip="User Profile">
+            <button type="button" onClick={(e) => { e.preventDefault(); onOpenProfile?.(); setIsOpen(false); setShowHelpMenu(false); }} data-tooltip="User Profile" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
               <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: 600 }}>FS</div>
-            </a>
+            </button>
           </li>
         </ul>
       </div>

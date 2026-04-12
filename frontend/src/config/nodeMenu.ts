@@ -189,6 +189,41 @@ export const NODE_MENU: NodeMenuSection[] = [
     ],
   },
   {
+    section: 'Logic & Flow',
+    items: [
+      {
+        type: 'condition',
+        label: 'Condition',
+        defaults: { label: 'Condition', operator: 'contains', conditionValue: '' },
+      },
+      {
+        type: 'iteration',
+        label: 'Iteration',
+        defaults: { label: 'Iteration', maxIterations: 10 },
+      },
+      {
+        type: 'variable',
+        label: 'Variable',
+        defaults: { label: 'Variable', varName: 'my_var', varValue: '' },
+      },
+    ],
+  },
+  {
+    section: 'Social & Integrations',
+    items: [
+      {
+        type: 'socialPublisher',
+        label: 'Social Publisher',
+        defaults: { label: 'Social Publisher', platform: 'x', caption: '' },
+      },
+      {
+        type: 'cloudSync',
+        label: 'Cloud Sync',
+        defaults: { label: 'Cloud Sync', provider: 'gdrive', folderPath: '/outputs' },
+      },
+    ],
+  },
+  {
     section: 'Utilities',
     items: [
       {

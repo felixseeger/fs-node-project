@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef, FC, ReactNode } from 'react';
-import { Position, Handle, NodeProps } from '@xyflow/react';
+import { Position, Handle, type Node, type NodeProps } from '@xyflow/react';
 import {
   NodeShell,
   SectionHeader,
@@ -27,6 +27,7 @@ import NodeProgress from './NodeProgress';
 import useNodeProgress from '../hooks/useNodeProgress';
 // @ts-ignore
 import { generateImage, generateKora, pollStatus } from '../utils/api';
+import type { GeneratorNodeData } from '../types';
 
 const KORA_ASPECTS = ['Auto', '1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
 const NANO_ASPECTS = ['Auto', '1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
@@ -36,7 +37,7 @@ const NANO_RESOLUTIONS = ['1K', '2K', '4K'];
 /**
  * GeneratorNode - Core image generation node
  */
-const GeneratorNode: FC<NodeProps> = ({ id, data, selected }) => {
+const GeneratorNode: FC<NodeProps<Node<GeneratorNodeData>>> = ({ id, data, selected }) => {
   const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
   
   // Progress tracking
@@ -96,7 +97,7 @@ const GeneratorNode: FC<NodeProps> = ({ id, data, selected }) => {
       const res = resolve.text('resolution-in', localResolution);
       if (res) params.resolution = res;
 
-      const num = resolve.text('num-images-in', localNumImages);
+      const num = resolve.text('num-images-in', String(localNumImages));
       if (num) params.num_images = Number(num);
 
       const genFn = isKora ? generateKora : generateImage;
@@ -179,6 +180,7 @@ const GeneratorNode: FC<NodeProps> = ({ id, data, selected }) => {
       onGenerate={handleGenerate}
       isGenerating={isActive}
       hasError={!!data.outputError && !isActive}
+      downloadUrl={data.outputImage || undefined}
     >
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
       <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />

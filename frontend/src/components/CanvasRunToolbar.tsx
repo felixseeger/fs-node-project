@@ -406,6 +406,7 @@ interface CanvasRunToolbarProps {
   onSelectAll?: () => void;
   onDeselectAll?: () => void;
   onFitView?: () => void;
+  onAutoLayout?: () => void;
   onOpenBrowseModels?: () => void;
 }
 
@@ -430,6 +431,7 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
   onSelectAll,
   onDeselectAll,
   onFitView,
+  onAutoLayout,
   onOpenBrowseModels,
 }) => {
   const [openGenerate, setOpenGenerate] = useState(false);
@@ -702,6 +704,23 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
         }}
       >
         All models
+      </button>
+
+      <span style={divider} />
+
+      <button
+        type="button"
+        style={{ ...itemBtn, padding: '6px 8px' }}
+        title="Auto-layout"
+        onMouseEnter={(e) => hover(e, true)}
+        onMouseLeave={(e) => hover(e, false)}
+        onClick={onAutoLayout}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z" />
+          <path d="M7 12h10" />
+          <path d="M12 7v10" />
+        </svg>
       </button>
 
       <span style={divider} />

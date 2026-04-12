@@ -38,7 +38,7 @@ interface AnnotationModalProps {
  */
 const AnnotationModal: FC<AnnotationModalProps> = ({ imageUrl, onSave, onClose }) => {
   const [tool, setTool] = useState('draw');
-  const [color, setColor] = useState(defaultColor);
+  const [color, setColor] = useState<string>(defaultColor);
   const [paths, setPaths] = useState<Path[]>([]);
   const [texts, setTexts] = useState<TextAnnotation[]>([]);
   const [pan, setPan] = useState({ x: 0, y: 0 });

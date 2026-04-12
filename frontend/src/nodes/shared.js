@@ -5,7 +5,7 @@ export { default as useNodeConnections } from './useNodeConnections';
 export { default as useNodeExecution } from './useNodeExecution';
 export { default as NodeShell } from './NodeShell';
 export { Pill, Toggle, Slider, DirectionSlider, PromptInput, TextInput, SettingsPanel, PillGroup } from './NodeControls';
-export { SectionHeader, LinkedBadges, ConnectionInfo, ConnectedOrLocal } from './NodeSection';
+export { SectionHeader, LinkedBadges,  ConnectedOrLocal } from './NodeSection';
 export { OutputHandle, SecondaryOutputHandle, OutputPreview } from './NodeOutput';
 export { default as UniversalSimplifiedNodeChrome } from './UniversalSimplifiedNodeChrome';
 export { default as NodeGenerateButton } from './NodeGenerateButton';

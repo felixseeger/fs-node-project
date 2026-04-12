@@ -59,7 +59,7 @@ const RouterNode: FC<NodeProps> = ({ id, data, selected }) => {
         isVisible={selected} 
         minWidth={150} 
         minHeight={100}
-        onResize={(e, params) => setDimensions({ width: params.width, height: params.height })}
+        onResize={(_e, params) => setDimensions({ width: params.width, height: params.height })}
       />
       <div style={{ display: 'flex', width: '100%', height: dimensions.height - 50, minHeight: 80, position: 'relative' }}>
         

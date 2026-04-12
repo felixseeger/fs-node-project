@@ -113,7 +113,7 @@ export default function IdeogramExpandNode({ id, data, selected }) {
   const ACCENT = '#14b8a6';
 
   return (
-    <NodeShell data={data} label={data.label || 'Ideogram Expand'} dotColor={ACCENT} selected={selected} onGenerate={handleExpand} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'Ideogram Expand'} dotColor={ACCENT} selected={selected} onGenerate={handleExpand} isGenerating={isActive} downloadUrl={data.outputImage || undefined}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
       <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />
 

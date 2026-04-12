@@ -3,15 +3,39 @@
  * This is a mock implementation that generates reasonable workflows based on prompt analysis
  */
 
+import { Node, Edge } from '@xyflow/react';
+import { NodeData } from '../types';
+
+interface WorkflowConstraints {
+  maxNodes?: number;
+}
+
+interface GenerateWorkflowParams {
+  prompt: string;
+  providerPreferences?: string[];
+  constraints?: WorkflowConstraints;
+}
+
+interface GeneratedWorkflow {
+  nodes: Node<NodeData>[];
+  edges: Edge[];
+}
+
+interface PromptAnalysis {
+  type: string;
+  subject: string;
+  style: string;
+  parameters: Record<string, string>;
+}
+
 /**
  * Generate workflow from natural language prompt
- * @param {Object} params - Generation parameters
- * @param {string} params.prompt - User's workflow description
- * @param {string[]} params.providerPreferences - Preferred providers
- * @param {Object} params.constraints - Generation constraints
- * @returns {Promise<Object>} Generated workflow with nodes and edges
  */
-export async function generateWorkflowFromPrompt({ prompt, providerPreferences = ['freepik', 'anthropic'], constraints = {} }) {
+export async function generateWorkflowFromPrompt({ 
+  prompt, 
+  providerPreferences = ['freepik', 'anthropic'], 
+  constraints = {} 
+}: GenerateWorkflowParams): Promise<GeneratedWorkflow> {
   // Simulate AI processing delay
   await new Promise(resolve => setTimeout(resolve, 800));
 
@@ -36,9 +60,9 @@ export async function generateWorkflowFromPrompt({ prompt, providerPreferences =
 /**
  * Analyze prompt to determine workflow type and extract key parameters
  */
-function analyzePrompt(prompt) {
+function analyzePrompt(prompt: string): PromptAnalysis {
   const lowerPrompt = prompt.toLowerCase();
-  const result = {
+  const result: PromptAnalysis = {
     type: 'default',
     subject: '',
     style: '',
@@ -89,32 +113,38 @@ function analyzePrompt(prompt) {
 /**
  * Generate image workflow
  */
-function generateImageWorkflow(analysis, providers, constraints) {
+function generateImageWorkflow(analysis: PromptAnalysis, providers: string[], constraints: WorkflowConstraints): GeneratedWorkflow {
   const maxNodes = constraints.maxNodes || 8;
-  const nodes = [];
-  const edges = [];
+  const nodes: Node<NodeData>[] = [];
+  const edges: Edge[] = [];
 
   // Input node
-  const inputNode = {
+  const inputNode: Node<NodeData> = {
     id: `node-input-${Date.now()}`,
     type: 'input',
     position: { x: 100, y: 100 },
     data: {
+      id: `node-input-${Date.now()}`,
       label: 'Input Parameters',
       prompt: `Generate a ${analysis.style} ${analysis.subject} with ${analysis.parameters.colors || 'appropriate'} colors`,
       aspectRatio: '16:9',
       resolution: '1024x1024'
-    }
+    } as any
   };
   nodes.push(inputNode);
 
   // Prompt improvement node
   if (nodes.length < maxNodes) {
-    const improveNode = {
+    const improveNode: Node<NodeData> = {
       id: `node-improve-${Date.now() + 1}`,
       type: 'improvePrompt',
       position: { x: 100, y: 250 },
-      data: { label: 'Improve Prompt', promptType: 'detailed', language: 'english' }
+      data: { 
+        id: `node-improve-${Date.now() + 1}`,
+        label: 'Improve Prompt', 
+        promptType: 'detailed', 
+        language: 'english' 
+      } as any
     };
     nodes.push(improveNode);
     edges.push({ id: `edge-${Date.now()}`, source: inputNode.id, target: improveNode.id, sourceHandle: 'prompt-out', targetHandle: 'prompt-in' });
@@ -122,16 +152,17 @@ function generateImageWorkflow(analysis, providers, constraints) {
 
   // Generator node
   if (nodes.length < maxNodes) {
-    const generatorNode = {
+    const generatorNode: Node<NodeData> = {
       id: `node-generator-${Date.now() + 2}`,
       type: 'generator',
       position: { x: 100, y: 400 },
       data: {
+        id: `node-generator-${Date.now() + 2}`,
         label: 'Image Generator',
         provider: providers[0],
         model: 'nano-banana-2',
         style: analysis.style
-      }
+      } as any
     };
     nodes.push(generatorNode);
     edges.push({ 
@@ -145,11 +176,16 @@ function generateImageWorkflow(analysis, providers, constraints) {
 
   // Upscale node
   if (nodes.length < maxNodes) {
-    const upscaleNode = {
+    const upscaleNode: Node<NodeData> = {
       id: `node-upscale-${Date.now() + 3}`,
       type: 'creativeUpScale',
       position: { x: 100, y: 550 },
-      data: { label: 'Creative Upscale', scale: '2x', provider: providers[0] }
+      data: { 
+        id: `node-upscale-${Date.now() + 3}`,
+        label: 'Creative Upscale', 
+        scale: '2x', 
+        provider: providers[0] 
+      } as any
     };
     nodes.push(upscaleNode);
     edges.push({ 
@@ -163,11 +199,14 @@ function generateImageWorkflow(analysis, providers, constraints) {
 
   // Output node
   if (nodes.length < maxNodes) {
-    const outputNode = {
+    const outputNode: Node<NodeData> = {
       id: `node-output-${Date.now() + 4}`,
       type: 'imageOutput',
       position: { x: 100, y: 700 },
-      data: { label: 'Final Output' }
+      data: { 
+        id: `node-output-${Date.now() + 4}`,
+        label: 'Final Output' 
+      } as any
     };
     nodes.push(outputNode);
     edges.push({ 
@@ -185,32 +224,38 @@ function generateImageWorkflow(analysis, providers, constraints) {
 /**
  * Generate video workflow
  */
-function generateVideoWorkflow(analysis, providers, constraints) {
+function generateVideoWorkflow(analysis: PromptAnalysis, providers: string[], constraints: WorkflowConstraints): GeneratedWorkflow {
   const maxNodes = constraints.maxNodes || 6;
-  const nodes = [];
-  const edges = [];
+  const nodes: Node<NodeData>[] = [];
+  const edges: Edge[] = [];
 
   // Input node
-  const inputNode = {
+  const inputNode: Node<NodeData> = {
     id: `node-input-${Date.now()}`,
     type: 'input',
     position: { x: 100, y: 100 },
     data: {
+      id: `node-input-${Date.now()}`,
       label: 'Video Parameters',
       prompt: `Create a ${analysis.style} ${analysis.subject} video sequence`,
       duration: '10 seconds',
       aspectRatio: '16:9'
-    }
+    } as any
   };
   nodes.push(inputNode);
 
   // Video generator node
   if (nodes.length < maxNodes) {
-    const videoNode = {
+    const videoNode: Node<NodeData> = {
       id: `node-video-${Date.now() + 1}`,
       type: 'kling3',
       position: { x: 100, y: 250 },
-      data: { label: 'Kling 3 Video', provider: providers[0], motion: 'smooth' }
+      data: { 
+        id: `node-video-${Date.now() + 1}`,
+        label: 'Kling 3 Video', 
+        provider: providers[0], 
+        motion: 'smooth' 
+      } as any
     };
     nodes.push(videoNode);
     edges.push({ id: `edge-${Date.now()}`, source: inputNode.id, target: videoNode.id, sourceHandle: 'prompt-out', targetHandle: 'prompt-in' });
@@ -218,11 +263,16 @@ function generateVideoWorkflow(analysis, providers, constraints) {
 
   // Video upscale node
   if (nodes.length < maxNodes) {
-    const upscaleNode = {
+    const upscaleNode: Node<NodeData> = {
       id: `node-vfx-${Date.now() + 2}`,
       type: 'creativeVideoUpscale',
       position: { x: 100, y: 400 },
-      data: { label: 'Video Upscale', quality: 'high', provider: providers[0] }
+      data: { 
+        id: `node-vfx-${Date.now() + 2}`,
+        label: 'Video Upscale', 
+        quality: 'high', 
+        provider: providers[0] 
+      } as any
     };
     nodes.push(upscaleNode);
     edges.push({ id: `edge-${Date.now() + 1}`, source: nodes[nodes.length - 2].id, target: upscaleNode.id, sourceHandle: 'output-video', targetHandle: 'video-in' });
@@ -230,11 +280,14 @@ function generateVideoWorkflow(analysis, providers, constraints) {
 
   // Output node
   if (nodes.length < maxNodes) {
-    const outputNode = {
+    const outputNode: Node<NodeData> = {
       id: `node-output-${Date.now() + 3}`,
       type: 'response',
       position: { x: 100, y: 550 },
-      data: { label: 'Video Output' }
+      data: { 
+        id: `node-output-${Date.now() + 3}`,
+        label: 'Video Output' 
+      } as any
     };
     nodes.push(outputNode);
     edges.push({ id: `edge-${Date.now() + 2}`, source: nodes[nodes.length - 2].id, target: outputNode.id, sourceHandle: 'output-video', targetHandle: 'video-in' });
@@ -246,31 +299,37 @@ function generateVideoWorkflow(analysis, providers, constraints) {
 /**
  * Generate audio workflow
  */
-function generateAudioWorkflow(analysis, providers, constraints) {
+function generateAudioWorkflow(analysis: PromptAnalysis, providers: string[], constraints: WorkflowConstraints): GeneratedWorkflow {
   const maxNodes = constraints.maxNodes || 4;
-  const nodes = [];
-  const edges = [];
+  const nodes: Node<NodeData>[] = [];
+  const edges: Edge[] = [];
 
   // Input node
-  const inputNode = {
+  const inputNode: Node<NodeData> = {
     id: `node-input-${Date.now()}`,
     type: 'input',
     position: { x: 100, y: 100 },
     data: {
+      id: `node-input-${Date.now()}`,
       label: 'Audio Parameters',
       prompt: `Generate ${analysis.style} audio for ${analysis.subject}`,
       duration: '30 seconds'
-    }
+    } as any
   };
   nodes.push(inputNode);
 
   // Audio generator node
   if (nodes.length < maxNodes) {
-    const audioNode = {
+    const audioNode: Node<NodeData> = {
       id: `node-audio-${Date.now() + 1}`,
       type: 'musicGeneration',
       position: { x: 100, y: 250 },
-      data: { label: 'Music Generator', style: analysis.style, provider: providers[1] }
+      data: { 
+        id: `node-audio-${Date.now() + 1}`,
+        label: 'Music Generator', 
+        style: analysis.style, 
+        provider: providers[1] 
+      } as any
     };
     nodes.push(audioNode);
     edges.push({ id: `edge-${Date.now()}`, source: inputNode.id, target: audioNode.id, sourceHandle: 'prompt-out', targetHandle: 'prompt-in' });
@@ -278,11 +337,14 @@ function generateAudioWorkflow(analysis, providers, constraints) {
 
   // Output node
   if (nodes.length < maxNodes) {
-    const outputNode = {
+    const outputNode: Node<NodeData> = {
       id: `node-output-${Date.now() + 2}`,
       type: 'soundOutput',
       position: { x: 100, y: 400 },
-      data: { label: 'Audio Output' }
+      data: { 
+        id: `node-output-${Date.now() + 2}`,
+        label: 'Audio Output' 
+      } as any
     };
     nodes.push(outputNode);
     edges.push({ id: `edge-${Date.now() + 1}`, source: nodes[nodes.length - 2].id, target: outputNode.id, sourceHandle: 'output-audio', targetHandle: 'audio-in' });
@@ -294,30 +356,36 @@ function generateAudioWorkflow(analysis, providers, constraints) {
 /**
  * Generate complex multi-step workflow
  */
-function generateComplexWorkflow(analysis, providers, constraints) {
+function generateComplexWorkflow(analysis: PromptAnalysis, providers: string[], constraints: WorkflowConstraints): GeneratedWorkflow {
   const maxNodes = constraints.maxNodes || 10;
-  const nodes = [];
-  const edges = [];
+  const nodes: Node<NodeData>[] = [];
+  const edges: Edge[] = [];
 
   // Input node
-  const inputNode = {
+  const inputNode: Node<NodeData> = {
     id: `node-input-${Date.now()}`,
     type: 'input',
     position: { x: 50, y: 100 },
     data: {
+      id: `node-input-${Date.now()}`,
       label: 'Main Input',
       prompt: `Create a ${analysis.style} ${analysis.subject} composition`
-    }
+    } as any
   };
   nodes.push(inputNode);
 
   // Branch 1: Image generation
   if (nodes.length < maxNodes) {
-    const imageNode = {
+    const imageNode: Node<NodeData> = {
       id: `node-image-${Date.now() + 1}`,
       type: 'generator',
       position: { x: 50, y: 250 },
-      data: { label: 'Base Image', provider: providers[0], model: 'nano-banana-2' }
+      data: { 
+        id: `node-image-${Date.now() + 1}`,
+        label: 'Base Image', 
+        provider: providers[0], 
+        model: 'nano-banana-2' 
+      } as any
     };
     nodes.push(imageNode);
     edges.push({ id: `edge-${Date.now()}`, source: inputNode.id, target: imageNode.id, sourceHandle: 'prompt-out', targetHandle: 'prompt-in' });
@@ -325,11 +393,16 @@ function generateComplexWorkflow(analysis, providers, constraints) {
 
   // Branch 2: Parallel processing
   if (nodes.length < maxNodes) {
-    const parallelNode = {
+    const parallelNode: Node<NodeData> = {
       id: `node-parallel-${Date.now() + 2}`,
       type: 'generator',
       position: { x: 250, y: 250 },
-      data: { label: 'Variant Image', provider: providers[0], model: 'kora-reality' }
+      data: { 
+        id: `node-parallel-${Date.now() + 2}`,
+        label: 'Variant Image', 
+        provider: providers[0], 
+        model: 'kora-reality' 
+      } as any
     };
     nodes.push(parallelNode);
     edges.push({ id: `edge-${Date.now() + 1}`, source: inputNode.id, target: parallelNode.id, sourceHandle: 'prompt-out', targetHandle: 'prompt-in' });
@@ -337,11 +410,14 @@ function generateComplexWorkflow(analysis, providers, constraints) {
 
   // Merge node
   if (nodes.length < maxNodes && nodes.length >= 3) {
-    const mergeNode = {
+    const mergeNode: Node<NodeData> = {
       id: `node-merge-${Date.now() + 3}`,
       type: 'router',
       position: { x: 150, y: 400 },
-      data: { label: 'Combine Images' }
+      data: { 
+        id: `node-merge-${Date.now() + 3}`,
+        label: 'Combine Images' 
+      } as any
     };
     nodes.push(mergeNode);
     edges.push({ id: `edge-${Date.now() + 2}`, source: nodes[nodes.length - 3].id, target: mergeNode.id, sourceHandle: 'output', targetHandle: 'image-0' });
@@ -350,11 +426,14 @@ function generateComplexWorkflow(analysis, providers, constraints) {
 
   // Final output
   if (nodes.length < maxNodes) {
-    const outputNode = {
+    const outputNode: Node<NodeData> = {
       id: `node-output-${Date.now() + 4}`,
       type: 'response',
       position: { x: 150, y: 550 },
-      data: { label: 'Final Composition' }
+      data: { 
+        id: `node-output-${Date.now() + 4}`,
+        label: 'Final Composition' 
+      } as any
     };
     nodes.push(outputNode);
     edges.push({ id: `edge-${Date.now() + 4}`, source: nodes[nodes.length - 2].id, target: outputNode.id, sourceHandle: 'output', targetHandle: 'image-in' });
@@ -366,6 +445,6 @@ function generateComplexWorkflow(analysis, providers, constraints) {
 /**
  * Generate default fallback workflow
  */
-function generateDefaultWorkflow(analysis, providers, constraints) {
+function generateDefaultWorkflow(analysis: PromptAnalysis, providers: string[], constraints: WorkflowConstraints): GeneratedWorkflow {
   return generateImageWorkflow(analysis, providers, constraints);
 }

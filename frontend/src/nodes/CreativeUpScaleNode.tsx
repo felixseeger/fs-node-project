@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import {
   NodeShell,
   SectionHeader,
@@ -18,7 +18,7 @@ import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
 import NodeProgress from './NodeProgress';
 import useNodeProgress from '../hooks/useNodeProgress';
-import type { NodeData } from '../types';
+import type { CreativeUpScaleNodeData } from '../types';
 
 const SCALE_FACTORS = ['2x', '4x', '8x', '16x'];
 const OPTIMIZED_OPTIONS = [
@@ -39,26 +39,8 @@ const ENGINES = [
   { value: 'magnific_sparkle', label: 'Sparkle' },
 ];
 
-export interface CreativeUpScaleNodeData extends NodeData {
-  localScaleFactor?: string;
-  localOptimizedFor?: string;
-  localEngine?: string;
-  localCreativity?: number;
-  localHdr?: number;
-  localResemblance?: number;
-  localFractality?: number;
-  localImage?: string;
-  inputImagePreview?: string;
-  inputPrompt?: string;
-  triggerGenerate?: number;
-  outputImage?: string | null;
-  outputImages?: string[];
-  outputError?: string | null;
-  resolveInput?: (id: string, handleId: string) => any;
-}
-
-export default function CreativeUpScaleNode({ id, data, selected }: NodeProps) {
-  const nodeData = data as unknown as CreativeUpScaleNodeData;
+export default function CreativeUpScaleNode({ id, data, selected }: NodeProps<Node<CreativeUpScaleNodeData>>) {
+  const nodeData = data;
   const { isActive, start, complete, fail } = useNodeProgress();
   const { update, conn, resolve, disconnectNode } = useNodeConnections(id, nodeData);
 
@@ -171,6 +153,7 @@ export default function CreativeUpScaleNode({ id, data, selected }: NodeProps) {
       onDisconnect={disconnectNode}
       onGenerate={handleUpscale}
       isGenerating={isActive}
+      downloadUrl={nodeData.outputImage || undefined}
     >
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
 

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import {
   NodeShell,
   SectionHeader,
@@ -18,27 +18,10 @@ import { audioIsolationGenerate, pollAudioIsolationStatus } from '../utils/api';
 import ImprovePromptButton from './ImprovePromptButton';
 import NodeProgress from './NodeProgress';
 import useNodeProgress from '../hooks/useNodeProgress';
-import type { NodeData } from '../types';
+import type { AudioIsolationNodeData } from '../types';
 
-export interface AudioIsolationNodeData extends NodeData {
-  localInputType?: 'audio' | 'video';
-  localRerankingCandidates?: number;
-  localPredictSpans?: boolean;
-  localSampleFps?: number;
-  localX1?: number;
-  localY1?: number;
-  localX2?: number;
-  localY2?: number;
-  localAudio?: string;
-  localVideo?: string;
-  inputPrompt?: string;
-  triggerGenerate?: number;
-  outputAudio?: string | null;
-  outputError?: string | null;
-}
-
-export default function AudioIsolationNode({ id, data, selected }: NodeProps) {
-  const nodeData = data as unknown as AudioIsolationNodeData;
+export default function AudioIsolationNode({ id, data, selected }: NodeProps<Node<AudioIsolationNodeData>>) {
+  const nodeData = data;
   const progress = useNodeProgress();
 
   const localInputType = nodeData.localInputType || 'audio'; // 'audio' or 'video'
@@ -102,8 +85,8 @@ export default function AudioIsolationNode({ id, data, selected }: NodeProps) {
       const taskId = result.task_id || result.data?.task_id;
       if (taskId) {
         progress.setProgress(30, 'Processing...');
-        const status: any = await pollAudioIsolationStatus(taskId, (progress: number, message: string) => {
-          progress.setProgress(30 + progress * 0.6, message);
+        const status: any = await pollAudioIsolationStatus(taskId, (p: number, message: string) => {
+          progress.setProgress(30 + p * 0.6, message);
         });
         const generated = status.data?.generated || [];
         progress.complete('Complete');
@@ -141,7 +124,7 @@ export default function AudioIsolationNode({ id, data, selected }: NodeProps) {
   const ACCENT = '#a855f7'; // Purple for audio
 
   return (
-    <NodeShell data={nodeData} label={nodeData.label || 'SAM Audio Isolation'} dotColor={ACCENT} selected={selected} onDisconnect={disconnectNode} onGenerate={handleGenerate} isGenerating={progress.isActive}>
+    <NodeShell data={nodeData} label={nodeData.label || 'SAM Audio Isolation'} dotColor={ACCENT} selected={selected} onDisconnect={disconnectNode} onGenerate={handleGenerate} isGenerating={progress.isActive} downloadUrl={nodeData.outputAudio || undefined} downloadType="audio">
       <OutputHandle id="output" label="audio" type="audio" color={getHandleColor('audio-out')} />
 
       {/* ── Input Type Selection ── */}
@@ -240,7 +223,12 @@ export default function AudioIsolationNode({ id, data, selected }: NodeProps) {
         )}
       </div>
 
-      <NodeProgress percent={progress.progress} status={progress.status} message={progress.message} />
+      <NodeProgress 
+        progress={progress.progress} 
+        status={progress.status} 
+        message={progress.message} 
+      />
+
 
       <OutputPreview
         isLoading={progress.isActive}

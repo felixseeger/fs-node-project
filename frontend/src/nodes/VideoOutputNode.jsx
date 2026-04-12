@@ -65,7 +65,8 @@ export default function VideoOutputNode({ id, data, selected }) {
             onClick={() => {
               const a = document.createElement('a');
               a.href = videoUrl;
-              a.download = 'generated-video.mp4';
+              const label = (data.label || 'Video Output').toLowerCase().replace(/\s+/g, '-');
+              a.download = `${label}-${Date.now()}.mp4`;
               a.click();
             }}
             style={{

@@ -112,7 +112,7 @@ const Nodes3DScroll: FC = () => {
       
       const nodeIndex = i % allNodes.length;
       const node = allNodes[nodeIndex];
-      const sectionMeta = SECTIONS_META[node.section];
+      const sectionMeta = (SECTIONS_META as any)[node.section];
 
       if (i % 5 === 0) {
         const txt = document.createElement('div');

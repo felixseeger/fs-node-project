@@ -97,7 +97,7 @@ export default function TextToIconNode({ id, data, selected }) {
   const ACCENT = CATEGORY_COLORS.imageGeneration;
 
   return (
-    <NodeShell data={data} label={data.label || 'Text to Icon'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'Text to Icon'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive} downloadUrl={data.outputImage || undefined}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
 
       {/* ── 1. Prompt ── */}

@@ -128,6 +128,7 @@ export default function PrecisionUpScaleNode({ id, data, selected }) {
       selected={selected}
       onGenerate={handleUpscale}
       isGenerating={isActive}
+      downloadUrl={data.outputImage || undefined}
     >
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
 

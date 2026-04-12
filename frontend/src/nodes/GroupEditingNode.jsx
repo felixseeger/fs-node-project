@@ -100,7 +100,7 @@ export default function GroupEditingNode({ id, data, selected }) {
         {/* Input Batch Preview */}
         <div style={{ background: '#111', border: '1px solid #333', borderRadius: 8, padding: 8, display: 'flex', overflowX: 'auto', gap: 4, height: 50, alignItems: 'center' }}>
           {inputImages.length > 0 ? inputImages.map((src, i) => (
-            <img key={i} src={src} style={{ height: 34, width: 34, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} />
+            <img key={i} src={src} alt="" style={{ height: 34, width: 34, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} />
           )) : (
             <div style={{ color: '#555', fontSize: 11, fontStyle: 'italic', width: '100%', textAlign: 'center' }}>0 images connected</div>
           )}
@@ -187,7 +187,7 @@ export default function GroupEditingNode({ id, data, selected }) {
         {outputImages.length > 0 && (
           <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
             {outputImages.map((src, i) => (
-              <img key={i} src={src} style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 6, border: '1px solid #333' }} />
+              <img key={i} src={src} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 6, border: '1px solid #333' }} />
             ))}
           </div>
         )}

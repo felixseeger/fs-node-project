@@ -932,10 +932,11 @@ const ScrollDownIndicator: FC = () => {
 };
 
 interface NavbarProps {
-  onNavigate?: (page: string) => void;
-  theme?: string;
-  setTheme?: (theme: string) => void;
+  onNavigate: (page: string) => void;
+  theme?: 'light' | 'dark';
+  setTheme?: (theme: 'light' | 'dark') => void;
 }
+
 
 const DesktopNavbar: FC<NavbarProps> = ({ onNavigate, theme, setTheme }) => {
   const primaryLinks = [
@@ -1006,8 +1007,8 @@ interface LandingPageProps {
   workflows?: any[];
   onNavigate: (page: string) => void;
   isAuthenticated?: boolean;
-  theme?: string;
-  setTheme?: (theme: string) => void;
+  theme?: 'light' | 'dark';
+  setTheme?: (theme: 'light' | 'dark') => void;
 }
 
 export const LandingPage: FC<LandingPageProps> = ({ 

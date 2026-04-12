@@ -156,7 +156,7 @@ export function Slider({
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           aria-label={label}
-          className="liquid-slider"
+          
           style={{ 
             flex: 1, 
             height: 4,

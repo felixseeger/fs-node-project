@@ -6,8 +6,6 @@ interface MobileNavigationProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate?: (page: string) => void;
-  theme?: string;
-  setTheme?: (theme: string) => void;
 }
 
 /**
@@ -17,9 +15,7 @@ interface MobileNavigationProps {
 const MobileNavigation: FC<MobileNavigationProps> = ({ 
   isOpen, 
   onClose, 
-  onNavigate, 
-  theme, 
-  setTheme 
+  onNavigate 
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null);
   const bgRefs = useRef<(HTMLDivElement | null)[]>([]);

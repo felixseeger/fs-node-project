@@ -1,27 +1,18 @@
 import React, { FC } from 'react';
-import { Position, Handle, NodeProps } from '@xyflow/react';
+import { Position, Handle, type Node, type NodeProps } from '@xyflow/react';
 import BaseNode from './BaseNode';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
+import type { ResponseNodeData } from '../types';
 
 const GENERATED_HANDLES = new Set(['image', 'output']);
-
-interface ResponseField {
-  id: string;
-  label: string;
-  source?: {
-    nodeLabel: string;
-    handle: string;
-  };
-  color?: string;
-}
 
 /**
  * ResponseNode - Final output node for workflows
  */
-const ResponseNode: FC<NodeProps> = ({ id, data, selected }) => {
+const ResponseNode: FC<NodeProps<Node<ResponseNodeData>>> = ({ id, data, selected }) => {
   const { disconnectNode } = useNodeConnections(id, data);
-  const fields = (data.responseFields as ResponseField[]) || [];
+  const fields = data.responseFields || [];
 
   return (
     <BaseNode

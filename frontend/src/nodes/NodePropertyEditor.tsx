@@ -164,7 +164,7 @@ const UniversalAspectPicker: FC<{
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      if (rootRef.current && !rootRef.current.contains(e.target as globalThis.Node)) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
@@ -850,6 +850,28 @@ const EditorContent: FC<EditorContentProps> = ({
                 )}
               </div>
 
+              {node.type === 'universalGeneratorImage' && (node.data as any).isVector && (
+                <div 
+                  style={{
+                    backgroundColor: 'rgba(236, 72, 153, 0.1)',
+                    border: '1px solid rgba(236, 72, 153, 0.25)',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    marginBottom: '12px',
+                    fontSize: '11px',
+                    color: '#f472b6',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                  }}
+                >
+                  <InfoIcon style={{ width: '14px', height: '14px', flexShrink: 0, marginTop: '1px' }} />
+                  <div>
+                    <strong>Vector Mode Active:</strong> Output will be generated as SVG using Quiver. Standard models are bypassed.
+                  </div>
+                </div>
+              )}
+
               {onOpenModelMegaMenu && (
                 <button
                   type="button"
@@ -925,6 +947,29 @@ const EditorContent: FC<EditorContentProps> = ({
                   />
                   <span style={styles.labelText}>Use multiple models</span>
                 </label>
+                {node.type === 'universalGeneratorImage' && (
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      flex: '1 1 0',
+                      minWidth: 0,
+                    }}
+                    title="Generate as SVG vector using Quiver"
+                  >
+                    <input
+                      type="checkbox"
+                      className="nodrag nopan"
+                      checked={!!node.data.isVector}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => onUpdate(node.id, { isVector: e.target.checked })}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    />
+                    <span style={{ ...styles.labelText, color: node.data.isVector ? '#ec4899' : styles.labelText.color }}>Vector Output</span>
+                  </label>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }} className="nodrag nopan" onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>

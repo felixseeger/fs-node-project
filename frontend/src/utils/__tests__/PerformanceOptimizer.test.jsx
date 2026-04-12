@@ -7,13 +7,13 @@ import { renderHook, act } from '@testing-library/react';
 import { usePerformanceOptimizer, PerformanceUtils } from '../PerformanceOptimizer';
 
 // Mock React Flow hooks
-const mockGetNodes = jest.fn();
-const mockGetEdges = jest.fn();
-const mockFitView = jest.fn();
-const mockSetViewport = jest.fn();
-const mockGetViewport = jest.fn();
+const mockGetNodes = vi.fn();
+const mockGetEdges = vi.fn();
+const mockFitView = vi.fn();
+const mockSetViewport = vi.fn();
+const mockGetViewport = vi.fn();
 
-jest.mock('@xyflow/react', () => ({
+vi.mock('@xyflow/react', () => ({
   useReactFlow: () => ({
     getNodes: mockGetNodes,
     getEdges: mockGetEdges,
@@ -25,7 +25,7 @@ jest.mock('@xyflow/react', () => ({
 
 describe('Performance Optimizer', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Default mock responses
     mockGetNodes.mockReturnValue([

@@ -127,6 +127,7 @@ const ImageNode: FC<NodeProps> = ({ id, data, selected }) => {
       dotColor="#ec4899"
       selected={selected}
       onDisconnect={disconnectNode}
+      downloadUrl={images.length > 0 ? getImageSrc(images[0]) || undefined : undefined}
     >
       <div 
         style={{ display: 'flex', alignItems: 'stretch' }}
