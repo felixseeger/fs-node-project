@@ -6,24 +6,22 @@
 
 # Test info
 
-- Name: image-video.spec.js >> Image and Video Node Operations >> ImageNode - can create and has UPLOAD placeholder
-- Location: tests/e2e/image-video.spec.js:5:3
+- Name: image-video.spec.js >> Image and Video Node Operations >> ImageUniversalGeneratorNode - can create and check title
+- Location: tests/e2e/image-video.spec.js:74:3
 
 # Error details
 
 ```
 Error: expect(locator).toBeVisible() failed
 
-Locator:  locator('.react-flow__node-imageNode').first().locator('text=UPLOAD')
+Locator: locator('.react-flow__node-universalGeneratorImage').first().locator('text=Universal Image Generator')
 Expected: visible
-Received: hidden
-Timeout:  10000ms
+Timeout: 10000ms
+Error: element(s) not found
 
 Call log:
   - Expect "toBeVisible" with timeout 10000ms
-  - waiting for locator('.react-flow__node-imageNode').first().locator('text=UPLOAD')
-    14 × locator resolved to <span>UPLOAD</span>
-       - unexpected value "hidden"
+  - waiting for locator('.react-flow__node-universalGeneratorImage').first().locator('text=Universal Image Generator')
 
 ```
 
@@ -40,7 +38,7 @@ Call log:
             - generic [ref=e10]: Nodespace
           - img [ref=e11]
         - generic [ref=e13]: /
-        - generic [ref=e14]: Board 89
+        - generic [ref=e14]: Board 96
       - generic [ref=e15]:
         - generic [ref=e16]:
           - button "Interface" [ref=e17] [cursor=pointer]
@@ -323,88 +321,115 @@ Call log:
         - group [active] [ref=e204]:
           - generic [ref=e205]:
             - generic [ref=e206]:
-              - generic [ref=e207]:
-                - button "Fold node" [ref=e208] [cursor=pointer]:
-                  - img [ref=e209]
-                - generic "Image" [ref=e212]
-              - button "Disconnect all connections" [ref=e214] [cursor=pointer]:
-                - img [ref=e215]
-            - generic [ref=e225] [cursor=pointer]:
-              - img [ref=e226]
-              - generic [ref=e227]: UPLOAD
+              - button "Universal Image" [ref=e208]
+              - generic [ref=e209]:
+                - button "Lock settings" [ref=e210] [cursor=pointer]:
+                  - img [ref=e211]
+                - button "Download" [disabled] [ref=e214]:
+                  - img [ref=e215]
+            - generic [ref=e218]:
+              - generic [ref=e222]:
+                - generic [ref=e223] [cursor=pointer]:
+                  - generic [ref=e224]:
+                    - img [ref=e225]
+                    - generic [ref=e229]: Image input
+                    - generic [ref=e230]: optional
+                  - generic [ref=e232]:
+                    - img [ref=e233]
+                    - generic [ref=e236]: Click or drop image
+                - generic [ref=e237]:
+                  - generic [ref=e238]:
+                    - textbox "e.g. A cinematic shot of a neon cyberpunk city..." [ref=e239]
+                    - generic [ref=e240]: 0/5000
+                  - generic [ref=e241]:
+                    - button "Reference (@)" [ref=e243] [cursor=pointer]:
+                      - img [ref=e244]
+                    - generic [ref=e247]:
+                      - button "Describe" [disabled] [ref=e248]:
+                        - img [ref=e249]
+                        - text: Describe
+                      - button "Improve" [disabled] [ref=e253]:
+                        - img [ref=e254]
+                        - text: Improve
+                      - button [ref=e257] [cursor=pointer]:
+                        - img [ref=e258]
+              - generic [ref=e260]:
+                - generic [ref=e262]: Output
+                - generic [ref=e267]: Generation Output
+                - generic [ref=e269]: Output image will appear here
         - img
-        - link "React Flow attribution" [ref=e231] [cursor=pointer]:
+        - link "React Flow attribution" [ref=e271] [cursor=pointer]:
           - /url: https://reactflow.dev
           - text: React Flow
-      - generic [ref=e233]:
-        - heading "Live Action Feed" [level=3] [ref=e235]: Live Action Feed
-        - generic [ref=e238]: No recent activity
-      - generic [ref=e239]:
-        - generic "You" [ref=e241]: 👤
-        - generic [ref=e242]: 1 collaborator online
-      - button "Close chat" [ref=e243] [cursor=pointer]:
-        - img [ref=e247]
-      - generic [ref=e250]:
-        - generic [ref=e251]:
-          - generic [ref=e254]: AI Assistant
-          - generic [ref=e255]:
-            - button "Start new conversation" [ref=e256] [cursor=pointer]: ➕
-            - button "Toggle Import/Export options" [ref=e257] [cursor=pointer]: 💾
-            - button "Close chat" [ref=e258] [cursor=pointer]: ✕
-        - generic [ref=e260]:
-          - img [ref=e262]
-          - heading "Welcome to the AI Workflow Builder" [level=3] [ref=e264]
-          - paragraph [ref=e265]: Describe what you'd like to create, and I'll generate a complete node-based workflow for you.
-          - generic [ref=e266]:
-            - button "✨ Image Beauty-Retouche" [ref=e267] [cursor=pointer]:
-              - generic [ref=e268]: ✨
-              - generic [ref=e269]: Image Beauty-Retouche
-            - button "🎬 Video Color-Correction Workflow" [ref=e270] [cursor=pointer]:
-              - generic [ref=e271]: 🎬
-              - generic [ref=e272]: Video Color-Correction Workflow
-        - generic [ref=e274]:
-          - textbox "Chat input message" [ref=e275]:
+      - generic [ref=e273]:
+        - heading "Live Action Feed" [level=3] [ref=e275]: Live Action Feed
+        - generic [ref=e278]: No recent activity
+      - generic [ref=e279]:
+        - generic "You" [ref=e281]: 👤
+        - generic [ref=e282]: 1 collaborator online
+      - button "Close chat" [ref=e283] [cursor=pointer]:
+        - img [ref=e287]
+      - generic [ref=e290]:
+        - generic [ref=e291]:
+          - generic [ref=e294]: AI Assistant
+          - generic [ref=e295]:
+            - button "Start new conversation" [ref=e296] [cursor=pointer]: ➕
+            - button "Toggle Import/Export options" [ref=e297] [cursor=pointer]: 💾
+            - button "Close chat" [ref=e298] [cursor=pointer]: ✕
+        - generic [ref=e300]:
+          - img [ref=e302]
+          - heading "Welcome to the AI Workflow Builder" [level=3] [ref=e304]
+          - paragraph [ref=e305]: Describe what you'd like to create, and I'll generate a complete node-based workflow for you.
+          - generic [ref=e306]:
+            - button "✨ Image Beauty-Retouche" [ref=e307] [cursor=pointer]:
+              - generic [ref=e308]: ✨
+              - generic [ref=e309]: Image Beauty-Retouche
+            - button "🎬 Video Color-Correction Workflow" [ref=e310] [cursor=pointer]:
+              - generic [ref=e311]: 🎬
+              - generic [ref=e312]: Video Color-Correction Workflow
+        - generic [ref=e314]:
+          - textbox "Chat input message" [ref=e315]:
             - /placeholder: Describe what you want to create…
-          - generic [ref=e276]:
-            - button "Attach context image" [ref=e277] [cursor=pointer]:
-              - img [ref=e278]
-            - button "Pick from assets" [ref=e283] [cursor=pointer]:
-              - img [ref=e284]
-            - button "Start voice recognition" [ref=e286] [cursor=pointer]:
-              - img [ref=e287]
-            - button "Toggle tag Portrait" [pressed] [ref=e290] [cursor=pointer]:
-              - img [ref=e291]
+          - generic [ref=e316]:
+            - button "Attach context image" [ref=e317] [cursor=pointer]:
+              - img [ref=e318]
+            - button "Pick from assets" [ref=e323] [cursor=pointer]:
+              - img [ref=e324]
+            - button "Start voice recognition" [ref=e326] [cursor=pointer]:
+              - img [ref=e327]
+            - button "Toggle tag Portrait" [pressed] [ref=e330] [cursor=pointer]:
+              - img [ref=e331]
               - text: Portrait
-            - button "Toggle tag 10s" [pressed] [ref=e295] [cursor=pointer]:
-              - img [ref=e296]
+            - button "Toggle tag 10s" [pressed] [ref=e335] [cursor=pointer]:
+              - img [ref=e336]
               - text: 10s
-            - button "Generate workflow" [disabled] [ref=e299]:
-              - img [ref=e300]
-    - button "Board 89" [ref=e304] [cursor=pointer]:
-      - img [ref=e305]
-      - generic [ref=e310]: Board 89
-      - img [ref=e311]
-  - generic [ref=e313]:
-    - textbox "Add node..." [ref=e315]
-    - generic [ref=e316]:
-      - generic [ref=e318] [cursor=pointer]: Text
-      - generic [ref=e320] [cursor=pointer]: Image
-      - generic [ref=e322] [cursor=pointer]: Asset
-      - generic [ref=e324] [cursor=pointer]: Source Media Upload
-      - generic [ref=e326] [cursor=pointer]: Claude Sonnet Vision
-      - generic [ref=e328] [cursor=pointer]: Image to Prompt
-      - generic [ref=e330] [cursor=pointer]: Improve Prompt
-      - generic [ref=e332] [cursor=pointer]: AI Image Classifier
-      - generic [ref=e334] [cursor=pointer]: Universal Image
-      - generic [ref=e336] [cursor=pointer]: Tripo3D
-  - generic [ref=e337]:
-    - generic [ref=e338]:
-      - heading "Welcome to FS Node Project!" [level=3] [ref=e339]
-      - generic [ref=e340]: 1 of 6
-    - paragraph [ref=e341]: This is a visual workspace for building AI pipelines. Let's take a quick tour to help you get started.
-    - generic [ref=e342]:
-      - button "Skip Tour" [ref=e343] [cursor=pointer]
-      - button "Next" [ref=e345] [cursor=pointer]
+            - button "Generate workflow" [disabled] [ref=e339]:
+              - img [ref=e340]
+    - button "Board 96" [ref=e344] [cursor=pointer]:
+      - img [ref=e345]
+      - generic [ref=e350]: Board 96
+      - img [ref=e351]
+  - generic [ref=e353]:
+    - textbox "Add node..." [ref=e355]
+    - generic [ref=e356]:
+      - generic [ref=e358] [cursor=pointer]: Text
+      - generic [ref=e360] [cursor=pointer]: Image
+      - generic [ref=e362] [cursor=pointer]: Asset
+      - generic [ref=e364] [cursor=pointer]: Source Media Upload
+      - generic [ref=e366] [cursor=pointer]: Claude Sonnet Vision
+      - generic [ref=e368] [cursor=pointer]: Image to Prompt
+      - generic [ref=e370] [cursor=pointer]: Improve Prompt
+      - generic [ref=e372] [cursor=pointer]: AI Image Classifier
+      - generic [ref=e374] [cursor=pointer]: Universal Image
+      - generic [ref=e376] [cursor=pointer]: Tripo3D
+  - generic [ref=e377]:
+    - generic [ref=e378]:
+      - heading "Welcome to FS Node Project!" [level=3] [ref=e379]
+      - generic [ref=e380]: 1 of 6
+    - paragraph [ref=e381]: This is a visual workspace for building AI pipelines. Let's take a quick tour to help you get started.
+    - generic [ref=e382]:
+      - button "Skip Tour" [ref=e383] [cursor=pointer]
+      - button "Next" [ref=e385] [cursor=pointer]
 ```
 
 # Test source
@@ -415,80 +440,83 @@ Call log:
   3  | test.describe('Image and Video Node Operations', () => {
   4  | 
   5  |   test('ImageNode - can create and has UPLOAD placeholder', async ({ editorPage: page }) => {
-  6  |     // Force open search menu with spacebar
-  7  |     await page.evaluate(() => {
-  8  |       window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
-  9  |     });
-  10 |     await page.waitForTimeout(300);
+  6  |     await expect(page.locator('.react-flow__pane')).toBeVisible();
+  7  | 
+  8  |     await page.evaluate(() => {
+  9  |       window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+  10 |     });
   11 |     
-  12 |     // Fill the search input for imageNode
-  13 |     await page.locator('.ms-search-input-overlay').fill('imageNode');
-  14 |     await page.waitForTimeout(300);
-  15 |     
-  16 |     // Click the node button
-  17 |     await page.evaluate(() => {
-  18 |       const btn = document.querySelector('.ms-node-list button.ms-node-btn');
-  19 |       if (btn) btn.click();
-  20 |     });
-  21 |     await page.waitForTimeout(500);
+  12 |     const searchInput = page.locator('.ms-search-input-overlay');
+  13 |     await expect(searchInput).toBeVisible();
+  14 |     
+  15 |     await searchInput.fill('imageNode');
+  16 |     await page.waitForTimeout(300);
+  17 |     
+  18 |     await page.evaluate(() => {
+  19 |       const btn = document.querySelector('.ms-node-list button.ms-node-btn');
+  20 |       if (btn) btn.click();
+  21 |     });
   22 |     
-  23 |     // Check if Image Node is visible
-  24 |     const imageNode = page.locator('.react-flow__node-imageNode').first();
-  25 |     await expect(imageNode).toBeVisible();
+  23 |     const imageNode = page.locator('.react-flow__node-imageNode').first();
+  24 |     await expect(imageNode).toBeVisible();
+  25 |     await expect(imageNode.locator('text=UPLOAD')).toBeVisible({ timeout: 15000 });
   26 |     
-  27 |     // Verify it has the "UPLOAD" placeholder text
-> 28 |     await expect(imageNode.locator('text=UPLOAD')).toBeVisible();
-     |                                                    ^ Error: expect(locator).toBeVisible() failed
-  29 |     
-  30 |     // Take a screenshot for confirmation
-  31 |     await page.screenshot({ path: 'tests/e2e/screenshots/image_node_created.png' });
-  32 |   });
-  33 | 
-  34 |   test('VideoOutputNode - can create and shows "No video connected"', async ({ editorPage: page }) => {
-  35 |     // Force open search menu with spacebar
-  36 |     await page.evaluate(() => {
-  37 |       window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
-  38 |     });
-  39 |     await page.waitForTimeout(300);
-  40 |     
-  41 |     // Fill the search input for videoOutput
-  42 |     await page.locator('.ms-search-input-overlay').fill('videoOutput');
-  43 |     await page.waitForTimeout(300);
-  44 |     
-  45 |     // Click the node button
-  46 |     await page.evaluate(() => {
-  47 |       const btn = document.querySelector('.ms-node-list button.ms-node-btn');
-  48 |       if (btn) btn.click();
+  27 |     await page.screenshot({ path: 'tests/e2e/screenshots/image_node_created.png' });
+  28 |   });
+  29 | 
+  30 |   test('VideoOutputNode - can create and shows "No video connected"', async ({ editorPage: page }) => {
+  31 |     await expect(page.locator('.react-flow__pane')).toBeVisible();
+  32 | 
+  33 |     await page.evaluate(() => {
+  34 |       window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+  35 |     });
+  36 |     
+  37 |     const searchInput = page.locator('.ms-search-input-overlay');
+  38 |     await expect(searchInput).toBeVisible();
+  39 |     
+  40 |     await searchInput.fill('videoOutput');
+  41 |     await page.waitForTimeout(500); // Increased wait
+  42 |     
+  43 |     await page.evaluate(() => {
+  44 |       // Find the specific button for videoOutput
+  45 |       const btns = Array.from(document.querySelectorAll('.ms-node-list button.ms-node-btn'));
+  46 |       const videoBtn = btns.find(b => b.textContent.includes('videoOutput'));
+  47 |       if (videoBtn) videoBtn.click();
+  48 |       else if (btns[0]) btns[0].click(); // Fallback to first if exact not found
   49 |     });
-  50 |     await page.waitForTimeout(500);
-  51 |     
-  52 |     // Check if Video Output Node is visible
-  53 |     const videoOutputNode = page.locator('.react-flow__node-videoOutput').first();
-  54 |     await expect(videoOutputNode).toBeVisible();
-  55 |     
-  56 |     // Verify default empty state text
-  57 |     await expect(videoOutputNode.locator('text=No video connected')).toBeVisible();
-  58 |     
-  59 |     // Take a screenshot for confirmation
-  60 |     await page.screenshot({ path: 'tests/e2e/screenshots/video_output_node_created.png' });
-  61 |   });
-  62 | 
-  63 |   test('ImageUniversalGeneratorNode - can create and check title', async ({ editorPage: page }) => {
-  64 |     await page.evaluate(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })); });
-  65 |     await page.waitForTimeout(300);
-  66 |     await page.locator('.ms-search-input-overlay').fill('universalGeneratorImage');
-  67 |     await page.waitForTimeout(300);
-  68 |     await page.evaluate(() => document.querySelector('.ms-node-list button.ms-node-btn')?.click());
-  69 |     await page.waitForTimeout(500);
-  70 | 
-  71 |     const genNode = page.locator('.react-flow__node-universalGeneratorImage').first();
-  72 |     await expect(genNode).toBeVisible();
-  73 |     
-  74 |     // It should have the correct label
-  75 |     await expect(genNode.locator('text=Universal Image Generator')).toBeVisible();
-  76 |     
-  77 |     await page.screenshot({ path: 'tests/e2e/screenshots/image_gen_node_created.png' });
-  78 |   });
-  79 | });
-  80 | 
+  50 |     
+  51 |     const videoOutputNode = page.locator('.react-flow__node-videoOutput').first();
+  52 |     await expect(videoOutputNode).toBeVisible({ timeout: 15000 });
+  53 |     
+  54 |     await expect(videoOutputNode.locator('text=No video connected')).toBeVisible();
+  55 |     await page.screenshot({ path: 'tests/e2e/screenshots/video_output_node_created.png' });
+  56 |   });
+  57 | 
+  58 |   test('ImageUniversalGeneratorNode - can create and check title', async ({ editorPage: page }) => {
+  59 |     await expect(page.locator('.react-flow__pane')).toBeVisible();
+  60 | 
+  61 |     await page.evaluate(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })); });
+  62 |     
+  63 |     const searchInput = page.locator('.ms-search-input-overlay');
+  64 |     await expect(searchInput).toBeVisible();
+  65 | 
+  66 |     await searchInput.fill('universalGeneratorImage');
+  67 |     await page.waitForTimeout(500); // Increased wait
+  68 |     
+  69 |     await page.evaluate(() => {
+  70 |       const btns = Array.from(document.querySelectorAll('.ms-node-list button.ms-node-btn'));
+  71 |       const genBtn = btns.find(b => b.textContent.includes('universalGeneratorImage'));
+  72 |       if (genBtn) genBtn.click();
+  73 |       else if (btns[0]) btns[0].click();
+  74 |     });
+  75 | 
+  76 |     const genNode = page.locator('.react-flow__node-universalGeneratorImage').first();
+  77 |     await expect(genNode).toBeVisible({ timeout: 15000 });
+  78 |     
+  79 |     await expect(genNode.locator('text=Universal Image Generator')).toBeVisible();
+  80 |     await page.screenshot({ path: 'tests/e2e/screenshots/image_gen_node_created.png' });
+  81 |   });
+  82 | });
+  83 | 
+     |                                                                     ^ Error: expect(locator).toBeVisible() failed
 ```
