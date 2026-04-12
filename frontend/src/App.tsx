@@ -101,6 +101,7 @@ const nodeTypes: NodeTypes = {
   input: createDynamicNodeWrapper(dynamicNodes.InputNode),
   textNode: createDynamicNodeWrapper(dynamicNodes.TextNode),
   imageNode: createDynamicNodeWrapper(dynamicNodes.ImageNode),
+  imageElement: createDynamicNodeWrapper(dynamicNodes.ImageElementNode),
   assetNode: createDynamicNodeWrapper(dynamicNodes.AssetNode),
   sourceMediaNode: createDynamicNodeWrapper(dynamicNodes.SourceMediaNode),
   workflowTemplate: createDynamicNodeWrapper(dynamicNodes.WorkflowNode),
@@ -165,6 +166,8 @@ const nodeTypes: NodeTypes = {
   variable: createDynamicNodeWrapper(dynamicNodes.VariableNode),
   socialPublisher: createDynamicNodeWrapper(dynamicNodes.SocialPublisherNode),
   cloudSync: createDynamicNodeWrapper(dynamicNodes.CloudSyncNode),
+  simplifiedGenerator: createDynamicNodeWrapper(dynamicNodes.SimplifiedGeneratorNode),
+  textLLM: createDynamicNodeWrapper(dynamicNodes.TextLLMNode),
 } as any;
 
 export default function App() {
@@ -355,6 +358,15 @@ export default function App() {
     isHistoryAction, 
   } = useCanvasHistory();
 
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
+
+  const saveHistory = useCallback(() => {
+    originalSaveHistory(nodesRef.current, edgesRef.current);
+  }, [originalSaveHistory]);
+
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [activeTool, setActiveTool] = useState<'select' | 'hand' | 'slice'>('select');
@@ -406,6 +418,51 @@ export default function App() {
     return () => window.removeEventListener('send-to-chat', handleSendToChat);
   }, []);
 
+  const handleImagePaste = useCallback(async (event: ClipboardEvent) => {
+    const items = event.clipboardData?.items;
+    if (!items || !rfInstance) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (!file) continue;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const imageUrl = e.target?.result as string;
+          if (!imageUrl) return;
+
+          // Get center of viewport or mouse position if available
+          // Since it's a global paste, we'll put it at the center of the viewport
+          const { x, y, zoom } = rfInstance.getViewport();
+          const position = rfInstance.screenToFlowPosition({ 
+            x: window.innerWidth / 2, 
+            y: window.innerHeight / 2 
+          });
+
+          const newNode: Node = { 
+            id: nextId(), 
+            type: 'imageElement', 
+            position, 
+            data: { 
+              label: 'Pasted Image',
+              imageUrl,
+              onUpdate: updateNodeData
+            } 
+          };
+          setNodes((nds) => nds.concat(newNode));
+          saveHistory();
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  }, [rfInstance, setNodes, saveHistory, updateNodeData]);
+
+  useEffect(() => {
+    window.addEventListener('paste', handleImagePaste);
+    return () => window.removeEventListener('paste', handleImagePaste);
+  }, [handleImagePaste]);
+
   const [activeConnection, setActiveConnection] = useState<{ nodeId: string, handleId: string, handleType: string } | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const lastMousePos = useRef({ x: 0, y: 0 });
@@ -440,11 +497,7 @@ export default function App() {
       }
     }
   }, []);
-  const edgesRef = useRef(edges);
-  edgesRef.current = edges;
   const analyzeResolvers = useRef<Record<string, () => void>>({});
-  const nodesRef = useRef(nodes);
-  nodesRef.current = nodes;
   const autosaveTimerRef = useRef<any>(null);
   const autosaveInFlightRef = useRef(false);
   const lastSavedGraphSignatureRef = useRef('');
@@ -562,9 +615,6 @@ export default function App() {
 
   const isDirtyRef = useRef(false);
 
-  const saveHistory = useCallback(() => {
-    originalSaveHistory(nodesRef.current, edgesRef.current);
-  }, [originalSaveHistory]);
   const updateNodeData = useCallback(
     (nodeId: string, patch: any) => {
       // Check if node is locked by someone else
@@ -976,6 +1026,11 @@ const handleConnectEnd = useCallback(
   );
 
   const resolveInput = useCallback((nodeId: string, handleId: string, originalHandleId = handleId) => {
+    if (handleId === 'global-canvas-images') {
+      return nodesRef.current
+        .filter(n => n.type === 'imageElement')
+        .map(n => ({ id: n.id, url: n.data.imageUrl as string, label: n.data.label as string }));
+    }
     const currentEdges = edgesRef.current;
     const currentNodes = nodesRef.current;
     const incoming = currentEdges.filter((e) => e.target === nodeId && e.targetHandle === handleId);
@@ -1000,6 +1055,8 @@ const handleConnectEnd = useCallback(
       if (sourceNode.type === 'textNode' && sd.text) results.push(sd.text);
       else if (sourceNode.type === 'imageNode' && sd.images?.length) {
         results.push(...sd.images.map((img: any) => (typeof img === 'string' ? img : (img?.url || img?.src || img?.image || img?.outputImage || null))).filter(Boolean));
+      } else if (sourceNode.type === 'imageElement' && sd.imageUrl) {
+        results.push(sd.imageUrl);
       } else if (sourceNode.type === 'routerNode') {
         const routedInput = resolveInput(sourceNode.id, 'in', originalHandleId);
         if (routedInput !== null && routedInput !== undefined) {
@@ -1146,9 +1203,42 @@ const handleConnectEnd = useCallback(
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
+      
       const type = event.dataTransfer.getData('application/reactflow');
-      if (!type || !rfInstance) return;
+      
+      if (!rfInstance) return;
       const position = rfInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+
+      // Handle external files
+      if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+        Array.from(event.dataTransfer.files).forEach(file => {
+          if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const imageUrl = e.target?.result as string;
+              if (!imageUrl) return;
+
+              const newNode: Node = { 
+                id: nextId(), 
+                type: 'imageElement', 
+                position, 
+                data: { 
+                  label: file.name,
+                  imageUrl,
+                  onUpdate: updateNodeData
+                } 
+              };
+              setNodes((nds) => nds.concat(newNode));
+              saveHistory();
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+        return;
+      }
+
+      if (!type) return;
+      
       let defaults: any = { label: type };
       const draggedDefaults = event.dataTransfer.getData('application/reactflow-defaults');
       if (draggedDefaults) {
