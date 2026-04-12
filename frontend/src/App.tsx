@@ -367,6 +367,28 @@ export default function App() {
     originalSaveHistory(nodesRef.current, edgesRef.current);
   }, [originalSaveHistory]);
 
+  const isDirtyRef = useRef(false);
+
+  const updateNodeData = useCallback(
+    (nodeId: string, patch: any) => {
+      // Check if node is locked by someone else
+      const isLockedByOther = locks.some(l => l.id === nodeId && l.userId !== currentUserId);
+      if (isLockedByOther) {
+        showToast('This node is being edited by someone else', 'error');
+        return;
+      }
+
+      saveHistory();
+      isDirtyRef.current = true;
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n
+        )
+      );
+    },
+    [setNodes, saveHistory, locks, currentUserId]
+  );
+
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [activeTool, setActiveTool] = useState<'select' | 'hand' | 'slice'>('select');
@@ -611,28 +633,6 @@ export default function App() {
   const selectedCanvasNodeIds = useMemo(
     () => nodes.filter((n) => n.selected).map((n) => n.id),
     [nodes]
-  );
-
-  const isDirtyRef = useRef(false);
-
-  const updateNodeData = useCallback(
-    (nodeId: string, patch: any) => {
-      // Check if node is locked by someone else
-      const isLockedByOther = locks.some(l => l.id === nodeId && l.userId !== currentUserId);
-      if (isLockedByOther) {
-        showToast('This node is being edited by someone else', 'error');
-        return;
-      }
-
-      saveHistory();
-      isDirtyRef.current = true;
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n
-        )
-      );
-    },
-    [setNodes, saveHistory, locks, currentUserId]
   );
 
   const onUnlink = useCallback((targetNodeId: string, targetHandle: string) => {
@@ -2509,6 +2509,7 @@ const handleConnectEnd = useCallback(
                   delete dataCopy.localImages;
                   delete dataCopy.mediaFiles;
                   delete dataCopy.images;
+                  delete dataCopy.imageUrl;
                   delete dataCopy.executionProgress;
                   delete dataCopy.isGenerating;
                   return { id: n.id, type: n.type, position: n.position, data: dataCopy };
