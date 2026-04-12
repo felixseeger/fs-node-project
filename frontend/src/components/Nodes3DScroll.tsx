@@ -308,7 +308,7 @@ const Nodes3DScroll: FC = () => {
         {/* OVERLAYS */}
         <div className="scanlines-3d"></div>
         <div className="vignette-3d"></div>
-        <div className="noise-3d"></div>
+        
 
         {/* HUD */}
         <div className="hud-3d">
@@ -494,14 +494,7 @@ const Nodes3DScroll: FC = () => {
           pointer-events: none;
         }
 
-        .noise-3d {
-          position: absolute;
-          inset: 0;
-          z-index: 12;
-          opacity: 0.08;
-          pointer-events: none;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-        }
+
 
         .hud-3d {
           position: absolute;
@@ -611,9 +604,7 @@ const Nodes3DScroll: FC = () => {
           );
         }
 
-        [data-theme='light'] .noise-3d {
-          opacity: 0.04;
-        }
+
 
         [data-theme='light'] .hud-3d {
           color: var(--color-text-dim);
