@@ -10,9 +10,6 @@ interface EditorTopBarProps {
   onSave: () => void;
   onSaveWithEmbeddedWorkflow?: () => void;
   onApiExport?: () => void;
-  onExportJSON: () => void;
-  onImportJSON: () => void;
-  onScreenshot: () => void;
   onSaveAsTemplate?: () => void;
   onOpenKeyboardShortcuts?: () => void;
   onShare?: () => void;
@@ -31,9 +28,6 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
   onSave,
   onSaveWithEmbeddedWorkflow,
   onApiExport,
-  onExportJSON,
-  onImportJSON,
-  onScreenshot,
   onSaveAsTemplate,
   onOpenKeyboardShortcuts,
   onShare,
@@ -490,105 +484,11 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
             API
           </button>
 
-          {/* Import JSON (download arrow — into app) */}
-          <button
-            onClick={onImportJSON}
-            title="Import JSON"
-            style={{
-              padding: '5px 8px',
-              fontSize: 12,
-              background: 'transparent',
-              border: '1px solid var(--color-border)',
-              borderRadius: 8,
-              color: 'var(--color-text-dim)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--color-border-hover)';
-              e.currentTarget.style.background = 'var(--color-surface-hover)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--color-border)';
-              e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <path d="M8 2V11" stroke="var(--color-text-dim)" strokeWidth="1.3" strokeLinecap="round" />
-              <path d="M4.5 7.5L8 11L11.5 7.5" stroke="var(--color-text-dim)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M3 14H13" stroke="var(--color-text-dim)" strokeWidth="1.3" strokeLinecap="round" />
-            </svg>
-          </button>
+          
 
-          {/* Export JSON (upload arrow — out of app) */}
-          <button
-            onClick={onExportJSON}
-            title="Export JSON"
-            style={{
-              padding: '5px 8px',
-              fontSize: 12,
-              background: 'transparent',
-              border: '1px solid var(--color-border)',
-              borderRadius: 8,
-              color: 'var(--color-text-dim)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--color-border-hover)';
-              e.currentTarget.style.background = 'var(--color-surface-hover)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--color-border)';
-              e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <path d="M8 11V2" stroke="var(--color-text-dim)" strokeWidth="1.3" strokeLinecap="round" />
-              <path d="M4.5 5.5L8 2L11.5 5.5" stroke="var(--color-text-dim)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M3 14H13" stroke="var(--color-text-dim)" strokeWidth="1.3" strokeLinecap="round" />
-            </svg>
-          </button>
+          
 
-          {/* Screenshot (canvas PNG) */}
-          <button
-            onClick={onScreenshot}
-            title="Take Screenshot (Cmd/Ctrl+Shift+S)"
-            style={{
-              padding: '5px 8px',
-              fontSize: 12,
-              background: 'transparent',
-              border: '1px solid var(--color-border)',
-              borderRadius: 8,
-              color: 'var(--color-text-dim)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--color-border-hover)';
-              e.currentTarget.style.background = 'var(--color-surface-hover)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--color-border)';
-              e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="var(--color-text-dim)" strokeWidth="1.2" />
-              <circle cx="8" cy="8" r="2.5" stroke="var(--color-text-dim)" strokeWidth="1.2" />
-              <path d="M5 3V1.8" stroke="var(--color-text-dim)" strokeWidth="1.2" strokeLinecap="round" />
-              <path d="M11 3V1.8" stroke="var(--color-text-dim)" strokeWidth="1.2" strokeLinecap="round" />
-            </svg>
-          </button>
+          
           
           {/* Keyboard Shortcuts */}
           <button

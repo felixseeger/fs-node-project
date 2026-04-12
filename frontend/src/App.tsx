@@ -1911,7 +1911,7 @@ const handleConnectEnd = useCallback(
         }));
         await Promise.race([Promise.all(promises), new Promise(r => setTimeout(r, 60000))]);
       }
-      const textNodes = nodesRef.current.filter(n => inScope(n) && (n.type === 'imageToPrompt' || n.type === 'improvePrompt'));
+      const textNodes = nodesRef.current.filter(n => inScope(n) && (n.type === 'imageToPrompt' || n.type === 'improvePrompt' || n.type === 'textLLM' || n.type === 'aiImageClassifier' || n.type === 'imageAnalyzer'));
       for (const t of textNodes) updateNodeData(t.id, { triggerGenerate: Date.now() });
       if (textNodes.length > 0) await new Promise(r => setTimeout(r, 4000));
       const types = [
@@ -2412,43 +2412,8 @@ const handleConnectEnd = useCallback(
             if (result.success) setWorkflows(p => p.map(w => w.id === activeWorkflowId ? { ...w, nodes: nodesRef.current, edges: edgesRef.current, nodeCount: nodesRef.current.length, embeddedOutput: result.embeddedOutput, hasEmbeddedWorkflow: true } : w));
           } catch (e) { console.error(e); }
         }}
-        onExportJSON={() => { const b = new Blob([JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${activeWorkflowName}.json`; a.click(); }}
-        onImportJSON={() => {
-          const i = document.createElement('input');
-          i.type = 'file';
-          i.accept = '.json';
-          i.onchange = (e: any) => {
-            const f = e.target.files[0];
-            if (!f) return;
-            const r = new FileReader();
-            r.onload = (ev: any) => {
-              try {
-                const p = JSON.parse(ev.target.result);
-                const validation = validateWorkflowData(p);
-                
-                if (!validation.success) {
-                  const firstError = validation.error.errors[0];
-                  throw new Error(`Invalid format: ${firstError.path.join('.')} - ${firstError.message}`);
-                }
-                
-                const data = validation.data;
-                if (data.nodes.length === 0 && data.edges.length === 0) {
-                  throw new Error('Empty workflow: file contains no nodes or edges');
-                }
-                setNodes(data.nodes);
-                setEdges(data.edges);
-              } catch (err) {
-                const msg = err instanceof Error ? err.message : 'Failed to import JSON';
-                alert(`Import Error: ${msg}`);
-
-                console.error(err);
-              }
-            };
-            r.readAsText(f);
-          };
-          i.click();
-        }}
-        onScreenshot={handleExportScreenshot}
+        
+        
         projectName={activeWorkflowName}
         onRenameProject={(n) => { if (activeWorkflowId && n) return handleRenameBoard(activeWorkflowId, n); }}
       />
@@ -2517,7 +2482,7 @@ const handleConnectEnd = useCallback(
                 onAddVideo={() => addNodeAtViewportCenter('universalGeneratorVideo')}
                 onAddThreeD={() => addNodeAtViewportCenter('tripo3d')}
                 onAddSound={() => addNodeAtViewportCenter('musicGeneration')}
-                onAddTextLlm={() => addNodeAtViewportCenter('generator')}
+                onAddTextLlm={() => addNodeAtViewportCenter('textLLM')}
                 onAddPrompt={() => addNodeAtViewportCenter('textNode')}
                 onAddOutput={() => addNodeAtViewportCenter('response')}
                 allNodesSections={canvasAllNodesSections}
@@ -2527,7 +2492,46 @@ const handleConnectEnd = useCallback(
               />
             </div>
           )}
-          <CanvasNavigation onCenterOnNode={() => { const sel = nodes.filter(n => n.selected); if (sel.length && rfInstance) rfInstance.fitView({ padding: 0.2, duration: 800, nodes: [{ id: sel[0].id }] }); }} />
+          <CanvasNavigation 
+            onCenterOnNode={() => { const sel = nodes.filter(n => n.selected); if (sel.length && rfInstance) rfInstance.fitView({ padding: 0.2, duration: 800, nodes: [{ id: sel[0].id }] }); }}
+            onScreenshot={handleExportScreenshot}
+            onExportJSON={() => { const b = new Blob([JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${activeWorkflowName}.json`; a.click(); }}
+            onImportJSON={() => {
+              const i = document.createElement('input');
+              i.type = 'file';
+              i.accept = '.json';
+              i.onchange = (e: any) => {
+                const f = e.target.files[0];
+                if (!f) return;
+                const r = new FileReader();
+                r.onload = (ev: any) => {
+                  try {
+                    const p = JSON.parse(ev.target.result);
+                    const validation = validateWorkflowData(p);
+                    
+                    if (!validation.success) {
+                      const firstError = validation.error.errors[0];
+                      throw new Error(`Invalid format: ${firstError.path.join('.')} - ${firstError.message}`);
+                    }
+                    
+                    const data = validation.data;
+                    if (data.nodes.length === 0 && data.edges.length === 0) {
+                      throw new Error('Empty workflow: file contains no nodes or edges');
+                    }
+                    setNodes(data.nodes);
+                    setEdges(data.edges);
+                  } catch (err) {
+                    const msg = err instanceof Error ? err.message : 'Failed to import JSON';
+                    alert(`Import Error: ${msg}`);
+
+                    console.error(err);
+                  }
+                };
+                r.readAsText(f);
+              };
+              i.click();
+            }}
+          />
           <KeyboardShortcutsModal isOpen={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
           <PromptRecipeGallery isOpen={showPromptRecipes} onClose={() => setShowPromptRecipes(false)} />
           <MegaMenuModelSearch open={browseModelsOpen} onClose={() => setBrowseModelsOpen(false)} onSelect={(k: string, m: string) => handleApplyModelToAll(k, m)} />
