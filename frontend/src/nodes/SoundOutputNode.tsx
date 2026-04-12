@@ -16,8 +16,10 @@ export default function SoundOutputNode({
   selected,
 }: NodeProps<SoundOutputFlowNode>) {
   const { disconnectNode } = useNodeConnections(id, data);
-  const audioUrl =
-    (data.resolveInput?.(id, 'audio-in') as string | undefined) || data.outputAudio;
+  
+  const rawInput = data.resolveInput?.(id, 'audio-in');
+  const resolvedUrl = Array.isArray(rawInput) ? rawInput[0] : rawInput;
+  const audioUrl = (resolvedUrl as string | undefined) || data.outputAudio;
 
   return (
     <NodeShell

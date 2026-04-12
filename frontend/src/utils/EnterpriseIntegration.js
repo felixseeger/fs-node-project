@@ -51,36 +51,25 @@ export const AuditLogEntry = {
  */
 export function useEnterpriseIntegration() {
   const { workflows, currentWorkflow, user } = useStore();
-  const [ssoProviders, setSsoProviders] = useState([]);
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [integrationStatus, setIntegrationStatus] = useState({
-    sso: 'not_configured',
-    audit: 'not_configured',
-    api: 'not_configured'
-  });
-  const [isEnterpriseReady, setIsEnterpriseReady] = useState(false);
-
-  /**
-   * Initialize enterprise integrations
-   */
-  const initializeIntegrations = useCallback(() => {
-    // Check which SSO providers are configured
-    const configuredProviders = Object.entries(SSO_PROVIDERS)
+  
+  // Initialize state directly from SSO_PROVIDERS
+  const [ssoProviders] = useState(() => 
+    Object.entries(SSO_PROVIDERS)
       .filter(([_, config]) => config.clientId)
-      .map(([id, config]) => ({ id, ...config }));
-    
-    setSsoProviders(configuredProviders);
-    
-    // Check integration status
-    const newStatus = {
-      sso: configuredProviders.length > 0 ? 'configured' : 'not_configured',
-      audit: 'configured', // Audit logging is always available
-      api: 'configured' // API is always available
-    };
-    
-    setIntegrationStatus(newStatus);
-    setIsEnterpriseReady(newStatus.sso === 'configured');
-  }, []);
+      .map(([id, config]) => ({ id, ...config }))
+  );
+  
+  const [auditLogs, setAuditLogs] = useState([]);
+  
+  const [integrationStatus] = useState(() => ({
+    sso: Object.values(SSO_PROVIDERS).some(c => c.clientId) ? 'configured' : 'not_configured',
+    audit: 'configured',
+    api: 'configured'
+  }));
+  
+  const [isEnterpriseReady] = useState(() => 
+    Object.values(SSO_PROVIDERS).some(c => c.clientId)
+  );
 
   /**
    * Log audit entry
@@ -194,13 +183,6 @@ export function useEnterpriseIntegration() {
       complianceScore: integrationStatus.sso === 'configured' ? 100 : 75
     };
   }, [integrationStatus.sso]);
-
-  /**
-   * Initialize on mount
-   */
-  useEffect(() => {
-    initializeIntegrations();
-  }, [initializeIntegrations]);
 
   return {
     ssoProviders,

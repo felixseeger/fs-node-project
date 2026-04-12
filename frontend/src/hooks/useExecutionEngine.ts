@@ -105,9 +105,20 @@ export function useExecutionEngine(
       .map(([id]) => id);
   }, [nodeStates]);
 
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
   /** Execute the workflow */
   const execute = useCallback(
     async (nodes: Node<NodeData>[], edges: Edge[]): Promise<EngineExecutionResult> => {
+      const {
+        onUpdateNodeData,
+        onProgress,
+        onComplete,
+        onError,
+        ...engineOptions
+      } = optionsRef.current;
+
       // Reset state
       setIsExecuting(true);
       setCurrentPhase('starting');
@@ -205,7 +216,7 @@ export function useExecutionEngine(
         engineRef.current = null;
       }
     },
-    [engineOptions, onUpdateNodeData, onProgress, onComplete, onError]
+    []
   );
 
   /** Cancel current execution */

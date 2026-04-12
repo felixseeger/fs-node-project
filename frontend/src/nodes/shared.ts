@@ -8,6 +8,11 @@ export { OutputHandle, SecondaryOutputHandle, OutputPreview } from './NodeOutput
 export { default as NodeGenerateButton } from './NodeGenerateButton';
 export { default as NodeDownloadButton } from './NodeDownloadButton';
 
+export { default as useNodeConnections } from './useNodeConnections';
+export { default as useNodeExecution } from './useNodeExecution';
+export { getHandleColor } from '../utils/handleTypes';
+export { stripBase64Prefix } from '../utils/imageUtils';
+
 // Re-export design tokens
-export { CATEGORY_COLORS } from './nodeTokens';
+export { CATEGORY_COLORS, summaryRowStyle } from './nodeTokens';
 export { surface, border, radius, sp, font, text, ui, control } from './nodeTokens';

@@ -84,14 +84,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
   onNotify,
 }, ref) => {
   const [inputValue, setInputValue] = useState('');
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      type: 'assistant',
-      content: "Hi! I'm here to help you build your AI workflow. Describe what you'd like to create, and I'll guide you through it.",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [activeTags, setActiveTags] = useState<Set<string>>(() => new Set(tags.map(t => t.label)));
   const [thinkingIndex, setThinkingIndex] = useState(0);
   const [showImportExport, setShowImportExport] = useState(false);
@@ -191,8 +184,8 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
     });
   };
 
-  const handleGenerate = useCallback(() => {
-    const trimmedInput = inputValue.trim();
+  const submitText = useCallback((text: string) => {
+    const trimmedInput = text.trim();
     if (!trimmedInput || isGenerating || isChatting || disabled) return;
 
     if (trimmedInput.length > 4000) {
@@ -208,8 +201,21 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
     };
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
-    onGenerate?.(trimmedInput);
-  }, [inputValue, isGenerating, isChatting, disabled, onGenerate, onNotify]);
+    
+    // Apply tags if any
+    const activeModifiers = Array.from(activeTags).map(t => `[${t}]`).join(' ');
+    const fullPrompt = activeModifiers ? `${activeModifiers} ${trimmedInput}` : trimmedInput;
+    
+    if (onSendMessage && isChatting) {
+      onSendMessage(fullPrompt);
+    } else {
+      onGenerate?.(fullPrompt);
+    }
+  }, [activeTags, isGenerating, isChatting, disabled, onGenerate, onSendMessage, onNotify]);
+
+  const handleGenerate = useCallback(() => {
+    submitText(inputValue);
+  }, [inputValue, submitText]);
 
   useImperativeHandle(ref, () => ({
     submitGeneration: handleGenerate,
@@ -483,6 +489,40 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
       )}
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {messages.length === 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', justifyContent: 'center', height: '100%', padding: '20px', color: '#888', textAlign: 'center' }}>
+            <div style={{ background: '#222', width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+            <h3 style={{ margin: 0, fontSize: 16, color: '#e5e5e5', fontWeight: 600 }}>Welcome to the AI Workflow Builder</h3>
+            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>
+              Describe what you'd like to create, and I'll generate a complete node-based workflow for you.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 300, marginTop: 8 }}>
+              <button 
+                onClick={() => submitText('Create an image beauty-retouche workflow')}
+                style={{ background: '#1e1e1e', border: '1px solid #333', borderRadius: 8, padding: '10px 14px', color: '#d4d4d4', fontSize: 13, textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 10 }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#2a2a2a'; e.currentTarget.style.borderColor = '#444'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#1e1e1e'; e.currentTarget.style.borderColor = '#333'; }}
+              >
+                <span style={{ fontSize: 16 }}>✨</span>
+                <span>Image Beauty-Retouche</span>
+              </button>
+              <button 
+                onClick={() => submitText('Build a video color-correction workflow')}
+                style={{ background: '#1e1e1e', border: '1px solid #333', borderRadius: 8, padding: '10px 14px', color: '#d4d4d4', fontSize: 13, textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 10 }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#2a2a2a'; e.currentTarget.style.borderColor = '#444'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#1e1e1e'; e.currentTarget.style.borderColor = '#333'; }}
+              >
+                <span style={{ fontSize: 16 }}>🎬</span>
+                <span>Video Color-Correction Workflow</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {messages.map((msg, idx) => {
           const isUser = (msg.role ?? msg.type) === 'user';
           return (

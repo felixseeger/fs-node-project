@@ -11,12 +11,14 @@
   z-index: 1000;
   display: flex;
   align-items: flex-start;
+  pointer-events: none; /* Let clicks pass through the wrapper itself */
+  max-width: 1%;
 }
-
 
 .ms-nav-container {
   position: relative;
   width: 75px;
+  pointer-events: auto; /* Re-enable clicks for the nav */
 }
 
 .ms-nav {
@@ -157,9 +159,29 @@
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   max-height: calc(100vh - 100px);
   z-index: 1500;
+}
+
+/* Invisible bridge so mouseleave doesn't trigger when crossing the margin */
+.ms-overlay-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -20px;
+  width: 20px;
+  pointer-events: inherit;
+}
+
+.ms-overlay-panel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -10px;
+  width: 10px;
+  pointer-events: inherit;
 }
 
 .ms-overlay-panel.active {
@@ -347,12 +369,6 @@
   font-size: 14px;
   font-weight: 500;
   color: #fff;
-  margin-bottom: 2px;
-}
-
-.ms-qa-desc {
-  font-size: 12px;
-  color: #888;
 }
 
 .ms-qa-shortcut {

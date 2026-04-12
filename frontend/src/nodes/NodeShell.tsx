@@ -38,7 +38,7 @@ interface NodeShellProps {
   onGenerate?: () => void;
   isGenerating?: boolean;
   downloadUrl?: string;
-  downloadType?: 'image' | 'video' | 'audio';
+  downloadType?: 'image' | 'video' | 'audio' | 'svg' | string;
   hasError?: boolean;
   data?: {
     folded?: boolean;

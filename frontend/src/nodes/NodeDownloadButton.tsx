@@ -6,18 +6,18 @@
 import { useState } from 'react';
 
 /**
- * Download button to save generated image/video
+ * Download button to save generated image/video/audio/svg
  * @param {Object} props
  * @param {string} props.url - The URL/data URI of the file to download
  * @param {string} props.filename - The filename for the download
  * @param {string} props.size - Button size: 'sm' | 'md' (default: 'md')
- * @param {string} props.type - File type: 'image' | 'video' | 'audio' (default: 'image')
+ * @param {string} props.type - File type: 'image' | 'video' | 'audio' | 'svg' (default: 'image')
  */
 interface NodeDownloadButtonProps {
   url: string;
   filename?: string;
   size?: 'sm' | 'md';
-  type?: 'image' | 'video' | 'audio';
+  type?: 'image' | 'video' | 'audio' | 'svg' | string;
 }
 
 export default function NodeDownloadButton({ url, filename, size = 'md', type = 'image' }: NodeDownloadButtonProps) {
@@ -33,7 +33,14 @@ export default function NodeDownloadButton({ url, filename, size = 'md', type = 
     // Create a temporary link element
     const link = document.createElement('a');
     link.href = url;
-    link.download = filename || `generated-${type}-${Date.now()}.${type === 'image' ? 'png' : type === 'video' ? 'mp4' : 'mp3'}`;
+    
+    // Determine extension based on type
+    let extension = 'png';
+    if (type === 'video') extension = 'mp4';
+    else if (type === 'audio') extension = 'mp3';
+    else if (type === 'svg') extension = 'svg';
+
+    link.download = filename || `generated-${type}-${Date.now()}.${extension}`;
     link.style.display = 'none';
     document.body.appendChild(link);
     link.click();

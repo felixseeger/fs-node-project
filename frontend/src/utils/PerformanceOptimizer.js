@@ -93,7 +93,7 @@ export function usePerformanceOptimizer() {
         fitView({ padding: 0.3, duration: 200 });
         break;
     }
-  }, [optimizationLevel, fitView, getNodes]);
+  }, [optimizationLevel, fitView, getNodes, getEdges]);
 
   /**
    * Virtualized rendering optimization

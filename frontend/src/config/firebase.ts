@@ -1,6 +1,12 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  Firestore, 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager 
+} from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
 
@@ -24,7 +30,14 @@ export function initializeFirebase() {
   if (!getApps().length) {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
-    db = getFirestore(app);
+    
+    // Modern way to enable multi-tab offline persistence
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      })
+    });
+    
     storage = getStorage(app);
 
     // Analytics should only run in the browser
@@ -40,12 +53,11 @@ export function initializeFirebase() {
   return app;
 }
 
+/**
+ * @deprecated Persistence is now handled in initializeFirebase using the modern cache API
+ */
 export function enableOfflinePersistence() {
-  if (db) {
-    enableMultiTabIndexedDbPersistence(db).catch((err) => {
-      console.error("Firestore persistence error:", err);
-    });
-  }
+  // No-op, handled during initialization
 }
 
 // Getters with type assertions to avoid widespread 'undefined' errors
@@ -57,3 +69,13 @@ export const getFirebaseStorage = () => storage as FirebaseStorage;
 export const isFirebaseConfigured = () => {
   return !!firebaseConfig.apiKey && firebaseConfig.apiKey.length > 0;
 };
+
+// Initialize immediately if configured
+if (isFirebaseConfigured()) {
+  try {
+    initializeFirebase();
+    enableOfflinePersistence();
+  } catch (err) {
+    console.error("Firebase initialization failed:", err);
+  }
+}

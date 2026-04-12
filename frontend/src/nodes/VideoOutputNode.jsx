@@ -7,7 +7,10 @@ import { hasEmbeddedWorkflow, createEmbeddedWorkflowBadge } from '../utils/workf
 
 export default function VideoOutputNode({ id, data, selected }) {
   const { disconnectNode } = useNodeConnections(id, data);
-  const videoUrl = data.resolveInput?.(id, 'video-in') || data.outputVideo;
+  
+  const rawInput = data.resolveInput?.(id, 'video-in');
+  const resolvedUrl = Array.isArray(rawInput) ? rawInput[0] : rawInput;
+  const videoUrl = resolvedUrl || data.outputVideo;
 
   return (
     <NodeShell

@@ -1,14 +1,7 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
+import { useReactFlow } from '@xyflow/react';
+import { isHandleConnected, getConnectionInfo as getConnectionInfoBase, resolveInput as resolveInputBase } from '../helpers/nodeData';
 
-/**
- * Hook that wraps connection-related data callbacks for a node.
- * Returns helpers to check connections, resolve inputs, and get connection info.
- *
- * Usage:
- *   const { conn, resolve, update } = useNodeConnections(id, data);
- *   const { connected, info } = conn('image-in');
- *   const images = resolve.image('image-in');
- */
 interface NodeData {
   onUpdate?: (nodeId: string, patch: Record<string, any>) => void;
   getConnectionInfo?: (nodeId: string, handleId: string) => any;
@@ -19,37 +12,85 @@ interface NodeData {
 }
 
 export default function useNodeConnections(id: string, data: NodeData) {
+  const { setNodes, setEdges, getEdges, getNodes } = useReactFlow();
+
+  const dataRef = useRef(data);
+  dataRef.current = data;
+
   const update = useCallback(
-    (patch: Record<string, any>) => data.onUpdate?.(id, patch),
-    [id, data]
+    (patch: Record<string, any>) => {
+      // Primary fallback to context/loader provided onUpdate
+      if (dataRef.current?.onUpdate) {
+        dataRef.current.onUpdate(id, patch);
+        return;
+      }
+      // Ultimate fallback: direct react flow setNodes
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === id ? { ...n, data: { ...n.data, ...patch } } : n
+        )
+      );
+      // Dispatch dirty event to trigger autosave in App.tsx
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('canvas-dirty'));
+      }
+    },
+    [id, setNodes]
   );
 
   const getConnInfo = useCallback(
-    (handleId: string) => data.getConnectionInfo?.(id, handleId) || null,
-    [id, data]
+    (handleId: string) => {
+      if (dataRef.current?.getConnectionInfo) return dataRef.current.getConnectionInfo(id, handleId);
+      return getConnectionInfoBase(id, handleId, getEdges(), getNodes());
+    },
+    [id, getEdges, getNodes]
   );
 
   const hasConnection = useCallback(
-    (handleId: string) => !!data.hasConnection?.(id, handleId),
-    [id, data]
+    (handleId: string) => {
+      if (dataRef.current?.hasConnection) return dataRef.current.hasConnection(id, handleId);
+      return isHandleConnected(id, handleId, getEdges());
+    },
+    [id, getEdges]
   );
 
   const resolveInput = useCallback(
-    (handleId: string) => data.resolveInput?.(id, handleId),
-    [id, data]
+    (handleId: string) => {
+      if (dataRef.current?.resolveInput) return dataRef.current.resolveInput(id, handleId);
+      const edges = getEdges();
+      const nodes = getNodes();
+      // simplified local fallback
+      const incoming = edges.filter((e) => e.target === id && e.targetHandle === handleId);
+      if (incoming.length === 0) return null;
+      return resolveInputBase(id, handleId, edges, nodes);
+    },
+    [id, getEdges, getNodes]
   );
 
   const disconnect = useCallback(
-    (handleId: string) => data.onUnlink?.(id, handleId),
-    [id, data]
+    (handleId: string) => {
+      if (dataRef.current?.onUnlink) {
+        dataRef.current.onUnlink(id, handleId);
+        return;
+      }
+      setEdges((eds) => eds.filter((e) => !(e.target === id && e.targetHandle === handleId)));
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('canvas-dirty'));
+    },
+    [id, setEdges]
   );
 
   const disconnectNode = useCallback(
-    () => data.onDisconnectNode?.(id),
-    [id, data]
+    () => {
+      if (dataRef.current?.onDisconnectNode) {
+        dataRef.current.onDisconnectNode(id);
+        return;
+      }
+      setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('canvas-dirty'));
+    },
+    [id, setEdges]
   );
 
-  // Convenience: get connection state for a handle
   const conn = useCallback(
     (handleId: string) => ({
       connected: hasConnection(handleId),
@@ -59,19 +100,15 @@ export default function useNodeConnections(id: string, data: NodeData) {
     [hasConnection, getConnInfo, disconnect]
   );
 
-  // Convenience resolvers for common types
   const resolve = useMemo(() => ({
-    // Resolve image input with localImage fallback
     image: (handleId: string, localFallback?: string) => {
       let images = resolveInput(handleId);
       if (!images?.length && localFallback) images = [localFallback];
       return images;
     },
-    // Resolve text input with local fallback
     text: (handleId: string, localFallback?: string) => {
       return resolveInput(handleId) || localFallback || '';
     },
-    // Resolve raw value
     raw: (handleId: string) => resolveInput(handleId),
   }), [resolveInput]);
 

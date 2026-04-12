@@ -3,7 +3,7 @@
  * Comprehensive test suite for performance monitoring and optimization
  */
 
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import { usePerformanceOptimizer, PerformanceUtils } from '../PerformanceOptimizer';
 
 // Mock React Flow hooks

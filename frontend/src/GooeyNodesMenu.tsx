@@ -71,15 +71,15 @@ const QUICK_ADD_SECTIONS = [
     title: 'Add Node',
     items: [
       {
-        id: 'text', title: 'Text', desc: 'Generate and edit', shortcut: 'T', type: 'textNode',
+        id: 'text', title: 'Text', shortcut: 'T', type: 'textNode',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="12" y2="18"></line></svg>
       },
       {
-        id: 'image', title: 'Images', desc: 'Generate, edit, and analyze', hasSubmenu: 'Image',
+        id: 'image', title: 'Images', hasSubmenu: 'Image',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
       },
       {
-        id: 'video', title: 'Video', desc: 'Generate, edit, and upload', hasSubmenu: 'Video',
+        id: 'video', title: 'Video', hasSubmenu: 'Video',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
       },
     ]
@@ -87,28 +87,28 @@ const QUICK_ADD_SECTIONS = [
   {
     title: 'Utilities',
     items: [{
-      id: 'layer', title: 'Layer Editor', desc: 'Combine images together', shortcut: 'L', type: 'layerEditor',
+      id: 'layer', title: 'Layer Editor', shortcut: 'L', type: 'layerEditor',
       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
     },
     {
-      id: 'assets', title: 'Assets', desc: 'Reusable visual assets', shortcut: 'A', type: 'assetNode',
+      id: 'assets', title: 'Assets', shortcut: 'A', type: 'assetNode',
       icon: Icons.Hash
     },
     {
-      id: 'group-edit', title: 'Group Editing', desc: 'Wan-VACE Batch Editor', shortcut: 'B', type: 'groupEditing',
+      id: 'group-edit', title: 'Group Editing', shortcut: 'B', type: 'groupEditing',
       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
     },
     {
-      id: 'facial-edit', title: 'Facial Editor', desc: 'PixelSmile Expression Editor', shortcut: 'F', type: 'facialEditing',
+      id: 'facial-edit', title: 'Facial Editor', shortcut: 'F', type: 'facialEditing',
       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Z"></path><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
     },
     {
-      id: 'video-improve', title: 'Video Improve', desc: 'Astrolabe RL Alignment', shortcut: 'V', type: 'videoImprove',
+      id: 'video-improve', title: 'Video Improve', shortcut: 'V', type: 'videoImprove',
       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon><polyline points="12 8 16 12 12 16"></polyline></svg>
     },
 
     {
-      id: 'router', title: 'Router', desc: 'One input to many outputs', shortcut: 'R', type: 'routerNode',
+      id: 'router', title: 'Router', shortcut: 'R', type: 'routerNode',
       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6l4-4-4-4"></path><path d="M18 14l4 4-4 4"></path><path d="M4 10h8v8h-8z"></path><path d="M12 10l6-6"></path><path d="M12 18l6 6"></path></svg>
     },
     ]
@@ -117,11 +117,11 @@ const QUICK_ADD_SECTIONS = [
     title: 'Add Source',
     items: [
       {
-        id: 'upload', title: 'Upload', desc: 'Add media from your computer', shortcut: 'U', type: 'sourceMediaNode',
+        id: 'upload', title: 'Upload', shortcut: 'U', type: 'sourceMediaNode',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
       },
       {
-        id: 'model', title: 'Add model', desc: 'Start with a model', hasSubmenu: 'LLMs',
+        id: 'model', title: 'Add model', hasSubmenu: 'LLMs',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
       },
     ]
@@ -518,7 +518,6 @@ export const GooeyNodesMenu: FC<GooeyNodesMenuProps> = ({
                         <div className="ms-qa-icon">{item.icon}</div>
                         <div className="ms-qa-text">
                           <div className="ms-qa-label">{item.title}</div>
-                          {item.desc && <div className="ms-qa-desc">{item.desc}</div>}
                         </div>
                         {item.shortcut ? (
                           <div className="ms-qa-shortcut">{item.shortcut}</div>

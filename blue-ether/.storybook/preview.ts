@@ -1,5 +1,6 @@
 import type { Preview } from "@storybook/react-vite";
 import "../src/index.css";
+import "../src/frontend-stories/frontend-tokens.css";
 
 const preview: Preview = {
   parameters: {
@@ -11,7 +12,12 @@ const preview: Preview = {
     },
     backgrounds: {
       default: "ether",
-      values: [{ name: "ether", value: "var(--be-color-bg)" }],
+      values: [
+        { name: "ether", value: "var(--be-color-bg)" },
+        { name: "canvas-dark", value: "#0b0e1a" },
+        { name: "dark", value: "#111" },
+        { name: "light", value: "#f8f8f8" },
+      ],
     },
   },
 };

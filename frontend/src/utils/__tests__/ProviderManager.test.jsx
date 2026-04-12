@@ -3,7 +3,7 @@
  * Comprehensive test suite for advanced provider integration
  */
 
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import { useProviderManager, PROVIDER_CONFIG, getProvidersForCapability } from '../ProviderManager';
 
 // Mock environment variables

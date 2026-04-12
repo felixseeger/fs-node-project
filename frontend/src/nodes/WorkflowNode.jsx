@@ -17,18 +17,15 @@ const ACCENT = '#a78bfa'; // Workflow Template accent (lavender)
  */
 export default function WorkflowNode({ id, data, selected }) {
   const { disconnectNode } = useNodeConnections(id, data);
-  const [tpl, setTpl] = useState(() => data.templateData || (data.templateId ? getTemplate(data.templateId) : null));
+  const [subscriptionTpl, setSubscriptionTpl] = useState(() => (data.templateId ? getTemplate(data.templateId) : null));
 
   // Live-refresh when template definitions change, but only if we rely on templateId
   useEffect(() => {
-    if (data.templateData) {
-      setTpl(data.templateData);
-      return;
-    }
-    if (!data.templateId) return undefined;
-    return subscribeTemplates(() => setTpl(getTemplate(data.templateId)));
+    if (data.templateData || !data.templateId) return undefined;
+    return subscribeTemplates(() => setSubscriptionTpl(getTemplate(data.templateId)));
   }, [data.templateId, data.templateData]);
 
+  const tpl = data.templateData || subscriptionTpl;
   const inputs = data.inputs || tpl?.inputs || [];
   const outputs = data.outputs || tpl?.outputs || [];
   const name = data.label || tpl?.name || 'Workflow Template';

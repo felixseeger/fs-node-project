@@ -20,6 +20,7 @@ import {
   improvePromptGenerate, pollImprovePromptStatus,
 } from '../utils/api';
 import { VIDEO_UNIVERSAL_MODEL_DEFS } from './videoUniversalGeneratorModels';
+import { uploadAssetToStorage } from '../services/storageService';
 
 const ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
 
@@ -235,20 +236,36 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
     
     if (!prompt || isGenerating) return;
 
-    // Check if image is a base64 data URL (from local upload)
-    // Kling3 requires a publicly accessible URL, not a base64 data URL
-    if (startFrameUrl && startFrameUrl.startsWith('data:image')) {
-      update({ 
-        outputError: 'Kling3 requires a publicly accessible image URL. Please use an image from a URL (e.g., from ImageNode with a web URL) instead of an uploaded file. Cloud storage integration coming soon.' 
-      });
-      return;
-    }
-
     setIsGenerating(true);
     update({ outputVideo: null, outputVideos: [], outputError: null });
 
     try {
-      const results = await Promise.all(models.map(m => generateForModel(m, prompt, startFrameUrl, endFrameUrl)));
+      // Upload start and end frames if they are local base64 data URLs
+      let finalStartFrameUrl = startFrameUrl;
+      let finalEndFrameUrl = endFrameUrl;
+
+      if (startFrameUrl && startFrameUrl.startsWith('data:image')) {
+        update({ outputError: 'Uploading start frame to cloud storage...' });
+        finalStartFrameUrl = await uploadAssetToStorage(startFrameUrl, `workflows/node_${id}`);
+        // Only update local state if it came from there (not from connection)
+        if (!startFrameInput && data.startFrameUrl) {
+          update({ startFrameUrl: finalStartFrameUrl, outputError: null });
+        } else {
+          update({ outputError: null });
+        }
+      }
+
+      if (endFrameUrl && endFrameUrl.startsWith('data:image')) {
+        update({ outputError: 'Uploading end frame to cloud storage...' });
+        finalEndFrameUrl = await uploadAssetToStorage(endFrameUrl, `workflows/node_${id}`);
+        if (!endFrameInput && data.endFrameUrl) {
+          update({ endFrameUrl: finalEndFrameUrl, outputError: null });
+        } else {
+          update({ outputError: null });
+        }
+      }
+
+      const results = await Promise.all(models.map(m => generateForModel(m, prompt, finalStartFrameUrl, finalEndFrameUrl)));
       const allVideos = results.flat().filter(Boolean);
       update({
         outputVideo: allVideos[0] || null,
@@ -423,11 +440,16 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
 
       {/* Prompt Area */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: sp[3] }}>
-        <div style={{
-          background: surface.deep, border: `1px solid ${border.default}`,
-          borderRadius: radius.md, padding: sp[2],
-          display: 'flex', flexDirection: 'column', gap: sp[2],
-        }}>
+        <div 
+          className="nodrag nopan"
+          onClick={() => promptRef.current?.focus()}
+          style={{
+            background: surface.deep, border: `1px solid ${border.default}`,
+            borderRadius: radius.md, padding: sp[2],
+            display: 'flex', flexDirection: 'column', gap: sp[2],
+            cursor: 'text'
+          }}
+        >
           <textarea
             ref={promptRef}
             className="nodrag nopan nowheel"
@@ -639,6 +661,7 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
                     </div>
                   ) : (
                     <div
+                      className="nodrag nopan"
                       onClick={() => {
                         const input = document.createElement('input');
                         input.type = 'file';
@@ -704,6 +727,7 @@ export default function VideoUniversalGeneratorNode({ id, data, selected }) {
                     </div>
                   ) : (
                     <div
+                      className="nodrag nopan"
                       onClick={() => {
                         const input = document.createElement('input');
                         input.type = 'file';

@@ -1,27 +1,41 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
-import { Position, Handle } from '@xyflow/react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
+import { Position, Handle, type NodeProps } from '@xyflow/react';
 import {
   NodeShell,
   SectionHeader,
   ConnectedOrLocal,
   useNodeConnections,
   getHandleColor,
+  OutputHandle
 } from './shared';
 import { imageClassifierGenerate } from '../utils/api';
 import { compressImageBase64 } from '../utils/imageUtils';
 import ImageUploadBox from './ImageUploadBox';
+import type { NodeData } from '../types';
 
-export default function AIImageClassifierNode({ id, data, selected }) {
+export interface AIImageClassifierNodeData extends NodeData {
+  localImage?: string;
+  inputImagePreview?: string;
+  outputText?: string | null;
+  rawResult?: any;
+  outputError?: string | null;
+  isLoading?: boolean;
+  onAnalyzeComplete?: (id: string) => void;
+  triggerAnalyze?: number;
+}
+
+export default function AIImageClassifierNode({ id, data, selected }: NodeProps) {
+  const nodeData = data as unknown as AIImageClassifierNodeData;
   const [isLoading, setIsLoading] = useState(false);
-  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, nodeData);
 
   const imageConn = conn('image-in');
 
   const handleAnalyze = useCallback(async () => {
-    let images = resolve.image('image-in', data.localImage);
+    let images = resolve.image('image-in', nodeData.localImage);
 
     if (!images?.length) {
-      if (data.onAnalyzeComplete) data.onAnalyzeComplete(id);
+      if (nodeData.onAnalyzeComplete) nodeData.onAnalyzeComplete(id);
       return;
     }
 
@@ -34,18 +48,18 @@ export default function AIImageClassifierNode({ id, data, selected }) {
         image: compressedImage,
       };
 
-      const result = await imageClassifierGenerate(params);
+      const result: any = await imageClassifierGenerate(params);
 
       if (result.error) {
         update({ isLoading: false, outputError: result.error?.message || JSON.stringify(result.error) });
         setIsLoading(false);
-        if (data.onAnalyzeComplete) data.onAnalyzeComplete(id);
+        if (nodeData.onAnalyzeComplete) nodeData.onAnalyzeComplete(id);
         return;
       }
 
       if (result.data && Array.isArray(result.data)) {
         let outputText = 'Classification Results:\n';
-        result.data.forEach(item => {
+        result.data.forEach((item: any) => {
            outputText += `- ${item.class_name}: ${(item.probability * 100).toFixed(2)}%\n`;
         });
         update({
@@ -57,27 +71,27 @@ export default function AIImageClassifierNode({ id, data, selected }) {
       } else {
         update({ isLoading: false, outputError: 'Invalid format received from API.' });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Image classifier error:', err);
       update({ isLoading: false, outputError: err.message });
     } finally {
       setIsLoading(false);
-      if (data.onAnalyzeComplete) data.onAnalyzeComplete(id);
+      if (nodeData.onAnalyzeComplete) nodeData.onAnalyzeComplete(id);
     }
-  }, [id, data, update, resolve]);
+  }, [id, nodeData, update, resolve]);
 
-  const lastTrigger = useRef(null);
+  const lastTrigger = useRef<number | null>(null);
   useEffect(() => {
-    if (data.triggerAnalyze && data.triggerAnalyze !== lastTrigger.current) {
-      lastTrigger.current = data.triggerAnalyze;
+    if (nodeData.triggerAnalyze && nodeData.triggerAnalyze !== lastTrigger.current) {
+      lastTrigger.current = nodeData.triggerAnalyze;
       handleAnalyze();
     }
-  }, [data.triggerAnalyze, handleAnalyze]);
+  }, [nodeData.triggerAnalyze, handleAnalyze]);
 
   const ACCENT = '#f59e0b'; // Amber for AI analysis/prompting
 
   return (
-    <NodeShell data={data} label={data.label || 'AI Image Classifier'} dotColor={ACCENT} selected={selected} onDisconnect={disconnectNode} onGenerate={handleAnalyze} isGenerating={isLoading}>
+    <NodeShell data={nodeData} label={nodeData.label || 'AI Image Classifier'} dotColor={ACCENT} selected={selected} onDisconnect={disconnectNode} onGenerate={handleAnalyze} isGenerating={isLoading}>
       <OutputHandle id="text-out" label="text" type="text" color={getHandleColor('text-out')} />
 
       {/* ── 1. Image Input (Required) ── */}
@@ -87,12 +101,12 @@ export default function AIImageClassifierNode({ id, data, selected }) {
         handleType="target" 
         color={getHandleColor('image-in')}
         isConnected={imageConn.connected}
-        onUnlink={() => data.onUnlink?.(id, 'image-in')}
+        onUnlink={() => nodeData.onUnlink?.(id, 'image-in')}
       />
       <ConnectedOrLocal connected={imageConn.connected} connInfo={imageConn.info}>
         <ImageUploadBox
-          image={data.localImage || data.inputImagePreview || null}
-          onImageChange={(img) => update({ localImage: img })}
+          image={nodeData.localImage || nodeData.inputImagePreview || null}
+          onImageChange={(img: string) => update({ localImage: img })}
           placeholder="Upload image"
           minHeight={60}
         />
@@ -122,12 +136,12 @@ export default function AIImageClassifierNode({ id, data, selected }) {
             }} />
             <span style={{ fontSize: 10, color: '#999' }}>Classifying image...</span>
           </div>
-        ) : data.outputText ? (
+        ) : nodeData.outputText ? (
           <div style={{ fontSize: 12, color: '#fff', whiteSpace: 'pre-wrap', wordBreak: 'break-word', width: '100%' }}>
-            {data.outputText}
+            {nodeData.outputText}
           </div>
-        ) : data.outputError ? (
-          <span style={{ fontSize: 10, color: '#ef4444', textAlign: 'center', wordBreak: 'break-word' }}>{data.outputError}</span>
+        ) : nodeData.outputError ? (
+          <span style={{ fontSize: 10, color: '#ef4444', textAlign: 'center', wordBreak: 'break-word' }}>{nodeData.outputError}</span>
         ) : (
           <span style={{ fontSize: 11, color: '#555', textAlign: 'center' }}>Classification result will appear here</span>
         )}

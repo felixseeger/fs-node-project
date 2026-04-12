@@ -1,6 +1,20 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { border, font, radius, sp, surface, text } from './nodeTokens';
+
+interface UniversalSimplifiedNodeChromeProps {
+  title: string;
+  selected: boolean;
+  children: ReactNode;
+  onRun?: () => void;
+  runDisabled?: boolean;
+  isRunning?: boolean;
+  comment?: string;
+  onCommentChange?: (newComment: string) => void;
+  width?: number;
+  /** Set false for passive nodes (e.g. sound output) that only show comment chrome */
+  showRunButton?: boolean;
+}
 
 /**
  * Minimal node chrome: title row with comment + expandable Run on hover/selected,
@@ -18,29 +32,25 @@ export default function UniversalSimplifiedNodeChrome({
   width = 320,
   /** Set false for passive nodes (e.g. sound output) that only show comment chrome */
   showRunButton = true,
-}) {
+}: UniversalSimplifiedNodeChromeProps) {
   const [hovered, setHovered] = useState(false);
   const [chromeHovered, setChromeHovered] = useState(false);
   const [runHovered, setRunHovered] = useState(false);
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [draftComment, setDraftComment] = useState(comment || '');
-  const runWrapRef = useRef(null);
+  const runWrapRef = useRef<HTMLDivElement>(null);
 
   const showActions = selected || hovered || chromeHovered;
 
-  useEffect(() => {
-    if (commentModalOpen) setDraftComment(comment || '');
-  }, [commentModalOpen, comment]);
+  const toggleCommentModal = useCallback((open: boolean) => {
+    if (open) setDraftComment(comment || '');
+    setCommentModalOpen(open);
+  }, [comment]);
 
   const saveComment = useCallback(() => {
     onCommentChange?.(draftComment);
     setCommentModalOpen(false);
   }, [draftComment, onCommentChange]);
-
-  const cancelComment = useCallback(() => {
-    setDraftComment(comment || '');
-    setCommentModalOpen(false);
-  }, [comment]);
 
   const modal = commentModalOpen
     ? createPortal(
@@ -58,7 +68,7 @@ export default function UniversalSimplifiedNodeChrome({
             padding: sp[6],
           }}
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget) cancelComment();
+            if (e.target === e.currentTarget) toggleCommentModal(false);
           }}
         >
           <div
@@ -130,7 +140,7 @@ export default function UniversalSimplifiedNodeChrome({
               <button
                 type="button"
                 className="nodrag nopan"
-                onClick={cancelComment}
+                onClick={() => toggleCommentModal(false)}
                 onMouseDown={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
                 style={{
@@ -238,7 +248,7 @@ export default function UniversalSimplifiedNodeChrome({
                 type="button"
                 title="Add comment"
                 className="nodrag nopan"
-                onClick={() => setCommentModalOpen(true)}
+                onClick={() => toggleCommentModal(true)}
                 style={{
                   width: 32,
                   height: 32,

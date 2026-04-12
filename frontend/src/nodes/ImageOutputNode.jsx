@@ -7,7 +7,10 @@ import { hasEmbeddedWorkflow, createEmbeddedWorkflowBadge } from '../utils/workf
 
 export default function ImageOutputNode({ id, data, selected }) {
   const { disconnectNode } = useNodeConnections(id, data);
-  const imageUrl = data.resolveInput?.(id, 'image-in') || data.outputImage;
+  
+  const rawInput = data.resolveInput?.(id, 'image-in');
+  const resolvedUrl = Array.isArray(rawInput) ? rawInput[0] : rawInput;
+  const imageUrl = resolvedUrl || data.outputImage;
 
   return (
     <NodeShell

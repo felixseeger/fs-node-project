@@ -1,11 +1,19 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import { getHandleColor } from '../utils/handleTypes';
 import {
   CATEGORY_COLORS,
   useNodeConnections, OutputHandle, OutputPreview,
-  Slider
+  Slider,
+  PillGroup,
+  TextInput,
+  SettingsPanel,
+  NodeShell,
+  NodeGenerateButton,
+  NodeDownloadButton,
+  ConnectedOrLocal,
+  Pill
 } from './shared';
 import useNodeProgress from '../hooks/useNodeProgress';
 import {
@@ -27,10 +35,9 @@ import {
   quiverTextToSvg, quiverImageToSvg,
   improvePromptGenerate, pollImprovePromptStatus,
   imageToPromptGenerate, pollImageToPromptStatus,
-  uploadImages,
 } from '../utils/api';
 import { compressImageBase64 } from '../utils/imageUtils';
-import { IMAGE_UNIVERSAL_MODEL_DEFS } from './imageUniversalGeneratorModels';
+import { IMAGE_UNIVERSAL_MODEL_DEFS, ImageUniversalModelId } from './imageUniversalGeneratorModels';
 import {
   normalizeImageSizeTier,
   recraftPixelSizeForAspectAndTier,
@@ -38,7 +45,50 @@ import {
 import EditableNodeTitle from './EditableNodeTitle';
 import AnnotationModal from '../components/AnnotationModal';
 
-async function urlToBase64(url, timeoutMs = 10000) {
+interface ImageUniversalGeneratorData {
+  label?: string;
+  autoSelect?: boolean;
+  useMultiple?: boolean;
+  pinnedModels?: string[];
+  locked?: boolean;
+  numOutputs?: number;
+  aspectRatio?: string;
+  imageSizeTier?: string;
+  models?: string[];
+  editSettings?: {
+    creativity?: number;
+    scaleFactor?: string;
+    precisionScale?: string;
+    sharpen?: number;
+    hAngle?: number;
+    vAngle?: number;
+    zoom?: number;
+    expandTop?: number;
+    expandBottom?: number;
+    expandLeft?: number;
+    expandRight?: number;
+    skinMode?: string;
+    [key: string]: any;
+  };
+  inputPrompt?: string;
+  image1Url?: string | null;
+  outputImage?: string | null;
+  outputImages?: string[];
+  outputSvg?: string | null;
+  outputError?: string | null;
+  triggerGenerate?: number;
+  resolveInput?: (id: string, handleId: string) => any;
+  onCreateNode?: (type: string, data: any, positionType: string, handleId: string) => void;
+  [key: string]: any;
+}
+
+interface ImageUniversalGeneratorNodeProps {
+  id: string;
+  data: ImageUniversalGeneratorData;
+  selected?: boolean;
+}
+
+async function urlToBase64(url: string | null, timeoutMs = 10000): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith('data:image')) return url;
   try {
@@ -57,11 +107,11 @@ async function urlToBase64(url, timeoutMs = 10000) {
 
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
+      reader.onloadend = () => resolve(reader.result as string);
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
-  } catch (err) {
+  } catch (err: any) {
     console.warn(`urlToBase64 failed for "${url}":`, err.message);
     return null;
   }
@@ -70,7 +120,7 @@ async function urlToBase64(url, timeoutMs = 10000) {
 // ── Validation & Sanitization ────────────────────────────────────────────────
 
 /** Sanitize SVG to prevent XSS. Removes dangerous attributes and event handlers. */
-function sanitizeSvg(svgString) {
+function sanitizeSvg(svgString: string | null | undefined): string {
   if (!svgString || typeof svgString !== 'string') return '';
   try {
     const parser = new DOMParser();
@@ -79,27 +129,28 @@ function sanitizeSvg(svgString) {
 
     // Remove event handlers and dangerous attributes
     const walker = doc.createTreeWalker(doc.documentElement, NodeFilter.SHOW_ELEMENT);
-    let node;
-    while (node = walker.nextNode()) {
+    let node: Node | null;
+    while ((node = walker.nextNode()) !== null) {
+      const element = node as Element;
       // Remove on* attributes (onclick, onload, etc.)
-      Array.from(node.attributes || []).forEach(attr => {
-        if (attr.name.startsWith('on')) node.removeAttribute(attr.name);
+      Array.from(element.attributes || []).forEach(attr => {
+        if (attr.name.startsWith('on')) element.removeAttribute(attr.name);
       });
       // Remove script tags
-      if (node.tagName.toLowerCase() === 'script') node.remove();
+      if (element.tagName.toLowerCase() === 'script') element.remove();
     }
     const sanitized = new XMLSerializer().serializeToString(doc.documentElement);
     // Reject oversized SVG outputs (serialization bomb protection)
     if (sanitized.length > 5 * 1024 * 1024) throw new Error('SVG too large (>5MB)');
     return sanitized;
-  } catch (err) {
+  } catch (err: any) {
     console.warn('SVG sanitization failed:', err.message);
     return '';
   }
 }
 
 /** Validate image URL format and size. Returns null if invalid. */
-function validateImageUrl(url) {
+function validateImageUrl(url: string | null | undefined): string | null {
   if (!url || typeof url !== 'string') return null;
   if (!url.startsWith('data:image') && !url.startsWith('http')) return null;
   if (url.length > 1000000) return null; // 1MB URL size limit
@@ -108,21 +159,18 @@ function validateImageUrl(url) {
 
 // ── Model lists ──────────────────────────────────────────────────────────────
 
-const GENERATION_MODELS = ['Auto', 'Nano Banana 2', 'recraftv4', 'recraftv3', 'kora', 'flux', 'quiver-text-to-vector'];
 const EDITING_MODELS = [
   'remove-bg', 'creative-upscale', 'precision-upscale',
   'relight', 'skin-enhancer', 'change-camera',
   'flux-expand', 'seedream-expand', 'ideogram-expand',
   'style-transfer', 'quiver-image-to-vector',
 ];
-const isEditingModel = (m) => EDITING_MODELS.includes(m);
-
-const MODEL_DEFS = IMAGE_UNIVERSAL_MODEL_DEFS;
+const isEditingModel = (m: string) => EDITING_MODELS.includes(m);
 
 const SCALE_FACTORS_CREATIVE = ['2x', '4x', '8x', '16x'];
 const SCALE_FACTORS_PRECISION = ['2', '4', '8', '16'];
 
-const COST_MAP = {
+const COST_MAP: Record<string, number> = {
   // Generation
   'Auto': 0.04, 'Nano Banana 2': 0.04, 'recraftv4': 0.04, 'recraftv3': 0.02,
   'kora': 0.06, 'flux': 0.08,
@@ -134,7 +182,7 @@ const COST_MAP = {
   'quiver-text-to-vector': 0.02, 'quiver-image-to-vector': 0.02,
 };
 
-const PROMPT_PLACEHOLDER = {
+const PROMPT_PLACEHOLDER: Record<string, string> = {
   'remove-bg': 'No prompt needed for background removal',
   'precision-upscale': 'No prompt needed for precision upscale',
   'skin-enhancer': 'No prompt needed for skin enhancement',
@@ -159,11 +207,11 @@ const PROMPT_DISABLED = new Set([
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function ImageUniversalGeneratorNode({ id, data, selected }) {
+export default function ImageUniversalGeneratorNode({ id, data, selected }: ImageUniversalGeneratorNodeProps) {
   const { update } = useNodeConnections(id, data);
 
   const { start, complete, fail } = useNodeProgress({
-    onProgress: (state) => {
+    onProgress: (state: any) => {
       update({
         executionProgress: state.progress,
         executionStatus: state.status,
@@ -179,9 +227,9 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const [showReferenceMenu, setShowReferenceMenu] = useState(false);
   const [annotationOpen, setAnnotationOpen] = useState(false);
   const [dragOverImageZone, setDragOverImageZone] = useState(false);
-  const unifiedImageInputRef = useRef(null);
-  const lastTrigger = useRef(null);
-  const promptRef = useRef(null);
+  const unifiedImageInputRef = useRef<HTMLInputElement>(null);
+  const lastTrigger = useRef<number | null>(null);
+  const promptRef = useRef<HTMLTextAreaElement>(null);
 
   // Settings from data with defaults
   const autoSelect = data.autoSelect ?? false;
@@ -195,14 +243,35 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const models = data.models || ['Nano Banana 2'];
   const editSettings = data.editSettings || {};
 
-  const activeEditingModel = models.find(m => isEditingModel(m)) || null;
+  const promptValue = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt || '';
+  const image1Input = data.resolveInput?.(id, 'image-1-in');
+  const image1 = Array.isArray(image1Input) ? image1Input[0] : (image1Input || data.image1Url);
+  const hasImage = !!image1;
 
   // ── Smart Auto Model Selection ──────────────────────────────────────────────
 
-  const analyzePromptForModel = useCallback((prompt) => {
-    if (!prompt) return { type: 'general', confidence: 0, recommended: 'Nano Banana 2' };
-    const lower = String(prompt).toLowerCase();
+  const analyzePromptForModel = useCallback((prompt: string | null | undefined, hasImg: boolean = false) => {
+    if (!prompt && !hasImg) return { type: 'general', confidence: 0, recommended: 'Nano Banana 2' };
+    const lower = String(prompt || '').toLowerCase();
 
+    // Image-to-Image / Editing Intents
+    if (hasImg && /\b(vector|svg|vectorize|vector version|to vector|to svg)\b/.test(lower)) {
+      return { type: 'vectorize', confidence: 0.95, recommended: 'quiver-image-to-vector' };
+    }
+    if (hasImg && /\b(remove bg|remove background|transparent background|cutout|isolate)\b/.test(lower)) {
+      return { type: 'remove-bg', confidence: 0.95, recommended: 'remove-bg' };
+    }
+    if (hasImg && /\b(upscale|enhance|make larger|enlarge|high res|high-res|hd|4k)\b/.test(lower)) {
+      return { type: 'upscale', confidence: 0.9, recommended: 'creative-upscale' };
+    }
+    if (hasImg && /\b(relight|lighting|studio light|neon light)\b/.test(lower)) {
+      return { type: 'relight', confidence: 0.85, recommended: 'relight' };
+    }
+    if (hasImg && /\b(style|transfer style|make it look like)\b/.test(lower)) {
+      return { type: 'style-transfer', confidence: 0.8, recommended: 'style-transfer' };
+    }
+
+    // Text-to-Image / Generation Intents
     if (/\b(vector|svg|logo|icon|flat design|illustration|clipart)\b/.test(lower)) {
       return { type: 'vector', confidence: 0.9, recommended: 'recraftv4' };
     }
@@ -218,20 +287,23 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     return { type: 'general', confidence: 0.5, recommended: 'Nano Banana 2' };
   }, []);
 
-  const selectAutoImageModel = useCallback((prompt) => {
-    const analysis = analyzePromptForModel(prompt);
+  const selectAutoImageModel = useCallback((prompt: string | null | undefined, hasImg: boolean = false) => {
+    const analysis = analyzePromptForModel(prompt, hasImg);
     return analysis.recommended;
   }, [analyzePromptForModel]);
 
+  const effectiveModels = models.map(m => m === 'Auto' ? selectAutoImageModel(promptValue, hasImage) : m);
+  const activeEditingModel = effectiveModels.find(m => isEditingModel(m)) || null;
+
   // ── API dispatch ────────────────────────────────────────────────────────────
 
-  const runGenerationModel = useCallback(async (model, prompt) => {
+  const runGenerationModel = useCallback(async (model: string, prompt: string | null | undefined, hasImg: boolean = false): Promise<string[]> => {
     let effectiveModel = model;
     if (model === 'Auto') {
-      effectiveModel = selectAutoImageModel(prompt);
+      effectiveModel = selectAutoImageModel(prompt, hasImg);
     }
     
-    const modelMap = {
+    const modelMap: Record<string, string> = {
       'Flux': 'freepik-mystic',
       'Nano Banana 2': 'freepik-mystic',
       'Kora Reality': 'freepik-kora',
@@ -242,43 +314,61 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
     if (effectiveModel === 'recraftv4' || effectiveModel === 'recraftv3') {
       const result = await generateRecraftImage({
-        prompt, model: effectiveModel, n: numOutputs,
+        prompt: prompt || '', model: effectiveModel, n: numOutputs,
         size: recraftPixelSizeForAspectAndTier(aspectRatio, imageSizeTier),
       });
       if (result.error) throw new Error(result.error?.message || 'Recraft generation failed');
-      return (result.data || []).map(d => d.url);
+      return (result.data || []).map((d: any) => d.url);
     }
-    if (effectiveModel === 'kora') {
-      const result = await generateKora({ prompt, num_images: numOutputs, aspect_ratio: aspectRatio });
-      if (result.error) throw new Error(result.error?.message || 'Kora generation failed');
-      if (result.data?.task_id) return (await pollStatus(result.data.task_id, 'realism')).data?.generated || [];
-      return result.data?.generated || [];
-    }
-    if (effectiveModel === 'quiver-text-to-vector') {
-      const result = await quiverTextToSvg({ model: 'arrow-preview', stream: false, prompt });
-      if (result.error) throw new Error(result.error?.message || 'Quiver generation failed');
-      const generatedData = result.data?.data?.[0];
-      if (!generatedData?.svg) throw new Error('No SVG returned from Quiver');
-      const sanitized = sanitizeSvg(generatedData.svg);
-      if (!sanitized) throw new Error('SVG validation failed');
-      return [`data:image/svg+xml;utf8,${encodeURIComponent(sanitized)}`];
-    }
-    const params = { prompt, num_images: numOutputs, aspect_ratio: aspectRatio, model: apiModel };
-    const result = await generateImage(params);
-    if (result.error) throw new Error(result.error?.message || 'Generation failed');
-    if (result.data?.task_id) return (await pollStatus(result.data.task_id, apiModel)).data?.generated || [];
-    return result.data?.generated || [];
-  }, [numOutputs, aspectRatio, imageSizeTier, selectAutoImageModel]);
 
-  const runEditingModelFn = useCallback(async (model, prompt, imageUrl, refImageUrl) => {
-    const toBase64 = (url) => url?.startsWith('data:') ? url.split(',')[1] : url;
+    if (effectiveModel === 'kora') {
+      const result = await generateKora({
+        prompt: prompt || '',
+        n: numOutputs,
+        aspect_ratio: aspectRatio,
+      });
+      if (result.error) throw new Error(result.error?.message || 'Kora generation failed');
+
+      // Poll
+      let status = await pollStatus(result.id);
+      while (status.status === 'processing') {
+        await new Promise(r => setTimeout(r, 2000));
+        status = await pollStatus(result.id);
+      }
+      if (status.status === 'failed') throw new Error(status.error || 'Kora generation failed');
+      return status.outputs.map((o: any) => o.url);
+    }
+
+    if (effectiveModel === 'quiver-text-to-vector') {
+      const result = await quiverTextToSvg({ prompt: prompt || '' });
+      if (result.error) throw new Error(result.error?.message || 'Vector generation failed');
+      const sanitized = sanitizeSvg(result.svg);
+      update({ outputSvg: sanitized });
+      return [];
+    }
+
+    // Default: Nano Banana 2 (Mystic) or Imagen
+    const result = await generateImage({
+      prompt: prompt || '', model: apiModel, n: numOutputs,
+      aspect_ratio: aspectRatio,
+    });
+    if (result.error) throw new Error(result.error?.message || 'Generation failed');
+    return (result.data || []).map((d: any) => d.url);
+  }, [aspectRatio, numOutputs, imageSizeTier, selectAutoImageModel, update]);
+
+
+  const runEditingModelFn = useCallback(async (model: string, prompt: string, imageUrl: string, refImageUrl: string | null): Promise<string[]> => {
+    const toBase64 = (url: string | null) => url?.startsWith('data:') ? url.split(',')[1] : url;
     const imageBase64 = toBase64(imageUrl);
     const es = editSettings;
 
-    const pollGenerated = async (result, pollFn, ...args) => {
+    const pollGenerated = async (result: any, pollFn: any, ...args: any[]) => {
       if (result.error) throw new Error(result.error?.message || `${model} failed`);
       const taskId = result.task_id || result.data?.task_id;
-      if (taskId) return (await pollFn(taskId, ...args)).data?.generated || [];
+      if (taskId) {
+        const pollResult = await pollFn(taskId, ...args);
+        return pollResult.data?.generated || [];
+      }
       return result.data?.generated || [];
     };
 
@@ -290,31 +380,31 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
         return url ? [url] : [];
       }
       case 'creative-upscale': {
-        const params = { image: imageBase64, scale_factor: es.scaleFactor || '2x' };
+        const params: any = { image: imageBase64, scale_factor: es.scaleFactor || '2x' };
         if (prompt) params.prompt = prompt;
         if ((es.creativity ?? 0) !== 0) params.creativity = es.creativity;
         return pollGenerated(await upscaleCreative(params), pollUpscaleStatus);
       }
       case 'precision-upscale': {
-        const params = { image: imageBase64, scale_factor: es.precisionScale || '4' };
+        const params: any = { image: imageBase64, scale_factor: es.precisionScale || '4' };
         if ((es.sharpen ?? 7) !== 7) params.sharpen = es.sharpen;
         if ((es.smartGrain ?? 7) !== 7) params.smart_grain = es.smartGrain;
         if ((es.ultraDetail ?? 30) !== 30) params.ultra_detail = es.ultraDetail;
         return pollGenerated(await upscalePrecision(params), pollPrecisionStatus);
       }
       case 'relight': {
-        const params = { image: imageBase64 };
+        const params: any = { image: imageBase64 };
         if (prompt) params.prompt = prompt;
         return pollGenerated(await relightImage(params), pollRelightStatus);
       }
       case 'skin-enhancer': {
         const mode = es.skinMode || 'faithful';
-        const params = { image: imageBase64 };
+        const params: any = { image: imageBase64 };
         if (mode === 'faithful') params.skin_detail = es.skinDetail ?? 80;
         return pollGenerated(await skinEnhancer(mode, params), pollSkinEnhancerStatus);
       }
       case 'change-camera': {
-        const params = {
+        const params: any = {
           image: imageBase64,
           horizontal_angle: es.hAngle ?? 0,
           vertical_angle: es.vAngle ?? 0,
@@ -323,7 +413,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
         return pollGenerated(await changeCamera(params), pollChangeCameraStatus);
       }
       case 'flux-expand': {
-        const params = { image: imageBase64 };
+        const params: any = { image: imageBase64 };
         if (prompt) params.prompt = prompt;
         if ((es.expandLeft ?? 0) > 0) params.left = es.expandLeft;
         if ((es.expandRight ?? 0) > 0) params.right = es.expandRight;
@@ -332,7 +422,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
         return pollGenerated(await imageExpandFluxPro(params), pollImageExpandStatus);
       }
       case 'seedream-expand': {
-        const params = {
+        const params: any = {
           image: imageBase64, prompt: prompt || undefined,
           left: es.expandLeft ?? 0, right: es.expandRight ?? 0,
           top: es.expandTop ?? 0, bottom: es.expandBottom ?? 0,
@@ -340,7 +430,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
         return pollGenerated(await seedreamExpand(params), pollSeedreamExpandStatus);
       }
       case 'ideogram-expand': {
-        const params = {
+        const params: any = {
           image: imageBase64, prompt: prompt || undefined,
           left: es.expandLeft ?? 0, right: es.expandRight ?? 0,
           top: es.expandTop ?? 0, bottom: es.expandBottom ?? 0,
@@ -349,7 +439,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       }
       case 'style-transfer': {
         if (!refImageUrl) throw new Error('Style transfer requires a reference image via the reference-in handle');
-        const params = { image: imageBase64, reference_image: toBase64(refImageUrl) };
+        const params: any = { image: imageBase64, reference_image: await urlToBase64(refImageUrl) };
         if (prompt) params.prompt = prompt;
         return pollGenerated(await styleTransferApi(params), pollStyleTransferStatus);
       }
@@ -381,13 +471,8 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const handleGenerate = useCallback(async () => {
     if (isGenerating) return;
 
-    const prompt = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt || '';
-
-    // Resolve 1 image input from handle or local data
-    const image1Input = data.resolveInput?.(id, 'image-1-in');
-    const image1 = Array.isArray(image1Input) ? image1Input[0] : (image1Input || data.image1Url);
-    
-    // Collect available image
+    // Use resolved values from render scope
+    const prompt = promptValue;
     const inputImages = [image1].filter(Boolean);
 
     if (activeEditingModel) {
@@ -404,7 +489,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
         const results = await runEditingModelFn(activeEditingModel, prompt, inputImages[0], refImages[0] || null);
         update({ outputImage: results[0] || null, outputImages: results });
         complete('Editing complete');
-      } catch (err) {
+      } catch (err: any) {
         console.error('Universal image editing error:', err);
         update({ outputError: err.message });
         fail(err);
@@ -426,15 +511,15 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       update({ outputImage: null, outputImages: [], outputError: null });
       try {
         const settled = await Promise.allSettled(
-          activeModels.map(m => runGenerationModel(m, prompt))
+          activeModels.map(m => runGenerationModel(m, prompt, hasImage))
         );
         const allImages = settled
-          .filter(r => r.status === 'fulfilled')
+          .filter((r): r is PromiseFulfilledResult<string[]> => r.status === 'fulfilled')
           .flatMap(r => r.value)
           .filter(Boolean);
         const failures = settled
           .map((r, i) => r.status === 'rejected'
-            ? `${MODEL_DEFS[activeModels[i]]?.name || activeModels[i]}: ${r.reason?.message || 'failed'}`
+            ? `${IMAGE_UNIVERSAL_MODEL_DEFS[activeModels[i] as ImageUniversalModelId]?.name || activeModels[i]}: ${(r as PromiseRejectedResult).reason?.message || 'failed'}`
             : null)
           .filter(Boolean);
 
@@ -457,7 +542,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
           update({ outputError: truncatedErr });
           fail(new Error(truncatedErr));
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Universal image generation error:', err);
         update({ outputError: err.message });
         fail(err);
@@ -465,7 +550,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
         setIsGenerating(false);
       }
     }
-  }, [id, data, update, models, activeEditingModel, isGenerating, runGenerationModel, runEditingModelFn, start, complete, fail]);
+  }, [id, data, update, models, activeEditingModel, isGenerating, runGenerationModel, runEditingModelFn, start, complete, fail, promptValue, image1, hasImage]);
 
   const handleImprovePrompt = useCallback(async () => {
     const prompt = data.inputPrompt || '';
@@ -498,34 +583,18 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     setIsImageToPrompting(true);
     try {
       const compressed = await compressImageBase64(sourceImage);
-      // Validate compression succeeded and size is within limits (100MB string = ~75MB)
-      if (!compressed || typeof compressed !== 'string') {
-        throw new Error('Image compression failed. Try a smaller or different image.');
-      }
-      if (compressed.length > 100 * 1024 * 1024) {
-        throw new Error('Compressed image too large. Maximum 100MB allowed.');
-      }
+      if (!compressed) throw new Error('Compression failed');
       const result = await imageToPromptGenerate({ image: compressed });
-
-      if (result.error) throw new Error(result.error?.message || JSON.stringify(result.error));
-
-      const taskId = result.task_id || result.data?.task_id;
-      let prompt = null;
-      if (taskId) {
-        const status = await pollImageToPromptStatus(taskId);
-        const generated = status.data?.generated || [];
-        prompt = status.data?.prompt || status.prompt || generated[0] || null;
-      } else {
-        prompt = result.data?.prompt || result.prompt || result.data?.generated?.[0] || null;
-      }
-      if (prompt) {
-        update({ inputPrompt: prompt, outputError: null });
-      } else {
-        throw new Error('No description returned');
+      if (result.error) throw new Error(result.error?.message);
+      if (result.data?.task_id) {
+        const status = await pollImageToPromptStatus(result.data.task_id);
+        const prompt = status.data?.generated?.[0];
+        if (prompt) update({ inputPrompt: prompt });
+      } else if (result.data?.generated?.[0]) {
+        update({ inputPrompt: result.data.generated[0] });
       }
     } catch (err) {
       console.error('Image to prompt error:', err);
-      update({ outputError: err.message || 'Failed to describe image' });
     } finally {
       setIsImageToPrompting(false);
     }
@@ -541,10 +610,10 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   }, [data.outputImage]);
 
   const readFileAsDataURL = useCallback(
-    (file) =>
-      new Promise((resolve, reject) => {
+    (file: File) =>
+      new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
+        reader.onload = () => resolve(reader.result as string);
         reader.onerror = reject;
         reader.readAsDataURL(file);
       }),
@@ -552,12 +621,12 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   );
 
   const applyImageFilesToSlots = useCallback(
-    async (fileList) => {
+    async (fileList: FileList) => {
       try {
         const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
         const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
-        const files = [...fileList].filter((f) => {
+        const files = Array.from(fileList).filter((f) => {
           if (!ALLOWED_TYPES.has(f.type)) {
             console.warn(`Rejected file: unsupported MIME type ${f.type}`);
             return false;
@@ -576,7 +645,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
         const url = await readFileAsDataURL(files[0]);
         update({ image1Url: url, outputError: null });
-      } catch (err) {
+      } catch (err: any) {
         console.error('Image file upload error:', err);
         update({ outputError: `Failed to load image: ${err.message}` });
       }
@@ -585,7 +654,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   );
 
   const handleUnifiedImageDrop = useCallback(
-    (e) => {
+    (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
       setDragOverImageZone(false);
@@ -594,13 +663,13 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
     [applyImageFilesToSlots]
   );
 
-  const handleUnifiedDragOver = useCallback((e) => {
+  const handleUnifiedDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOverImageZone(true);
   }, []);
 
-  const handleUnifiedDragLeave = useCallback((e) => {
+  const handleUnifiedDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOverImageZone(false);
@@ -608,11 +677,11 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
 
   const clearImageSlot = useCallback(() => update({ image1Url: null }), [update]);
 
-  const setEditSetting = useCallback((key, value) => {
+  const setEditSetting = useCallback((key: string, value: any) => {
     update({ editSettings: { ...editSettings, [key]: value } });
   }, [update, editSettings]);
 
-  const safeUpdateNumOutputs = useCallback((newVal) => {
+  const safeUpdateNumOutputs = useCallback((newVal: number) => {
     const val = Math.max(1, Math.min(6, Math.floor(newVal || 1)));
     update({ numOutputs: val });
   }, [update]);
@@ -651,7 +720,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
   const renderEditSettings = () => {
     if (!activeEditingModel) return null;
     const es = editSettings;
-    const pillBtn = (active, onClick, label) => (
+    const pillBtn = (active: boolean, onClick: () => void, label: string) => (
       <button
         onClick={onClick}
         className={`nodrag nopan px-2 py-0.5 rounded cursor-pointer text-[10px] border transition-colors ${
@@ -679,7 +748,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       </div>
     );
 
-    const panels = {
+    const panels: Record<string, ReactNode> = {
       'creative-upscale': (
         <div className="flex flex-col gap-2">
           <div style={settingRow}>
@@ -698,7 +767,6 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
               onChange={e => setEditSetting('creativity', parseFloat(e.target.value))}
               onMouseDown={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
-              onBlur={e => setEditSetting('creativity', Math.max(0, Math.min(1, parseFloat(e.target.value))))}
             />
             <span className="text-[10px] text-slate-500 min-w-[24px]">{(Math.max(0, Math.min(1, es.creativity ?? 0))).toFixed(2)}</span>
           </div>
@@ -722,7 +790,6 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
               onChange={e => setEditSetting('sharpen', Number(e.target.value))}
               onMouseDown={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
-              onBlur={e => setEditSetting('sharpen', Math.max(0, Math.min(10, Number(e.target.value))))}
             />
             <span className="text-[10px] text-slate-500 min-w-[16px]">{Math.max(0, Math.min(10, es.sharpen ?? 7))}</span>
           </div>
@@ -730,7 +797,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       ),
       'change-camera': (
         <div className="flex flex-col gap-2">
-          {[['H angle', 'hAngle', 0, 360, 1, 0], ['V angle', 'vAngle', -30, 90, 1, 0], ['Zoom', 'zoom', 0, 10, 0.1, 5]].map(([lbl, key, min, max, step, def]) => {
+          {[['H angle', 'hAngle', 0, 360, 1, 0], ['V angle', 'vAngle', -30, 90, 1, 0], ['Zoom', 'zoom', 0, 10, 0.1, 5]].map(([lbl, key, min, max, step, def]: any) => {
             const val = es[key] ?? def;
             return (
             <div key={key} style={settingRow}>
@@ -748,7 +815,6 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
                 className="nodrag nopan nowheel"
                 value={val}
                 onChange={e => setEditSetting(key, Number(e.target.value))}
-                onBlur={e => setEditSetting(key, Number(e.target.value))}
                 onMouseDown={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
                 style={numInput} 
@@ -828,11 +894,11 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
               <span className="font-bold">Image input</span>
               <span className="opacity-50 font-normal">optional</span>
             </div>
-            <div className="flex-1 flex items-center justify-center min-h-[80px] w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex-1 flex items-center justify-center min-h-[80px] w-full">
               {data.image1Url ? (
                 <div 
                   className="relative w-full aspect-square rounded-md overflow-hidden border border-slate-700 bg-slate-950 group cursor-pointer"
-                  onClick={() => setAnnotationOpen(true)}
+                  onClick={(e) => { e.stopPropagation(); setAnnotationOpen(true); }}
                   title="Click to annotate"
                 >
                   <img src={data.image1Url} alt="Input image" className="w-full h-full object-cover block" />
@@ -857,7 +923,10 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
             </div>
           </div>
 
-          <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 flex flex-col gap-3">
+          <div 
+            className="bg-slate-950 border border-slate-800 rounded-lg p-3 flex flex-col gap-3 nodrag nopan cursor-text"
+            onClick={() => promptRef.current?.focus()}
+          >
             <div className="flex flex-col gap-1">
               <textarea 
                 ref={promptRef} 
@@ -950,7 +1019,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }) {
       {/* Annotation modal — portalled outside React Flow to avoid clipping */}
       {annotationOpen && createPortal(
         <AnnotationModal
-          imageUrl={data.image1Url}
+          imageUrl={data.image1Url || ''}
           onSave={(annotatedUrl) => { update({ image1Url: annotatedUrl }); setAnnotationOpen(false); }}
           onClose={() => setAnnotationOpen(false)}
         />,

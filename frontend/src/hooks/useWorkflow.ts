@@ -59,10 +59,11 @@ export interface UseWorkflowReturn {
   resetExecution: () => void;
 }
 
-export function useWorkflow({ 
-  onExecutionComplete, 
-  setNodes 
-}: UseWorkflowProps): UseWorkflowReturn {
+export function useWorkflow(props: UseWorkflowProps): UseWorkflowReturn {
+  const { onExecutionComplete, setNodes } = props;
+  const propsRef = useRef(props);
+  propsRef.current = props;
+
   const [isExecuting, setIsExecuting] = useState(false);
   const [currentPhase, setCurrentPhase] = useState('');
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -94,7 +95,7 @@ export function useWorkflow({
     }
 
     // Set loading state
-    setNodes(prev => prev.map(n =>
+    propsRef.current.setNodes(prev => prev.map(n =>
       n.id === nodeId
         ? { ...n, data: { ...n.data, isLoading: true } as NodeData }
         : n
@@ -107,12 +108,10 @@ export function useWorkflow({
       }
 
       // Execute based on node type
-      // This is a simplified version - full implementation would
-      // call the appropriate API based on node.type
       const result = await executeNodeByType(node, abortControllerRef.current?.signal);
       
       // Update node with result
-      setNodes(prev => prev.map(n =>
+      propsRef.current.setNodes(prev => prev.map(n =>
         n.id === nodeId
           ? { ...n, data: { ...n.data, isLoading: false, ...result } as NodeData }
           : n
@@ -123,7 +122,7 @@ export function useWorkflow({
     } catch (error) {
       console.error(`Error executing node ${nodeId}:`, error);
       
-      setNodes(prev => prev.map(n =>
+      propsRef.current.setNodes(prev => prev.map(n =>
         n.id === nodeId
           ? {
               ...n,
@@ -138,7 +137,7 @@ export function useWorkflow({
       
       return false;
     }
-  }, [setNodes]);
+  }, []);
 
   /**
    * Run the complete workflow
@@ -169,7 +168,6 @@ export function useWorkflow({
       // Execute each phase sequentially
       for (const { phase, nodes } of executionOrder) {
         setCurrentPhase(phase);
-        console.log(`Executing phase: ${phase}`);
         
         // Execute all nodes in phase (can be parallel within a phase)
         const results = await Promise.allSettled(
@@ -192,14 +190,14 @@ export function useWorkflow({
         });
       }
       
-      onExecutionComplete?.({ 
+      propsRef.current.onExecutionComplete?.({ 
         success: failedNodes.length === 0,
         completedNodes,
         failedNodes
       });
     } catch (error) {
       console.error('Workflow execution failed:', error);
-      onExecutionComplete?.({ 
+      propsRef.current.onExecutionComplete?.({ 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error',
         completedNodes: [],
@@ -210,7 +208,7 @@ export function useWorkflow({
       setCurrentPhase('');
       abortControllerRef.current = null;
     }
-  }, [isExecuting, getNodes, getEdges, executeNode, onExecutionComplete]);
+  }, [isExecuting, getNodes, executeNode]);
 
   /**
    * Cancel workflow execution

@@ -1,4 +1,5 @@
 import React, { FC, ReactNode, Component, ErrorInfo } from 'react';
+import { Handle, Position } from '@xyflow/react';
 import { surface, border, radius } from '../nodes/nodeTokens';
 
 interface NodeLoadingSkeletonProps {
@@ -9,6 +10,7 @@ interface NodeLoadingSkeletonProps {
 /**
  * Loading skeleton for node components during async loading
  * Shows a placeholder with pulsing animation while node is loading
+ * Includes common handles to prevent React Flow "Couldn't create edge" errors
  */
 const NodeLoadingSkeleton: FC<NodeLoadingSkeletonProps> = ({ width = 240, height = 120 }) => {
   return (
@@ -27,7 +29,19 @@ const NodeLoadingSkeleton: FC<NodeLoadingSkeletonProps> = ({ width = 240, height
       aria-live="polite"
       aria-label="Loading node component"
     >
-      {/* Left handle placeholder */}
+      {/* Target Handles (Left) - Multiple handles to match common IDs */}
+      <Handle type="target" position={Position.Left} id="prompt-in" style={{ top: '20%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="image-in" style={{ top: '40%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="video-in" style={{ top: '60%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="text-in" style={{ top: '80%', opacity: 0 }} />
+      
+      {/* Source Handles (Right) - Multiple handles to match common IDs */}
+      <Handle type="source" position={Position.Right} id="output" style={{ top: '20%', opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="prompt-out" style={{ top: '40%', opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="text-out" style={{ top: '60%', opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="output-video" style={{ top: '80%', opacity: 0 }} />
+
+      {/* Visual handle indicators (non-functional) */}
       <div 
         style={{
           position: 'absolute',
@@ -41,7 +55,6 @@ const NodeLoadingSkeleton: FC<NodeLoadingSkeletonProps> = ({ width = 240, height
         }}
       />
       
-      {/* Right handle placeholder */}
       <div 
         style={{
           position: 'absolute',
