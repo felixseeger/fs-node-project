@@ -14,6 +14,7 @@ interface UniversalSimplifiedNodeChromeProps {
   width?: number;
   /** Set false for passive nodes (e.g. sound output) that only show comment chrome */
   showRunButton?: boolean;
+  onDownload?: () => void;
 }
 
 /**
@@ -32,6 +33,7 @@ export default function UniversalSimplifiedNodeChrome({
   width = 320,
   /** Set false for passive nodes (e.g. sound output) that only show comment chrome */
   showRunButton = true,
+  onDownload,
 }: UniversalSimplifiedNodeChromeProps) {
   const [hovered, setHovered] = useState(false);
   const [chromeHovered, setChromeHovered] = useState(false);
@@ -226,6 +228,37 @@ export default function UniversalSimplifiedNodeChrome({
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </button>
+
+            {onDownload && (
+              <button
+                type="button"
+                title="Download"
+                className="nodrag nopan"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDownload();
+                }}
+                style={{
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: radius.md,
+                  border: `1px solid ${border.default}`,
+                  background: surface.base,
+                  color: text.secondary,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              </button>
+            )}
 
             {showRunButton && (hovered || isRunning || chromeHovered) ? (
               <div

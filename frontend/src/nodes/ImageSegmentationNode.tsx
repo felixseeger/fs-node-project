@@ -120,6 +120,14 @@ const ImageSegmentationNode: FC<NodeProps<Node<SegmentNodeData>>> = ({ id, data,
       isRunning={isActive}
       runDisabled={!inputImage}
       width={280}
+      onDownload={outputImages.length > 0 ? () => {
+        outputImages.forEach((img: string, i: number) => {
+          const a = document.createElement('a');
+          a.href = img;
+          a.download = `segment-${i}-${Date.now()}.png`;
+          a.click();
+        });
+      } : undefined}
     >
       <div style={{ position: 'relative' }}>
         {/* Handles */}
