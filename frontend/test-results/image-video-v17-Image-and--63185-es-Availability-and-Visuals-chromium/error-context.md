@@ -1,0 +1,139 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: image-video-v17.spec.js >> Image and Video Node Operations >> Check Nodes Availability and Visuals
+- Location: tests/e2e/image-video-v17.spec.js:5:3
+
+# Error details
+
+```
+Error: expect(locator).toBeVisible() failed
+
+Locator: locator('.react-flow').first()
+Expected: visible
+Timeout: 15000ms
+Error: element(s) not found
+
+Call log:
+  - Expect "toBeVisible" with timeout 15000ms
+  - waiting for locator('.react-flow').first()
+
+```
+
+# Test source
+
+```ts
+  2   | import fs from 'fs';
+  3   | import path from 'path';
+  4   | 
+  5   | let creds;
+  6   | try {
+  7   |   creds = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'test-credentials.json'), 'utf8'));
+  8   | } catch (e) {
+  9   |   creds = { email: 'test@example.com', password: 'password123' };
+  10  | }
+  11  | 
+  12  | export const test = base.extend({
+  13  |   page: async ({ page }, use) => {
+  14  |     await page.goto('/');
+  15  |     
+  16  |     // Check for login
+  17  |     await page.waitForTimeout(1000);
+  18  |     if (await page.locator('text=Log in').isVisible()) {
+  19  |       await page.click('text=Log in').catch(() => {});
+  20  |       await page.waitForTimeout(1000);
+  21  |     }
+  22  |     
+  23  |     if (await page.locator('input[placeholder="you@example.com"]').isVisible()) {
+  24  |       await page.fill('input[placeholder="you@example.com"]', creds.email);
+  25  |       await page.fill('input[type="password"]', creds.password);
+  26  |       await page.click('button[type="submit"]').catch(() => page.click('button:has-text("Sign In")'));
+  27  |     }
+  28  |     
+  29  |     // Aggressive Modal & SLP Cleanup
+  30  |     try {
+  31  |       console.log('Purging onboarding...');
+  32  |       await page.waitForTimeout(5000);
+  33  |       
+  34  |       // Inject script to permanently kill tour and SLP state
+  35  |       await page.addInitScript(() => {
+  36  |         window.localStorage.setItem('fs_node_tour_completed', 'true');
+  37  |         window.localStorage.setItem('slp_shown', 'true');
+  38  |       });
+  39  | 
+  40  |       // Clear existing UI blockers
+  41  |       await page.evaluate(() => {
+  42  |         const kill = () => {
+  43  |           // Find all divs that might be overlays/modals
+  44  |           const divs = Array.from(document.querySelectorAll('div'));
+  45  |           divs.forEach(div => {
+  46  |              if (div.innerText.includes('Welcome') || div.innerText.includes('Tour')) {
+  47  |                 div.remove();
+  48  |              }
+  49  |           });
+  50  |           
+  51  |           document.querySelectorAll('[role="dialog"], .ms-modal-backdrop, .fixed.inset-0').forEach(el => {
+  52  |             el.remove();
+  53  |           });
+  54  |           
+  55  |           const root = document.querySelector('#root');
+  56  |           if (root) {
+  57  |             root.style.filter = 'none';
+  58  |             root.style.opacity = '1';
+  59  |             root.style.pointerEvents = 'auto';
+  60  |           }
+  61  |           document.body.style.overflow = 'auto';
+  62  |         };
+  63  |         kill();
+  64  |         // Keep killing for a few seconds
+  65  |         const interval = setInterval(kill, 500);
+  66  |         setTimeout(() => clearInterval(interval), 10000);
+  67  |       });
+  68  | 
+  69  |       const slpBtn = page.locator('.slp-ready').first();
+  70  |       if (await slpBtn.isVisible()) await slpBtn.click({ force: true });
+  71  | 
+  72  |     } catch(e) {}
+  73  |     
+  74  |     await page.getByTestId('new-project-btn').waitFor({ state: 'visible', timeout: 30000 });
+  75  |     await use(page);
+  76  |   },
+  77  |   
+  78  |   editorPage: async ({ page }, use) => {
+  79  |     await page.getByTestId('new-project-btn').first().click();
+  80  |     await page.getByTestId('new-project-modal-confirm-new').click();
+  81  |     
+  82  |     // Ensure the AI Assistant / Tour doesn't block the editor
+  83  |     await page.waitForTimeout(5000);
+  84  |     await page.evaluate(() => {
+  85  |        const kill = () => {
+  86  |          document.querySelectorAll('[role="dialog"], .ms-modal-backdrop, .fixed.inset-0').forEach(el => {
+  87  |            if (el.innerText.includes('Welcome') || el.innerText.includes('Tour') || el.innerText.includes('AI Assistant')) {
+  88  |               el.remove();
+  89  |            }
+  90  |          });
+  91  |          const root = document.querySelector('#root');
+  92  |          if (root) {
+  93  |            root.style.filter = 'none';
+  94  |            root.style.pointerEvents = 'auto';
+  95  |          }
+  96  |        };
+  97  |        kill();
+  98  |        const interval = setInterval(kill, 500);
+  99  |        setTimeout(() => clearInterval(interval), 5000);
+  100 |     });
+  101 | 
+> 102 |     await expect(page.locator('.react-flow').first()).toBeVisible({ timeout: 15000 });
+      |                                                       ^ Error: expect(locator).toBeVisible() failed
+  103 |     await use(page);
+  104 |   }
+  105 | });
+  106 | 
+  107 | export { expect };
+  108 | 
+```
