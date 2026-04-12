@@ -54,8 +54,6 @@ import ReferenceSelection from './components/ReferenceSelection';
 import ChatUI from './components/ChatUI';
 // @ts-ignore
 import ChatButton from './components/ChatButton';
-// @ts-ignore
-import MatrixDot from './components/MatrixDot';
 import TopBar from './TopBar';
 import EditorTopBar from './EditorTopBar';
 import TemplateBuilderModal from './TemplateBuilderModal';
@@ -89,6 +87,7 @@ import { CanvasSearch } from './components/CanvasSearch';
 import OnboardingTour from './components/OnboardingTour';
 import { useCanvasHistory } from './hooks/useCanvasHistory';
 import { useCollaboration } from './hooks/useCollaboration';
+import { useStore } from './store';
 import type { PageType, EditorMode } from './types';
 import { isWorkflowImportData, validateWorkflowData } from './types';
 import { AppThemeSchema, CanvasZoomModeSchema } from './schemas';
@@ -96,9 +95,15 @@ import PromptRecipeGallery from './components/PromptRecipeGallery';
 import { WorkflowLineageTracker } from './components/WorkflowLineageTracker';
 import { SmartConnectorUI } from './components/SmartConnectorUI';
 import { SmartConnectorEngine } from './engine/SmartConnectorEngine';
-import { CollaboratorPresence, LiveActionFeed, CollaborationHub, CollaborationPresence, NodeLocks } from './components/CollaborationHub';
+import { CollaboratorPresence, CollaborationHub, CollaborationPresence, NodeLocks } from './components/CollaborationHub';
 
-const nodeTypes: NodeTypes = {
+import CyberEdge from './components/CyberEdge';
+
+const initialEdgeTypes = {
+  cyber: CyberEdge,
+};
+
+const initialNodeTypes: NodeTypes = {
   inputNode: createDynamicNodeWrapper(dynamicNodes.InputNode),
   input: createDynamicNodeWrapper(dynamicNodes.InputNode),
   textNode: createDynamicNodeWrapper(dynamicNodes.TextNode),
@@ -144,10 +149,12 @@ const nodeTypes: NodeTypes = {
   imageToPrompt: createDynamicNodeWrapper(dynamicNodes.ImageToPromptNode),
   improvePrompt: createDynamicNodeWrapper(dynamicNodes.ImprovePromptNode),
   aiImageClassifier: createDynamicNodeWrapper(dynamicNodes.AIImageClassifierNode),
+  strudelNode: createDynamicNodeWrapper(dynamicNodes.StrudelNode),
   musicGeneration: createDynamicNodeWrapper(dynamicNodes.MusicGenerationNode),
   soundEffects: createDynamicNodeWrapper(dynamicNodes.SoundEffectsNode),
   audioIsolation: createDynamicNodeWrapper(dynamicNodes.AudioIsolationNode),
   voiceover: createDynamicNodeWrapper(dynamicNodes.VoiceoverNode),
+  universalGeneratorAudio: createDynamicNodeWrapper(dynamicNodes.AudioUniversalGeneratorNode),
   response: createDynamicNodeWrapper(dynamicNodes.ResponseNode),
   adaptedPrompt: createDynamicNodeWrapper(dynamicNodes.AdaptedPromptNode),
   layerEditor: createDynamicNodeWrapper(dynamicNodes.LayerEditorNode),
@@ -176,6 +183,9 @@ const nodeTypes: NodeTypes = {
 } as any;
 
 export default function App() {
+  const nodeTypes = useMemo(() => initialNodeTypes, []);
+  const edgeTypes = useMemo(() => initialEdgeTypes, []);
+  
   const [currentPage, setCurrentPage] = useState<PageType>('landing');
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [activeWorkflowId, setActiveWorkflowId] = useState<string | undefined>(undefined);
@@ -222,7 +232,7 @@ export default function App() {
     workflowId: activeWorkflowId || null,
     userId: currentUserId || null,
     userName: profile?.displayName || currentUserEmail?.split('@')[0] || 'Anonymous',
-    userAvatar: profile?.avatarUri || '👤',
+    userAvatar: profile?.photoURL || profile?.avatarUri || '👤',
     userColor: profile?.themeColor || '#3b82f6'
   });
 
@@ -1925,9 +1935,9 @@ const handleConnectEnd = useCallback(
         'kling3Motion', 'klingElementsPro', 'klingO1', 'minimaxLive', 'wan26',
         'seedance', 'ltxVideo2Pro', 'runwayGen45', 'runwayGen4Turbo', 'runwayActTwo',
         'pixVerseV5Transition', 'omniHuman', 'vfx', 'creativeVideoUpscale',
-        'precisionVideoUpscale', 'musicGeneration', 'soundEffects', 'audioIsolation',
+        'precisionVideoUpscale', 'strudelNode', 'musicGeneration', 'soundEffects', 'audioIsolation',
         'voiceover', 'videoImprove',
-        'universalGeneratorImage', 'universalGeneratorVideo', 'tripo3d',
+        'universalGeneratorImage', 'universalGeneratorVideo', 'universalGeneratorAudio', 'tripo3d',
         'quiverImageToVector', 'quiverTextToVector',
       ];
       for (const t of types) {
@@ -2140,7 +2150,7 @@ const handleConnectEnd = useCallback(
   }, [activeWorkflowId, persistWorkflowState, unsubscribe]);
 
   const connectionValidator = useCallback((conn: any) => isValidConnection(conn), []);
-  const defaultEdgeOptions = useMemo(() => ({ type: 'default', style: { strokeWidth: 2 } }), []);
+  const defaultEdgeOptions = useMemo(() => ({ type: 'cyber', style: { strokeWidth: 2 } }), []);
 
   const handleDeleteWorkflows = async (ids: string[]) => {
     setWorkflows(p => p.filter(w => !ids.includes(w.id)));
@@ -2366,6 +2376,7 @@ const handleConnectEnd = useCallback(
         workflowName={activeWorkflowName}
         editorMode={editorMode}
         onEditorModeChange={setEditorMode}
+        onCreateWorkflow={() => handleCreateWorkflow(getNextBoardName())}
         onLogout={handleLogout}
         onZoomIn={() => rfInstance?.zoomIn()}
         onZoomOut={() => rfInstance?.zoomOut()}
@@ -2539,9 +2550,31 @@ const handleConnectEnd = useCallback(
           <PromptRecipeGallery isOpen={showPromptRecipes} onClose={() => setShowPromptRecipes(false)} />
           <MegaMenuModelSearch open={browseModelsOpen} onClose={() => setBrowseModelsOpen(false)} onSelect={(k: string, m: string) => handleApplyModelToAll(k, m)} />
           <div style={{ position: 'absolute', bottom: 96, right: 24, zIndex: 10 }}><Queue nodes={nodes} /></div>
-          <WorkflowLineageTracker workflowId={activeWorkflowId} />
+          
+          <div style={{ position: 'absolute', top: 60, right: 20, zIndex: 1000, display: 'flex', gap: '8px', background: '#222', padding: '4px', borderRadius: '8px', border: '1px solid #333' }}>
+            <button 
+              type="button" 
+              onClick={handleExportScreenshot} 
+              title="Take Snapshot (Cmd/Ctrl+Shift+S)" 
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '28px', height: '28px', background: 'transparent',
+                border: 'none', color: '#e0e0e0', cursor: 'pointer',
+                borderRadius: '4px', transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#333'} 
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+                <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M5 3V1.8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                <path d="M11 3V1.8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+
           <SmartConnectorUI activeConnection={activeConnection} onAutoConnect={handleAutoConnect} />
-          <MatrixDot dotSize={2} dotColor={theme === 'light' ? '#cbd5e1' : '#3a3a3a'} spacing={28} opacity={theme === 'light' ? 0.45 : 0.6} />
           <ReactFlow
             nodes={nodes} edges={edges} onInit={setRfInstance}
             onNodesChange={customOnNodesChange} onEdgesChange={customOnEdgesChange}
@@ -2567,7 +2600,7 @@ const handleConnectEnd = useCallback(
                 updateCursor(pos.x, pos.y);
               }
             }}
-            isValidConnection={connectionValidator} nodeTypes={nodeTypes} defaultEdgeOptions={defaultEdgeOptions}
+            isValidConnection={connectionValidator} nodeTypes={nodeTypes} edgeTypes={edgeTypes} defaultEdgeOptions={defaultEdgeOptions}
             fitView fitViewOptions={{ padding: 0.1, minZoom: 0.1, maxZoom: 2 }} minZoom={0.1} maxZoom={2}
             panOnDrag={isLocked ? false : (activeTool === 'hand' ? [0, 1, 2] : (activeTool === 'slice' ? [1, 2] : [1, 2]))} panOnScroll={false}
             selectionOnDrag={activeTool === 'select'} selectionMode={SelectionMode.Partial} selectionKeyCode={activeTool === 'select' ? null : 'Shift'}
@@ -2619,11 +2652,16 @@ const handleConnectEnd = useCallback(
                 ))}
               </div>
             )}
-            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={theme === 'light' ? '#94a3b8' : '#333'} />
+            <Background 
+              variant={BackgroundVariant.Dots} 
+              gap={24} 
+              size={2} 
+              color={theme === 'light' ? 'rgba(6, 182, 212, 0.4)' : 'rgba(94, 231, 223, 0.4)'} 
+              style={{ backgroundColor: theme === 'light' ? '#f0fdfa' : 'var(--bg-blueprint)' }}
+            />
           </ReactFlow>
           <CollaboratorPresence />
           <NodeLocks />
-          <LiveActionFeed />
           <CollaborationHub 
             isOpen={isCollaborationHubOpen} 
             onClose={() => setIsCollaborationHubOpen(false)} 
@@ -2639,6 +2677,8 @@ const handleConnectEnd = useCallback(
             isChatting={isRunning}
             suggestions={chatSuggestions}
             onAddImageToCanvas={(url) => addNodeAtViewportCenter('imageNode', { imageUrl: url })}
+            currentUserAvatar={profile?.photoURL || profile?.avatarUri}
+            currentUserDisplayName={profile?.displayName}
             onSendMessage={async (_msg: any) => {
               setIsRunning(true);
               try {

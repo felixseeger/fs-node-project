@@ -26,16 +26,18 @@ interface TopBarProps {
   isLocked?: boolean;
   onLockView?: () => void;
   onOpenProfile?: () => void;
+  onCreateWorkflow?: () => void;
   isAuthenticated: boolean;
   setIsMobileMenuOpen?: (isOpen: boolean) => void;
-  }
+}
 
-  export const TopBar: FC<TopBarProps> = ({
+export const TopBar: FC<TopBarProps> = ({
   currentPage,
   onNavigate,
   workflowName,
   editorMode,
   onEditorModeChange,
+  onCreateWorkflow,
   onLogout,
   onZoomIn,
   onZoomOut,
@@ -327,6 +329,41 @@ interface TopBarProps {
                 Node Editor
               </button>
             </div>
+          )}
+
+          {currentPage === 'editor' && onCreateWorkflow && (
+            <button
+              onClick={onCreateWorkflow}
+              style={{
+                display: window.innerWidth < 768 ? 'none' : 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 14px',
+                fontSize: 12,
+                fontWeight: 600,
+                background: 'var(--color-brand-blue)',
+                border: 'none',
+                borderRadius: 8,
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                marginLeft: 8,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'none';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Create Workflow
+            </button>
           )}
 
           <button

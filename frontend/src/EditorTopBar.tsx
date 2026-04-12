@@ -10,7 +10,6 @@ interface EditorTopBarProps {
   onSave: () => void;
   onSaveWithEmbeddedWorkflow?: () => void;
   onApiExport?: () => void;
-  onSaveAsTemplate?: () => void;
   onOpenKeyboardShortcuts?: () => void;
   onShare?: () => void;
   onToggleCollaboration?: () => void;
@@ -28,7 +27,6 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
   onSave,
   onSaveWithEmbeddedWorkflow,
   onApiExport,
-  onSaveAsTemplate,
   onOpenKeyboardShortcuts,
   onShare,
   onToggleCollaboration,
@@ -294,34 +292,7 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
             Share
           </button>
 
-          {/* Save as Template */}
-          <button
-            onClick={() => onSaveAsTemplate?.()}
-            style={{
-              padding: '5px 14px',
-              fontSize: 12,
-              fontWeight: 600,
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 8,
-              color: 'var(--color-success)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--color-success)';
-              e.currentTarget.style.background = 'var(--color-accent-soft)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--color-border)';
-              e.currentTarget.style.background = 'var(--color-surface)';
-            }}
-          >
-            Save as Template
-          </button>
+          
 
           {/* Save with dropdown for embedded workflow option */}
           <div style={{ position: 'relative', display: 'inline-flex' }}>
