@@ -47,8 +47,7 @@ const InfiniteCanvas: FC<InfiniteCanvasProps> = ({ children }) => {
   // Handle viewport changes
   const onViewportChange = useCallback((newViewport: Viewport) => {
     setViewportState(newViewport);
-    setViewport(newViewport);
-  }, [setViewport]);
+  }, []);
 
   // Initialize and update on changes
   useEffect(() => {

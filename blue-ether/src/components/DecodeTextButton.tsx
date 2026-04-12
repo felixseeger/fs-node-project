@@ -8,6 +8,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { motion } from "framer-motion";
 import gsap from "gsap";
 
 export type DecodeTextButtonVariant =
@@ -47,9 +48,11 @@ function variantStyles(variant: DecodeTextButtonVariant): CSSProperties {
       };
     case "secondary":
       return {
-        background: "transparent",
+        background: "var(--be-glass-bg)",
         color: "var(--be-color-text)",
-        border: "1px solid var(--be-color-border)",
+        border: "1px solid var(--be-glass-border)",
+        backdropFilter: "blur(var(--be-glass-blur))",
+        WebkitBackdropFilter: "blur(var(--be-glass-blur))",
       };
     case "ghost":
       return {
@@ -160,15 +163,17 @@ export default function DecodeTextButton({
   };
 
   return (
-    <button
+    <motion.button
       ref={buttonRef}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       type={type}
       className={`be-decode-text-button ${className}`.trim()}
-      style={combinedStyle}
+      style={combinedStyle as any}
       onClick={onClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      {...rest}
+      {...(rest as any)}
     >
       {startIcon ? (
         <span style={{ display: "flex", alignItems: "center", width: 14 }}>
@@ -185,6 +190,6 @@ export default function DecodeTextButton({
       ) : null}
 
       {!text && !startIcon && !endIcon ? children : null}
-    </button>
+    </motion.button>
   );
 }

@@ -24,7 +24,7 @@ import { recraftImageToImage } from '../utils/api';
 const MODELS = ['recraftv3', 'recraftv3_vector'];
 
 export default function RecraftImageToImageNode({ id, data, selected }) {
-  const { update, conn, resolve } = useNodeConnections(id, data);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
@@ -97,7 +97,7 @@ export default function RecraftImageToImageNode({ id, data, selected }) {
       dotColor={ACCENT}
       selected={selected}
       onGenerate={handleGenerate}
-      isGenerating={isGenerating}
+      isGenerating={isGenerating} onDisconnect={disconnectNode}
     >
       <OutputHandle label="image" id="output" color={getHandleColor('output')} />
 

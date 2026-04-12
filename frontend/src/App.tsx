@@ -69,7 +69,7 @@ import { NODE_TYPE_CAPABILITIES } from './config/nodeCapabilities';
 import { CanvasProvider } from './context/CanvasContext';
 import { isValidConnection, getHandleColor, getHandleDataType } from './utils/handleTypes';
 import { isPanningRef, isDraggingNodeRef, isConnectingRef, beginInteraction, endInteraction } from './interactionRefs';
-import { NODE_MENU, DEFAULT_NODES, DEFAULT_EDGES } from './config/nodeMenu.js';
+import { NODE_MENU, DEFAULT_NODES, DEFAULT_EDGES } from './config/nodeMenu';
 import { buildCanvasAllNodesSections, resolveCanvasNodeData } from './config/canvasAllNodesMenu';
 import { isHandleConnected, getConnectionInfo as getConnectionInfoBase } from './helpers/nodeData.js';
 import { captureCanvasViewportPngDataUrl, exportCanvasViewportToPng } from './utils/canvasUtils';
@@ -91,6 +91,7 @@ import PromptRecipeGallery from './components/PromptRecipeGallery';
 import { WorkflowLineageTracker } from './components/WorkflowLineageTracker';
 import { SmartConnectorUI } from './components/SmartConnectorUI';
 import { WorkflowHealthMonitor } from './components/WorkflowHealthMonitor';
+import { SmartConnectorEngine } from './engine/SmartConnectorEngine';
 import { CollaboratorPresence, LiveActionFeed } from './components/CollaborationHub';
 
 const nodeTypes: NodeTypes = {
@@ -186,6 +187,7 @@ export default function App() {
   }, [theme]);
 
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showPromptRecipes, setShowPromptRecipes] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success'; id: string } | undefined>(undefined);
@@ -625,7 +627,42 @@ export default function App() {
     [setEdges, updateNodeData]
   );
 
-  const handleConnectEnd = useCallback(
+  const handleAutoConnect = useCallback((targetNodeId: string, targetHandleId: string) => {
+    if (activeConnection) {
+      saveHistory();
+      onConnect({
+        source: activeConnection.nodeId,
+        sourceHandle: activeConnection.handleId,
+        target: targetNodeId,
+        targetHandle: targetHandleId
+      });
+    }
+  }, [activeConnection, onConnect, saveHistory]);
+
+  const handleHealthAutoFix = useCallback((targetNodeId: string, handleId: string) => {
+    const targetType = getHandleDataType(handleId);
+    
+    // Find a node that has an output compatible with targetType
+    const compatibleSource = nodes.slice().reverse().find(node => {
+      if (node.id === targetNodeId) return false;
+      const outputs = SmartConnectorEngine.getPossibleOutputs(node);
+      return outputs.some(outId => SmartConnectorEngine.isCompatible(getHandleDataType(outId), targetType));
+    });
+
+    if (compatibleSource) {
+      const sourceHandleId = SmartConnectorEngine.getPossibleOutputs(compatibleSource)[0] || 'output';
+      
+      saveHistory();
+      onConnect({
+        source: compatibleSource.id,
+        sourceHandle: sourceHandleId,
+        target: targetNodeId,
+        targetHandle: handleId
+      });
+    }
+  }, [nodes, saveHistory, onConnect]);
+
+const handleConnectEnd = useCallback(
     (event: any, connectionState: any) => {
       isConnectingRef.current = false;
       endInteraction();
@@ -1676,15 +1713,53 @@ export default function App() {
   }, [handleCreateWorkflow, getNextBoardName]);
 
   const handleImportGeneratedWorkflow = useCallback(async (wf: { name?: string, nodes: any[], edges: any[] }) => {
-    await handleCreateWorkflow(wf.name || getNextBoardName(), undefined, { 
-      type: 'import', 
-      importedNodes: wf.nodes, 
-      importedEdges: wf.edges, 
-      importName: wf.name || getNextBoardName() 
+    await handleCreateWorkflow(wf.name || getNextBoardName(), undefined, {
+      type: 'import',
+      importedNodes: wf.nodes,
+      importedEdges: wf.edges,
+      importName: wf.name || getNextBoardName()
     });
   }, [handleCreateWorkflow, getNextBoardName]);
 
+  const handleMergeGeneratedWorkflow = useCallback((wf: { name?: string, nodes: any[], edges: any[] }) => {
+    saveHistory();
+    // Offset nodes so they don't overlap exactly with current ones
+    const offset = { x: 100, y: 100 };
+    const maxId = nodesRef.current.length > 0 
+      ? Math.max(...nodesRef.current.map(n => parseInt(n.id.replace(/\D/g, '') || '0'))) 
+      : 0;
+
+    const idMap: Record<string, string> = {};
+
+    // Process nodes
+    const newNodes = wf.nodes.map((node, index) => {
+      const newId = `node_${Date.now()}_${index}`;
+      idMap[node.id] = newId;
+      return {
+        ...node,
+        id: newId,
+        position: {
+          x: (node.position?.x || 0) + offset.x,
+          y: (node.position?.y || 0) + offset.y
+        }
+      };
+    });
+
+    // Process edges
+    const newEdges = wf.edges.map(edge => ({
+      ...edge,
+      id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      source: idMap[edge.source] || edge.source,
+      target: idMap[edge.target] || edge.target
+    }));
+
+    setNodes(nds => [...nds, ...newNodes]);
+    setEdges(eds => [...eds, ...newEdges]);
+    showToast(`Merged ${newNodes.length} nodes into the canvas`, 'success');
+  }, [setNodes, setEdges, saveHistory, showToast]);
+
   const handlePromptWorkflow = useCallback(async (promptText: string) => {
+
     const t = promptText?.trim(); if (!t) return;
     await handleCreateWorkflow(getNextBoardName(), undefined, { type: 'ai', aiPrompt: t, aiMode: 'standard' });
   }, [handleCreateWorkflow, getNextBoardName]);
@@ -2009,12 +2084,14 @@ export default function App() {
         </div>
       )}
       <EditorTopBar
+            currentUserId={currentUserId}
         nodes={nodes}
         edges={edges}
         workflowId={activeWorkflowId || undefined}
         isPublic={workflows.find(w => w.id === activeWorkflowId)?.isPublic || false}
         onTogglePublic={async (pub) => { if (activeWorkflowId) { const name = (getFirebaseAuth().currentUser?.displayName || getFirebaseAuth().currentUser?.email?.split('@')[0]) || 'User'; await toggleWorkflowPublic(activeWorkflowId, pub, name); setWorkflows(p => p.map(w => w.id === activeWorkflowId ? { ...w, isPublic: pub } : w)); } }}
         onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
+        onOpenRecipes={() => setShowPromptRecipes(true)}
         onSave={() => { if (activeWorkflowId) setWorkflows(p => p.map(w => w.id === activeWorkflowId ? { ...w, nodes: nodesRef.current, edges: edgesRef.current, nodeCount: nodesRef.current.length } : w)); }}
         onSaveWithEmbeddedWorkflow={async () => {
           if (!activeWorkflowId) return;
@@ -2138,11 +2215,12 @@ export default function App() {
           )}
           <CanvasNavigation onCenterOnNode={() => { const sel = nodes.filter(n => n.selected); if (sel.length && rfInstance) rfInstance.fitView({ padding: 0.2, duration: 800, nodes: [{ id: sel[0].id }] }); }} />
           <KeyboardShortcutsModal isOpen={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
+          <PromptRecipeGallery isOpen={showPromptRecipes} onClose={() => setShowPromptRecipes(false)} />
           <MegaMenuModelSearch open={browseModelsOpen} onClose={() => setBrowseModelsOpen(false)} onSelect={(k: string, m: string) => handleApplyModelToAll(k, m)} />
           <div style={{ position: 'absolute', bottom: 96, right: 24, zIndex: 10 }}><Queue nodes={nodes} /></div>
           <WorkflowLineageTracker />
-          <WorkflowHealthMonitor />
-          <SmartConnectorUI activeConnection={activeConnection} />
+          <WorkflowHealthMonitor onAutoFix={handleHealthAutoFix} />
+          <SmartConnectorUI activeConnection={activeConnection} onAutoConnect={handleAutoConnect} />
           <MatrixDot dotSize={2} dotColor={theme === 'light' ? '#cbd5e1' : '#3a3a3a'} spacing={28} opacity={theme === 'light' ? 0.45 : 0.6} />
           <ReactFlow
             nodes={nodes} edges={edges} onInit={setRfInstance}
@@ -2379,6 +2457,7 @@ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisio
             onSetNodes={setNodes} 
             onSetEdges={setEdges}
             onImportWorkflow={handleImportGeneratedWorkflow}
+            onMergeWorkflow={handleMergeGeneratedWorkflow}
             onApplyActions={handleApplyActions}
           />
         </div>

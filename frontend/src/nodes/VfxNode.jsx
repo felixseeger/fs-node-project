@@ -1,8 +1,10 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
+import { useNodeConnections } from './shared';
 import NodeShell from './NodeShell';
 import NodeProgress from './NodeProgress';
 import useNodeProgress from '../hooks/useNodeProgress';
+
 import { getHandleColor } from '../utils/handleTypes';
 import { vfxGenerate, pollVfxStatus } from '../utils/api';
 
@@ -18,6 +20,7 @@ const FILTERS = [
 ];
 
 export default function VfxNode({ id, data, selected }) {
+  const { onDisconnectNode } = useNodeConnections();
   // Progress tracking
   const {
     progress,
@@ -198,7 +201,7 @@ export default function VfxNode({ id, data, selected }) {
       onGenerate={handleGenerate}
       isGenerating={isActive}
       downloadUrl={data.outputVideo || undefined}
-      downloadType="video"
+      downloadType="video" onDisconnect={onDisconnectNode}
     >
 
       {/* ── Video Output Handle (top) ── */}

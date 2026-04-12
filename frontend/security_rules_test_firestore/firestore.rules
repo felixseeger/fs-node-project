@@ -1,0 +1,270 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // This security rules file assumes the following data structures:
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required) - immutable
+    //   - email: string (required, valid email) - immutable
+    //   - displayName: string (required, 1-100 chars)
+    //   - photoURL: string (optional, valid URL)
+    //   - createdAt: timestamp (required) - immutable
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: workflows
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - userId: string (required) - immutable
+    //   - nodes: list (required)
+    //   - edges: list (required)
+    //   - isPublic: bool (optional)
+    //   - isDeleted: bool (required)
+    //   - version: number (required)
+    //   - sharedWith: list (optional)
+    //   - createdAt: timestamp (required) - immutable
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: assets
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - userId: string (required) - immutable
+    //   - images: list (required)
+    //   - status: string (required, one of draft, processing, ready, error, archived)
+    //   - isPublic: bool (optional)
+    //   - isDeleted: bool (required)
+    //   - createdAt: timestamp (required) - immutable
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: templates
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - userId: string (required) - immutable
+    //   - nodes: list (required)
+    //   - edges: list (required)
+    //   - inputs: list (required)
+    //   - outputs: list (required)
+    //   - isDeleted: bool (required)
+    //   - createdAt: timestamp (required) - immutable
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: conversations
+    // Document ID: auto-generated
+    // Fields:
+    //   - userId: string (required) - immutable
+    //   - title: string (required, 1-200 chars)
+    //   - isDeleted: bool (required)
+    //   - createdAt: timestamp (required) - immutable
+    //   - updatedAt: timestamp (required)
+    //
+    // Sub-collection: conversations/{conversationId}/messages
+    // Document ID: auto-generated
+    // Fields:
+    //   - type: string (required)
+    //   - content: string (required, 1-10000 chars)
+    //   - timestamp: timestamp (required) - immutable
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    
+    function uidUnchanged() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid;
+    }
+    
+    function uidNotModified() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId;
+    }
+    
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    function validStringLength(field, minLen, maxLen) {
+      return field in request.resource.data && 
+             request.resource.data[field] is string &&
+             request.resource.data[field].size() >= minLen &&
+             request.resource.data[field].size() <= maxLen;
+    }
+    
+    function isNotModified(field) {
+      return !(field in request.resource.data) || request.resource.data[field] == resource.data[field];
+    }
+    
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+    
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*") || url.matches("^data:image/.*"));
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+                    && hasRequiredFields(['uid', 'email', 'displayName', 'createdAt', 'updatedAt'])
+                    && request.resource.data.uid == userId
+                    && isValidEmail(request.resource.data.email)
+                    && validStringLength('displayName', 1, 100)
+                    && (!('photoURL' in request.resource.data) || isValidUrl(request.resource.data.photoURL))
+                    && request.resource.data.createdAt is timestamp
+                    && request.resource.data.updatedAt is timestamp;
+      allow update: if isOwner(userId)
+                    && isNotModified('uid')
+                    && isNotModified('email')
+                    && isNotModified('createdAt')
+                    && (!('displayName' in request.resource.data) || validStringLength('displayName', 1, 100))
+                    && (!('photoURL' in request.resource.data) || isValidUrl(request.resource.data.photoURL))
+                    && request.resource.data.updatedAt is timestamp;
+      allow delete: if false; // Hard delete not typically allowed
+    }
+
+    match /workflows/{workflowId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.get('isPublic', false) == true ||
+        (request.auth.token.email != null && request.auth.token.email in resource.data.get('sharedWith', []))
+      );
+      
+      allow create: if isAuthenticated() 
+                    && uidUnchanged()
+                    && hasRequiredFields(['name', 'userId', 'nodes', 'edges', 'createdAt', 'updatedAt', 'isDeleted', 'version'])
+                    && validStringLength('name', 1, 100)
+                    && request.resource.data.nodes is list
+                    && request.resource.data.edges is list
+                    && request.resource.data.isDeleted is bool
+                    && request.resource.data.version is number
+                    && request.resource.data.createdAt is timestamp
+                    && request.resource.data.updatedAt is timestamp;
+                    
+      allow update: if isDocOwner()
+                    && uidNotModified()
+                    && isNotModified('createdAt')
+                    && (!('name' in request.resource.data) || validStringLength('name', 1, 100))
+                    && (!('nodes' in request.resource.data) || request.resource.data.nodes is list)
+                    && (!('edges' in request.resource.data) || request.resource.data.edges is list)
+                    && (!('isDeleted' in request.resource.data) || request.resource.data.isDeleted is bool)
+                    && (!('version' in request.resource.data) || request.resource.data.version is number)
+                    && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+                    
+      allow delete: if isDocOwner();
+    }
+    
+    match /assets/{assetId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.get('isPublic', false) == true
+      );
+      
+      allow create: if isAuthenticated()
+                    && uidUnchanged()
+                    && hasRequiredFields(['name', 'userId', 'images', 'status', 'createdAt', 'updatedAt', 'isDeleted'])
+                    && validStringLength('name', 1, 100)
+                    && request.resource.data.images is list
+                    && request.resource.data.status in ['draft', 'processing', 'ready', 'error', 'archived']
+                    && request.resource.data.isDeleted is bool
+                    && request.resource.data.createdAt is timestamp
+                    && request.resource.data.updatedAt is timestamp;
+                    
+      allow update: if isDocOwner()
+                    && uidNotModified()
+                    && isNotModified('createdAt')
+                    && (!('name' in request.resource.data) || validStringLength('name', 1, 100))
+                    && (!('images' in request.resource.data) || request.resource.data.images is list)
+                    && (!('status' in request.resource.data) || request.resource.data.status in ['draft', 'processing', 'ready', 'error', 'archived'])
+                    && (!('isDeleted' in request.resource.data) || request.resource.data.isDeleted is bool)
+                    && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+                    
+      allow delete: if isDocOwner();
+    }
+    
+    match /templates/{templateId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isAuthenticated()
+                    && uidUnchanged()
+                    && hasRequiredFields(['name', 'userId', 'nodes', 'edges', 'inputs', 'outputs', 'createdAt', 'updatedAt', 'isDeleted'])
+                    && validStringLength('name', 1, 100)
+                    && request.resource.data.nodes is list
+                    && request.resource.data.edges is list
+                    && request.resource.data.inputs is list
+                    && request.resource.data.outputs is list
+                    && request.resource.data.isDeleted is bool
+                    && request.resource.data.createdAt is timestamp
+                    && request.resource.data.updatedAt is timestamp;
+                    
+      allow update: if isDocOwner()
+                    && uidNotModified()
+                    && isNotModified('createdAt')
+                    && (!('name' in request.resource.data) || validStringLength('name', 1, 100))
+                    && (!('nodes' in request.resource.data) || request.resource.data.nodes is list)
+                    && (!('edges' in request.resource.data) || request.resource.data.edges is list)
+                    && (!('inputs' in request.resource.data) || request.resource.data.inputs is list)
+                    && (!('outputs' in request.resource.data) || request.resource.data.outputs is list)
+                    && (!('isDeleted' in request.resource.data) || request.resource.data.isDeleted is bool)
+                    && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+                    
+      allow delete: if isDocOwner();
+    }
+    
+    match /conversations/{conversationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isAuthenticated()
+                    && uidUnchanged()
+                    && hasRequiredFields(['title', 'userId', 'createdAt', 'updatedAt', 'isDeleted'])
+                    && validStringLength('title', 1, 200)
+                    && request.resource.data.isDeleted is bool
+                    && request.resource.data.createdAt is timestamp
+                    && request.resource.data.updatedAt is timestamp;
+                    
+      allow update: if isDocOwner()
+                    && uidNotModified()
+                    && isNotModified('createdAt')
+                    && (!('title' in request.resource.data) || validStringLength('title', 1, 200))
+                    && (!('isDeleted' in request.resource.data) || request.resource.data.isDeleted is bool)
+                    && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+                    
+      allow delete: if isDocOwner();
+      
+      match /messages/{messageId} {
+        function isParentOwner() {
+          return get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid;
+        }
+        
+        allow read: if isAuthenticated() && isParentOwner();
+        allow create: if isAuthenticated() 
+                      && isParentOwner()
+                      && hasRequiredFields(['type', 'content', 'timestamp'])
+                      && request.resource.data.type is string
+                      && request.resource.data.content is string
+                      && request.resource.data.timestamp is timestamp;
+        allow update: if isAuthenticated() && isParentOwner() && isNotModified('timestamp');
+        allow delete: if isAuthenticated() && isParentOwner();
+      }
+    }
+  }
+}

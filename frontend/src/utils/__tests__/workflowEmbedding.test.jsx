@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * Workflow Embedding Tests
  * Comprehensive test suite for workflow embedding utilities

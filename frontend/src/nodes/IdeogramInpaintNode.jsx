@@ -52,7 +52,7 @@ const COLOR_PALETTES = [
 
 export default function IdeogramInpaintNode({ id, data, selected }) {
   const { isActive, start, fail, complete } = useNodeProgress();
-  const { update, conn, resolve } = useNodeConnections(id, data);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const localRenderingSpeed = data.localRenderingSpeed || 'DEFAULT';
@@ -139,7 +139,7 @@ export default function IdeogramInpaintNode({ id, data, selected }) {
   const ACCENT = '#d946ef';
 
   return (
-    <NodeShell data={data} label={data.label || 'Ideogram Inpaint'} dotColor={ACCENT} selected={selected} onGenerate={handleInpaint} isGenerating={isActive} downloadUrl={data.outputImage || undefined}>
+    <NodeShell data={data} label={data.label || 'Ideogram Inpaint'} dotColor={ACCENT} selected={selected} onGenerate={handleInpaint} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
       <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />
 

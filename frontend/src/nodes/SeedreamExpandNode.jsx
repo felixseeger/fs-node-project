@@ -26,7 +26,7 @@ import useNodeProgress from '../hooks/useNodeProgress';
 
 export default function SeedreamExpandNode({ id, data, selected }) {
   const { isActive, start, complete, fail } = useNodeProgress();
-  const { update, conn, resolve } = useNodeConnections(id, data);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
 
   const localLeft = data.localLeft ?? 0;
   const localRight = data.localRight ?? 0;
@@ -104,7 +104,7 @@ export default function SeedreamExpandNode({ id, data, selected }) {
   const ACCENT = '#14b8a6';
 
   return (
-    <NodeShell data={data} label={data.label || 'Seedream Expand'} dotColor={ACCENT} selected={selected} onGenerate={handleExpand} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'Seedream Expand'} dotColor={ACCENT} selected={selected} onGenerate={handleExpand} isGenerating={isActive} onDisconnect={disconnectNode}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
 
       {/* ── 1. Image ── */}

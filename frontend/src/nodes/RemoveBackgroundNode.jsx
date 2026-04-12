@@ -1,5 +1,6 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
+import { useNodeConnections } from './shared';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { removeBackground } from '../utils/api';
@@ -7,7 +8,9 @@ import ImageUploadBox from './ImageUploadBox';
 import NodeProgress from './NodeProgress';
 import useNodeProgress from '../hooks/useNodeProgress';
 
+
 export default function RemoveBackgroundNode({ id, data, selected }) {
+  const { onDisconnectNode } = useNodeConnections();
   const { isActive, start, complete, fail } = useNodeProgress(id, data);
 
   const update = useCallback(
@@ -144,7 +147,7 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
       selected={selected}
       onGenerate={handleRemove}
       isGenerating={isActive}
-      downloadUrl={data.outputHighRes || undefined}
+      downloadUrl={data.outputHighRes || undefined} onDisconnect={onDisconnectNode}
     >
 
       {/* ── Image Output Handle (top, aligned with image-in) ── */}

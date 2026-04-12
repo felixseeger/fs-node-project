@@ -29,7 +29,7 @@ const COMMON_VOICES = [
 
 export default function VoiceoverNode({ id, data, selected }) {
   const { isActive, start, complete, fail } = useNodeProgress();
-  const { update, conn, resolve } = useNodeConnections(id, data);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
 
   const localVoiceId = data.localVoiceId || '21m00Tcm4TlvDq8ikWAM';
   const localStability = data.localStability ?? 0.5;
@@ -105,7 +105,7 @@ export default function VoiceoverNode({ id, data, selected }) {
   const ACCENT = '#a855f7';
 
   return (
-    <NodeShell data={data} label={data.label || 'Voiceover'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive} downloadUrl={data.outputAudio || undefined} downloadType="audio">
+    <NodeShell data={data} label={data.label || 'Voiceover'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive} downloadUrl={data.outputAudio || undefined} downloadType="audio" onDisconnect={disconnectNode}>
       <OutputHandle id="output" label="audio" color={getHandleColor('audio-out')} />
 
       {/* ── 1. Prompt ── */}

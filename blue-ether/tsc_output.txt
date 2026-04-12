@@ -1,0 +1,282 @@
+> tsc --noEmit
+../frontend/src/App.tsx(10,3): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/App.tsx(11,3): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/App.tsx(12,3): error TS1484: 'OnNodesChange' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/App.tsx(13,3): error TS1484: 'OnEdgesChange' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/App.tsx(14,3): error TS1484: 'Connection' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/App.tsx(15,3): error TS1484: 'ReactFlowInstance' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/App.tsx(16,3): error TS1484: 'OnConnect' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/App.tsx(2010,7): error TS2367: This comparison appears to be unintentional because the types '"editor" | "project-dashboard" | "auth-signin" | "auth-signup" | "workspaces" | "workflow-settings" | "drawflow" | "node-banana"' and '"assets"' have no overlap.
+../frontend/src/AssetModal.tsx(12,10): error TS1484: 'CreateAssetPayload' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/AssetModal.tsx(13,10): error TS1484: 'AssetOperationResult' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/AssetModal.tsx(13,32): error TS1484: 'Asset' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/AuthPage.tsx(1,38): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/AuthPage.tsx(1,42): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/AuthPage.tsx(1,55): error TS1484: 'FormEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/AuthPage.tsx(1,66): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/BottomBar.tsx(1,39): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/BottomBar.tsx(1,43): error TS1484: 'MouseEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/BottomBar.tsx(2,10): error TS1484: 'Workflow' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/AnalyticsDashboard.tsx(1,51): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/AnnotationMenu.tsx(1,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/AnnotationModal.tsx(1,59): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/AnnotationModal.tsx(1,63): error TS1484: 'PointerEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/AnnotationModal.tsx(1,77): error TS1484: 'CSSProperties' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/AssetPickerOverlay.tsx(1,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/AssetPickerOverlay.tsx(2,10): error TS1484: 'Asset' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/AvatarCropper.tsx(1,33): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/AvatarCropper.tsx(2,19): error TS1484: 'Area' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/AvatarCropper.tsx(2,25): error TS1484: 'Point' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/CanvasRunToolbar.tsx(1,68): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/CanvasRunToolbar.tsx(1,72): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/CanvasRunToolbar.tsx(1,83): error TS1484: 'CSSProperties' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/CanvasRunToolbar.tsx(1,98): error TS1484: 'MouseEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/CanvasRunToolbar.tsx(2,10): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ChatUI.tsx(1,92): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ChatUI.tsx(1,96): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ChatUI.tsx(1,109): error TS1484: 'KeyboardEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ChatUI.tsx(1,124): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ChatUI.tsx(5,10): error TS1484: 'Asset' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ChatUI.tsx(5,17): error TS1484: 'CreateAssetPayload' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ChatUI.tsx(5,37): error TS1484: 'AssetOperationResult' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/CollaborationHub.tsx(1,51): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/CollaborationHub.tsx(1,55): error TS1484: 'KeyboardEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/DecodedText.tsx(1,38): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/DotMatrixDisplay.tsx(1,46): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/DrawflowEditor.tsx(1,69): error TS1484: 'CSSProperties' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/DynamicNodeLoader.tsx(7,27): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/DynamicNodeLoader.tsx(7,31): error TS1484: 'LazyExoticComponent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/GenerationLineageViewer.tsx(2,10): error TS1484: 'Asset' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/GlobalAssetVault.tsx(2,10): error TS1484: 'Asset' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/GlobalAssetVault.tsx(2,17): error TS1484: 'AssetMediaType' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/InfiniteCanvas.tsx(1,59): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/InfiniteCanvas.tsx(1,63): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/InfiniteCanvas.tsx(1,74): error TS1484: 'KeyboardEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/InfiniteCanvas.tsx(2,54): error TS1484: 'Viewport' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/KeyboardShortcutsModal.tsx(1,38): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/KeyboardShortcutsModal.tsx(1,42): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/LayoutHelper.tsx(1,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/LayoutHelper.tsx(1,21): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/LayoutHelper.tsx(1,32): error TS1484: 'CSSProperties' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/LayoutHelper.tsx(1,47): error TS1484: 'MouseEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/MatrixDot.tsx(1,26): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/MatrixDot.tsx(1,30): error TS1484: 'CSSProperties' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/MobileNavigation.tsx(1,46): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/MobileNavigation.tsx(1,50): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/NewProjectModal.tsx(1,59): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/NewProjectModal.tsx(1,63): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/NewProjectModal.tsx(1,74): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/NodeLoadingSkeleton.tsx(1,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/NodeLoadingSkeleton.tsx(1,21): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/NodeLoadingSkeleton.tsx(1,43): error TS1484: 'ErrorInfo' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/nodes/BaseNode.tsx(15,17): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/nodes/BaseNode.tsx(16,10): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/nodes/BaseNode.tsx(16,29): error TS1484: 'OnResize' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/nodes/BaseNode.tsx(20,10): error TS1484: 'BaseNodeData' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/nodes/BaseNode.tsx(20,24): error TS1484: 'NodeStatus' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/Nodes3DScroll.tsx(1,55): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/PromptRecipeGallery.tsx(1,24): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/PromptRecipeGallery.tsx(1,30): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/PromptRecipeGallery.tsx(3,26): error TS1484: 'PromptRecipe' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ReferenceSelection.tsx(1,35): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ReferenceSelection.tsx(1,39): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ReferenceSelection.tsx(1,52): error TS1484: 'DragEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ScrambledHeroText.tsx(1,38): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ScrambledHeroText.tsx(1,42): error TS1484: 'CSSProperties' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ScrambleText.tsx(1,59): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/ScrambleText.tsx(1,63): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/SystemLoadingProcess.tsx(1,59): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/SystemLoadingProcess.tsx(1,63): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/VibeCodingChat.tsx(1,59): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/VibeCodingChat.tsx(1,63): error TS1484: 'FormEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/VibeCodingChat.tsx(1,74): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/VibeCodingChat.tsx(72,102): error TS2322: Type 'Edge[]' is not assignable to type 'WorkflowEdge[]'.
+  Type 'Edge' is not assignable to type 'WorkflowEdge'.
+    Types of property 'markerEnd' are incompatible.
+      Type 'EdgeMarkerType | undefined' is not assignable to type 'string | { type: MarkerType | "arrow" | "arrowclosed"; width?: number | undefined; height?: number | undefined; color?: string | undefined; } | undefined'.
+        Type 'EdgeMarker' is not assignable to type 'string | { type: MarkerType | "arrow" | "arrowclosed"; width?: number | undefined; height?: number | undefined; color?: string | undefined; } | undefined'.
+          Type 'EdgeMarker' is not assignable to type '{ type: MarkerType | "arrow" | "arrowclosed"; width?: number | undefined; height?: number | undefined; color?: string | undefined; }'.
+            Types of property 'color' are incompatible.
+              Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+                Type 'null' is not assignable to type 'string | undefined'.
+../frontend/src/components/WorkflowLineageTracker.tsx(2,24): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/components/WorkflowLineageTracker.tsx(2,30): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/config/firebase.ts(1,42): error TS1484: 'FirebaseApp' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/config/firebase.ts(2,19): error TS1484: 'Auth' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/config/firebase.ts(10,22): error TS1484: 'FirebaseStorage' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/config/nodeCapabilities.ts(1,10): error TS1484: 'NodeCapability' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/config/pricing.ts(1,10): error TS1484: 'NodePricing' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/context/AuthContext.tsx(1,44): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/context/CanvasContext.tsx(1,44): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/DrawflowLab.tsx(1,48): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/DrawflowLab.tsx(2,26): error TS1484: 'DrawflowEditorRef' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/EditorTopBar.tsx(1,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/engine/executionEngine.ts(28,7): error TS2741: Property 'uid' is missing in type '{ maxConcurrency: number; parallel: true; continueOnError: false; nodeTimeout: number; globalTimeout: number; verbose: false; }' but required in type 'Required<ExecutionOptions>'.
+../frontend/src/engine/SmartConnectorEngine.ts(1,10): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/engine/SmartConnectorEngine.ts(1,16): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/GooeyNodesMenu.tsx(1,36): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/GooeyNodesMenu.tsx(6,10): error TS1484: 'NodeMenuSection' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/GooeyNodesMenu.tsx(410,72): error TS2304: Cannot find name 'publicAssets'.
+../frontend/src/GooeyNodesMenu.tsx(412,20): error TS2304: Cannot find name 'publicAssets'.
+../frontend/src/GooeyNodesMenu.tsx(412,39): error TS7006: Parameter 'asset' implicitly has an 'any' type.
+../frontend/src/GooeyNodesMenu.tsx(504,38): error TS2339: Property 'defaults' does not exist on type '{ id: string; title: string; shortcut: string; type: string; icon: Element; hasSubmenu?: undefined; }'.
+../frontend/src/GooeyNodesMenu.tsx(505,108): error TS2339: Property 'defaults' does not exist on type '{ id: string; title: string; shortcut: string; type: string; icon: Element; hasSubmenu?: undefined; }'.
+../frontend/src/hooks/useBilling.ts(4,10): error TS1484: 'Wallet' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/hooks/useBilling.ts(4,18): error TS1484: 'CreditTransaction' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/hooks/useCanvasHistory.ts(2,10): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/hooks/useCanvasHistory.ts(2,16): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/hooks/useFirebaseAssets.ts(12,10): error TS1484: 'Unsubscribe' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/hooks/useFirebaseAssets.ts(14,3): error TS1484: 'Asset' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/hooks/useFirebaseAssets.ts(15,3): error TS1484: 'CreateAssetPayload' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/hooks/useFirebaseAssets.ts(16,3): error TS1484: 'UpdateAssetPayload' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/hooks/useFirebaseAssets.ts(17,3): error TS1484: 'AssetOperationResult' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/hooks/useUser.ts(2,10): error TS1484: 'Unsubscribe' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/hooks/useUser.ts(3,10): error TS1484: 'UserProfile' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/hooks/useUser.ts(3,23): error TS1484: 'UpdateProfilePayload' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/InspectorPanel.tsx(109,13): error TS2322: Type '((nodeId: string, patch: any) => void) | undefined' is not assignable to type '(id: string, data: any) => void'.
+  Type 'undefined' is not assignable to type '(id: string, data: any) => void'.
+../frontend/src/LandingPage.tsx(997,24): error TS2322: Type '"dark" | "light" | undefined' is not assignable to type '"dark" | "light"'.
+  Type 'undefined' is not assignable to type '"dark" | "light"'.
+../frontend/src/LandingPage.tsx(997,38): error TS2322: Type '((theme: "dark" | "light") => void) | undefined' is not assignable to type '(theme: "dark" | "light") => void'.
+  Type 'undefined' is not assignable to type '(theme: "dark" | "light") => void'.
+../frontend/src/LandingPage.tsx(1167,24): error TS2322: Type '"dark" | "light" | undefined' is not assignable to type '"dark" | "light"'.
+  Type 'undefined' is not assignable to type '"dark" | "light"'.
+../frontend/src/LandingPage.tsx(1167,38): error TS2322: Type '((theme: "dark" | "light") => void) | undefined' is not assignable to type '(theme: "dark" | "light") => void'.
+  Type 'undefined' is not assignable to type '(theme: "dark" | "light") => void'.
+../frontend/src/NodeBananaLab.tsx(1,26): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/AssetNode.tsx(13,10): error TS1484: 'Asset' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/AssetNode.tsx(13,17): error TS1484: 'AssetMediaItem' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/AssetNode.tsx(14,10): error TS1484: 'BaseNodeData' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/BaseNode.tsx(3,10): error TS1484: 'BaseNodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/BaseNode.tsx(3,25): error TS1484: 'NodeStatus' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/BaseNode.types.ts(1,10): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ChangeCameraNode.tsx(113,27): error TS7006: Parameter 'img' implicitly has an 'any' type.
+../frontend/src/nodes/CloudSyncNode.tsx(1,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/CloudSyncNode.tsx(2,28): error TS1484: 'NodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/CommentNode.tsx(1,59): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/CommentNode.tsx(1,63): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/CommentNode.tsx(2,23): error TS1484: 'NodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ConditionNode.tsx(1,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ConditionNode.tsx(2,28): error TS1484: 'NodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/CreativeUpScaleNode.tsx(263,21): error TS2322: Type '{ isActive: boolean; }' is not assignable to type 'IntrinsicAttributes & NodeProgressProps'.
+  Property 'isActive' does not exist on type 'IntrinsicAttributes & NodeProgressProps'.
+../frontend/src/nodes/GeneratorNode.tsx(1,59): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/GeneratorNode.tsx(1,63): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/GeneratorNode.tsx(80,46): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | undefined'.
+../frontend/src/nodes/ImageAnalyzerNode.tsx(1,59): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ImageAnalyzerNode.tsx(1,63): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ImageAnalyzerNode.tsx(1,76): error TS1484: 'DragEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ImageAnalyzerNode.tsx(2,28): error TS1484: 'NodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ImageNode.tsx(1,59): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ImageNode.tsx(1,63): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ImageNode.tsx(1,76): error TS1484: 'DragEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ImageNode.tsx(1,87): error TS1484: 'KeyboardEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ImageNode.tsx(3,28): error TS1484: 'NodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ImageUniversalGeneratorNode.tsx(1,52): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ImageUniversalGeneratorNode.tsx(1,63): error TS1484: 'CSSProperties' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ImageUniversalGeneratorNode.tsx(40,38): error TS1484: 'ImageUniversalModelId' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ImageUniversalGeneratorNode.tsx(966,17): error TS2322: Type 'boolean | "" | null' is not assignable to type 'boolean | undefined'.
+  Type 'null' is not assignable to type 'boolean | undefined'.
+../frontend/src/nodes/InputNode.tsx(1,48): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/InputNode.tsx(1,52): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/InputNode.tsx(1,65): error TS1484: 'DragEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/InputNode.tsx(2,28): error TS1484: 'NodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/IterationNode.tsx(1,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/IterationNode.tsx(2,28): error TS1484: 'NodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/NodeControls.tsx(1,29): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/NodeIcons.tsx(1,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/NodeIcons.tsx(1,21): error TS1484: 'CSSProperties' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/NodeProgress.tsx(6,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/NodePropertyEditor.tsx(1,55): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/NodePropertyEditor.tsx(1,59): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/NodePropertyEditor.tsx(1,72): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/NodePropertyEditor.tsx(23,10): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/NodePropertyEditor.tsx(23,16): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/NodeShell.tsx(1,52): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/ResponseNode.tsx(1,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/RouterNode.tsx(1,38): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/RouterNode.tsx(1,42): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/RouterNode.tsx(2,65): error TS1484: 'NodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/SocialPublisherNode.tsx(1,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/SocialPublisherNode.tsx(2,28): error TS1484: 'NodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/SourceMediaNode.tsx(1,48): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/SourceMediaNode.tsx(1,52): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/SourceMediaNode.tsx(1,65): error TS1484: 'DragEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/SourceMediaNode.tsx(2,28): error TS1484: 'NodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/TextNode.tsx(1,30): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/TextNode.tsx(1,34): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/TextNode.tsx(2,28): error TS1484: 'NodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/UniversalSimplifiedNodeChrome.tsx(1,52): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/VariableNode.tsx(1,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/nodes/VariableNode.tsx(2,28): error TS1484: 'NodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/ProfileModal.tsx(1,39): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/ProfileModal.tsx(1,43): error TS1484: 'ReactElement' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/ProfileModal.tsx(1,57): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/ProfileModal.tsx(4,51): error TS1484: 'User' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/ProfileModal.tsx(8,10): error TS1484: 'UpdateProfilePayload' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/projectsDashboard/components/ShareWorkflowModal.tsx(1,17): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/projectsDashboard/components/ShareWorkflowModal.tsx(1,21): error TS1484: 'Dispatch' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/projectsDashboard/components/ShareWorkflowModal.tsx(1,31): error TS1484: 'SetStateAction' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/projectsDashboard/ProjectsDashboard.tsx(512,39): error TS2322: Type '"dark" | "light" | undefined' is not assignable to type '"dark" | "light"'.
+  Type 'undefined' is not assignable to type '"dark" | "light"'.
+../frontend/src/ProjectSettingsModal.tsx(1,51): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/SearchHistoryMenu.tsx(1,38): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/SearchHistoryMenu.tsx(1,42): error TS1484: 'CSSProperties' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/services/__tests__/storageService.test.ts(24,51): error TS2345: Argument of type '{}' is not assignable to parameter of type 'FirebaseStorage'.
+  Type '{}' is missing the following properties from type 'FirebaseStorage': app, maxUploadRetryTime, maxOperationRetryTime
+../frontend/src/services/__tests__/storageService.test.ts(25,36): error TS2345: Argument of type '{}' is not assignable to parameter of type 'StorageReference'.
+  Type '{}' is missing the following properties from type 'StorageReference': root, bucket, fullPath, name, and 2 more.
+../frontend/src/services/assetService.ts(17,10): error TS1484: 'Asset' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/services/assetService.ts(17,17): error TS1484: 'CreateAssetPayload' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/services/assetService.ts(17,37): error TS1484: 'UpdateAssetPayload' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/services/assetService.ts(17,57): error TS1484: 'AssetOperationResult' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/services/billingService.ts(15,3): error TS1484: 'Unsubscribe' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/services/billingService.ts(18,10): error TS1484: 'Wallet' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/services/billingService.ts(18,18): error TS1484: 'CreditTransaction' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/services/billingService.ts(18,37): error TS1484: 'TransactionType' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/services/billingService.ts(37,5): error TS2322: Type 'FieldValue' is not assignable to type 'string | Timestamp'.
+  Type 'FieldValue' is missing the following properties from type 'Timestamp': seconds, nanoseconds, toDate, toMillis, toJSON
+../frontend/src/services/billingService.ts(38,5): error TS2322: Type 'FieldValue' is not assignable to type 'string | Timestamp'.
+  Type 'FieldValue' is missing the following properties from type 'Timestamp': seconds, nanoseconds, toDate, toMillis, toJSON
+../frontend/src/services/userService.ts(11,10): error TS1484: 'UserProfile' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/services/userService.ts(11,23): error TS1484: 'FirestoreUserDocument' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/services/userService.ts(11,46): error TS1484: 'UpdateProfilePayload' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/TemplateBuilderModal.tsx(2,55): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/TemplateBuilderModal.tsx(2,59): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/TemplateBuilderModal.tsx(3,10): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/TemplateBuilderModal.tsx(3,16): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/test/components/ExecutionButton.test.tsx(90,7): error TS2322: Type '{ label: string; }' is not assignable to type 'NodeData'.
+  Type '{ label: string; }' is missing the following properties from type 'WorkflowNodeData': type, name, version, createdAt, and 4 more.
+../frontend/src/test/utils.tsx(7,17): error TS1484: 'ReactElement' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/test/utils.tsx(8,18): error TS1484: 'RenderOptions' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/TopBar.tsx(1,39): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/types/app.ts(1,10): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/types/app.ts(1,16): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/types/nodes.ts(9,10): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/UpdateAssetModal.tsx(1,46): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/utils/aiWorkflowGenerator.ts(6,10): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/utils/aiWorkflowGenerator.ts(6,16): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/utils/aiWorkflowGenerator.ts(7,10): error TS1484: 'NodeData' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/utils/canvasUtils.ts(6,10): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/utils/canvasUtils.ts(6,16): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/utils/canvasUtils.ts(6,22): error TS1484: 'Viewport' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/utils/dynamicNodeImports.ts(10,31): error TS1484: 'ComponentType' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/utils/dynamicNodeImports.ts(11,10): error TS1484: 'NodeProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/utils/handleTypes.ts(1,10): error TS1484: 'HandleType' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/utils/nodeDimensions.ts(9,10): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/utils/security.ts(7,10): error TS1484: 'Workflow' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/utils/workflowJSON.ts(17,10): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkflowInterface.tsx(1,49): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkflowInterface.tsx(1,53): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkflowInterface.tsx(2,10): error TS1484: 'Node' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkflowInterface.tsx(2,16): error TS1484: 'Edge' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkflowSettingsPage.tsx(1,46): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkflowSettingsPage.tsx(1,50): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkflowSettingsPage.tsx(1,61): error TS1484: 'ReactElement' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkflowSettingsPage.tsx(1,75): error TS1484: 'CSSProperties' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkflowsPage.tsx(1,40): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkflowsPage.tsx(1,44): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkflowsPage.tsx(2,10): error TS1484: 'Workflow' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkspacesPage.tsx(1,27): error TS1484: 'FC' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkspacesPage.tsx(1,31): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+../frontend/src/WorkspacesPage.tsx(1,42): error TS1484: 'ChangeEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.

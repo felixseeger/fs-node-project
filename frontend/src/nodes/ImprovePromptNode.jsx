@@ -31,7 +31,7 @@ const LANGUAGES = [
 
 export default function ImprovePromptNode({ id, data, selected }) {
   const { isActive, start, complete, fail } = useNodeProgress(id);
-  const { update, conn, resolve } = useNodeConnections(id, data);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
 
   const localType = data.localType || 'image';
   const localLanguage = data.localLanguage || 'en';
@@ -98,7 +98,7 @@ export default function ImprovePromptNode({ id, data, selected }) {
   const ACCENT = '#f97316'; // Orange
 
   return (
-    <NodeShell data={data} label={data.label || 'Improve Prompt'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive}>
+    <NodeShell data={data} label={data.label || 'Improve Prompt'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive} onDisconnect={disconnectNode}>
       <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />
 
       {/* ── 1. Prompt ── */}

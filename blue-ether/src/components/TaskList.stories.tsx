@@ -1,5 +1,5 @@
 
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from "@storybook/react";
 
 import type { TaskData } from '../types.ts';
 
@@ -66,7 +66,7 @@ const meta = {
   parameters: {
     layout: "padded",
   },
-  decorators: [(story) => <div style={{ margin: "3rem" }}>{story()}</div>],
+  decorators: [(story: any) => <div style={{ margin: "3rem" }}>{story()}</div>],
   tags: ["autodocs"],
   excludeStories: /.*MockedState$/,
 } satisfies Meta<typeof TaskList>;
@@ -76,13 +76,13 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   decorators: [
-    (story) => <Mockstore taskboxState={MockedState}>{story()}</Mockstore>,
+    (story: any) => <Mockstore taskboxState={MockedState}>{story()}</Mockstore>,
   ],
 };
 
 export const WithPinnedTasks: Story = {
   decorators: [
-    (story) => {
+    (story: any) => {
       const pinnedtasks: TaskData[] = [
         ...MockedState.tasks.slice(0, 5),
         { id: "6", title: "Task 6 (pinned)", state: "TASK_PINNED" },
@@ -104,8 +104,7 @@ export const WithPinnedTasks: Story = {
 
 export const Loading: Story = {
   decorators: [
-    (story) => (
-      <Mockstore
+    (story: any) => (      <Mockstore
         taskboxState={{
           ...MockedState,
           status: 'loading',
@@ -119,8 +118,7 @@ export const Loading: Story = {
 
 export const Empty: Story = {
   decorators: [
-    (story) => (
-      <Mockstore
+    (story: any) => (      <Mockstore
         taskboxState={{
           ...MockedState,
           tasks: [],

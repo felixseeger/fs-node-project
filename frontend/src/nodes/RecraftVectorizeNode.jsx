@@ -9,7 +9,7 @@ import { CATEGORY_COLORS, sp, font, radius } from './nodeTokens';
 import { recraftVectorize } from '../utils/api';
 
 export default function RecraftVectorizeNode({ id, data, selected }) {
-  const { update } = useNodeConnections(id, data);
+  const { update, disconnectNode } = useNodeConnections(id, data);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
 
@@ -46,7 +46,7 @@ export default function RecraftVectorizeNode({ id, data, selected }) {
       dotColor={CATEGORY_COLORS.imageEditing}
       selected={selected}
       downloadUrl={data.outputImage || undefined}
-      downloadType="svg"
+      downloadType="svg" onDisconnect={disconnectNode}
     >
       <SectionHeader title="Input Image" />
       <div style={{ position: 'relative', marginBottom: sp[4] }}>

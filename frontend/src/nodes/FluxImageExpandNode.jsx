@@ -33,7 +33,7 @@ const PRESETS = [
 ];
 
 export default function FluxImageExpandNode({ id, data, selected }) {
-  const { update, conn, resolve } = useNodeConnections(id, data);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
 
   const localLeft = data.localLeft ?? 0;
   const localRight = data.localRight ?? 0;
@@ -105,7 +105,7 @@ export default function FluxImageExpandNode({ id, data, selected }) {
       dotColor={ACCENT}
       selected={selected}
       onGenerate={handleExpand}
-      isGenerating={isActive}
+      isGenerating={isActive} onDisconnect={disconnectNode}
     >
 
       {/* ── Image Output Handle (top) ── */}

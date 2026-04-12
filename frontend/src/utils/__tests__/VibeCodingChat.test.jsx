@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * VibeCodingChat Component Tests
  * Comprehensive test suite for AI chat interface and workflow generation
@@ -9,6 +10,9 @@ import '@testing-library/jest-dom';
 import VibeCodingChat from '../../components/VibeCodingChat';
 import { useStore } from '../../store';
 import { generateWorkflowFromPrompt } from '../aiWorkflowGenerator';
+
+window.HTMLElement.prototype.scrollIntoView = vi.fn();
+window.Element.prototype.scrollIntoView = vi.fn();
 
 // Mock the store
 vi.mock('../../store', () => ({
@@ -27,6 +31,11 @@ vi.mock('../aiWorkflowGenerator', () => ({
 describe('VibeCodingChat Component', () => {
   const mockOnClose = vi.fn();
 
+  beforeAll(() => {
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
+    window.Element.prototype.scrollIntoView = vi.fn();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -36,7 +45,7 @@ describe('VibeCodingChat Component', () => {
     
     expect(screen.getByText('🤖 Vibe Coding Assistant')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Describe your workflow...')).toBeInTheDocument();
-    expect(screen.getByText('Generate')).toBeInTheDocument();
+    expect(screen.getByText('Go')).toBeInTheDocument();
   });
 
   test('does not render when closed', () => {
@@ -62,15 +71,15 @@ describe('VibeCodingChat Component', () => {
   test('shows suggestion buttons', () => {
     render(<VibeCodingChat isOpen={true} onClose={mockOnClose} />);
     
-    expect(screen.getByText('Create a surreal landscape...')).toBeInTheDocument();
-    expect(screen.getByText('Generate a cyberpunk cityscape...')).toBeInTheDocument();
-    expect(screen.getByText('Design a fantasy character...')).toBeInTheDocument();
+    expect(screen.getByText('Create a surrea...')).toBeInTheDocument();
+    expect(screen.getByText('Generate a cybe...')).toBeInTheDocument();
+    expect(screen.getByText('Design a fantas...')).toBeInTheDocument();
   });
 
   test('handles suggestion clicks', () => {
     render(<VibeCodingChat isOpen={true} onClose={mockOnClose} />);
     
-    const suggestionButton = screen.getByText('Create a surreal landscape...');
+    const suggestionButton = screen.getByText('Create a surrea...');
     fireEvent.click(suggestionButton);
     
     const input = screen.getByPlaceholderText('Describe your workflow...');
@@ -87,7 +96,7 @@ describe('VibeCodingChat Component', () => {
     render(<VibeCodingChat isOpen={true} onClose={mockOnClose} />);
     
     const input = screen.getByPlaceholderText('Describe your workflow...');
-    const generateButton = screen.getByText('Generate');
+    const generateButton = screen.getByText('Go');
     
     fireEvent.change(input, { target: { value: 'Test workflow' } });
     fireEvent.click(generateButton);
@@ -109,7 +118,7 @@ describe('VibeCodingChat Component', () => {
     render(<VibeCodingChat isOpen={true} onClose={mockOnClose} />);
     
     const input = screen.getByPlaceholderText('Describe your workflow...');
-    const generateButton = screen.getByText('Generate');
+    const generateButton = screen.getByText('Go');
     
     fireEvent.change(input, { target: { value: 'Invalid request' } });
     fireEvent.click(generateButton);
@@ -123,7 +132,7 @@ describe('VibeCodingChat Component', () => {
   test('disables generate button when input is empty', () => {
     render(<VibeCodingChat isOpen={true} onClose={mockOnClose} />);
     
-    const generateButton = screen.getByText('Generate');
+    const generateButton = screen.getByText('Go');
     expect(generateButton).toBeDisabled();
   });
 
@@ -143,7 +152,7 @@ describe('VibeCodingChat Component', () => {
     
     const input = screen.getByPlaceholderText('Describe your workflow...');
     fireEvent.change(input, { target: { value: 'Test' } });
-    fireEvent.click(screen.getByText('Generate'));
+    fireEvent.click(screen.getByText('Go'));
 
     await waitFor(() => {
       expect(screen.getByText('Failed to generate workflow. Please try again.')).toBeInTheDocument();

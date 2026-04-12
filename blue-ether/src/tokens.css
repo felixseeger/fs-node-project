@@ -2,6 +2,7 @@
  * Blue Ether — design tokens (edit here first; Storybook hot-reloads).
  */
 :root {
+  /* ── Core Backgrounds ── */
   --be-color-bg: #0b0f14;
   --be-color-surface: #121a24;
   --be-color-border: #243042;
@@ -11,25 +12,112 @@
   --be-color-accent-hover: #5ca3ff;
   --be-color-accent-muted: rgba(61, 139, 253, 0.15);
 
-  --be-radius-sm: 6px;
-  --be-radius-md: 10px;
+  /* ── Category accent colors ── */
+  --be-category-imageGeneration: #ffd27f;
+  --be-category-imageEditing: #ffd27f;
+  --be-category-videoGeneration: #5ee7df;
+  --be-category-videoEditing: #5ee7df;
+  --be-category-vision: #b490f5;
+  --be-category-utility: #3b82f6;
+  --be-category-input: rgba(255, 255, 255, 0.35);
 
+  /* ── Surface colors ── */
+  --be-surface-base: rgba(255, 255, 255, 0.08);
+  --be-surface-sunken: rgba(0, 0, 0, 0.2);
+  --be-surface-deep: rgba(0, 0, 0, 0.4);
+  --be-surface-raised: rgba(255, 255, 255, 0.15);
+  --be-surface-canvas: #0b0e1a;
+
+  /* ── Border colors ── */
+  --be-border-subtle: rgba(255, 255, 255, 0.12);
+  --be-border-default: rgba(255, 255, 255, 0.16);
+  --be-border-hover: rgba(255, 255, 255, 0.25);
+  --be-border-active: #3b82f6;
+  --be-border-input: rgba(255, 255, 255, 0.12);
+
+  /* ── Shared control chrome ── */
+  --be-control-pillInactiveBg: rgba(255, 255, 255, 0.03);
+  --be-control-pillInactiveBorder: rgba(255, 255, 255, 0.08);
+  --be-control-pillInactiveText: rgba(255, 255, 255, 0.4);
+  --be-control-pillHoverBg: rgba(255, 255, 255, 0.06);
+  --be-control-pillHoverBorder: rgba(255, 255, 255, 0.15);
+  --be-control-toggleTrackOff: rgba(255, 255, 255, 0.1);
+  --be-control-toggleKnobOff: rgba(255, 255, 255, 0.4);
+  --be-control-toggleInsetShadow: inset 0 1px 4px rgba(0, 0, 0, 0.2);
+  --be-control-knobShadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --be-control-sliderTrackInactive: rgba(255, 255, 255, 0.1);
+  --be-control-labelSoft: rgba(255, 255, 255, 0.7);
+
+  /* ── Text colors ── */
+  --be-text-primary: #ffffff;
+  --be-text-secondary: rgba(255, 255, 255, 0.55);
+  --be-text-muted: rgba(255, 255, 255, 0.35);
+  --be-text-accent: #3b82f6;
+  --be-text-error: #f87171;
+  --be-text-success: #a8f08a;
+
+  /* ── Semantic UI colors ── */
+  --be-ui-link: #3b82f6;
+  --be-ui-linkBg: rgba(59, 130, 246, 0.1);
+  --be-ui-linkBorder: rgba(59, 130, 246, 0.25);
+  --be-ui-linkText: #93b4f5;
+  --be-ui-error: #ef4444;
+  --be-ui-errorBg: rgba(239, 68, 68, 0.15);
+  --be-ui-errorBorder: rgba(239, 68, 68, 0.3);
+  --be-ui-success: #22c55e;
+
+  /* ── AI Core Colors ── */
+  --be-gradient-ai: conic-gradient(from 180deg, #3b82f6, #a855f7, #ec4899, #a855f7, #3b82f6);
+
+  /* ── Spacing scale ── */
+  --be-space-0: 0px;
+  --be-space-1: 4px;
+  --be-space-2: 8px;
+  --be-space-3: 12px;
+  --be-space-4: 16px;
+  --be-space-5: 20px;
+  --be-space-6: 24px;
+  --be-space-7: 28px;
+  --be-space-8: 32px;
+  --be-space-9: 36px;
   --be-space-xs: 4px;
   --be-space-sm: 8px;
   --be-space-md: 16px;
   --be-space-lg: 24px;
 
-  --be-font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    sans-serif;
-  --be-font-size-sm: 0.8125rem;
-  --be-font-size-md: 0.9375rem;
+  /* ── Typography ── */
+  --be-font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --be-font-size-xs: 12px;
+  --be-font-size-sm: 12px;
+  --be-font-size-md: 13px;
+  --be-font-size-lg: 14px;
+  --be-font-size-xl: 16px;
 
+  /* ── Border radius ── */
+  --be-radius-sm: 4px;
+  --be-radius-md: 6px;
+  --be-radius-lg: 8px;
+  --be-radius-pill: 14px;
+  --be-radius-full: 50%;
+
+  /* ── Shadows ── */
   --be-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --be-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --be-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+  --be-shadow-accent: 0 4px 20px rgba(61, 139, 253, 0.4);
+  --be-shadow-success: 0 0 8px rgba(34, 197, 94, 0.4);
 
-  /* CRT chromatic aberration (e.g. avatar initials) */
+  /* ── CRT Effects ── */
   --pink: #f472b6;
   --darker-cyan: #0e7490;
-
-  /* CRT animated scanlines (Avatar / full-screen overlays); override per context */
   --scanline-color: rgba(0, 0, 0, 0.16);
+}
+
+/* ── Responsive Viewports ── */
+@media (max-width: 768px) {
+  :root {
+    --be-space-md: 12px;
+    --be-space-lg: 16px;
+    --be-font-size-md: 14px; /* Slightly larger base touch targets */
+  }
 }

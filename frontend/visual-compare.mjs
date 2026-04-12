@@ -7,62 +7,29 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const REFERENCE_PATH = '/Users/felixseeger/Downloads/b2b.jpg';
+const REFERENCE_PATH = path.join(__dirname, 'visual-diff-output', 'reference.png');
 const OUTPUT_DIR = path.join(__dirname, 'visual-diff-output');
 
 async function run() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
+  if (!fs.existsSync(REFERENCE_PATH)) {
+    console.log('No reference image found. Please place a reference.png in visual-diff-output.');
+    process.exit(0);
+  }
+
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   await page.setViewportSize({ width: 1280, height: 900 });
 
-  // Convert reference JPG to PNG
+  // Use the PNG directly
   console.log('Loading reference image...');
-  const refBuffer = fs.readFileSync(REFERENCE_PATH);
-  const refPngPath = path.join(OUTPUT_DIR, 'reference.png');
-
-  await page.goto('about:blank');
-  await page.setContent(`
-    <html><body style="margin:0;padding:0;background:#000;">
-      <canvas id="c"></canvas>
-      <img id="img" src="data:image/jpeg;base64,${refBuffer.toString('base64')}" />
-    </body></html>
-  `);
-
-  await page.waitForSelector('#img');
-  await page.evaluate(() => {
-    return new Promise((resolve) => {
-      const img = document.getElementById('img');
-      if (img.complete) {
-        const c = document.getElementById('c');
-        c.width = img.naturalWidth;
-        c.height = img.naturalHeight;
-        c.getContext('2d').drawImage(img, 0, 0);
-        resolve();
-      } else {
-        img.onload = () => {
-          const c = document.getElementById('c');
-          c.width = img.naturalWidth;
-          c.height = img.naturalHeight;
-          c.getContext('2d').drawImage(img, 0, 0);
-          resolve();
-        };
-      }
-    });
-  });
-
-  const refDataUrl = await page.evaluate(() => {
-    return document.getElementById('c').toDataURL('image/png');
-  });
-  const refPngBuffer = Buffer.from(refDataUrl.split(',')[1], 'base64');
-  fs.writeFileSync(refPngPath, refPngBuffer);
-  console.log('Reference converted to PNG');
+  const refPngPath = REFERENCE_PATH;
 
   // Capture screenshot
   console.log('Navigating to http://localhost:5173/ ...');
-  await page.goto('http://localhost:5173/', { waitUntil: 'networkidle', timeout: 15000 });
-  await page.waitForTimeout(2000);
+  await page.goto('http://localhost:5173/', { waitUntil: 'domcontentloaded', timeout: 15000 });
+  await page.waitForTimeout(5000); // Give the app some time to render
 
   const screenshotPath = path.join(OUTPUT_DIR, 'current.png');
   await page.screenshot({ path: screenshotPath, fullPage: false });

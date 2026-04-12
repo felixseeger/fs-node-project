@@ -31,8 +31,8 @@
     "react-redux": "^9.2.0"
   },
   "devDependencies": {
-    "@storybook/addon-docs": "^10.1.11",
-    "@storybook/react-vite": "^10.1.11",
+    "@storybook/addon-docs": "^8.6.15",
+    "@storybook/react-vite": "^8.6.15",
     "@storybook/test": "^8.6.15",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.5",
@@ -41,7 +41,7 @@
     "@xyflow/react": "^12.10.2",
     "framer-motion": "^12.38.0",
     "gsap": "^3.14.2",
-    "storybook": "^10.1.11",
+    "storybook": "^8.6.15",
     "typescript": "~5.9.3",
     "vite": "^7.2.4"
   }

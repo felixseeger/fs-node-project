@@ -21,7 +21,7 @@ import { pixVerseSoundEffect, pollPixVerseVideoStatus } from '../utils/api';
 const ACCENT = CATEGORY_COLORS.audioGeneration;
 
 export default function PixVerseSoundEffectNode({ id, data, selected }) {
-  const { update, conn, resolve } = useNodeConnections(id, data);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
   const { progress, status, message, start, setProgress, complete, fail, isActive } = useNodeProgress();
 
   const videoConnection = conn('video-in');
@@ -123,7 +123,7 @@ export default function PixVerseSoundEffectNode({ id, data, selected }) {
       onGenerate={handleGenerate}
       isGenerating={data.isLoading}
       downloadUrl={data.outputVideo || undefined}
-      downloadType="video"
+      downloadType="video" onDisconnect={disconnectNode}
     >
       {/* Video Input */}
       <SectionHeader

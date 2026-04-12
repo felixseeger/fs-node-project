@@ -31,7 +31,7 @@ const OPTIMIZED_FOR = [
 
 export default function SkinEnhancerNode({ id, data, selected }) {
   const { start, complete, fail } = useNodeProgress('skin-enhancer');
-  const { update, conn, resolve } = useNodeConnections(id, data);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
 
   const localMode = data.localMode || 'faithful';
   const localSharpen = data.localSharpen ?? 0;
@@ -106,7 +106,7 @@ export default function SkinEnhancerNode({ id, data, selected }) {
   const ACCENT = '#e879f9';
 
   return (
-    <NodeShell data={data} label={data.label || 'Skin Enhancer'} dotColor={ACCENT} selected={selected} onGenerate={handleEnhance} isGenerating={data.isLoading} downloadUrl={data.outputImage || undefined}>
+    <NodeShell data={data} label={data.label || 'Skin Enhancer'} dotColor={ACCENT} selected={selected} onGenerate={handleEnhance} isGenerating={data.isLoading} downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
 
       {/* ── 1. Image ── */}

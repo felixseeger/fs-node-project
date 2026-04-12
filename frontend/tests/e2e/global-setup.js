@@ -31,7 +31,7 @@ export default async function globalSetup(config) {
         try {
           await page.click('text=Sign in', { timeout: 2000 });
           await page.waitForTimeout(1000);
-        } catch(e) {}
+        } catch(e) { /* ignore */ }
       }
       
       // Fill the login form

@@ -40,7 +40,7 @@ const ASPECT_RATIOS = [
 
 export default function FluxReimagineNode({ id, data, selected }) {
   const { isActive, start, complete, fail, progress, status, message } = useNodeProgress();
-  const { update, conn, resolve } = useNodeConnections(id, data);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
 
   const localImagination = data.localImagination || 'vivid';
   const localAspect = data.localAspect || 'original';
@@ -105,7 +105,7 @@ export default function FluxReimagineNode({ id, data, selected }) {
   const ACCENT = '#10b981';
 
   return (
-    <NodeShell data={data} label={data.label || 'Flux Reimagine'} dotColor={ACCENT} selected={selected} onGenerate={handleReimagine} isGenerating={isActive} downloadUrl={data.outputImage || undefined}>
+    <NodeShell data={data} label={data.label || 'Flux Reimagine'} dotColor={ACCENT} selected={selected} onGenerate={handleReimagine} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
       <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />
 

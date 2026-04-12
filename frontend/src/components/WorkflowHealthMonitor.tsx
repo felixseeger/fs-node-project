@@ -1,80 +1,77 @@
-import React, { useState, useEffect } from 'react';
-import { useReactFlow } from '@xyflow/react';
+import React, { useState, useMemo } from 'react';
+import { useNodes, useEdges } from '@xyflow/react';
 
 interface HealthIssue {
   id: string;
   type: 'error' | 'warning' | 'info';
   message: string;
   nodeId?: string;
+  action?: {
+    label: string;
+    handler: (issue: HealthIssue) => void;
+  };
 }
 
-export const WorkflowHealthMonitor: React.FC = () => {
-  const { getNodes, getEdges } = useReactFlow();
-  const [issues, setIssues] = useState<HealthIssue[]>([]);
+export const WorkflowHealthMonitor: React.FC<{ onAutoFix?: (nodeId: string, issueId: string) => void }> = ({ onAutoFix }) => {
+  const nodes = useNodes();
+  const edges = useEdges();
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    // Basic polling or could be hooked up to ReactFlow's onNodesChange
-    const interval = setInterval(() => {
-      const nodes = getNodes();
-      const edges = getEdges();
-      const newIssues: HealthIssue[] = [];
+  const issues = useMemo(() => {
+    const newIssues: HealthIssue[] = [];
 
-      nodes.forEach(node => {
-        // Example check: check if the node has empty required inputs
-        // This relies on knowing the node schema, but we can do simple heuristics
-        const data = node.data as any;
-        if (data?.inputs) {
-          data.inputs.forEach((input: any) => {
-            if (input.required) {
-              const hasConnection = edges.some(
-                e => e.target === node.id && e.targetHandle === input.id
-              );
-              if (!hasConnection) {
-                newIssues.push({
-                  id: `missing-input-${node.id}-${input.id}`,
-                  type: 'error',
-                  message: `Missing required input '${input.label || input.id}' on node '${data.label || node.id}'`,
-                  nodeId: node.id
-                });
-              }
+    nodes.forEach(node => {
+      const data = node.data as any;
+      
+      // Check for missing required inputs
+      if (data?.inputs) {
+        data.inputs.forEach((input: any) => {
+          if (input.required) {
+            const hasConnection = edges.some(
+              e => e.target === node.id && e.targetHandle === input.id
+            );
+            if (!hasConnection) {
+              newIssues.push({
+                id: `missing-input-${node.id}-${input.id}`,
+                type: 'error',
+                message: `Missing required input '${input.label || input.id}' on node '${data.label || node.id}'`,
+                nodeId: node.id,
+                action: onAutoFix ? {
+                  label: 'Connect Source',
+                  handler: () => onAutoFix(node.id, input.id)
+                } : undefined
+              });
             }
-          });
-        }
+          }
+        });
+      }
 
-        // Example check: check for API keys if needed (heuristic)
-        if (data?.provider && data?.provider === 'openai' && !data?.apiKey) {
-          newIssues.push({
-            id: `missing-key-${node.id}`,
-            type: 'warning',
-            message: `Node '${data.label || node.id}' might need an API key configured`,
-            nodeId: node.id
-          });
-        }
-        
-        // Example check: mismatched resolutions (image -> video)
-        // If an image node outputs 1024x1024 but the video node expects 16:9, we could warn.
-        // For now, let's keep it generic.
-      });
+      // Check for missing API keys (heuristic)
+      if (data?.provider && data?.provider === 'openai' && !data?.apiKey) {
+        newIssues.push({
+          id: `missing-key-${node.id}`,
+          type: 'warning',
+          message: `Node '${data.label || node.id}' might need an API key configured`,
+          nodeId: node.id
+        });
+      }
+    });
 
-      // Isolated nodes (no edges connected to them)
-      nodes.forEach(node => {
-        const isConnected = edges.some(e => e.source === node.id || e.target === node.id);
-        if (!isConnected && nodes.length > 1) {
-          newIssues.push({
-            id: `isolated-${node.id}`,
-            type: 'info',
-            message: `Node '${(node.data as any)?.label || node.id}' is disconnected`,
-            nodeId: node.id
-          });
-        }
-      });
+    // Check for isolated nodes
+    nodes.forEach(node => {
+      const isConnected = edges.some(e => e.source === node.id || e.target === node.id);
+      if (!isConnected && nodes.length > 1) {
+        newIssues.push({
+          id: `isolated-${node.id}`,
+          type: 'info',
+          message: `Node '${(node.data as any)?.label || node.id}' is disconnected`,
+          nodeId: node.id
+        });
+      }
+    });
 
-      setIssues(newIssues);
-    }, 2000); // Check every 2 seconds
-
-    return () => clearInterval(interval);
-  }, [getNodes, getEdges]);
+    return newIssues;
+  }, [nodes, edges]);
 
   const errors = issues.filter(i => i.type === 'error').length;
   const warnings = issues.filter(i => i.type === 'warning').length;
@@ -137,7 +134,30 @@ export const WorkflowHealthMonitor: React.FC = () => {
                   width: 8, height: 8, borderRadius: '50%', marginTop: 5, flexShrink: 0,
                   background: issue.type === 'error' ? '#ef4444' : issue.type === 'warning' ? '#f59e0b' : '#3b82f6'
                 }} />
-                <div style={{ color: '#ccc', lineHeight: 1.4 }}>{issue.message}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: '#ccc', lineHeight: 1.4 }}>{issue.message}</div>
+                  {issue.action && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        issue.action?.handler(issue);
+                      }}
+                      style={{
+                        marginTop: '6px',
+                        background: '#2563eb',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                        fontWeight: 600
+                      }}
+                    >
+                      {issue.action.label}
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

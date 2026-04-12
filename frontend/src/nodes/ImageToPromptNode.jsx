@@ -1,5 +1,6 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
+import { useNodeConnections } from './shared';
 import NodeShell from './NodeShell';
 import NodeProgress from './NodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
@@ -9,8 +10,9 @@ import ImageUploadBox from './ImageUploadBox';
 import useNodeProgress from '../hooks/useNodeProgress';
 
 export default function ImageToPromptNode({ id, data, selected }) {
+  const { onDisconnectNode } = useNodeConnections();
   const progress = useNodeProgress();
-
+  
   const update = useCallback(
     (patch) => data.onUpdate?.(id, patch),
     [id, data]
@@ -136,7 +138,7 @@ export default function ImageToPromptNode({ id, data, selected }) {
       dotColor={ACCENT}
       selected={selected}
       onGenerate={handleGenerate}
-      isGenerating={progress.isActive}
+      isGenerating={progress.isActive} onDisconnect={onDisconnectNode}
     >
 
       {/* ── Prompt Output Handle (top) ── */}

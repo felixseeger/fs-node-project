@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export interface GuideStep {
   targetSelector?: string;
@@ -52,7 +52,6 @@ export default function InteractiveStepGuide({
 }: InteractiveStepGuideProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;

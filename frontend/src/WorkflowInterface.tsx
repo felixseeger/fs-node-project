@@ -394,9 +394,9 @@ export const WorkflowInterface: FC<WorkflowInterfaceProps> = ({
           </button>
         </div>
       ) : (
-        <div style={styles.content}>
+        <div style={styles.content} className="workflow-interface-content">
           {/* Inputs Column */}
-          <div style={styles.column}>
+          <div style={styles.column} className="workflow-interface-column">
             <div style={styles.columnHeader}>
               <span style={styles.columnTitle}>INPUTS</span>
               <span style={styles.countBadge}>{inputPoints.length}</span>
@@ -460,10 +460,10 @@ export const WorkflowInterface: FC<WorkflowInterfaceProps> = ({
           </div>
 
           {/* Divider */}
-          <div style={styles.divider} />
+          <div style={styles.divider} className="workflow-interface-divider" />
 
           {/* Outputs Column */}
-          <div style={styles.column}>
+          <div style={styles.column} className="workflow-interface-column">
             <div style={styles.columnHeader}>
               <span style={styles.columnTitle}>OUTPUTS</span>
               <span style={styles.countBadge}>{outputPoints.length}</span>

@@ -21,6 +21,8 @@ import {
   getReadyNodes,
 } from './dependencyGraph';
 import { getExecutor, hasExecutor } from './executors';
+import { deductCredits } from '../services/billingService';
+import { getCostForOperation } from '../config/pricing';
 
 /** Default execution options */
 const DEFAULT_OPTIONS: Required<ExecutionOptions> = {

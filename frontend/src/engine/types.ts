@@ -58,6 +58,8 @@ export type NodeExecutor = (
 
 /** Execution options */
 export interface ExecutionOptions {
+  /** User ID for billing */
+  uid?: string;
   /** Maximum concurrent executions */
   maxConcurrency?: number;
   /** Enable parallel execution of independent nodes */

@@ -60,6 +60,7 @@ export function useProviderManager() {
       if (provider.apiKey) {
         initializedProviders[key] = {
           ...provider,
+          id: key,
           currentRequests: 0,
           lastUsed: null
         };
@@ -78,6 +79,34 @@ export function useProviderManager() {
     setProviderStats(stats);
     setIsInitialized(true);
   }, []);
+
+  // Auto-initialize on mount
+    useEffect(() => {
+    if (!isInitialized) {
+      // eslint-disable-next-line
+      initialize();
+    }
+  }, [isInitialized, initialize]);
+
+  /**
+   * Select a provider based on capability and preferences
+   */
+  const selectProvider = useCallback((capability, preferences = []) => {
+    const availableProviders = activeProviders
+      .filter(id => providers[id].capabilities.includes(capability))
+      .sort((a, b) => {
+        // Sort by preference first
+        const aPrefIndex = preferences.indexOf(a);
+        const bPrefIndex = preferences.indexOf(b);
+        if (aPrefIndex !== -1 && bPrefIndex !== -1) return aPrefIndex - bPrefIndex;
+        if (aPrefIndex !== -1) return -1;
+        if (bPrefIndex !== -1) return 1;
+        
+        return 0; // Or add load balancing logic here
+      });
+
+    return availableProviders.length > 0 ? providers[availableProviders[0]] : null;
+  }, [providers, activeProviders]);
 
   /**
    * Update provider status and statistics
@@ -212,6 +241,7 @@ export function useProviderManager() {
     providerStats,
     isInitialized,
     initialize,
+    selectProvider,
     makeRequest,
     checkProviderHealth,
     getProviderStats,
@@ -236,4 +266,13 @@ export async function withProviderManagement(capability, requestFn, options = {}
   }
 
   return requestFn(provider);
+}
+
+/**
+ * Get all providers that support a specific capability
+ */
+export function getProvidersForCapability(capability) {
+  return Object.entries(PROVIDER_CONFIG)
+    .filter(([_, provider]) => provider.apiKey && provider.capabilities.includes(capability))
+    .map(([id, provider]) => ({ id, ...provider }));
 }

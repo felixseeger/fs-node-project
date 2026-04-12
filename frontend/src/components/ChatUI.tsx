@@ -69,6 +69,7 @@ interface ChatUIProps {
   onSetNodes?: (nodes: any[]) => void;
   onSetEdges?: (edges: any[]) => void;
   onImportWorkflow?: (workflow: { name?: string; nodes: any[]; edges: any[] }) => void;
+  onMergeWorkflow?: (workflow: { name?: string; nodes: any[]; edges: any[] }) => void;
   onNotify?: (message: string, type: 'info' | 'success' | 'error' | 'warning') => void;
   externalMessages?: Message[];
   onStartNewConversation?: () => void;
@@ -94,6 +95,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
   onSetNodes,
   onSetEdges,
   onImportWorkflow,
+  onMergeWorkflow,
   onNotify,
   externalMessages,
   onStartNewConversation,
@@ -470,35 +472,63 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
         return (
           <div key={i} style={{ marginTop: 12, marginBottom: 12, padding: 12, background: '#111', borderRadius: 8, border: '1px solid #333' }}>
             <div style={{ fontSize: 11, color: '#aaa', marginBottom: 8 }}>✨ AI Generated Workflow</div>
-            <button 
-              aria-label="Import generated workflow"
-              className="nodrag nopan"
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => {
-                try {
-                  const nodes = part.data.nodes || part.data;
-                  const edges = part.data.edges || [];
-                  const name = part.data.name || 'AI Generated Workflow';
-                  if (Array.isArray(nodes)) {
-                    if (onImportWorkflow) {
-                      onImportWorkflow({ name, nodes, edges });
+            <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
+              <button 
+                aria-label="Import generated workflow"
+                className="nodrag nopan"
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => {
+                  try {
+                    const nodes = part.data.nodes || part.data;
+                    const edges = part.data.edges || [];
+                    const name = part.data.name || 'AI Generated Workflow';
+                    if (Array.isArray(nodes)) {
+                      if (onImportWorkflow) {
+                        onImportWorkflow({ name, nodes, edges });
+                      } else {
+                        onSetNodes?.(nodes); 
+                        onSetEdges?.(edges);
+                      }
+                      notifyUser(`Imported ${nodes.length} nodes as new workflow`, 'success');
                     } else {
-                      onSetNodes?.(nodes); 
-                      onSetEdges?.(edges);
+                      notifyUser('Invalid workflow data in message', 'error');
                     }
-                    notifyUser(`Imported ${nodes.length} nodes to canvas`, 'success');
-                  } else {
-                    notifyUser('Invalid workflow data in message', 'error');
+                  } catch (e) {
+                    notifyUser('Failed to import workflow from message', 'error');
                   }
-                } catch (e) {
-                  notifyUser('Failed to import workflow from message', 'error');
-                }
-              }} 
-              style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
-            >              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Import Workflow to Canvas
-            </button>
+                }} 
+                style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
+              >              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Create New Workflow
+              </button>
+              <button 
+                aria-label="Merge into current canvas"
+                className="nodrag nopan"
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => {
+                  try {
+                    const nodes = part.data.nodes || part.data;
+                    const edges = part.data.edges || [];
+                    const name = part.data.name || 'AI Generated Workflow';
+                    if (Array.isArray(nodes)) {
+                      if (onMergeWorkflow) {
+                        onMergeWorkflow({ name, nodes, edges });
+                      }
+                      notifyUser(`Merged ${nodes.length} nodes into canvas`, 'success');
+                    } else {
+                      notifyUser('Invalid workflow data in message', 'error');
+                    }
+                  } catch (e) {
+                    notifyUser('Failed to merge workflow from message', 'error');
+                  }
+                }} 
+                style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
+              >              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                Add to Current Canvas
+              </button>
+            </div>
           </div>
         );
       if (part.type === 'canvas_actions')

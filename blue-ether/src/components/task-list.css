@@ -33,16 +33,17 @@
   height: 0.85em;
   transform: translate3d(-50%, -50%, 0);
   background: transparent;
-  box-shadow: #2cc5d2 0 0 0 1px inset;
+  box-shadow: var(--be-color-accent) 0 0 0 1px inset;
   content: "";
   display: block;
+  border-radius: 2px;
 }
 
 .checkbox input[type="checkbox"]:checked + .checkbox-custom::before {
   box-shadow: none;
-  background-color: #2cc5d2;
+  background-color: var(--be-color-accent);
   color: #fff;
-  font-family: "Nunito Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: var(--be-font-sans);
   font-weight: 800;
   font-size: 12px;
   line-height: 0.85em;
@@ -59,8 +60,11 @@
   flex-wrap: wrap;
   height: 3rem;
   width: 100%;
-  background: white;
+  background: var(--be-glass-bg);
+  backdrop-filter: blur(var(--be-glass-blur));
+  -webkit-backdrop-filter: blur(var(--be-glass-blur));
   transition: all ease-out 150ms;
+  border-bottom: 1px solid var(--be-glass-border);
 }
 
 .list-item .title {
@@ -68,16 +72,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+  display: flex;
+  align-items: center;
 }
 
 .list-item input[type="text"] {
   background: transparent;
   width: 100%;
   border: none;
-  font-size: 14px;
+  font-size: var(--be-font-size-md);
   line-height: 20px;
-  font-family: "Nunito Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  color: #333;
+  font-family: var(--be-font-sans);
+  color: var(--be-color-text);
   outline: none;
 }
 
@@ -92,48 +98,42 @@
   border: none;
   text-align: center;
   transition: all 200ms ease-in;
-  color: #eee;
+  color: var(--be-color-text-muted);
   font-size: 16px;
   line-height: 3rem;
   outline: none;
+  cursor: pointer;
 }
 
 .pin-button:hover {
-  color: #2cc5d2;
+  color: var(--be-color-accent);
 }
 
 .pin-button:focus {
   outline-color: transparent;
 }
 
-.pin-button:active {
-  color: #555;
-}
-
 .list-item.TASK_PINNED .icon-star::before {
-  color: #2cc5d2;
+  color: var(--be-color-accent);
 }
 
 .list-item.TASK_ARCHIVED input[type="text"] {
-  color: #a0aec0;
+  color: var(--be-color-text-muted);
   text-decoration: line-through;
+  opacity: 0.6;
 }
 
 .list-item:hover {
-  background-image: linear-gradient(to bottom, #e5f9f7 0%, #f0fffd 100%);
+  background: var(--be-glass-bg-hover);
 }
 
 .list-item:hover .checkbox {
   cursor: pointer;
 }
 
-.list-item + .list-item {
-  border-top: 1px solid #f0f9fb;
-}
-
 .icon-star::before {
   content: "★";
-  font-family: "Nunito Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: var(--be-font-sans);
   font-style: normal;
   font-weight: 800;
   line-height: 1;
@@ -142,20 +142,22 @@
 .loading-item {
   height: 3rem;
   width: 100%;
-  background: white;
+  background: var(--be-glass-bg);
   display: flex;
   align-items: center;
   line-height: 1rem;
   padding-left: 16px;
+  border-bottom: 1px solid var(--be-glass-border);
 }
 
 .loading-item .glow-checkbox,
 .loading-item .glow-text span {
   animation: glow 1.5s ease-in-out infinite;
-  background: #eee;
+  background: var(--be-color-border);
   color: transparent;
   cursor: progress;
   display: inline-block;
+  border-radius: 2px;
 }
 
 .loading-item .glow-checkbox {
@@ -164,14 +166,13 @@
   height: 12px;
 }
 
-.loading-item + .loading-item {
-  border-top: 1px solid #f0f9fb;
-}
-
 .list-items {
   position: relative;
-  background: white;
+  background: var(--be-color-bg);
   min-height: 288px;
+  border: 1px solid var(--be-color-border);
+  border-radius: var(--be-radius-md);
+  overflow: hidden;
 }
 
 .wrapper-message {
@@ -190,22 +191,22 @@
   content: "✓";
   font-size: 48px;
   line-height: 56px;
-  color: #2cc5d2;
+  color: var(--be-color-accent);
   display: block;
   font-weight: 800;
-  font-family: "Nunito Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: var(--be-font-sans);
 }
 
 .wrapper-message .title-message {
   font-size: 16px;
   line-height: 24px;
-  font-family: "Nunito Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: var(--be-font-sans);
   font-weight: 800;
-  color: #4a5568;
+  color: var(--be-color-text);
 }
 
 .wrapper-message .subtitle-message {
   font-size: 14px;
   line-height: 20px;
-  color: #4a5568;
+  color: var(--be-color-text-muted);
 }

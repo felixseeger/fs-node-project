@@ -26,7 +26,7 @@ import useNodeProgress from '../hooks/useNodeProgress';
 
 export default function TextToIconNode({ id, data, selected }) {
   const { isActive, start, complete, fail } = useNodeProgress();
-  const { update, conn, resolve } = useNodeConnections(id, data);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
 
   const localNumInferenceSteps = data.localNumInferenceSteps ?? 25;
   const localGuidanceScale = data.localGuidanceScale ?? 7.5;
@@ -97,7 +97,7 @@ export default function TextToIconNode({ id, data, selected }) {
   const ACCENT = CATEGORY_COLORS.imageGeneration;
 
   return (
-    <NodeShell data={data} label={data.label || 'Text to Icon'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive} downloadUrl={data.outputImage || undefined}>
+    <NodeShell data={data} label={data.label || 'Text to Icon'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
 
       {/* ── 1. Prompt ── */}

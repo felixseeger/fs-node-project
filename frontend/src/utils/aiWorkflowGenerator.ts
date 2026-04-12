@@ -126,7 +126,7 @@ function generateImageWorkflow(analysis: PromptAnalysis, providers: string[], co
     data: {
       id: `node-input-${Date.now()}`,
       label: 'Input Parameters',
-      prompt: `Generate a ${analysis.style} ${analysis.subject} with ${analysis.parameters.colors || 'appropriate'} colors`,
+      prompt: `Generate a ${analysis.style} ${analysis.subject} with ${analysis.parameters.colors || 'appropriate'} colors and ${analysis.parameters.mood || 'neutral'} mood`,
       aspectRatio: '16:9',
       resolution: '1024x1024'
     } as any

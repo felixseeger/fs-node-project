@@ -1,4 +1,5 @@
-import type { ButtonHTMLAttributes, CSSProperties } from "react";
+import { motion } from "framer-motion";
+import type { ButtonHTMLAttributes } from "react";
 
 export type ButtonVariant = "primary" | "secondary";
 
@@ -6,31 +7,6 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
   /** CRT scanlines + chromatic label; off by default */
   crt?: boolean;
-};
-
-const base: CSSProperties = {
-  fontFamily: "var(--be-font-sans)",
-  fontSize: "var(--be-font-size-md)",
-  fontWeight: 600,
-  lineHeight: 1.25,
-  padding: "var(--be-space-sm) var(--be-space-md)",
-  borderRadius: "var(--be-radius-sm)",
-  border: "1px solid transparent",
-  cursor: "pointer",
-  transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
-};
-
-const variants: Record<ButtonVariant, CSSProperties> = {
-  primary: {
-    background: "var(--be-color-accent)",
-    color: "#fff",
-    boxShadow: "var(--be-shadow-sm)",
-  },
-  secondary: {
-    background: "var(--be-color-surface)",
-    color: "var(--be-color-text)",
-    borderColor: "var(--be-color-border)",
-  },
 };
 
 const crtLabelShadow =
@@ -46,16 +22,43 @@ export function Button({
 }: ButtonProps) {
   const isPrimary = variant === "primary";
 
+  const variantStyle = isPrimary 
+    ? {
+        background: "var(--be-color-accent)",
+        color: "#fff",
+        boxShadow: "var(--be-shadow-sm)",
+      }
+    : {
+        background: "var(--be-glass-bg)",
+        color: "var(--be-color-text)",
+        borderColor: "var(--be-glass-border)",
+        backdropFilter: "blur(var(--be-glass-blur))",
+        WebkitBackdropFilter: "blur(var(--be-glass-blur))",
+      };
+
   return (
-    <button
+    <motion.button
+      whileHover={{ 
+        scale: 1.02, 
+        backgroundColor: isPrimary ? "var(--be-color-accent-hover)" : "var(--be-glass-bg-hover)" 
+      }}
+      whileTap={{ scale: 0.98 }}
       type={type}
       style={{
-        ...base,
-        ...variants[variant],
+        fontFamily: "var(--be-font-sans)",
+        fontSize: "var(--be-font-size-md)",
+        fontWeight: 600,
+        lineHeight: 1.25,
+        padding: "var(--be-space-sm) var(--be-space-md)",
+        borderRadius: "var(--be-radius-sm)",
+        border: "1px solid transparent",
+        cursor: "pointer",
+        transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
+        ...variantStyle,
         ...(crt ? { position: "relative", overflow: "hidden" } : {}),
         ...style,
-      }}
-      {...rest}
+      } as any}
+      {...(rest as any)}
     >
       {crt ? (
         <span
@@ -100,6 +103,6 @@ export function Button({
           }}
         />
       ) : null}
-    </button>
+    </motion.button>
   );
 }

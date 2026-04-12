@@ -32,7 +32,7 @@ const FLAVORS = [
 
 export default function PrecisionUpScaleNode({ id, data, selected }) {
   const { isActive, start, complete, fail } = useNodeProgress();
-  const { update, conn, resolve } = useNodeConnections(id, data);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
 
   const localScale = data.localScaleFactor || '4';
   const localFlavor = data.localFlavor || '';
@@ -128,7 +128,7 @@ export default function PrecisionUpScaleNode({ id, data, selected }) {
       selected={selected}
       onGenerate={handleUpscale}
       isGenerating={isActive}
-      downloadUrl={data.outputImage || undefined}
+      downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}
     >
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
 

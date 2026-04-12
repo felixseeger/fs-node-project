@@ -1,31 +1,14 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
-import {
-  NodeShell,
-  SectionHeader,
-  ConnectedOrLocal,
-  PromptInput,
-  Pill,
-  Slider,
-  Toggle,
-  OutputHandle,
-  OutputPreview,
-  useNodeConnections,
-  CATEGORY_COLORS,
-  getHandleColor,
-  sp,
-  font,
-  text,
-  surface,
-  border,
-  radius,
-} from './shared';
+import { useNodeConnections } from './shared';
+import { getHandleColor } from '../utils/handleTypes';
 import { relightImage, pollRelightStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
 import NodeProgress from './NodeProgress';
 import useNodeProgress from '../hooks/useNodeProgress';
+
 
 const STYLES = [
   { value: 'standard', label: 'Standard' },
@@ -72,6 +55,7 @@ const TRANSFER_B = [
 ];
 
 export default function RelightNode({ id, data, selected }) {
+  const { onDisconnectNode } = useNodeConnections();
   const { isActive, start, complete, fail } = useNodeProgress();
   const { update, conn, resolve } = useNodeConnections(id, data);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -200,7 +184,7 @@ export default function RelightNode({ id, data, selected }) {
   const ACCENT = '#f59e0b';
 
   return (
-    <NodeShell data={data} label={data.label || 'Relight'} dotColor={ACCENT} selected={selected} onGenerate={handleRelight} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}>
+    <NodeShell data={data} label={data.label || 'Relight'} dotColor={ACCENT} selected={selected} onGenerate={handleRelight} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={onDisconnectNode}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
       <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />
 

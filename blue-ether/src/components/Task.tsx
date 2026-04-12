@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import type { TaskData } from "../types";
 
 import "./task-list.css";
@@ -14,7 +15,14 @@ export default function Task({
   onPinTask,
 }: TaskProps) {
   return (
-    <div className={`list-item ${state}`}>
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
+      className={`list-item ${state}`}
+    >
       <label
         htmlFor={`archiveTask-${id}`}
         aria-label={`archiveTask-${id}`}
@@ -41,7 +49,9 @@ export default function Task({
         />
       </label>
       {state !== "TASK_ARCHIVED" && (
-        <button
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
           type="button"
           className="pin-button"
           onClick={() => onPinTask(id)}
@@ -49,8 +59,8 @@ export default function Task({
           aria-label={`pinTask-${id}`}
         >
           <span className="icon-star" aria-hidden />
-        </button>
+        </motion.button>
       )}
-    </div>
+    </motion.div>
   );
 }

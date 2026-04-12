@@ -1,5 +1,6 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
+import { useNodeConnections } from './shared';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { soundEffectsGenerate, pollSoundEffectsStatus } from '../utils/api';
@@ -7,7 +8,9 @@ import ImprovePromptButton from './ImprovePromptButton';
 import NodeProgress from './NodeProgress';
 import useNodeProgress from '../hooks/useNodeProgress';
 
+
 export default function SoundEffectsNode({ id, data, selected }) {
+  const { onDisconnectNode } = useNodeConnections();
   const { isActive, progress, start, fail, complete } = useNodeProgress({
     mode: 'poll',
   });
@@ -172,7 +175,7 @@ export default function SoundEffectsNode({ id, data, selected }) {
       dotColor={ACCENT} 
       selected={selected}
       onGenerate={handleGenerate}
-      isGenerating={isActive}
+      isGenerating={isActive} onDisconnect={onDisconnectNode}
     >
 
       {/* ── Audio Output Handle (top) ── */}

@@ -35,7 +35,7 @@ export const test = base.extend({
       await page.waitForSelector('.slp-ready', { timeout: 15000 });
       await page.click('.slp-ready', { timeout: 3000 });
       await page.waitForTimeout(1000);
-    } catch(e) {}
+    } catch(e) { /* ignore */ }
     
     // Verify dashboard
     await page.getByTestId('new-project-btn').waitFor({ state: 'visible', timeout: 10000 });

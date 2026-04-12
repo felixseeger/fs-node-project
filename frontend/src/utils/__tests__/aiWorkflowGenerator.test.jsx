@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * AI Workflow Generator Tests
  * Comprehensive test suite for prompt analysis and workflow generation
@@ -6,14 +7,6 @@
 import { generateWorkflowFromPrompt } from '../aiWorkflowGenerator';
 
 describe('AI Workflow Generator', () => {
-  // Mock timer for faster tests
-  beforeAll(() => {
-    vi.useFakeTimers();
-  });
-
-  afterAll(() => {
-    vi.useRealTimers();
-  });
 
   describe('generateWorkflowFromPrompt', () => {
     test('generates image workflow for image-related prompts', async () => {

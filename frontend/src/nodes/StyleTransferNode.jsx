@@ -1,24 +1,16 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
-import {
-  NodeShell,
-  SectionHeader,
-  ConnectedOrLocal,
-  PromptInput,
-  Slider,
-  OutputHandle,
-  OutputPreview,
-  useNodeConnections,
-  CATEGORY_COLORS,
-  getHandleColor,
-} from './shared';
+import { useNodeConnections, CATEGORY_COLORS } from './shared';
+import { getHandleColor } from '../utils/handleTypes';
 import { styleTransfer, pollStyleTransferStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
 import useNodeProgress from '../hooks/useNodeProgress';
 
+
 export default function StyleTransferNode({ id, data, selected }) {
+  const { onDisconnectNode } = useNodeConnections();
   const { isActive, start, complete, fail } = useNodeProgress();
   const { update, conn, resolve } = useNodeConnections(id, data);
 
@@ -100,7 +92,7 @@ export default function StyleTransferNode({ id, data, selected }) {
   const ACCENT = CATEGORY_COLORS.imageEditing;
 
   return (
-    <NodeShell data={data} label={data.label || 'Style Transfer'} dotColor={ACCENT} selected={selected} onGenerate={handleTransfer} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}>
+    <NodeShell data={data} label={data.label || 'Style Transfer'} dotColor={ACCENT} selected={selected} onGenerate={handleTransfer} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={onDisconnectNode}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
 
       {/* ── 1. Image ── */}

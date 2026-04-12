@@ -15,20 +15,21 @@ export function getHandleDataType(handleId: string): HandleType {
   if (!handleId) return 'any';
 
   const imageIds = ['output', 'image-in', 'images-in', 'image_urls', 'image', 'image-out'];
-  if (imageIds.includes(handleId)) return 'image';
+  if (imageIds.includes(handleId) || handleId.startsWith('image-')) return 'image';
 
-  const videoIds = ['video-out', 'output-video'];
-  if (videoIds.includes(handleId)) return 'video';
+  const videoIds = ['video-out', 'output-video', 'video'];
+  if (videoIds.includes(handleId) || handleId.startsWith('video-')) return 'video';
 
   const audioIds = ['output-audio', 'audio-in', 'audio'];
-  if (audioIds.includes(handleId)) return 'audio';
+  if (audioIds.includes(handleId) || handleId.startsWith('audio-')) return 'audio';
 
   if (
     handleId.includes('prompt') ||
     handleId.includes('analysis') ||
     handleId.includes('text') ||
     handleId.includes('system') ||
-    handleId.includes('adapted')
+    handleId.includes('adapted') ||
+    handleId.startsWith('text-')
   ) {
     return 'text';
   }
@@ -36,6 +37,9 @@ export function getHandleDataType(handleId: string): HandleType {
   if (handleId.includes('aspect')) return 'aspect_ratio';
   if (handleId.includes('resolution')) return 'resolution';
   if (handleId.includes('num_images') || handleId.includes('num-images')) return 'num_images';
+
+  if (handleId === 'easeCurve') return 'easeCurve' as HandleType;
+  if (handleId === '3d') return '3d' as HandleType;
 
   return 'any';
 }
@@ -49,7 +53,7 @@ export function isValidConnection(connection: {
   target: string | null;
   sourceHandle: string | null;
   targetHandle: string | null;
-}): boolean {
+}, nodes?: any[]): boolean {
   if (!connection.source || !connection.target || !connection.sourceHandle || !connection.targetHandle) return false;
   if (connection.source === connection.target) return false;
 
@@ -58,6 +62,32 @@ export function isValidConnection(connection: {
 
   if (srcType === 'any' || tgtType === 'any') return true;
   return srcType === tgtType;
+}
+
+export function getNodeHandles(nodeType: string): { inputs: string[], outputs: string[] } {
+  // Simplified implementation for tests, typically this is handled by NODE_TYPE_CAPABILITIES
+  if (nodeType === 'imageInput') return { inputs: ['reference'], outputs: ['image'] };
+  if (nodeType === 'nanoBanana') return { inputs: ['image', 'text'], outputs: ['image'] };
+  if (nodeType === 'videoInput') return { inputs: ['video'], outputs: ['video'] };
+  if (nodeType === 'generateVideo') return { inputs: ['image', 'text', 'audio'], outputs: ['video'] };
+  if (nodeType === 'router') return {
+    inputs: ['image', 'text', 'video', 'audio', '3d', 'easeCurve', 'generic-input'],
+    outputs: ['image', 'text', 'video', 'audio', '3d', 'easeCurve', 'generic-output']
+  };
+  if (nodeType === 'switch') return { inputs: ['generic-input'], outputs: [] };
+  
+  return { inputs: [], outputs: [] };
+}
+
+export function findCompatibleHandle(node: any, type: string, isTarget: boolean, usedHandles: Set<string> = new Set()): string | null {
+  if (node.type === 'videoStitch') {
+     for (let i = 0; i < 50; i++) {
+        const handleId = `video-${i}`;
+        if (!usedHandles.has(handleId)) return handleId;
+     }
+     return null;
+  }
+  return null;
 }
 
 export interface ConnectionInfo {

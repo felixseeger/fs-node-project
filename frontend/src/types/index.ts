@@ -9,6 +9,7 @@ export * from './api';
 export * from './app';
 export * from './asset';
 export * from './user';
+export * from './chat';
 
 // Re-export analytics types explicitly for clarity
 export type {

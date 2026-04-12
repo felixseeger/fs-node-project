@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 
 import "./avatar.css";
 
@@ -58,7 +59,11 @@ export default function Avatar({
   const hue = hueFromString(fallbackKey);
 
   return (
-    <span
+    <motion.span
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
       className={className}
       role="img"
       aria-label={label}
@@ -72,7 +77,8 @@ export default function Avatar({
         borderRadius: "50%",
         overflow: "hidden",
         flexShrink: 0,
-        background: showImage ? "#e2e8f0" : `hsl(${hue} 45% 42%)`,
+        background: showImage ? "var(--be-color-surface)" : `hsl(${hue} 45% 42%)`,
+        boxShadow: "0 0 0 1px var(--be-glass-border)",
         color: "#fff",
         fontFamily: '"Nunito Sans", "Helvetica Neue", Helvetica, Arial, sans-serif',
         fontWeight: 700,
@@ -123,6 +129,6 @@ export default function Avatar({
           }}
         />
       ) : null}
-    </span>
+    </motion.span>
   );
 }

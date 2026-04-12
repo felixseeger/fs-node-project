@@ -9,7 +9,7 @@ import { CATEGORY_COLORS, sp, font, radius } from './nodeTokens';
 import { recraftRemoveBackground } from '../utils/api';
 
 export default function RecraftRemoveBackgroundNode({ id, data, selected }) {
-  const { update } = useNodeConnections(id, data);
+  const { update, disconnectNode } = useNodeConnections(id, data);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
 
@@ -45,7 +45,7 @@ export default function RecraftRemoveBackgroundNode({ id, data, selected }) {
       label="Recraft Remove BG"
       dotColor={CATEGORY_COLORS.imageEditing}
       selected={selected}
-      downloadUrl={data.outputImage || undefined}
+      downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}
     >
       <SectionHeader title="Input Image" />
       <div style={{ position: 'relative', marginBottom: sp[4] }}>

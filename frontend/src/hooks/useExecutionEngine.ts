@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useRef, useState, useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
 import type { Node, Edge } from '@xyflow/react';
 import type { NodeData } from '../types';
 import { ExecutionEngine, createExecutionEngine } from '../engine/executionEngine';
@@ -72,6 +73,7 @@ export interface UseExecutionEngineOptions extends ExecutionOptions {
 export function useExecutionEngine(
   options: UseExecutionEngineOptions = {}
 ): UseExecutionEngineReturn {
+  const { user } = useAuth();
   const {
     onUpdateNodeData,
     onProgress,
@@ -128,7 +130,7 @@ export function useExecutionEngine(
 
       try {
         // Create engine instance
-        const engine = createExecutionEngine(engineOptions);
+        const engine = createExecutionEngine({ ...engineOptions, uid: user?.uid });
         engineRef.current = engine;
 
         // Set up update callback

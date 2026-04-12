@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useReactFlow, Edge, Node } from '@xyflow/react';
 
 interface Snapshot {
@@ -14,6 +14,18 @@ export const WorkflowLineageTracker: React.FC = () => {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
+  // Load from local storage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('workflow_lineage_snapshots');
+      if (saved) {
+        setSnapshots(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error('Failed to load snapshots', e);
+    }
+  }, []);
+
   const takeSnapshot = () => {
     const nodes = getNodes();
     const edges = getEdges();
@@ -24,7 +36,22 @@ export const WorkflowLineageTracker: React.FC = () => {
       nodes: JSON.parse(JSON.stringify(nodes)),
       edges: JSON.parse(JSON.stringify(edges)),
     };
-    setSnapshots([newSnapshot, ...snapshots]);
+    
+    const newSnapshots = [newSnapshot, ...snapshots];
+    setSnapshots(newSnapshots);
+    
+    try {
+      localStorage.setItem('workflow_lineage_snapshots', JSON.stringify(newSnapshots));
+    } catch (e) {
+      console.warn('Failed to save to localStorage', e);
+    }
+  };
+
+  const clearSnapshots = () => {
+    if (window.confirm('Are you sure you want to clear all history?')) {
+      setSnapshots([]);
+      localStorage.removeItem('workflow_lineage_snapshots');
+    }
   };
 
   const restoreSnapshot = (snapshot: Snapshot) => {
@@ -85,6 +112,14 @@ export const WorkflowLineageTracker: React.FC = () => {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ padding: '8px 12px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'flex-end' }}>
+                <button 
+                  onClick={clearSnapshots}
+                  style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '11px', cursor: 'pointer' }}
+                >
+                  Clear All
+                </button>
+              </div>
               {snapshots.map(s => (
                 <div
                   key={s.id}

@@ -349,7 +349,7 @@ export default function MegaMenuModelSearch({ open, onClose, onSelect }: MegaMen
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
               gap: 10,
             }}
           >

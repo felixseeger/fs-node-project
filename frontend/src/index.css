@@ -653,3 +653,19 @@ html.canvas-interacting .react-flow__handle {
 .border-node-border { border-color: var(--color-node-border); }
 .border-node-resize-handle { border-color: var(--color-node-resize-handle); }
 .bg-node-resize-handle { background-color: var(--color-node-resize-handle); }
+
+/* ── Workflow Interface Mobile Layout ── */
+@media (max-width: 768px) {
+  .workflow-interface-content {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+  .workflow-interface-divider {
+    width: 100% !important;
+    height: 1px !important;
+    margin: 24px 0 !important;
+  }
+  .workflow-interface-column {
+    min-height: 50vh;
+  }
+}

@@ -26,7 +26,7 @@ const MODELS = [
 ];
 
 export default function RecraftGenerateNode({ id, data, selected }) {
-  const { update, conn, resolve } = useNodeConnections(id, data);
+  const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
@@ -99,7 +99,7 @@ export default function RecraftGenerateNode({ id, data, selected }) {
       selected={selected}
       onGenerate={handleGenerate}
       isGenerating={isGenerating}
-      downloadUrl={data.outputImage || undefined}
+      downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}
     >
       <OutputHandle label="image" id="output" color={getHandleColor('output')} />
 

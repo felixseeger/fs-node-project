@@ -65,7 +65,7 @@ export function createVideoGeneratorNode(config) {
   const ACCENT = CATEGORY_COLORS.videoGeneration;
 
   return function VideoGeneratorNode({ id, data, selected }) {
-    const { update, conn, resolve } = useNodeConnections(id, data);
+    const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
     const { progress, status, message, start, setProgress, complete, fail, isActive } = useNodeProgress();
 
     // Extract settings from data with defaults
@@ -193,7 +193,7 @@ export function createVideoGeneratorNode(config) {
         onGenerate={handleGenerate}
         isGenerating={isActive}
         downloadUrl={data.outputVideo}
-        downloadType="video"
+        downloadType="video" onDisconnect={disconnectNode}
       >
         <OutputHandle type="video" label="video" />
 

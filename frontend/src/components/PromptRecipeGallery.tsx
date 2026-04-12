@@ -1,4 +1,3 @@
-import React from 'react';
 import { useReactFlow, Node, Edge } from '@xyflow/react';
 import { nextId } from '../app/nextId';
 import { PROMPT_RECIPES, PromptRecipe } from '../data/promptRecipes';
