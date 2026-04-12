@@ -1099,7 +1099,10 @@ const handleConnectEnd = useCallback(
       }
       const sd = sourceNode.data as any;
       const sh = edge.sourceHandle;
-      if ((sourceNode.type === 'textNode' || sourceNode.type === 'prompt' || sourceNode.type === 'text') && (sd.text || sd.prompt)) results.push(sd.text || sd.prompt);
+      if ((sourceNode.type === 'textNode' || sourceNode.type === 'prompt' || sourceNode.type === 'text') && (sh === 'text-out' || sh === 'prompt-out' || !sh) && (sd.text || sd.prompt)) results.push(sd.text || sd.prompt);
+      else if (sourceNode.type === 'textLLM' && sh === 'text-out' && sd.resultText) results.push(sd.resultText);
+      else if (sourceNode.type === 'imageToPrompt' && sh === 'prompt-out' && sd.outputPrompt) results.push(sd.outputPrompt);
+      else if (sourceNode.type === 'improvePrompt' && sh === 'prompt-out' && sd.outputPrompt) results.push(sd.outputPrompt);
       else if (sourceNode.type === 'imageNode' && sd.images?.length) {
         results.push(...sd.images.map((img: any) => (typeof img === 'string' ? img : (img?.url || img?.src || img?.image || img?.outputImage || null))).filter(Boolean));
       } else if (sourceNode.type === 'imageElement' && sd.imageUrl) {
@@ -2571,7 +2574,7 @@ const handleConnectEnd = useCallback(
             multiSelectionKeyCode="Meta" nodeDragThreshold={5} elevateNodesOnSelect elevateEdgesOnSelect
             zoomOnScroll={false} nodesDraggable={!isLocked} nodesConnectable={!isLocked} elementsSelectable={!isLocked}
             autoPanOnConnect autoPanOnNodeDrag connectionRadius={40} deleteKeyCode={['Backspace', 'Delete']}
-            colorMode={theme === 'light' ? 'light' : 'dark'} style={{ background: 'var(--color-surface)' }}
+            colorMode={theme === 'light' ? 'light' : 'dark'} style={{ background: 'transparent' }}
             onPaneContextMenu={onPaneContextMenu} onNodeContextMenu={onNodeContextMenu} onSelectionContextMenu={onSelectionContextMenu}
             onPaneClick={(e) => { 
               setMenu(undefined); 

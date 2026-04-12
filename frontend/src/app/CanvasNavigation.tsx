@@ -49,14 +49,15 @@ export const CanvasNavigation: FC<CanvasNavigationProps> = ({
 
   return (
     <Panel
-      position="top-right"
+      position="bottom-right"
       style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-end',
         gap: '12px',
-        marginTop: '10px',
-        marginRight: '10px',
+        marginBottom: '40px',
+        marginRight: '20px',
+        zIndex: 10
       }}
     >
       <div
@@ -222,22 +223,25 @@ export const CanvasNavigation: FC<CanvasNavigationProps> = ({
           borderRadius: '8px',
           overflow: 'hidden',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          position: 'relative'
         }}
       >
-        <MiniMap
-          nodeStrokeWidth={3}
-          zoomable
-          pannable
-          style={{ position: 'relative', margin: 0, width: 200, height: 150, backgroundColor: '#1a1a1a', borderBottom: '1px solid #333' }}
-          maskColor="rgba(0, 0, 0, 0.7)"
-          nodeColor={(node) => {
-            if (node.type === 'generator') return '#f97316';
-            if (node.type === 'imageAnalyzer') return '#0ea5e9';
-            if (node.type === 'response') return '#8b5cf6';
-            return '#3b82f6';
-          }}
-        />
+        <div style={{ position: 'relative', width: 200, height: 150 }}>
+          <MiniMap
+            nodeStrokeWidth={3}
+            zoomable
+            pannable
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, margin: 0, width: '100%', height: '100%', backgroundColor: '#1a1a1a', borderBottom: '1px solid #333' }}
+            maskColor="rgba(0, 0, 0, 0.7)"
+            nodeColor={(node) => {
+              if (node.type === 'generator') return '#f97316';
+              if (node.type === 'imageAnalyzer') return '#0ea5e9';
+              if (node.type === 'response') return '#8b5cf6';
+              return '#3b82f6';
+            }}
+          />
+        </div>
         
         <div style={{ display: 'flex', padding: '4px', gap: '4px', justifyContent: 'flex-end', background: '#222' }}>
           {onScreenshot && (
