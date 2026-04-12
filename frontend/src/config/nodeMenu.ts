@@ -8,8 +8,9 @@ export const NODE_MENU: NodeMenuSection[] = [
   {
     section: 'Inputs',
     items: [
-      { type: 'textNode', label: 'Text', defaults: { label: 'Text', text: '' } },
+      { type: 'textNode', label: 'Prompt', defaults: { label: 'Prompt', text: '' } },
       { type: 'imageNode', label: 'Image', defaults: { label: 'Image', images: [] } },
+      { type: 'imageElement', label: 'Image Element', defaults: { label: 'Image Element', imageUrl: null } },
       { type: 'assetNode', label: 'Asset', defaults: { label: 'Asset', images: [] } },
       { type: 'sourceMediaNode', label: 'Source Media Upload', defaults: { label: 'Source Media', mediaFiles: [] } },
     ],
@@ -19,8 +20,13 @@ export const NODE_MENU: NodeMenuSection[] = [
     items: [
       {
         type: 'imageAnalyzer',
-        label: 'Gemini 3 Pro',
-        defaults: { label: 'Gemini 3 Pro', systemDirections: '', localPrompt: '', analysisResult: '', localImages: [] },
+        label: 'Claude Sonnet Vision',
+        defaults: { label: 'Claude Sonnet Vision', systemDirections: '', localPrompt: '', analysisResult: '', localImages: [] },
+      },
+      {
+        type: 'textLLM',
+        label: 'Claude Sonnet 4',
+        defaults: { label: 'Claude Sonnet 4', systemDirections: '', localPrompt: '', resultText: '' },
       },
       {
         type: 'imageToPrompt',
@@ -40,6 +46,14 @@ export const NODE_MENU: NodeMenuSection[] = [
         },
       },
       {
+        type: 'adaptedPrompt',
+        label: 'Adapted Prompt',
+        defaults: {
+          label: 'Adapted Prompt',
+          prompt: '', adaptedPrompt: null, isLoading: false,
+        },
+      },
+      {
         type: 'aiImageClassifier',
         label: 'AI Image Classifier',
         defaults: {
@@ -52,6 +66,15 @@ export const NODE_MENU: NodeMenuSection[] = [
   {
     section: 'Image Generation',
     items: [
+      {
+        type: 'simplifiedGenerator',
+        label: 'Nano Banana 2 Pro',
+        defaults: {
+          label: 'Nano Banana 2 Pro',
+          inputPrompt: '', outputImage: null, isLoading: false,
+          localAspectRatio: '1:1',
+        },
+      },
       {
         type: 'universalGeneratorImage',
         label: 'Universal Image',
@@ -74,6 +97,14 @@ export const NODE_MENU: NodeMenuSection[] = [
           outputModelUrl: null,
           outputPreviewImage: null,
           isLoading: false,
+        },
+      },
+      {
+        type: 'imageSegmentation',
+        label: 'Image Segmentation',
+        defaults: {
+          label: 'Image Segmentation',
+          inputMode: 'text', inputPrompt: '', outputImages: [], outputError: '',
         },
       },
       {

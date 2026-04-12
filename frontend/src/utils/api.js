@@ -108,6 +108,10 @@ export async function pollStatus(taskId, model, maxAttempts = 90, intervalMs = 2
   return pollGenericStatus('/api/status', taskId, { maxAttempts, intervalMs, onProgress, errorLabel: 'Generation', endpointSuffix });
 }
 
+export async function segmentImage(params) {
+  return postToApi('/api/segment-image', params);
+}
+
 export async function analyzeImage(params) {
   return postToApi('/api/analyze-image', params);
 }

@@ -13,6 +13,8 @@ export const NODE_TYPE_CAPABILITIES: Record<string, NodeCapability[]> = {
   
   // Image Generation
   generator: [NodeCapabilities.IMAGE_GENERATE],
+  simplifiedGenerator: [NodeCapabilities.IMAGE_GENERATE],
+  imageSegmentation: [NodeCapabilities.IMAGE_EDIT],
   universalGeneratorImage: [
     NodeCapabilities.IMAGE_GENERATE,
     NodeCapabilities.IMAGE_EDIT,
@@ -59,6 +61,7 @@ export const NODE_TYPE_CAPABILITIES: Record<string, NodeCapability[]> = {
   
   // Utility
   improvePrompt: [NodeCapabilities.TEXT_IMPROVE],
+  textLLM: [NodeCapabilities.IMAGE_ANALYZE, NodeCapabilities.TEXT_IMPROVE],
   imageToPrompt: [NodeCapabilities.IMAGE_ANALYZE],
   aiImageClassifier: [NodeCapabilities.IMAGE_CLASSIFY],
   imageAnalyzer: [NodeCapabilities.IMAGE_ANALYZE],

@@ -351,6 +351,21 @@ const ImageAnalyzerNode = lazy(() => (import('../nodes/ImageAnalyzerNode') as an
   throw error;
 }));
 
+const SimplifiedGeneratorNode = lazy(() => (import('../nodes/SimplifiedGeneratorNode') as any).catch((error: any) => {
+  console.error('Failed to load SimplifiedGeneratorNode:', error);
+  throw error;
+}));
+
+const TextLLMNode = lazy(() => (import('../nodes/TextLLMNode') as any).catch((error: any) => {
+  console.error('Failed to load TextLLMNode:', error);
+  throw error;
+}));
+
+const ImageSegmentationNode = lazy(() => (import('../nodes/ImageSegmentationNode') as any).catch((error: any) => {
+  console.error('Failed to load ImageSegmentationNode:', error);
+  throw error;
+}));
+
 // Export the lazy-loaded components for use in node registration
 
 // Expanded Node Library
@@ -379,11 +394,17 @@ const CloudSyncNode = lazy(() => (import('../nodes/CloudSyncNode') as any).catch
   throw error;
 }));
 
+const ImageElementNode = lazy(() => (import('../nodes/ImageElementNode') as any).catch((error: any) => {
+  console.error('Failed to load ImageElementNode:', error);
+  throw error;
+}));
+
 export const dynamicNodes = {
   // Input/Output Nodes
   InputNode,
   TextNode,
   ImageNode,
+  ImageElementNode,
   AssetNode,
   SourceMediaNode,
   WorkflowNode,
@@ -463,6 +484,11 @@ export const dynamicNodes = {
   VariableNode,
   SocialPublisherNode,
   CloudSyncNode,
+
+  // New Nodes
+  SimplifiedGeneratorNode,
+  TextLLMNode,
+  ImageSegmentationNode,
 };
 
 // Export prefetch functions for performance optimization
@@ -538,4 +564,7 @@ export const prefetchFunctions = {
   prefetchTripo3DNode: () => prefetchNode(() => import('../nodes/Tripo3DNode')),
   prefetchTextElementNode: () => prefetchNode(() => import('../nodes/TextElementNode')),
   prefetchImageAnalyzerNode: () => prefetchNode(() => import('../nodes/ImageAnalyzerNode')),
+  prefetchSimplifiedGeneratorNode: () => prefetchNode(() => import('../nodes/SimplifiedGeneratorNode')),
+  prefetchTextLLMNode: () => prefetchNode(() => import('../nodes/TextLLMNode')),
+  prefetchImageSegmentationNode: () => prefetchNode(() => import('../nodes/ImageSegmentationNode')),
 };

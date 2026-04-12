@@ -22,6 +22,7 @@ const REFERENCE_SECTIONS: CanvasAllNodeSection[] = [
     title: 'INPUT',
     rows: [
       { key: 'imageNode', type: 'imageNode', label: 'Image Input', dataPatch: { label: 'Image Input' } },
+      { key: 'imageElement', type: 'imageElement', label: 'Image Element', dataPatch: { label: 'Image Element' } },
       { key: 'sourceMedia-audio', type: 'sourceMediaNode', label: 'Audio Input', dataPatch: { label: 'Audio Input' } },
       { key: 'sourceMedia-video', type: 'sourceMediaNode', label: 'Video Input', dataPatch: { label: 'Video Input' } },
       { key: 'quiverImageToVector', type: 'quiverImageToVector', label: '3D Viewer', dataPatch: { label: '3D Viewer' } },
@@ -42,6 +43,7 @@ const REFERENCE_SECTIONS: CanvasAllNodeSection[] = [
       { key: 'simplifiedGenerator', type: 'simplifiedGenerator', label: 'Nano Banana 2 Pro', dataPatch: { label: 'Nano Banana 2 Pro' } },
       { key: 'universalGeneratorImage', type: 'universalGeneratorImage', label: 'Generate Image', dataPatch: { label: 'Generate Image' } },
       { key: 'universalGeneratorVideo', type: 'universalGeneratorVideo', label: 'Generate Video', dataPatch: { label: 'Generate Video' } },
+      { key: 'imageSegmentation', type: 'imageSegmentation', label: 'SAM 3 Segmentation', dataPatch: { label: 'SAM 3 Segmentation' } },
       { key: 'tripo3d', type: 'tripo3d', label: 'Generate 3D', dataPatch: { label: 'Generate 3D' } },
     ],
   },
@@ -121,10 +123,13 @@ const REFERENCE_SECTIONS: CanvasAllNodeSection[] = [
 
 const EXTRA_LABELS: Record<string, string> = {
   inputNode: 'Input',
+  textNode: 'Prompt',
+  imageElement: 'Image Element',
   workflowTemplate: 'Workflow Template',
   imageAnalyzer: 'Claude Sonnet Vision',
   textLLM: 'Claude Sonnet 4',
   simplifiedGenerator: 'Nano Banana 2 Pro',
+  imageSegmentation: 'SAM 3 Segmentation',
   creativeUpscale: 'Creative Upscale',
   precisionUpscale: 'Precision Upscale',
   relight: 'Relight',

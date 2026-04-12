@@ -27,6 +27,7 @@ import { useFirebaseAssets } from './hooks/useFirebaseAssets';
 import { useFirebaseChat } from './hooks/useFirebaseChat';
 import { useUser } from './hooks/useUser';
 import { saveTemplate as saveLocalTemplate } from './templates/templateStore';
+import { staggerNodes } from './helpers/staggerNodes';
 
 import { dynamicNodes, createDynamicNodeWrapper } from './utils/dynamicNodeImports';
 // @ts-ignore
@@ -100,6 +101,8 @@ const nodeTypes: NodeTypes = {
   inputNode: createDynamicNodeWrapper(dynamicNodes.InputNode),
   input: createDynamicNodeWrapper(dynamicNodes.InputNode),
   textNode: createDynamicNodeWrapper(dynamicNodes.TextNode),
+  prompt: createDynamicNodeWrapper(dynamicNodes.TextNode),
+  text: createDynamicNodeWrapper(dynamicNodes.TextNode),
   imageNode: createDynamicNodeWrapper(dynamicNodes.ImageNode),
   imageElement: createDynamicNodeWrapper(dynamicNodes.ImageElementNode),
   assetNode: createDynamicNodeWrapper(dynamicNodes.AssetNode),
@@ -168,6 +171,7 @@ const nodeTypes: NodeTypes = {
   cloudSync: createDynamicNodeWrapper(dynamicNodes.CloudSyncNode),
   simplifiedGenerator: createDynamicNodeWrapper(dynamicNodes.SimplifiedGeneratorNode),
   textLLM: createDynamicNodeWrapper(dynamicNodes.TextLLMNode),
+  imageSegmentation: createDynamicNodeWrapper(dynamicNodes.ImageSegmentationNode),
 } as any;
 
 export default function App() {
@@ -440,45 +444,110 @@ export default function App() {
     return () => window.removeEventListener('send-to-chat', handleSendToChat);
   }, []);
 
-  const handleImagePaste = useCallback(async (event: ClipboardEvent) => {
-    const items = event.clipboardData?.items;
-    if (!items || !rfInstance) return;
+  const createImageNodeFromFile = useCallback(async (file: File, position: { x: number, y: number }) => {
+    // Basic validation
+    const MAX_SIZE = 15 * 1024 * 1024; // 15MB
 
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
-        const file = items[i].getAsFile();
-        if (!file) continue;
+    if (file.size > MAX_SIZE) {
+      showToast(`File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB (max 15MB)`, 'error');
+      return null;
+    }
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const imageUrl = e.target?.result as string;
-          if (!imageUrl) return;
+    return new Promise<Node | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const resultUrl = e.target?.result as string;
+        if (!resultUrl) {
+          resolve(null);
+          return;
+        }
 
-          // Get center of viewport or mouse position if available
-          // Since it's a global paste, we'll put it at the center of the viewport
-          const { x, y, zoom } = rfInstance.getViewport();
-          const position = rfInstance.screenToFlowPosition({ 
-            x: window.innerWidth / 2, 
-            y: window.innerHeight / 2 
-          });
+        let finalImageUrl = resultUrl;
+        
+        // Some Mac screenshots or clipboard pastes drop as octet-stream or lack image/ signature
+        if (resultUrl.startsWith('data:application/octet-stream;') || resultUrl.startsWith('data:;') || !resultUrl.startsWith('data:image/')) {
+          // Force it to be a PNG data URL just in case, browsers can usually recover if it's a valid image
+          finalImageUrl = resultUrl.replace(/^data:[^;]*;/, 'data:image/png;');
+        }
 
-          const newNode: Node = { 
-            id: nextId(), 
-            type: 'imageElement', 
-            position, 
-            data: { 
-              label: 'Pasted Image',
-              imageUrl,
-              onUpdate: updateNodeData
-            } 
-          };
-          setNodes((nds) => nds.concat(newNode));
-          saveHistory();
+        const newNode: Node = { 
+          id: nextId(), 
+          type: 'imageElement', 
+          position, 
+          data: { 
+            label: file.name || 'Pasted Image',
+            imageUrl: finalImageUrl,
+            onUpdate: updateNodeData
+          } 
         };
-        reader.readAsDataURL(file);
+        resolve(newNode);
+      };
+      reader.onerror = () => {
+        // Silently fail instead of showing a toast, which might confuse users for background clipboard items
+        console.error(`Failed to read file: ${file.name}`);
+        resolve(null);
+      };
+      reader.readAsDataURL(file);
+    });
+  }, [updateNodeData, showToast]);
+
+  const handleImagePaste = useCallback(async (event: ClipboardEvent) => {
+    if (!event.clipboardData || !rfInstance) return;
+
+    const newNodes: Node[] = [];
+    const basePosition = rfInstance.screenToFlowPosition({
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2
+    });
+
+    const files = Array.from(event.clipboardData.files);
+    
+    if (files.length > 0) {
+      // Handle file paste (e.g. copying from Finder/Explorer or screenshot)
+      // Mac screenshots might put both PNG and TIFF in the clipboard, we want to deduplicate 
+      // if they seem to be the same image (same size & timestamp) or just take the first one if it's a generic screenshot.
+      // But if user copies multiple distinct files, we want to paste all of them.
+      const processedFiles = new Set<string>();
+
+      for (const file of files) {
+        const hasImageExtension = /\.(jpeg|jpg|png|gif|webp|svg|tiff|bmp)$/i.test(file.name);
+        const isExplicitlyNotImage = file.type !== '' && !file.type.startsWith('image/');
+        
+        if (!isExplicitlyNotImage || hasImageExtension) {
+          // simple deduplication based on size and generic "image" name
+          const fileKey = `${file.name}-${file.size}`;
+          if (processedFiles.has(fileKey)) continue;
+          processedFiles.add(fileKey);
+
+          const node = await createImageNodeFromFile(file, { x: 0, y: 0 });
+          if (node) newNodes.push(node);
+        }
+      }
+    } else {
+      // Fallback to items if files is empty (some older browsers/contexts)
+      const items = event.clipboardData.items;
+      let imagePasted = false;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1 && !imagePasted) {
+          const file = items[i].getAsFile();
+          if (!file) continue;
+
+          const node = await createImageNodeFromFile(file, { x: 0, y: 0 });
+          if (node) {
+            newNodes.push(node);
+            imagePasted = true;
+          }
+        }
       }
     }
-  }, [rfInstance, setNodes, saveHistory, updateNodeData]);
+
+    if (newNodes.length > 0) {
+      const staggeredNodes = staggerNodes(newNodes, basePosition);
+      setNodes((nds) => nds.concat(staggeredNodes));
+      saveHistory();
+    }
+  }, [rfInstance, setNodes, saveHistory, createImageNodeFromFile]);
 
   useEffect(() => {
     window.addEventListener('paste', handleImagePaste);
@@ -1052,7 +1121,7 @@ const handleConnectEnd = useCallback(
       }
       const sd = sourceNode.data as any;
       const sh = edge.sourceHandle;
-      if (sourceNode.type === 'textNode' && sd.text) results.push(sd.text);
+      if ((sourceNode.type === 'textNode' || sourceNode.type === 'prompt' || sourceNode.type === 'text') && (sd.text || sd.prompt)) results.push(sd.text || sd.prompt);
       else if (sourceNode.type === 'imageNode' && sd.images?.length) {
         results.push(...sd.images.map((img: any) => (typeof img === 'string' ? img : (img?.url || img?.src || img?.image || img?.outputImage || null))).filter(Boolean));
       } else if (sourceNode.type === 'imageElement' && sd.imageUrl) {
@@ -1163,7 +1232,16 @@ const handleConnectEnd = useCallback(
       else if (sourceNode.type === 'quiverImageToVector' && sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
       else if (sourceNode.type === 'tripo3d' && sh === 'model-out' && sd.outputModelUrl) results.push(sd.outputModelUrl);
       else if (sourceNode.type === 'adaptedPrompt' && sh === 'prompt-out' && sd.adaptedPrompt) results.push(sd.adaptedPrompt);
-      else if (sourceNode.type === 'sourceMediaNode') {
+      else if (sourceNode.type === 'universalGeneratorImage') {
+        if (sh === 'output') {
+          if (sd.outputImages?.length) results.push(...sd.outputImages);
+          else if (sd.outputImage) results.push(sd.outputImage);
+        }
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'universalGeneratorVideo') {
+        if (sh === 'output-video' && sd.outputVideo) results.push(sd.outputVideo);
+        if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+      } else if (sourceNode.type === 'sourceMediaNode') {
         if (sh === 'image-out' && sd.mediaFiles?.length) results.push(...sd.mediaFiles.filter((m: any) => m.type === 'image').map((m: any) => m.url));
         if (sh === 'video-out' && sd.mediaFiles?.length) results.push(...sd.mediaFiles.filter((m: any) => m.type === 'video').map((m: any) => m.url));
         if (sh === 'audio-out' && sd.mediaFiles?.length) results.push(...sd.mediaFiles.filter((m: any) => m.type === 'audio').map((m: any) => m.url));
@@ -1197,11 +1275,18 @@ const handleConnectEnd = useCallback(
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
+    const hasFiles = event.dataTransfer.types.includes('Files');
+    const hasUrl = event.dataTransfer.types.includes('text/uri-list');
+    
+    if (hasFiles || hasUrl) {
+      event.dataTransfer.dropEffect = 'copy';
+    } else {
+      event.dataTransfer.dropEffect = 'move';
+    }
   }, []);
 
   const onDrop = useCallback(
-    (event: React.DragEvent) => {
+    async (event: React.DragEvent) => {
       event.preventDefault();
       
       const type = event.dataTransfer.getData('application/reactflow');
@@ -1209,31 +1294,60 @@ const handleConnectEnd = useCallback(
       if (!rfInstance) return;
       const position = rfInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
 
-      // Handle external files
+      // Handle external files (dragged from local machine)
       if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-        Array.from(event.dataTransfer.files).forEach(file => {
-          if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const imageUrl = e.target?.result as string;
-              if (!imageUrl) return;
-
-              const newNode: Node = { 
-                id: nextId(), 
-                type: 'imageElement', 
-                position, 
-                data: { 
-                  label: file.name,
-                  imageUrl,
-                  onUpdate: updateNodeData
-                } 
-              };
-              setNodes((nds) => nds.concat(newNode));
-              saveHistory();
-            };
-            reader.readAsDataURL(file);
+        const newNodes: Node[] = [];
+        const files = Array.from(event.dataTransfer.files);
+        
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const hasImageExtension = /\.(jpeg|jpg|png|gif|webp|svg|tiff|bmp)$/i.test(file.name);
+          const isExplicitlyNotImage = file.type !== '' && !file.type.startsWith('image/');
+          
+          if (!isExplicitlyNotImage || hasImageExtension) {
+            const node = await createImageNodeFromFile(file, { x: 0, y: 0 });
+            if (node) newNodes.push(node);
           }
-        });
+        }
+        
+        if (newNodes.length > 0) {
+          const staggeredNodes = staggerNodes(newNodes, position);
+          setNodes((nds) => nds.concat(staggeredNodes));
+          saveHistory();
+        }
+        // Always return if files were dragged, to prevent falling through to the URL logic
+        // which might incorrectly process the file's local path (file://) as a remote URL.
+        return;
+      }
+
+      // Handle dragged image URLs (e.g. from another tab)
+      const imageUrl = event.dataTransfer.getData('text/uri-list') || 
+                      event.dataTransfer.getData('URL') ||
+                      event.dataTransfer.getData('text/plain');
+      
+      // Check if it's a data URL for an image, or a URL that looks like an image
+      const isDataUrl = imageUrl && imageUrl.startsWith('data:image/');
+      const isImageUrl = imageUrl && (imageUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) || imageUrl.includes('images.unsplash.com') || imageUrl.includes('image'));
+      
+      // NEVER allow file:// URLs to be treated as remote images, it causes security errors
+      const isLocalFileUrl = imageUrl && imageUrl.startsWith('file://');
+
+      if ((isDataUrl || isImageUrl) && !isLocalFileUrl) {
+        // Strip out any trailing newlines or extra URLs (text/uri-list can have multiple, we'll take the first)
+        const cleanUrl = imageUrl.split('\n')[0].trim();
+        
+        const newNode: Node = { 
+          id: nextId(), 
+          type: 'imageElement', 
+          position, 
+          data: { 
+            label: 'Remote Image',
+            imageUrl: cleanUrl,
+            onUpdate: updateNodeData
+          } 
+        };
+        setNodes((nds) => nds.concat(newNode));
+        saveHistory();
         return;
       }
 
@@ -1289,6 +1403,13 @@ const handleConnectEnd = useCallback(
           menuItems.push({ type: 'divider' });
         }
         menuItems.push({ label: 'Save as Asset', action: 'create_element' });
+        if (selectedNodes.length === 1) {
+          const node = selectedNodes[0];
+          const hasImageOutput = (node.data as any).outputImage || (node.data as any).outputImages?.length || (node.data as any).imageUrl || (node.data as any).images?.length;
+          if (hasImageOutput) {
+            menuItems.push({ label: 'Add to Layer', action: 'add_to_layer' });
+          }
+        }
       }
       if (hasClipboard) {
         const pasteItem = { label: 'Paste', action: 'paste', shortcut: '⌘V' };
@@ -1532,6 +1653,49 @@ const handleConnectEnd = useCallback(
         break;
       case 'screenshot':
         handleExportScreenshot();
+        break;
+      case 'add_to_layer':
+        if (selectedNodes?.length === 1) {
+          const sourceNode = selectedNodes[0];
+          let layerNode = nodesRef.current.find(n => n.type === 'layerEditor');
+          
+          if (!layerNode) {
+            // Create a new layer editor node if none exists
+            const id = nextId();
+            layerNode = {
+              id,
+              type: 'layerEditor',
+              position: { x: sourceNode.position.x + 400, y: sourceNode.position.y },
+              data: { label: 'Layer Editor', outputImage: null }
+            };
+            setNodes(nds => [...nds, layerNode!]);
+          }
+
+          // Find the correct source handle
+          const sd = sourceNode.data as any;
+          let sourceHandle = 'output';
+          if (sourceNode.type === 'sourceMediaNode' || sourceNode.type === 'imageElement') sourceHandle = 'image-out';
+          else if (sourceNode.type === 'imageToPrompt' || sourceNode.type === 'improvePrompt') sourceHandle = 'prompt-out';
+          else if (sourceNode.type === 'imageNode' || sourceNode.type === 'assetNode') sourceHandle = 'output';
+          else if (sourceNode.type === 'imageAnalyzer' || sourceNode.type === 'facialEditing' || sourceNode.type === 'layerEditor') sourceHandle = 'image-out';
+
+          const newEdge: Edge = {
+            id: nextId(),
+            source: sourceNode.id,
+            target: layerNode.id,
+            sourceHandle,
+            targetHandle: 'image-in',
+            style: { strokeWidth: 2 }
+          };
+          
+          setEdges(eds => {
+            // Avoid duplicate edges
+            if (eds.some(e => e.source === newEdge.source && e.target === newEdge.target && e.sourceHandle === newEdge.sourceHandle && e.targetHandle === newEdge.targetHandle)) {
+              return eds;
+            }
+            return [...eds, newEdge];
+          });
+        }
         break;
     }
     setMenu(null);
@@ -2488,6 +2652,7 @@ const handleConnectEnd = useCallback(
             onStartNewConversation={() => { startNewConversation(); setChatSuggestions([]); }}
             isChatting={isRunning}
             suggestions={chatSuggestions}
+            onAddImageToCanvas={(url) => addNodeAtViewportCenter('imageNode', { imageUrl: url })}
             onSendMessage={async (_msg: any) => {
               setIsRunning(true);
               try {
