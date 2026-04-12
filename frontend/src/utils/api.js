@@ -566,15 +566,15 @@ export async function generateAIWorkflow(prompt, mode = 'standard', context = nu
  * Send a chat message to the AI
  * @param {string} message - User message
  * @param {Array} history - Message history
- * @param {Object} context - Optional context (e.g., current canvas state)
+ * @param {string} system - Optional system prompt
  * @param {Array} images - Optional reference images
  * @returns {Promise<{success: boolean, response: string, commands?: Array}>}
  */
-export async function sendChat(message, history = [], context = null, images = []) {
+export async function sendChat(message, history = [], system = null, images = []) {
   const res = await fetch(`${API_BASE}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, history, context, images }),
+    body: JSON.stringify({ message, history, system, images }),
   });
   return safeJson(res);
 }

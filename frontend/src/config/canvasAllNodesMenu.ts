@@ -28,9 +28,10 @@ const REFERENCE_SECTIONS: CanvasAllNodeSection[] = [
     ],
   },
   {
-    title: 'TEXT',
+    title: 'TEXT & LLM',
     rows: [
       { key: 'textNode', type: 'textNode', label: 'Prompt', dataPatch: { label: 'Prompt' } },
+      { key: 'textLLM', type: 'textLLM', label: 'Claude Sonnet 4', dataPatch: { label: 'Claude Sonnet 4' } },
       { key: 'improvePrompt', type: 'improvePrompt', label: 'Prompt Constructor', dataPatch: { label: 'Prompt Constructor' } },
       { key: 'assetNode', type: 'assetNode', label: 'Array', dataPatch: { label: 'Array' } },
     ],
@@ -38,6 +39,7 @@ const REFERENCE_SECTIONS: CanvasAllNodeSection[] = [
   {
     title: 'GENERATE',
     rows: [
+      { key: 'simplifiedGenerator', type: 'simplifiedGenerator', label: 'Nano Banana 2 Pro', dataPatch: { label: 'Nano Banana 2 Pro' } },
       { key: 'universalGeneratorImage', type: 'universalGeneratorImage', label: 'Generate Image', dataPatch: { label: 'Generate Image' } },
       { key: 'universalGeneratorVideo', type: 'universalGeneratorVideo', label: 'Generate Video', dataPatch: { label: 'Generate Video' } },
       { key: 'tripo3d', type: 'tripo3d', label: 'Generate 3D', dataPatch: { label: 'Generate 3D' } },
@@ -120,7 +122,9 @@ const REFERENCE_SECTIONS: CanvasAllNodeSection[] = [
 const EXTRA_LABELS: Record<string, string> = {
   inputNode: 'Input',
   workflowTemplate: 'Workflow Template',
-  imageAnalyzer: 'Gemini 3 Pro',
+  imageAnalyzer: 'Claude Sonnet Vision',
+  textLLM: 'Claude Sonnet 4',
+  simplifiedGenerator: 'Nano Banana 2 Pro',
   creativeUpscale: 'Creative Upscale',
   precisionUpscale: 'Precision Upscale',
   relight: 'Relight',

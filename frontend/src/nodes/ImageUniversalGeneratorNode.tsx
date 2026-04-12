@@ -314,6 +314,7 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
     const modelMap: Record<string, string> = {
       'Flux': 'freepik-mystic',
       'Nano Banana 2': 'freepik-mystic',
+      'Nano Banana 2 Pro': 'freepik-mystic',
       'Kora Reality': 'freepik-kora',
       'Google Imagen 3': 'google-imagen-3'
     };
@@ -360,7 +361,25 @@ export default function ImageUniversalGeneratorNode({ id, data, selected }: Imag
       aspect_ratio: aspectRatio,
     });
     if (result.error) throw new Error(result.error?.message || 'Generation failed');
-    return (result.data || []).map((d: any) => d.url);
+    
+    // Handle Freepik polling
+    if (result.data?.task_id) {
+      let status = await pollStatus(result.data.task_id, apiModel);
+      while (status.status === 'processing') {
+        await new Promise(r => setTimeout(r, 2000));
+        status = await pollStatus(result.data.task_id, apiModel);
+      }
+      if (status.status === 'failed') throw new Error(status.error || 'Generation failed');
+      return (status.outputs || status.data?.generated || []).map((o: any) => o.url || o);
+    }
+    
+    // Handle Google Imagen or direct generated output
+    if (result.data?.generated) {
+      return result.data.generated.map((url: string) => url);
+    }
+    
+    // Fallback for array of objects (e.g. OpenAI format)
+    return (Array.isArray(result.data) ? result.data : []).map((d: any) => d.url || d);
   }, [aspectRatio, numOutputs, imageSizeTier, selectAutoImageModel]);
 
 
