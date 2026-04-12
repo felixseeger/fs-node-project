@@ -188,6 +188,135 @@ export default function UniversalSimplifiedNodeChrome({
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
+        {showActions && (
+          <div
+            style={{
+              position: 'absolute',
+              top: -44,
+              right: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: sp[2],
+              opacity: showActions ? 1 : 0,
+              pointerEvents: showActions ? 'auto' : 'none',
+              transition: 'opacity 0.12s ease',
+              zIndex: 10,
+            }}
+          >
+            <button
+              type="button"
+              title="Add comment"
+              className="nodrag nopan"
+              onClick={() => toggleCommentModal(true)}
+              style={{
+                width: 32,
+                height: 32,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: radius.md,
+                border: `1px solid ${border.default}`,
+                background: surface.base,
+                color: text.secondary,
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </button>
+
+            {showRunButton && (hovered || isRunning || chromeHovered) ? (
+              <div
+                ref={runWrapRef}
+                style={{ position: 'relative' }}
+                onMouseEnter={() => setRunHovered(true)}
+                onMouseLeave={() => setRunHovered(false)}
+              >
+                <button
+                  type="button"
+                  disabled={runDisabled || isRunning}
+                  className="nodrag nopan"
+                  onClick={onRun}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: runHovered ? sp[2] : 0,
+                    height: 32,
+                    minWidth: 32,
+                    paddingLeft: runHovered ? sp[3] : 0,
+                    paddingRight: runHovered ? sp[3] : 0,
+                    borderRadius: radius.md,
+                    border: `1px solid ${border.default}`,
+                    background: surface.base,
+                    color: text.primary,
+                    cursor: runDisabled || isRunning ? 'not-allowed' : 'pointer',
+                    opacity: runDisabled && !isRunning ? 0.5 : 1,
+                    transition: 'min-width 0.15s ease, padding 0.15s ease',
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  }}
+                >
+                  {isRunning ? (
+                    <span
+                      className="node-spinner"
+                      style={{
+                        width: 14,
+                        height: 14,
+                        border: `2px solid ${border.subtle}`,
+                        borderTop: `2px solid ${border.active}`,
+                        borderRadius: '50%',
+                        animation: 'node-spin 1s linear infinite',
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                  )}
+                  <span
+                    style={{
+                      ...font.xs,
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      maxWidth: runHovered ? 120 : 0,
+                      opacity: runHovered ? 1 : 0,
+                      transition: 'max-width 0.15s ease, opacity 0.12s ease',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    Run
+                  </span>
+                </button>
+                {runHovered && !runDisabled && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '100%',
+                      right: 0,
+                      marginBottom: 6,
+                      padding: `${sp[2]}px ${sp[3]}px`,
+                      background: '#111',
+                      color: '#fff',
+                      ...font.xs,
+                      borderRadius: radius.sm,
+                      whiteSpace: 'nowrap',
+                      pointerEvents: 'none',
+                      zIndex: 5,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                    }}
+                  >
+                    Run this node
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        )}
+
         <div
           style={{
             background: surface.base,
@@ -232,127 +361,6 @@ export default function UniversalSimplifiedNodeChrome({
               >
                 {title}
               </span>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: sp[2],
-                opacity: showActions ? 1 : 0,
-                pointerEvents: showActions ? 'auto' : 'none',
-                transition: 'opacity 0.12s ease',
-              }}
-            >
-              <button
-                type="button"
-                title="Add comment"
-                className="nodrag nopan"
-                onClick={() => toggleCommentModal(true)}
-                style={{
-                  width: 32,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: radius.md,
-                  border: `1px solid ${border.default}`,
-                  background: surface.sunken,
-                  color: text.secondary,
-                  cursor: 'pointer',
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              </button>
-
-              {showRunButton && (hovered || isRunning || chromeHovered) ? (
-              <div
-                ref={runWrapRef}
-                style={{ position: 'relative' }}
-                onMouseEnter={() => setRunHovered(true)}
-                onMouseLeave={() => setRunHovered(false)}
-              >
-                <button
-                  type="button"
-                  disabled={runDisabled || isRunning}
-                  className="nodrag nopan"
-                  onClick={onRun}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: runHovered ? sp[2] : 0,
-                    height: 32,
-                    minWidth: 32,
-                    paddingLeft: runHovered ? sp[3] : 0,
-                    paddingRight: runHovered ? sp[3] : 0,
-                    borderRadius: radius.md,
-                    border: `1px solid ${border.default}`,
-                    background: surface.sunken,
-                    color: text.primary,
-                    cursor: runDisabled || isRunning ? 'not-allowed' : 'pointer',
-                    opacity: runDisabled && !isRunning ? 0.5 : 1,
-                    transition: 'min-width 0.15s ease, padding 0.15s ease',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {isRunning ? (
-                    <span
-                      className="node-spinner"
-                      style={{
-                        width: 14,
-                        height: 14,
-                        border: `2px solid ${border.subtle}`,
-                        borderTop: `2px solid ${border.active}`,
-                        borderRadius: '50%',
-                        animation: 'node-spin 1s linear infinite',
-                        flexShrink: 0,
-                      }}
-                    />
-                  ) : (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-                      <polygon points="5 3 19 12 5 21 5 3" />
-                    </svg>
-                  )}
-                  <span
-                    style={{
-                      ...font.xs,
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap',
-                      maxWidth: runHovered ? 120 : 0,
-                      opacity: runHovered ? 1 : 0,
-                      transition: 'max-width 0.15s ease, opacity 0.12s ease',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    Run
-                  </span>
-                </button>
-                {runHovered && !runDisabled && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      right: 0,
-                      marginTop: 6,
-                      padding: `${sp[2]}px ${sp[3]}px`,
-                      background: '#111',
-                      color: '#fff',
-                      ...font.xs,
-                      borderRadius: radius.sm,
-                      whiteSpace: 'nowrap',
-                      pointerEvents: 'none',
-                      zIndex: 5,
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-                    }}
-                  >
-                    Run this node
-                  </div>
-                )}
-              </div>
-              ) : null}
             </div>
           </div>
 
