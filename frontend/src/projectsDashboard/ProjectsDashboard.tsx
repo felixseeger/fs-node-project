@@ -1,3 +1,5 @@
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import React, { useState, useEffect, useMemo, type FC, type MouseEvent, type DragEvent } from 'react';
 import { getFirebaseAuth } from '../config/firebase';
 import { DecodeTextButton } from 'blue-ether';
@@ -48,6 +50,43 @@ export const ProjectsDashboard: FC<ProjectsDashboardProps> = ({
   theme,
   setTheme,
 }) => {
+  const dashboardRef = React.useRef<HTMLDivElement>(null);
+  const sidebarRef = React.useRef<HTMLElement>(null);
+  const headerRef = React.useRef<HTMLElement>(null);
+  const tabsRef = React.useRef<HTMLDivElement>(null);
+  const gridRef = React.useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+    // Initial state
+    gsap.set(sidebarRef.current, { x: -50, opacity: 0 });
+    gsap.set(headerRef.current, { y: -20, opacity: 0 });
+    gsap.set(tabsRef.current, { y: 20, opacity: 0 });
+    
+    // Card elements (if any exist immediately)
+    if (gridRef.current) {
+      gsap.set(gridRef.current.children, { y: 30, opacity: 0, scale: 0.95 });
+    }
+
+    // Animation sequence
+    tl.to(sidebarRef.current, { x: 0, opacity: 1, duration: 0.6 })
+      .to(headerRef.current, { y: 0, opacity: 1, duration: 0.5 }, "-=0.4")
+      .to(tabsRef.current, { y: 0, opacity: 1, duration: 0.4 }, "-=0.3");
+
+    // Stagger cards in
+    if (gridRef.current && gridRef.current.children.length > 0) {
+      tl.to(gridRef.current.children, {
+        y: 0,
+        opacity: 1,
+        scale: 1,
+        duration: 0.5,
+        stagger: 0.05,
+        ease: "back.out(1.2)"
+      }, "-=0.2");
+    }
+  }, { scope: dashboardRef.current || undefined });
+
   const [user, setUser] = useState<User | null>(null);
   const [activeSection, setActiveSection] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -232,6 +271,7 @@ export const ProjectsDashboard: FC<ProjectsDashboardProps> = ({
           </div>
         )}
         <aside
+          ref={sidebarRef}
           style={{
             width: 260,
             background: 'var(--color-bg-aside)',
@@ -349,22 +389,6 @@ export const ProjectsDashboard: FC<ProjectsDashboardProps> = ({
                   }}
                 />
                 <div style={{ height: 1, background: 'var(--color-border)', margin: '8px 0' }} />
-                <SidebarItem
-                  icon={Icons.Trash}
-                  label="Delete Account"
-                  onClick={() => {
-                    if (confirm('Are you sure you want to permanently delete your account? This action cannot be undone.')) {
-                      if (user) {
-                        deleteUser(user).catch((err: Error) => {
-                          console.error('Delete account error:', err);
-                          alert(
-                            `Error: ${err.message}\n\nFor security reasons, you may need to log out and log back in before deleting your account.`,
-                          );
-                        });
-                      }
-                    }
-                  }}
-                />
                 <SidebarItem icon={LogoutIcon} label="Logout" onClick={() => onLogout?.()} />
               </div>
             )}
@@ -515,6 +539,7 @@ export const ProjectsDashboard: FC<ProjectsDashboardProps> = ({
 
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <header
+            ref={headerRef}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -603,11 +628,15 @@ export const ProjectsDashboard: FC<ProjectsDashboardProps> = ({
               >
                 Invite
               </button>
+
+
             </div>
           </header>
 
+
+
           <div style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
-            <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+            <div ref={tabsRef} style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
               {['All', 'Community', 'Favorites', 'Recent', 'Shared'].map((tab) => (
                 <button
                   type="button"
@@ -663,6 +692,7 @@ export const ProjectsDashboard: FC<ProjectsDashboardProps> = ({
                   </div>
                 )}
                 <div
+                  ref={gridRef}
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',

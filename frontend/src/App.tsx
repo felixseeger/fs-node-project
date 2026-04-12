@@ -92,6 +92,7 @@ import type { PageType, EditorMode } from './types';
 import { isWorkflowImportData, validateWorkflowData } from './types';
 import { AppThemeSchema, CanvasZoomModeSchema } from './schemas';
 import PromptRecipeGallery from './components/PromptRecipeGallery';
+import WorkflowBuilderDrawer from './WorkflowBuilderDrawer';
 import { WorkflowLineageTracker } from './components/WorkflowLineageTracker';
 import { SmartConnectorUI } from './components/SmartConnectorUI';
 import { SmartConnectorEngine } from './engine/SmartConnectorEngine';
@@ -404,6 +405,7 @@ export default function App() {
     [setNodes, saveHistory, locks, currentUserId]
   );
 
+  const [isWorkflowBuilderOpen, setIsWorkflowBuilderOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [activeTool, setActiveTool] = useState<'select' | 'hand' | 'slice'>('select');
@@ -2376,7 +2378,8 @@ const handleConnectEnd = useCallback(
         workflowName={activeWorkflowName}
         editorMode={editorMode}
         onEditorModeChange={setEditorMode}
-        onCreateWorkflow={() => handleCreateWorkflow(getNextBoardName())}
+        onCreateWorkflow={() => setIsWorkflowBuilderOpen(true)}
+        nodes={nodes}
         onLogout={handleLogout}
         onZoomIn={() => rfInstance?.zoomIn()}
         onZoomOut={() => rfInstance?.zoomOut()}
@@ -2412,6 +2415,42 @@ const handleConnectEnd = useCallback(
         onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
         onOpenRecipes={() => setShowPromptRecipes(true)}
         onToggleCollaboration={() => setIsCollaborationHubOpen(!isCollaborationHubOpen)}
+        onExportJSON={() => { const b = new Blob([JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${activeWorkflowName}.json`; a.click(); }}
+        onImportJSON={() => {
+          const i = document.createElement('input');
+          i.type = 'file';
+          i.accept = '.json';
+          i.onchange = (e: any) => {
+            const f = e.target.files[0];
+            if (!f) return;
+            const r = new FileReader();
+            r.onload = (ev: any) => {
+              try {
+                const p = JSON.parse(ev.target.result);
+                const validation = validateWorkflowData(p);
+                
+                if (!validation.success) {
+                  const firstError = validation.error.errors[0];
+                  throw new Error(`Invalid format: ${firstError.path.join('.')} - ${firstError.message}`);
+                }
+                
+                const data = validation.data;
+                if (data.nodes.length === 0 && data.edges.length === 0) {
+                  throw new Error('Empty workflow: file contains no nodes or edges');
+                }
+                setNodes(data.nodes);
+                setEdges(data.edges);
+              } catch (err) {
+                const msg = err instanceof Error ? err.message : 'Failed to import JSON';
+                alert(`Import Error: ${msg}`);
+
+                console.error(err);
+              }
+            };
+            r.readAsText(f);
+          };
+          i.click();
+        }}
         onSave={() => { if (activeWorkflowId) setWorkflows(p => p.map(w => w.id === activeWorkflowId ? { ...w, nodes: nodesRef.current, edges: edgesRef.current, nodeCount: nodesRef.current.length } : w)); }}
         onSaveWithEmbeddedWorkflow={async () => {
           if (!activeWorkflowId) return;
@@ -2509,42 +2548,6 @@ const handleConnectEnd = useCallback(
           <CanvasNavigation 
             onCenterOnNode={() => { const sel = nodes.filter(n => n.selected); if (sel.length && rfInstance) rfInstance.fitView({ padding: 0.2, duration: 800, nodes: [{ id: sel[0].id }] }); }}
             onScreenshot={handleExportScreenshot}
-            onExportJSON={() => { const b = new Blob([JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${activeWorkflowName}.json`; a.click(); }}
-            onImportJSON={() => {
-              const i = document.createElement('input');
-              i.type = 'file';
-              i.accept = '.json';
-              i.onchange = (e: any) => {
-                const f = e.target.files[0];
-                if (!f) return;
-                const r = new FileReader();
-                r.onload = (ev: any) => {
-                  try {
-                    const p = JSON.parse(ev.target.result);
-                    const validation = validateWorkflowData(p);
-                    
-                    if (!validation.success) {
-                      const firstError = validation.error.errors[0];
-                      throw new Error(`Invalid format: ${firstError.path.join('.')} - ${firstError.message}`);
-                    }
-                    
-                    const data = validation.data;
-                    if (data.nodes.length === 0 && data.edges.length === 0) {
-                      throw new Error('Empty workflow: file contains no nodes or edges');
-                    }
-                    setNodes(data.nodes);
-                    setEdges(data.edges);
-                  } catch (err) {
-                    const msg = err instanceof Error ? err.message : 'Failed to import JSON';
-                    alert(`Import Error: ${msg}`);
-
-                    console.error(err);
-                  }
-                };
-                r.readAsText(f);
-              };
-              i.click();
-            }}
           />
           <KeyboardShortcutsModal isOpen={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
           <PromptRecipeGallery isOpen={showPromptRecipes} onClose={() => setShowPromptRecipes(false)} />
