@@ -5,7 +5,7 @@ import {
   ChatMessage, 
   ChatInput, 
   ChatToggle, 
-  ChatLoader,
+  ChatLoadingMessage,
 } from './index';
 import type { ChatMessageData } from './index';
 
@@ -48,7 +48,7 @@ export const FullInterface: StoryObj = {
         };
         setMessages(prev => [...prev, newAiMsg]);
         setIsGenerating(false);
-      }, 2000);
+      }, 5000); // 5 seconds to easily see the witty phrases
     };
 
     return (
@@ -67,7 +67,7 @@ export const FullInterface: StoryObj = {
           {messages.map(msg => (
             <ChatMessage key={msg.id} message={msg} />
           ))}
-          {isGenerating && <ChatLoader text="Thinking" speed={300} />}
+          {isGenerating && <ChatLoadingMessage />}
         </ChatWindow>
         
         <ChatToggle 

@@ -8,6 +8,8 @@ export { default as ChatToggle } from './ChatToggle';
 export type { ChatToggleProps } from './ChatToggle';
 export { default as ChatLoader } from './ChatLoader';
 export type { ChatLoaderProps } from './ChatLoader';
+export { default as ChatLoadingMessage } from './ChatLoadingMessage';
+export type { ChatLoadingMessageProps } from './ChatLoadingMessage';
 export { default as DecodedText } from './DecodedText';
 export { default as DecodeText } from './DecodeText';
 export type { ChatMessageType, ChatMessageData, ChatTag } from './types';

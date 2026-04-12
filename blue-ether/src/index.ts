@@ -12,14 +12,11 @@ export { default as Task } from "./components/Task";
 export { default as TaskList } from "./components/TaskList";
 export type { TaskData } from "./types";
 
-// ── Node Components ──
-export * from "./components/nodes/EditableNodeTitle";
-export * from "./components/nodes/NodeProgress";
-export * from "./components/nodes/NodeSection";
-export * from "./components/nodes/NodeOutput";
-export * from "./components/nodes/HandleDot";
-export * from "./components/nodes/NodeControls";
-export * from "./components/nodes/NodeShell";
+// ── Chat UI Components ──
+export * from "./components/chat";
+
+// ── Infrastructure & Node Components ──
+export * from "./components/nodes";
 export * from "./utils/handleTypes";
 
 // ── Frontend UI Components ──

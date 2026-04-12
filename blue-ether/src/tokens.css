@@ -28,6 +28,22 @@
   --be-surface-raised: rgba(255, 255, 255, 0.15);
   --be-surface-canvas: #0b0e1a;
 
+  /* ── Glassmorphism ── */
+  --be-glass-bg: rgba(255, 255, 255, 0.05);
+  --be-glass-bg-hover: rgba(255, 255, 255, 0.08);
+  --be-glass-border: rgba(255, 255, 255, 0.1);
+  --be-glass-blur: 12px;
+
+  /* ── Infrastructure & Terminal ── */
+  --be-terminal-bg: rgba(9, 12, 17, 0.85);
+  --be-terminal-text: #a1b0c0;
+  --be-terminal-header: rgba(255, 255, 255, 0.03);
+  --be-code-comment: #6272a4;
+  --be-code-keyword: #ff79c6;
+  --be-code-string: #f1fa8c;
+  --be-code-function: #50fa7b;
+  --be-code-variable: #bd93f9;
+
   /* ── Border colors ── */
   --be-border-subtle: rgba(255, 255, 255, 0.12);
   --be-border-default: rgba(255, 255, 255, 0.16);
@@ -65,6 +81,8 @@
   --be-ui-errorBg: rgba(239, 68, 68, 0.15);
   --be-ui-errorBorder: rgba(239, 68, 68, 0.3);
   --be-ui-success: #22c55e;
+  --be-ui-warning: #f59e0b;
+  --be-ui-info: #3b82f6;
 
   /* ── AI Core Colors ── */
   --be-gradient-ai: conic-gradient(from 180deg, #3b82f6, #a855f7, #ec4899, #a855f7, #3b82f6);
@@ -87,6 +105,7 @@
 
   /* ── Typography ── */
   --be-font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --be-font-mono: 'Share Tech Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --be-font-size-xs: 12px;
   --be-font-size-sm: 12px;
   --be-font-size-md: 13px;
