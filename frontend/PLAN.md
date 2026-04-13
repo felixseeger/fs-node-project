@@ -31,15 +31,15 @@
 - [x] Run `vitest` suite to ensure no regressions.
 - [x] Perform visual regression testing using the existing `visual-compare.mjs`.
 
-## 6. Advanced VFX Engine Integration (GIMP, CorridorKey, LTX, Etro)
-- **Objective**: Integrate professional-grade visual effects and AI video/image manipulation natively into the canvas.
+## 6. Advanced VFX Engine Integration (Async Pattern)
+- **Objective**: Integrate professional-grade visual effects natively into the canvas via a decoupled async worker pattern.
 - **Strategy**:
-  - Deploy **CorridorKey-Engine** as a long-running JSON-RPC daemon to handle heavy, stateful green-screen extraction.
-  - Deploy **LTX Desktop** via a local FastAPI proxy to handle generative video backgrounds.
-  - Deploy **GIMP** via headless LISP/Scheme scripting to handle complex multi-layer image compositing and GEGL filter application.
-  - Deploy **Etro** natively within the browser canvas to provide a real-time, hardware-accelerated WebGL timeline preview.
+  - **Async Orchestration**: Implement a **Submit -> Poll -> Complete** lifecycle for heavy VFX tasks.
+  - **Dedicated Infra**: Deploy **CorridorKey-Engine** and **LTX Desktop** on dedicated GPU instances (e.g., RunPod or Modal) that communicate with our Vercel API via a message queue.
+  - **Server-Side Image Processing**: Use `sharp` or a specialized microservice for high-performance GEGL-like filter application, replacing the previous GIMP scripting plan.
+  - **Etro Orchestration**: Offload Etro.js rendering to Web Workers with `OffscreenCanvas` to maintain UI responsiveness. Use low-resolution proxies for real-time editing.
 - **Deliverables**:
-  - `CorridorKeyNode`: Standalone node for AI matte extraction.
-  - `LtxVideoNode`: Standalone node for AI video generation.
-  - `GimpNode`: Standalone node for advanced image filtering/compositing.
-  - `LayerEditorNode`: A unified Non-Linear Editor (NLE) node that orchestrates Etro (for real-time preview) alongside CorridorKey, LTX, and GIMP (as high-fidelity render backends).
+  - `CorridorKeyNode`: Standalone node for AI matte extraction via async worker.
+  - `LtxVideoNode`: Standalone node for AI video generation via async worker.
+  - `LayerEditorNode`: A unified Non-Linear Editor (NLE) node that orchestrates Etro (for real-time preview) alongside high-fidelity render backends.
+

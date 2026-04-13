@@ -29,9 +29,21 @@ Implement security and type-safety improvements as specified in the API Hardenin
 - [x] Update HARDENING_GUIDE.md and NEXT_PHASE_PLAN.md
 
 ## Phase 5: Video Editing Pipeline Integration (etro-js) - 🚀 PLANNED
-- [ ] Initialize `etro.Movie` instance within `LayerEditorNode`.
-- [ ] Implement Dynamic Layer Management (add/remove `etro.layer` objects based on node connections).
-- [ ] Synchronize React State with `etro` timeline and properties.
-- [ ] Integrate Hardware-Accelerated Effects (GLSL filters for brightness, contrast, etc.).
-- [ ] Implement Export/Record functionality to generate downloadable video Blobs.
-- [ ] Add real-time preview playback controls to the `LayerEditorMenu`.
+- [ ] Offload `etro.Movie` rendering to Web Workers with `OffscreenCanvas`.
+- [ ] Implement Dynamic Layer Management with low-res proxy support.
+- [ ] Synchronize React State with `etro` timeline via non-blocking Refs.
+- [ ] Integrate Hardware-Accelerated GLSL effects.
+- [ ] Implement Server-Side rendering fallback for high-res exports.
+
+## Phase 6: Node Capabilities & Safe Exports - 🚀 PLANNED
+- [ ] Define and implement `capabilities` field for all node types.
+- [ ] Build a robust Sanitization utility for workflow/code exports.
+- [ ] Implement dynamic, topology-aware code generation in `ApiExportModal`.
+- [ ] Add Chat Export functionality (Markdown/JSON).
+
+## Phase 7: Advanced VFX Engine Integration - 🚀 PLANNED
+- [ ] Provision dedicated GPU infrastructure (RunPod/Modal) for heavy VFX workloads.
+- [ ] Implement Async Job Pattern (Submit -> Poll -> Complete) for VFX nodes.
+- [ ] Integrate `sharp` for scalable backend image processing.
+- [ ] Deliver `CorridorKeyNode` and `LtxVideoNode` using the new async pattern.
+

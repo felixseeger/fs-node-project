@@ -20,12 +20,15 @@ This PR implements Phase 7.4 of the hardening guide by integrating Backend Authe
     - Analysis scripts (`analyze.js`, `analyze.py`) to `scripts/`
     - Consolidated 15+ architectural, security, and planning markdown documents to `docs/`
     - Visual assets (`layer-editor.jpg`) to `docs/`
-    - **Video Editing Pipeline (etro-js):**
-    - Planned the integration of the `etro-js` framework for high-performance, browser-based video compositing.
-    - Created `knowledgebase/etro-js.md` to document the framework's architecture (Movie, Layers, Effects).
-    - Drafted a 6-task implementation roadmap for the `LayerEditorNode` to support dynamic multi-layer video/image merging with GLSL effects.
 
-    ### Security Impact
+### Future Roadmap & Architectural Pivot
+Based on a recent architectural review, the project strategy for upcoming features has been refined:
+- **Video Editing Pipeline (etro-js):** To ensure UI responsiveness, Etro.js rendering will be offloaded to Web Workers using `OffscreenCanvas`. Real-time previews will use low-resolution proxies, with high-fidelity rendering deferred to backend workers.
+- **VFX Backend Strategy Pivot:** We are pivoting away from local JSON-RPC daemons (CorridorKey/LTX). Instead, heavy VFX workloads will be handled by a **Submit -> Poll -> Complete** async worker pattern on dedicated GPU infrastructure (e.g., RunPod or Modal), as persistent daemons are incompatible with our Vercel serverless environment.
+- **Replacing GIMP:** Headless GIMP scripting for backend compositing has been replaced in the roadmap by more scalable, server-friendly alternatives like `sharp` (Node.js native) or specialized microservices using ImageMagick/vips.
+- **Safe Export Layer:** A sanitization layer will be implemented for the new "Export Chat" and "Code Snippet" features to ensure sensitive API keys are never hardcoded in exported artifacts.
+
+### Security Impact
 - Closes the final major loophole identified in the 2026-04-11 Security Assessment.
 - All backend proxy endpoints for AI models are now strictly bound to authenticated user sessions.
 - Rate limiting can now be applied on a per-user level in the future by utilizing `req.user.uid`.

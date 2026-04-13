@@ -31,3 +31,16 @@
 - [ ] TASK-022: Implement property binding (opacity, x/y, scale) between UI and etro layers.
 - [ ] TASK-023: Add video export logic using `movie.record()` and blob handling.
 - [ ] TASK-024: Design and implement playback controls (Play/Pause/Seek) in the Layer Editor side panel.
+
+## Node Capabilities & Exports
+- [ ] TASK-025: Implement `capabilities` array in `BaseNode.types.ts` and populate for all nodes.
+- [ ] TASK-026: Create a sanitization utility to strip API keys from JSON and code exports.
+- [ ] TASK-027: Update `ApiExportModal.tsx` to generate dynamic code snippets based on graph topology.
+- [ ] TASK-028: Add "Export Chat" functionality to `ChatUI.tsx` with Markdown and JSON support.
+
+## Advanced VFX Engine Integration
+- [ ] TASK-029: Set up an async worker queue for heavy VFX tasks (e.g., Upstash Redis or AWS SQS).
+- [ ] TASK-030: Implement `CorridorKeyNode` for AI matte extraction via async worker.
+- [ ] TASK-031: Implement `LtxVideoNode` for generative video backgrounds via async worker.
+- [ ] TASK-032: Integrate `sharp` library in the backend for scalable image compositing and filtering.
+
