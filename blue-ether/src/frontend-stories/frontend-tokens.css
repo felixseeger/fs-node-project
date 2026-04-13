@@ -12,6 +12,12 @@
   --color-accent: #3b82f6;
   --color-border: rgba(255, 255, 255, 0.12);
 
+  /* Brand Colors */
+  --color-brand-google: #4285F4;
+  --color-brand-kling: #00D1FF;
+  --color-brand-elevenlabs: #FF3366;
+  --color-brand-pink: #ec4899;
+
   /* Font */
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     sans-serif;

@@ -80,3 +80,66 @@ export const FullInterface: StoryObj = {
     );
   }
 };
+
+export const WithAssets: StoryObj = {
+  render: () => {
+    const messages: ChatMessageData[] = [
+      { id: 1, type: 'assistant', content: 'Here are the assets I generated for your "Cosmic" theme.', timestamp: "12:45" },
+      { id: 2, type: 'user', content: 'These look great! Can we use the second one as a base?', timestamp: "12:46" },
+      { id: 3, type: 'assistant', content: 'Of course. I have attached the high-res source for you.', timestamp: "12:47" },
+    ];
+
+    const ImagePreview = ({ label }: { label: string }) => (
+      <div style={{ 
+        width: 120, 
+        height: 120, 
+        background: '#334155', 
+        borderRadius: 8, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        color: '#94a3b8',
+        fontSize: 10,
+        fontWeight: 600,
+        border: '1px solid rgba(255,255,255,0.1)'
+      }}>
+        {label}
+      </div>
+    );
+
+    return (
+      <div style={{ width: 400, height: 600, background: 'var(--be-terminal-bg)', borderRadius: 12, padding: 16 }}>
+        <ChatMessage message={messages[0]}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+            <ImagePreview label="COSMIC_01" />
+            <ImagePreview label="COSMIC_02" />
+            <ImagePreview label="COSMIC_03" />
+          </div>
+        </ChatMessage>
+        <ChatMessage message={messages[1]} />
+        <ChatMessage message={messages[2]}>
+          <div style={{ marginTop: 8 }}>
+            <div style={{ 
+              padding: 8, 
+              background: 'rgba(0,0,0,0.2)', 
+              borderRadius: 6, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 8,
+              border: '1px solid rgba(255,255,255,0.05)'
+            }}>
+              <div style={{ width: 32, height: 32, background: '#4285F4', borderRadius: 4 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, fontWeight: 600 }}>cosmic_nebula_4k.png</div>
+                <div style={{ fontSize: 9, color: '#64748b' }}>4.2 MB • Image</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+              </svg>
+            </div>
+          </div>
+        </ChatMessage>
+      </div>
+    );
+  }
+};

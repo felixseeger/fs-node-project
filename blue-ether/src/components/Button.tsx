@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import type { ButtonHTMLAttributes } from "react";
+import DecodeTextButton from "./DecodeTextButton";
 
 export type ButtonVariant = "primary" | "secondary";
 
@@ -21,6 +22,19 @@ export function Button({
   ...rest
 }: ButtonProps) {
   const isPrimary = variant === "primary";
+
+  if (isPrimary && !crt) {
+    return (
+      <DecodeTextButton
+        variant="primary"
+        style={style as any}
+        type={type}
+        {...(rest as any)}
+      >
+        {children}
+      </DecodeTextButton>
+    );
+  }
 
   const variantStyle = isPrimary 
     ? {

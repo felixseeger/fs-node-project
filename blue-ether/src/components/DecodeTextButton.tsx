@@ -35,16 +35,16 @@ function variantStyles(variant: DecodeTextButtonVariant): CSSProperties {
   switch (variant) {
     case "primary":
       return {
-        background: "var(--be-color-text)",
-        color: "var(--be-color-bg)",
-        border: "none",
-      };
-    case "accent":
-      return {
         background: "var(--be-color-accent)",
         color: "#fff",
         border: "none",
         boxShadow: "0 0 24px rgba(61, 139, 253, 0.35)",
+      };
+    case "accent":
+      return {
+        background: "var(--be-color-text)",
+        color: "var(--be-color-bg)",
+        border: "none",
       };
     case "secondary":
       return {

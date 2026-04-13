@@ -8,6 +8,18 @@ export type {
 } from "./components/DecodeTextButton";
 export { default as Avatar } from "./components/Avatar";
 export type { AvatarProps, AvatarSize } from "./components/Avatar";
+export { default as Icon } from "./components/Icon";
+export type { IconProps, IconName } from "./components/Icon";
+export { Navbar, NavLink } from "./components/Navbar";
+export type { NavbarProps, NavLinkProps } from "./components/Navbar";
+export { default as Dropdown } from "./components/Dropdown";
+export type { DropdownProps, DropdownItem } from "./components/Dropdown";
+export { default as Breadcrumb } from "./components/Breadcrumb";
+export type { BreadcrumbProps, BreadcrumbItem } from "./components/Breadcrumb";
+export { Sidebar, SidebarItem } from "./components/Sidebar";
+export type { SidebarProps, SidebarItemProps } from "./components/Sidebar";
+export { default as Tabs } from "./components/Tabs";
+export type { TabsProps, Tab } from "./components/Tabs";
 export { default as Task } from "./components/Task";
 export { default as TaskList } from "./components/TaskList";
 export type { TaskData } from "./types";
