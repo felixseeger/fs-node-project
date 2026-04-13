@@ -23,6 +23,10 @@ export type { TabsProps, Tab } from "./components/Tabs";
 export { default as Task } from "./components/Task";
 export { default as TaskList } from "./components/TaskList";
 export type { TaskData } from "./types";
+export { Timeline } from "./components/Timeline";
+export type { TimelineProps } from "./components/Timeline";
+export { LayerStack } from "./components/LayerStack";
+export type { LayerStackProps, Layer } from "./components/LayerStack";
 
 // ── Chat UI Components ──
 export * from "./components/chat";

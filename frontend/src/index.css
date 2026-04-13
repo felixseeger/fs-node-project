@@ -60,6 +60,7 @@
 
   /* Blueprint / Cyberpunk UI Transition Tokens */
   --glow-cyan: drop-shadow(0 0 8px rgba(94, 231, 223, 0.8)) drop-shadow(0 0 12px rgba(94, 231, 223, 0.4));
+  --glow-pink: drop-shadow(0 0 8px rgba(236, 72, 153, 0.6)) drop-shadow(0 0 16px rgba(236, 72, 153, 0.3));
   --bg-blueprint: #0a0f1d;
 
   /* Node-Specific Colors */

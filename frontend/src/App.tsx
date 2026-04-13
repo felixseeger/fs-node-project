@@ -31,9 +31,11 @@ import { useUser } from './hooks/useUser';
 import { saveTemplate as saveLocalTemplate } from './templates/templateStore';
 import { staggerNodes } from './helpers/staggerNodes';
 
-import { dynamicNodes, createDynamicNodeWrapper } from './utils/dynamicNodeImports';
+import { dynamicNodes, createDynamicNodeWrapper, prefetchNode } from './utils/dynamicNodeImports';
 // @ts-ignore
 import DynamicNodeLoader from './components/DynamicNodeLoader';
+
+const LocalLTXNode = React.lazy(() => import('./nodes/LocalLTXNode'));
 import { MODELS as IMAGE_MODELS } from './nodes/imageUniversalGeneratorModels';
 import { MODELS as VIDEO_MODELS } from './nodes/videoUniversalGeneratorModels';
 import LandingPage from './LandingPage';
@@ -184,6 +186,7 @@ const initialNodeTypes: NodeTypes = {
   simplifiedGenerator: createDynamicNodeWrapper(dynamicNodes.SimplifiedGeneratorNode),
   textLLM: createDynamicNodeWrapper(dynamicNodes.TextLLMNode),
   imageSegmentation: createDynamicNodeWrapper(dynamicNodes.ImageSegmentationNode),
+  localLTX: createDynamicNodeWrapper(LocalLTXNode),
 } as any;
 
 export default function App() {

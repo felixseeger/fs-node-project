@@ -624,7 +624,14 @@ export const ProjectsDashboard: FC<ProjectsDashboardProps> = ({
                 onClick={() => onCreateProject && setNewProjectModalOpen(true)}
                 variant="primary"
                 startIcon={Icons.Plus}
-                style={{ padding: '8px 16px', borderRadius: 8, marginLeft: 8 }}
+                crt
+                style={{ 
+                  padding: '8px 16px', 
+                  borderRadius: 8, 
+                  marginLeft: 8,
+                  boxShadow: '0 0 16px rgba(236, 72, 153, 0.4), 0 0 32px rgba(236, 72, 153, 0.2)',
+                  border: '1px solid rgba(236, 72, 153, 0.3)'
+                }}
               >
                 New Project
               </DecodeTextButton>

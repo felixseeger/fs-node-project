@@ -1,1 +1,0 @@
-import{C as e,k as t,w as n}from"./esm-DlDkLZaf.js";var r=t(n(),1),i=e(),a=(0,r.createContext)(void 0),o=({value:e,children:t})=>(0,i.jsx)(a.Provider,{value:e,children:t}),s=()=>{let e=(0,r.useContext)(a);if(!e)throw Error(`useCanvas must be used within a CanvasProvider`);return e};export{s as n,o as t};

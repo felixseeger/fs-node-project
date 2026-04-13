@@ -45,6 +45,7 @@ const REFERENCE_SECTIONS: CanvasAllNodeSection[] = [
       { key: 'universalGeneratorVideo', type: 'universalGeneratorVideo', label: 'Generate Video', dataPatch: { label: 'Generate Video' } },
       { key: 'imageSegmentation', type: 'imageSegmentation', label: 'SAM 3 Segmentation', dataPatch: { label: 'SAM 3 Segmentation' } },
       { key: 'tripo3d', type: 'tripo3d', label: 'Generate 3D', dataPatch: { label: 'Generate 3D' } },
+      { key: 'localLTX', type: 'localLTX', label: 'Local LTX Video', dataPatch: { label: 'Local LTX Video' } },
     ],
   },
   {
@@ -167,6 +168,7 @@ const EXTRA_LABELS: Record<string, string> = {
   textElement: 'Text Element',
   videoOutput: 'Video Output',
   soundOutput: 'Sound Output',
+  localLTX: 'Local LTX Video',
 };
 
 function typeToLabel(type: string): string {

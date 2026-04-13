@@ -50,7 +50,14 @@ export const EmptyState: FC<EmptyStateProps> = ({ title, hint, message, actionLa
           variant="primary"
           startIcon={Icons.Plus}
           onClick={onAction}
-          style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8 }}
+          crt
+          style={{ 
+            marginTop: 16, 
+            padding: '8px 16px', 
+            borderRadius: 8,
+            boxShadow: '0 0 16px rgba(236, 72, 153, 0.4), 0 0 32px rgba(236, 72, 153, 0.2)',
+            border: '1px solid rgba(236, 72, 153, 0.3)'
+          }}
         >
           {actionLabel}
         </DecodeTextButton>

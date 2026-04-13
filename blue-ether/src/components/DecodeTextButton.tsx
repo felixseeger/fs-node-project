@@ -29,7 +29,11 @@ export type DecodeTextButtonProps = Omit<
   duration?: number;
   startIcon?: ReactNode;
   endIcon?: ReactNode;
+  crt?: boolean;
 };
+
+const crtLabelShadow =
+  "-2px 0px 2px var(--pink), 2px 0px 2px var(--darker-cyan)";
 
 function variantStyles(variant: DecodeTextButtonVariant): CSSProperties {
   switch (variant) {
@@ -76,6 +80,7 @@ export default function DecodeTextButton({
   duration,
   startIcon,
   endIcon,
+  crt = false,
   type = "button",
   onMouseEnter,
   onMouseLeave,
@@ -146,6 +151,8 @@ export default function DecodeTextButton({
   };
 
   const combinedStyle: CSSProperties = {
+    position: "relative",
+    overflow: "hidden",
     padding: "10px 20px",
     fontSize: "var(--be-font-size-md)",
     fontWeight: 600,
@@ -162,6 +169,12 @@ export default function DecodeTextButton({
     ...style,
   };
 
+  const textStyle: CSSProperties = {
+    position: "relative",
+    zIndex: 1,
+    ...(crt ? { textShadow: crtLabelShadow } : {}),
+  };
+
   return (
     <motion.button
       ref={buttonRef}
@@ -176,20 +189,53 @@ export default function DecodeTextButton({
       {...(rest as any)}
     >
       {startIcon ? (
-        <span style={{ display: "flex", alignItems: "center", width: 14 }}>
+        <span style={{ display: "flex", alignItems: "center", width: 14, position: "relative", zIndex: 1 }}>
           {startIcon}
         </span>
       ) : null}
 
-      <span style={{ position: "relative" }}>{displayText}</span>
+      <span style={textStyle}>{displayText}</span>
 
       {endIcon ? (
-        <span style={{ display: "flex", alignItems: "center", width: 14 }}>
+        <span style={{ display: "flex", alignItems: "center", width: 14, position: "relative", zIndex: 1 }}>
           {endIcon}
         </span>
       ) : null}
 
-      {!text && !startIcon && !endIcon ? children : null}
+      {!text && !startIcon && !endIcon ? (
+        <span style={textStyle}>{children}</span>
+      ) : null}
+
+      {crt ? (
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            borderRadius: "inherit",
+            backgroundImage: variant === "primary" || variant === "accent"
+              ? `repeating-linear-gradient(
+              0deg,
+              transparent,
+              transparent 1px,
+              rgba(0, 0, 0, 0.14) 1px,
+              rgba(0, 0, 0, 0.14) 2px
+            )`
+              : `repeating-linear-gradient(
+              0deg,
+              transparent,
+              transparent 1px,
+              rgba(255, 255, 255, 0.11) 1px,
+              rgba(255, 255, 255, 0.11) 2px
+            )`,
+            mixBlendMode: variant === "primary" || variant === "accent" ? "multiply" : "overlay",
+            boxShadow: variant === "primary" || variant === "accent"
+              ? "inset 0 0 0 1px rgba(34, 197, 94, 0.12)"
+              : "inset 0 0 0 1px rgba(167, 243, 208, 0.22)",
+          }}
+        />
+      ) : null}
     </motion.button>
   );
 }

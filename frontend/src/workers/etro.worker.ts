@@ -123,6 +123,16 @@ self.onmessage = async (e: MessageEvent) => {
       if (!isPlaying) render();
       break;
 
+    case 'REORDER_LAYERS':
+      const newLayers = [];
+      for (const source of payload.sources) {
+        const layer = layers.find(l => l.source === source);
+        if (layer) newLayers.push(layer);
+      }
+      layers = newLayers;
+      if (!isPlaying) render();
+      break;
+
     case 'PLAY':
       if (!isPlaying) {
         isPlaying = true;
@@ -146,6 +156,11 @@ self.onmessage = async (e: MessageEvent) => {
         animationFrameId = null;
       }
       render();
+      break;
+
+    case 'SCRUB':
+      state.currentTime = payload.time;
+      if (!isPlaying) render();
       break;
 
     case 'RECORD':

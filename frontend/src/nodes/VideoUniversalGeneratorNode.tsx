@@ -11,6 +11,7 @@ import { NodeCapabilities } from './nodeCapabilities';
 import {
   kling3Generate, pollKling3Status,
   pixVerseV5Generate, pollPixVerseV5Status,
+  ltxVideoDirectGenerate, pollLtxDirectStatus,
 } from '../utils/api';
 import { VIDEO_UNIVERSAL_MODEL_DEFS } from './videoUniversalGeneratorModels';
 import { uploadAssetToStorage } from '../services/storageService';
@@ -47,6 +48,12 @@ const VideoUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
         result = await kling3Generate('pro', { prompt, aspect_ratio: aspectRatio, image: startFrameUrl });
       } else if (activeModel === 'pixverse') {
         result = await pixVerseV5Generate({ prompt, aspect_ratio: aspectRatio, start_image: startFrameUrl });
+      } else if (activeModel === 'ltx-video' || activeModel === 'ltx-2-pro') {
+        result = await ltxVideoDirectGenerate('fast', { 
+          prompt, 
+          aspectRatio: aspectRatio, 
+          imagePath: startFrameUrl 
+        });
       } else {
         throw new Error(`Model ${activeModel} logic not fully implemented in universal node wrapper`);
       }
