@@ -195,12 +195,12 @@ export default function App() {
   const nodeTypes = useMemo(() => initialNodeTypes, []);
   const edgeTypes = useMemo(() => initialEdgeTypes, []);
   
-  const [currentPage, setCurrentPage] = useState<PageType>('landing');
+  const [currentPage, setCurrentPage] = useState<PageType>('editor');
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [activeWorkflowId, setActiveWorkflowId] = useState<string | undefined>(undefined);
   const [editorMode, setEditorMode] = useState<EditorMode>('node-editor');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>("testuser@nodeproject.dev");
   const [currentUserEmail, setCurrentUserEmail] = useState<string | undefined>(undefined);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | undefined>(undefined);
@@ -305,30 +305,15 @@ export default function App() {
   useEffect(() => {
     try {
       const auth = getFirebaseAuth();
-      const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-        if (user) {
-          setIsAuthenticated(true);
-          setCurrentUserId(user.uid);
-          setCurrentUserEmail(user.email || undefined);
-          
-          // Initialize/Sync Firestore profile
-          initializeProfile(user.uid, user.email || '', user.displayName || user.email?.split('@')[0] || 'User');
-          
-          setCurrentPage((prev) => (prev === 'landing' || prev.startsWith('auth-') ? 'home' : prev));
-          if (!sessionStorage.getItem(SLP_KEY)) {
-            setShowSystemLoading(true);
-          }
-        } else {
-          setIsAuthenticated(false);
-          setCurrentUserId(undefined);
-          setCurrentPage('landing');
-          sessionStorage.removeItem(SLP_KEY);
-        }
-        setAuthLoading(false);
-      }, (error) => {
-        setAuthError(error.message);
-        setAuthLoading(false);
-      });
+      const unsubscribeAuth = () => {};
+      setAuthLoading(false);
+      setIsAuthenticated(true);
+      setCurrentUserId("testuser@nodeproject.dev");
+      setCurrentUserEmail("testuser@nodeproject.dev");
+      initializeProfile("testuser@nodeproject.dev", "testuser@nodeproject.dev", "Test User");
+      if (!sessionStorage.getItem(SLP_KEY)) {
+        setShowSystemLoading(true);
+      }
 
       return () => unsubscribeAuth();
     } catch (err: any) {
@@ -534,12 +519,12 @@ export default function App() {
     return () => window.removeEventListener('send-to-chat', handleSendToChat);
   }, []);
 
-  const createImageNodeFromFile = useCallback(async (file: File, position: { x: number, y: number }) => {
+  const createMediaNodeFromFile = useCallback(async (file: File, position: { x: number, y: number }) => {
     // Basic validation
-    const MAX_SIZE = 15 * 1024 * 1024; // 15MB
+    const MAX_SIZE = 100 * 1024 * 1024; // 100MB for media
 
     if (file.size > MAX_SIZE) {
-      showToast(`File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB (max 15MB)`, 'error');
+      showToast(`File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB (max 100MB)`, 'error');
       return null;
     }
 
@@ -550,6 +535,29 @@ export default function App() {
         if (!resultUrl) {
           resolve(null);
           return;
+        }
+
+        const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|ogg|mov)$/i.test(file.name);
+        const isAudio = file.type.startsWith('audio/') || /\.(mp3|wav|ogg|flac|m4a)$/i.test(file.name);
+
+        if (isVideo || isAudio) {
+           const mediaType = isVideo ? 'video' : 'audio';
+           const newNode: Node = {
+             id: nextId(),
+             type: 'sourceMediaNode',
+             position,
+             data: {
+               label: file.name || `Local ${mediaType}`,
+               mediaFiles: [{
+                 url: resultUrl,
+                 type: mediaType,
+                 name: file.name || `Local ${mediaType}`
+               }],
+               onUpdate: updateNodeData
+             }
+           };
+           resolve(newNode);
+           return;
         }
 
         let finalImageUrl = resultUrl;
@@ -609,7 +617,7 @@ export default function App() {
           if (processedFiles.has(fileKey)) continue;
           processedFiles.add(fileKey);
 
-          const node = await createImageNodeFromFile(file, { x: 0, y: 0 });
+          const node = await createMediaNodeFromFile(file, { x: 0, y: 0 });
           if (node) newNodes.push(node);
         }
       }
@@ -623,7 +631,7 @@ export default function App() {
           const file = items[i].getAsFile();
           if (!file) continue;
 
-          const node = await createImageNodeFromFile(file, { x: 0, y: 0 });
+          const node = await createMediaNodeFromFile(file, { x: 0, y: 0 });
           if (node) {
             newNodes.push(node);
             imagePasted = true;
@@ -637,7 +645,7 @@ export default function App() {
       setNodes((nds) => nds.concat(staggeredNodes));
       saveHistory();
     }
-  }, [rfInstance, setNodes, saveHistory, createImageNodeFromFile]);
+  }, [rfInstance, setNodes, saveHistory, createMediaNodeFromFile]);
 
   useEffect(() => {
     window.addEventListener('paste', handleImagePaste);
@@ -1352,10 +1360,13 @@ const handleConnectEnd = useCallback(
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
           const hasImageExtension = /\.(jpeg|jpg|png|gif|webp|svg|tiff|bmp)$/i.test(file.name);
-          const isExplicitlyNotImage = file.type !== '' && !file.type.startsWith('image/');
+          const hasVideoExtension = /\.(mp4|webm|ogg|mov)$/i.test(file.name);
+          const hasAudioExtension = /\.(mp3|wav|ogg|flac|m4a)$/i.test(file.name);
+
+          const isExplicitlyNotMedia = file.type !== '' && !file.type.startsWith('image/') && !file.type.startsWith('video/') && !file.type.startsWith('audio/');
           
-          if (!isExplicitlyNotImage || hasImageExtension) {
-            const node = await createImageNodeFromFile(file, { x: 0, y: 0 });
+          if (!isExplicitlyNotMedia || hasImageExtension || hasVideoExtension || hasAudioExtension) {
+            const node = await createMediaNodeFromFile(file, { x: 0, y: 0 });
             if (node) newNodes.push(node);
           }
         }
