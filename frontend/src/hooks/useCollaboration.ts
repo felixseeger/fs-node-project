@@ -171,10 +171,11 @@ export function useCollaboration({
     sendChatMessage(workflowId, {
       senderId: userId,
       senderName: userName,
+      senderAvatar: userAvatar,
       text,
       type: 'message',
     });
-  }, [isAvailable, userId, workflowId, userName]);
+  }, [isAvailable, userId, workflowId, userName, userAvatar]);
 
   return {
     collaborators,

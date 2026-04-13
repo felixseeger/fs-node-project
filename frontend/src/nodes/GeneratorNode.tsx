@@ -1,165 +1,43 @@
-import React, { useCallback, useState, useEffect, useRef, type FC, type ReactNode } from 'react';
+import React, { useCallback, useState, useEffect, useRef, type FC } from 'react';
 import { Position, Handle, type Node, type NodeProps } from '@xyflow/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  NodeShell,
-  SectionHeader,
-  ConnectedOrLocal,
-  PromptInput,
-  Pill,
-  Slider,
-  OutputHandle,
-  OutputPreview,
-  useNodeConnections,
-  CATEGORY_COLORS,
-  getHandleColor,
-  sp,
-  font,
-  text,
-  surface,
-  border,
-  radius,
-  textareaStyle,
+  NodeShell, SectionHeader, ConnectedOrLocal, PromptInput, Pill, Slider, OutputHandle, OutputPreview, useNodeConnections, CATEGORY_COLORS, getHandleColor, sp, font, text, surface, border, radius,
 } from './shared';
 import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
 import NodeProgress from './NodeProgress';
-// @ts-ignore
 import useNodeProgress from '../hooks/useNodeProgress';
-// @ts-ignore
 import { generateImage, generateKora, pollStatus } from '../utils/api';
 import type { GeneratorNodeData } from '../types';
+import NodeGenerateButton from './NodeGenerateButton';
 
-const KORA_ASPECTS = ['Auto', '1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
-const NANO_ASPECTS = ['Auto', '1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
-const KORA_RESOLUTIONS = ['HD', '2K'];
-const NANO_RESOLUTIONS = ['1K', '2K', '4K'];
-
-/**
- * GeneratorNode - Core image generation node
- */
 const GeneratorNode: FC<NodeProps<Node<GeneratorNodeData>>> = ({ id, data, selected }) => {
   const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
-  
-  // Progress tracking
-  const {
-    progress,
-    status,
-    message,
-    start,
-    setProgress,
-    complete,
-    fail,
-    isActive,
-  } = useNodeProgress({
-    onProgress: (state: any) => {
-      update({
-        executionProgress: state.progress,
-        executionStatus: state.status,
-        executionMessage: state.message,
-      });
-    },
+  const { progress, status, message, start, setProgress, complete, fail, isActive } = useNodeProgress({
+    onProgress: (state: any) => { update({ executionProgress: state.progress, executionStatus: state.status, executionMessage: state.message }); },
   });
 
+  const [isHovered, setIsHovered] = useState(false);
   const isKora = data.generatorType === 'kora';
-  const showImageIn = !isKora;
-
-  const aspects = isKora ? KORA_ASPECTS : NANO_ASPECTS;
-  const resolutions = isKora ? KORA_RESOLUTIONS : NANO_RESOLUTIONS;
-
-  const localAspect = (data.localAspectRatio as string) || aspects[0];
-  const localResolution = (data.localResolution as string) || resolutions[0];
-  const localNumImages = (data.localNumImages as number) || 1;
-
-  const promptConn = conn('prompt-in');
-  const imageConn = conn('image-in');
-  const aspectConn = conn('aspect-ratio-in');
-  const resolutionConn = conn('resolution-in');
-  const numImagesConn = conn('num-images-in');
 
   const handleGenerate = useCallback(async () => {
     const prompt = resolve.text('prompt-in', data.inputPrompt);
     if (!prompt) return;
-
-    start('Submitting generation request...');
+    start('Submitting request...');
     update({ outputImage: null, outputError: null });
-
     try {
-      const params: any = { prompt };
-
-      if (showImageIn) {
-        let images = resolve.image('image-in', data.localImage);
-        if (images?.length) params.image_urls = images;
-      }
-
-      const ar = resolve.text('aspect-ratio-in', localAspect);
-      if (ar && ar !== 'Auto') params.aspect_ratio = ar;
-
-      const res = resolve.text('resolution-in', localResolution);
-      if (res) params.resolution = res;
-
-      const num = resolve.text('num-images-in', String(localNumImages));
-      if (num) params.num_images = Number(num);
-
       const genFn = isKora ? generateKora : generateImage;
-      const result = await genFn(params);
-
-      if (result.error) {
-        fail(new Error(result.error?.message || 'Generation failed'));
-        update({ outputError: result.error?.message || JSON.stringify(result.error) });
-        return;
-      }
-
-      if (result.data?.task_id) {
-        // Poll with progress tracking
-        const statusResult = await pollStatus(result.data.task_id, isKora ? 'realism' : 'fluid', 90, 2000, (attempt: number, maxAttempts: number) => {
-          const p = 10 + Math.min(85, (attempt / maxAttempts) * 85);
-          setProgress(p, `Generating... (${attempt}/${maxAttempts})`);
-        });
-        
-        const generated = statusResult.data?.generated || [];
-        complete('Generation complete');
-        update({
-          outputImage: generated[0] || null,
-          outputImages: generated,
-          inputPrompt: prompt,
-        });
-
-        // Spawn and connect ImageOutputNode
-        if (generated.length > 0 && typeof data.onCreateNode === 'function') {
-          data.onCreateNode(
-            'imageOutput',
-            { outputImage: generated[0] },
-            'output',
-            'image-in'
-          );
-        }
-      } else if (result.data?.generated?.length) {
+      const result = await genFn({ prompt });
+      if (result.data?.generated?.length) {
         complete('Done');
-        const generated = result.data.generated;
-        update({
-          outputImage: generated[0],
-          outputImages: generated,
-          inputPrompt: prompt,
-        });
-
-        // Spawn and connect ImageOutputNode
-        if (generated.length > 0 && typeof data.onCreateNode === 'function') {
-          data.onCreateNode(
-            'imageOutput',
-            { outputImage: generated[0] },
-            'output',
-            'image-in'
-          );
-        }
-      } else {
-        complete('No images generated');
+        update({ outputImage: result.data.generated[0], inputPrompt: prompt });
       }
     } catch (err: any) {
-      console.error('[GeneratorNode] Generation error:', err);
       fail(err);
       update({ outputError: err.message });
     }
-  }, [id, data, update, isKora, showImageIn, localAspect, localResolution, localNumImages, start, setProgress, complete, fail, resolve]);
+  }, [id, data, update, isKora, start, complete, fail, resolve]);
 
   const lastTrigger = useRef<any>(null);
   useEffect(() => {
@@ -172,115 +50,48 @@ const GeneratorNode: FC<NodeProps<Node<GeneratorNodeData>>> = ({ id, data, selec
   const ACCENT = isKora ? CATEGORY_COLORS.vision : CATEGORY_COLORS.imageGeneration;
 
   return (
-    <NodeShell data={data}
-      label={(data.label as string) || (isKora ? 'Kora Reality' : 'Nano Banana 2 Edit')}
-      dotColor={ACCENT}
-      selected={selected}
-      onDisconnect={disconnectNode}
-      onGenerate={handleGenerate}
-      isGenerating={isActive}
-      hasError={!!data.outputError && !isActive}
-      downloadUrl={data.outputImage || undefined}
-      capabilities={[isKora ? NodeCapabilities.IMAGE_GENERATE : NodeCapabilities.IMAGE_EDIT]}
-    >
-      <OutputHandle id="output" label="image" color={getHandleColor('output')} />
-      <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />
+    <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+      <NodeShell data={data} label={(data.label as string) || (isKora ? 'Kora Reality' : 'Nano Banana 2 Edit')} dotColor={ACCENT} selected={selected} onDisconnect={disconnectNode} onGenerate={handleGenerate} isGenerating={isActive} hasError={!!data.outputError && !isActive} downloadUrl={data.outputImage || undefined}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Handles Area */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <Handle type="target" position={Position.Left} id="image-in" style={{ position: 'relative', left: -22, top: 0, background: getHandleColor('image-in') }} />
+              <span style={{ fontSize: 10, color: text.muted, marginLeft: -12 }}>image-in</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ fontSize: 10, color: text.muted, marginRight: -12 }}>output</span>
+              <OutputHandle label="" id="output" style={{ position: 'relative', right: -22, top: 0 }} />
+            </div>
+          </div>
 
-      {/* ── 1. Prompt Section ── */}
-      <SectionHeader 
-        label="Prompt" 
-        handleId="prompt-in" 
-        handleType="target" 
-        color={getHandleColor('prompt-in')}
-        isConnected={promptConn.connected}
-        onUnlink={() => data.onUnlink?.(id, 'prompt-in')}
-        extra={<div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <AutoPromptButton id={id} data={data} update={update} imageKey="image-in" localImageKey="localImage" />
-          <ImprovePromptButton id={id} data={data} update={update} type="image" />
-        </div>}
-      />
-      <ConnectedOrLocal connected={promptConn.connected} connInfo={promptConn.info}>
-        <PromptInput
-          value={(data.inputPrompt as string) || ''}
-          onChange={(v) => update({ inputPrompt: v })}
-          placeholder="Enter prompt..."
-          rows={2}
-        />
-      </ConnectedOrLocal>
-
-      {/* ── 2. Aspect Ratio Section ── */}
-      <SectionHeader 
-        label="Aspect Ratio" 
-        handleId="aspect-ratio-in" 
-        handleType="target" 
-        color={getHandleColor('aspect-ratio-in')}
-        isConnected={aspectConn.connected}
-        onUnlink={() => data.onUnlink?.(id, 'aspect-ratio-in')}
-      />
-      <ConnectedOrLocal connected={aspectConn.connected} connInfo={aspectConn.info}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 4 }}>
-          {aspects.map((a) => (
-            <Pill key={a} label={a} isActive={localAspect === a} onClick={() => update({ localAspectRatio: a })} accentColor={text.accent} />
-          ))}
-        </div>
-      </ConnectedOrLocal>
-
-      {/* ── 3. Images Section (Nano Banana only) ── */}
-      {showImageIn && (
-        <>
-          <SectionHeader 
-            label="Images" 
-            handleId="image-in" 
-            handleType="target" 
-            color={getHandleColor('image-in')}
-            isConnected={imageConn.connected}
-            onUnlink={() => data.onUnlink?.(id, 'image-in')}
-            onAdd={() => (data.onAddToInput as Function)?.('image_urls', id, 'image-in')}
+          <SectionHeader label="Prompt" handleId="prompt-in" handleType="target" color={getHandleColor('prompt-in')} isConnected={conn('prompt-in').connected} onUnlink={() => data.onUnlink?.(id, 'prompt-in')}
+            extra={<div style={{ display: 'flex', gap: 4, alignItems: 'center' }}><ImprovePromptButton id={id} data={data} update={update} type="image" /></div>}
           />
-          {imageConn.connected && <ConnectedOrLocal connected={true} connInfo={imageConn.info} children={null} />}
-        </>
-      )}
+          
+          <div style={{ position: 'relative' }}>
+            <AnimatePresence>
+              {(isHovered || isActive) && (
+                <motion.div initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.9 }} transition={{ duration: 0.15 }}
+                  style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 10, zIndex: 100 }}
+                >
+                  <div style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', border: `1.5px solid ${border.active}80`, borderRadius: radius.md, padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 12px 32px rgba(0,0,0,0.6)', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>RUN NODE</span>
+                    <NodeGenerateButton onGenerate={handleGenerate} isGenerating={isActive} size="sm" />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <ConnectedOrLocal connected={conn('prompt-in').connected} connInfo={conn('prompt-in').info}>
+              <PromptInput value={(data.inputPrompt as string) || ''} onChange={(v) => update({ inputPrompt: v })} placeholder="Enter prompt..." rows={2} />
+            </ConnectedOrLocal>
+          </div>
 
-      {/* ── 4. Resolution Section ── */}
-      <SectionHeader 
-        label="Resolution" 
-        handleId="resolution-in" 
-        handleType="target" 
-        color={getHandleColor('resolution-in')}
-        isConnected={resolutionConn.connected}
-        onUnlink={() => data.onUnlink?.(id, 'resolution-in')}
-      />
-      <ConnectedOrLocal connected={resolutionConn.connected} connInfo={resolutionConn.info}>
-        <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
-          {resolutions.map((r) => (
-            <Pill key={r} label={r} isActive={localResolution === r} onClick={() => update({ localResolution: r })} accentColor={text.accent} />
-          ))}
+          <NodeProgress progress={progress} status={status} message={message} />
+          <OutputPreview isLoading={isActive} output={data.outputImage} error={data.outputError} accentColor={ACCENT} label="Generation Output" />
         </div>
-      </ConnectedOrLocal>
-
-      {/* ── 5. Num Images Section ── */}
-      <SectionHeader 
-        label="Num Images" 
-        handleId="num-images-in" 
-        handleType="target" 
-        color={getHandleColor('num-images-in')}
-        isConnected={numImagesConn.connected}
-        onUnlink={() => data.onUnlink?.(id, 'num-images-in')}
-      />
-      <ConnectedOrLocal connected={numImagesConn.connected} connInfo={numImagesConn.info}>
-        <Slider label="Images" value={localNumImages} onChange={(v) => update({ localNumImages: v })} min={1} max={4} accentColor={text.accent} />
-      </ConnectedOrLocal>
-
-      <NodeProgress progress={progress} status={status} message={message} />
-
-      <OutputPreview
-        isLoading={isActive}
-        output={data.outputImage}
-        error={data.outputError}
-        accentColor={text.accent}
-        label="Generation Output"
-      />
-    </NodeShell>
+      </NodeShell>
+    </div>
   );
 };
 

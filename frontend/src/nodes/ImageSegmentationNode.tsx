@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useEffect, type FC } from 'react';
+import { getFirebaseAuth } from '../config/firebase';
 import { Position, Handle, type Node, type NodeProps } from '@xyflow/react';
 import {
   UniversalSimplifiedNodeChrome,
@@ -121,10 +122,20 @@ const ImageSegmentationNode: FC<NodeProps<Node<SegmentNodeData>>> = ({ id, data,
       runDisabled={!inputImage}
       width={280}
       onDownload={outputImages.length > 0 ? () => {
+        let username = 'anonymous';
+        try {
+          const auth = getFirebaseAuth();
+          username = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'anonymous';
+        } catch (err) {}
+        
+        const safeUser = username.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const safeModel = 'sam-v3'.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const label = (data.label || 'Segment Image').toLowerCase().replace(/[^a-z0-9]/g, '-');
+
         outputImages.forEach((img: string, i: number) => {
           const a = document.createElement('a');
           a.href = img;
-          a.download = `segment-${i}-${Date.now()}.png`;
+          a.download = `${safeUser}-${safeModel}-${label}-${i}-${Date.now()}.png`;
           a.click();
         });
       } : undefined}

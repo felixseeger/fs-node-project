@@ -180,6 +180,24 @@ export const NODE_MENU: NodeMenuSection[] = [
     section: 'Audio Generation',
     items: [
       {
+        type: 'universalGeneratorAudio',
+        label: 'Universal Audio',
+        defaults: {
+          label: 'Universal Audio',
+          inputPrompt: '', outputAudio: null, isLoading: false,
+          models: ['strudelNode'], autoSelect: false, useMultiple: false,
+          localDuration: 15,
+        },
+      },
+      {
+        type: 'strudelNode',
+        label: 'Strudel Sound Generation',
+        defaults: {
+          label: 'Strudel Sound Generation',
+          localPrompt: '', resultCode: '', isLoading: false,
+        },
+      },
+      {
         type: 'musicGeneration',
         label: 'ElevenLabs Music',
         defaults: {

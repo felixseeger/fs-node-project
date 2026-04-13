@@ -15,7 +15,11 @@ export const test = base.extend({
     
     // Check for login
     await page.waitForTimeout(1000);
-    if (await page.locator('text=Log in').isVisible()) {
+    const desktopLogin = page.locator('.desktop-nav-login').first();
+    if (await desktopLogin.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await desktopLogin.click({ force: true }).catch(() => {});
+      await page.waitForTimeout(1000);
+    } else if (await page.locator('text=Log in').isVisible()) {
       await page.click('text=Log in').catch(() => {});
       await page.waitForTimeout(1000);
     }
@@ -69,15 +73,20 @@ export const test = base.extend({
       const slpBtn = page.locator('.slp-ready').first();
       if (await slpBtn.isVisible()) await slpBtn.click({ force: true });
 
-    } catch(e) {}
+    } catch(e) {
+      // Ignore errors during tour dismissal
+    }
     
     await page.getByTestId('new-project-btn').waitFor({ state: 'visible', timeout: 30000 });
     await use(page);
   },
   
   editorPage: async ({ page }, use) => {
-    await page.getByTestId('new-project-btn').first().click();
-    await page.getByTestId('new-project-modal-confirm-new').click();
+    await page.getByTestId('new-project-btn').first().click({ force: true });
+    
+    const confirmBtn = page.getByTestId('new-project-modal-confirm-new').first();
+    await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await confirmBtn.click({ force: true });
     
     // Ensure the AI Assistant / Tour doesn't block the editor
     await page.waitForTimeout(5000);

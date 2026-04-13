@@ -1,123 +1,134 @@
-import { 
-  collection, 
-  doc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
-  onSnapshot, 
-  serverTimestamp,
+import {
+  collection,
+  doc,
   getDocs,
-  getDoc,
-  Timestamp
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
+  type Unsubscribe,
 } from 'firebase/firestore';
-import { getDb } from '../config/firebase';
-import type { ChatMessage, ChatConversation } from '../types/chat';
+import { getDb, isFirebaseConfigured } from '../config/firebase';
+import type { ChatSession, ChatMessage } from '../types/chat';
 
-const CONVERSATIONS_COLLECTION = 'conversations';
-const MESSAGES_SUBCOLLECTION = 'messages';
+const AI_CHATS_COLLECTION = 'ai_chats';
 
-/**
- * Create a new conversation
- */
-export async function createConversation(userId: string, title: string, workflowId?: string): Promise<string> {
+// --- CHAT SESSIONS ---
+
+export function subscribeToUserChats(
+  userId: string, 
+  callback: (chats: ChatSession[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  if (!isFirebaseConfigured()) throw new Error('Firebase not configured');
   const db = getDb();
-  const convRef = await addDoc(collection(db, CONVERSATIONS_COLLECTION), {
+  
+  const q = query(
+    collection(db, AI_CHATS_COLLECTION),
+    where('userId', '==', userId),
+    orderBy('updatedAt', 'desc')
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const chats = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate(),
+        updatedAt: data.updatedAt?.toDate(),
+      } as ChatSession;
+    });
+    callback(chats);
+  }, (error) => {
+    console.error('[ChatService] Error subscribing to user chats:', error);
+    if (onError) onError(error);
+  });
+}
+
+export async function createChatSession(userId: string, title: string = 'New Conversation', workflowId?: string): Promise<string> {
+  if (!isFirebaseConfigured()) throw new Error('Firebase not configured');
+  const db = getDb();
+  
+  const chatRef = await addDoc(collection(db, AI_CHATS_COLLECTION), {
     userId,
     title,
-    workflowId: workflowId || null,
+    workflowId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-    isDeleted: false,
-  });
-  return convRef.id;
-}
-
-/**
- * Add a message to a conversation
- */
-export async function addChatMessage(conversationId: string, type: 'user' | 'assistant', content: string, metadata?: any): Promise<string> {
-  const db = getDb();
-  
-  // Add message to subcollection
-  const msgRef = await addDoc(collection(db, CONVERSATIONS_COLLECTION, conversationId, MESSAGES_SUBCOLLECTION), {
-    type,
-    content,
-    timestamp: serverTimestamp(),
-    metadata: metadata || null,
   });
   
-  // Update conversation last message and timestamp
-  await updateDoc(doc(db, CONVERSATIONS_COLLECTION, conversationId), {
-    lastMessage: content.substring(0, 100),
-    updatedAt: serverTimestamp(),
-  });
-  
-  return msgRef.id;
+  return chatRef.id;
 }
 
-/**
- * List conversations for a user
- */
-export function subscribeToConversations(userId: string, callback: (conversations: ChatConversation[]) => void) {
+export async function updateChatTitle(chatId: string, title: string): Promise<void> {
+  if (!isFirebaseConfigured()) return;
   const db = getDb();
-  const q = query(
-    collection(db, CONVERSATIONS_COLLECTION),
-    where('userId', '==', userId),
-    where('isDeleted', '==', false),
-    orderBy('updatedAt', 'desc'),
-    limit(50)
-  );
-  
-  return onSnapshot(q, (snapshot) => {
-    const conversations = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as ChatConversation[];
-    callback(conversations);
-  });
-}
-
-/**
- * Subscribe to messages in a conversation
- */
-export function subscribeToMessages(conversationId: string, callback: (messages: ChatMessage[]) => void) {
-  const db = getDb();
-  const q = query(
-    collection(db, CONVERSATIONS_COLLECTION, conversationId, MESSAGES_SUBCOLLECTION),
-    orderBy('timestamp', 'asc')
-  );
-  
-  return onSnapshot(q, (snapshot) => {
-    const messages = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as ChatMessage[];
-    callback(messages);
-  });
-}
-
-/**
- * Delete a conversation (soft delete)
- */
-export async function deleteConversation(conversationId: string): Promise<void> {
-  const db = getDb();
-  await updateDoc(doc(db, CONVERSATIONS_COLLECTION, conversationId), {
-    isDeleted: true,
-    updatedAt: serverTimestamp(),
-  });
-}
-
-/**
- * Update conversation title
- */
-export async function updateConversationTitle(conversationId: string, title: string): Promise<void> {
-  const db = getDb();
-  await updateDoc(doc(db, CONVERSATIONS_COLLECTION, conversationId), {
+  await updateDoc(doc(db, AI_CHATS_COLLECTION, chatId), { 
     title,
+    updatedAt: serverTimestamp() 
+  });
+}
+
+export async function deleteChatSession(chatId: string): Promise<void> {
+  if (!isFirebaseConfigured()) return;
+  const db = getDb();
+  // NOTE: In production, consider a cloud function to delete subcollections (messages),
+  // or handle cleanup on the client if necessary.
+  await deleteDoc(doc(db, AI_CHATS_COLLECTION, chatId));
+}
+
+// --- MESSAGES ---
+
+export function subscribeToChatMessages(
+  chatId: string, 
+  callback: (messages: ChatMessage[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  if (!isFirebaseConfigured()) throw new Error('Firebase not configured');
+  const db = getDb();
+  
+  const q = query(
+    collection(db, AI_CHATS_COLLECTION, chatId, 'messages'),
+    orderBy('createdAt', 'asc')
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const messages = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate(),
+      } as ChatMessage;
+    });
+    callback(messages);
+  }, (error) => {
+    console.error(`[ChatService] Error subscribing to messages for chat ${chatId}:`, error);
+    if (onError) onError(error);
+  });
+}
+
+export async function addChatMessage(chatId: string, role: 'user' | 'assistant' | 'system', content: string, metadata?: any): Promise<string> {
+  if (!isFirebaseConfigured()) throw new Error('Firebase not configured');
+  const db = getDb();
+  
+  // Add the message
+  const msgRef = await addDoc(collection(db, AI_CHATS_COLLECTION, chatId, 'messages'), {
+    role,
+    content,
+    metadata,
+    createdAt: serverTimestamp(),
+  });
+  
+  // Update the parent chat's updatedAt timestamp
+  await updateDoc(doc(db, AI_CHATS_COLLECTION, chatId), {
     updatedAt: serverTimestamp(),
   });
+
+  return msgRef.id;
 }

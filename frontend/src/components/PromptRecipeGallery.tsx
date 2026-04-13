@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useReactFlow, type Node, type Edge } from '@xyflow/react';
 import { nextId } from '../app/nextId';
 import { PROMPT_RECIPES, type PromptRecipe } from '../data/promptRecipes';
@@ -9,57 +10,70 @@ interface PromptRecipeGalleryProps {
 
 export default function PromptRecipeGallery({ isOpen, onClose }: PromptRecipeGalleryProps) {
   const { screenToFlowPosition, setNodes, setEdges } = useReactFlow();
+  const [loadingRecipeId, setLoadingRecipeId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleAddRecipe = (recipe: PromptRecipe) => {
-    // Get the center of the canvas viewport
-    const center = screenToFlowPosition({
-      x: window.innerWidth / 2,
-      y: window.innerHeight / 2,
-    });
+  const handleAddRecipe = async (recipe: PromptRecipe) => {
+    try {
+      setLoadingRecipeId(recipe.id);
+      
+      // Simulate a loading process to give visual feedback
+      await new Promise(resolve => setTimeout(resolve, 600));
 
-    const newNodes: Node[] = [];
-    const newEdges: Edge[] = [];
-    const idMap = new Map<number, string>();
-
-    recipe.nodes.forEach((n, idx) => {
-      const id = nextId();
-      idMap.set(idx, id);
-      newNodes.push({
-        id,
-        type: n.type,
-        position: {
-          x: center.x + n.position.x - 300, // Offset to roughly center the group
-          y: center.y + n.position.y - 100
-        },
-        data: { ...n.data, selected: true } // auto-select the new nodes
+      // Get the center of the canvas viewport
+      const center = screenToFlowPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
       });
-    });
 
-    recipe.edges.forEach((e) => {
-      const sourceId = idMap.get(e.sourceIndex);
-      const targetId = idMap.get(e.targetIndex);
-      if (sourceId && targetId) {
-        newEdges.push({
-          id: `e-${sourceId}-${e.sourceHandle}-${targetId}-${e.targetHandle}`,
-          source: sourceId,
-          sourceHandle: e.sourceHandle,
-          target: targetId,
-          targetHandle: e.targetHandle,
-          style: { strokeWidth: 2, stroke: e.color || '#888' },
-          type: 'default'
+      const newNodes: Node[] = [];
+      const newEdges: Edge[] = [];
+      const idMap = new Map<number, string>();
+
+      recipe.nodes.forEach((n, idx) => {
+        const id = nextId();
+        idMap.set(idx, id);
+        newNodes.push({
+          id,
+          type: n.type,
+          position: {
+            x: center.x + n.position.x - 300, // Offset to roughly center the group
+            y: center.y + n.position.y - 100
+          },
+          data: { ...n.data, selected: true } // auto-select the new nodes
         });
-      }
-    });
+      });
 
-    // Deselect existing nodes
-    setNodes((nds) => [
-      ...nds.map(n => ({ ...n, selected: false })),
-      ...newNodes
-    ]);
-    setEdges((eds) => [...eds, ...newEdges]);
-    onClose();
+      recipe.edges.forEach((e) => {
+        const sourceId = idMap.get(e.sourceIndex);
+        const targetId = idMap.get(e.targetIndex);
+        if (sourceId && targetId) {
+          newEdges.push({
+            id: `e-${sourceId}-${e.sourceHandle}-${targetId}-${e.targetHandle}`,
+            source: sourceId,
+            sourceHandle: e.sourceHandle,
+            target: targetId,
+            targetHandle: e.targetHandle,
+            style: { strokeWidth: 2, stroke: e.color || '#888' },
+            type: 'default'
+          });
+        }
+      });
+
+      // Deselect existing nodes
+      setNodes((nds) => [
+        ...nds.map(n => ({ ...n, selected: false })),
+        ...newNodes
+      ]);
+      setEdges((eds) => [...eds, ...newEdges]);
+      
+      onClose();
+    } catch (error) {
+      console.error('Failed to add recipe:', error);
+    } finally {
+      setLoadingRecipeId(null);
+    }
   };
 
   return (
@@ -69,7 +83,8 @@ export default function PromptRecipeGallery({ isOpen, onClose }: PromptRecipeGal
           <h3 className="modal-title" style={{ margin: 0 }}>Prompt Recipe Gallery</h3>
           <button 
             onClick={onClose} 
-            style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', fontSize: '20px' }}
+            disabled={loadingRecipeId !== null}
+            style={{ background: 'transparent', border: 'none', color: '#888', cursor: loadingRecipeId ? 'not-allowed' : 'pointer', fontSize: '20px' }}
           >
             &times;
           </button>
@@ -88,19 +103,52 @@ export default function PromptRecipeGallery({ isOpen, onClose }: PromptRecipeGal
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '12px',
                 padding: '16px',
-                cursor: 'pointer',
+                cursor: loadingRecipeId ? 'wait' : 'pointer',
                 transition: 'all 0.2s ease',
+                position: 'relative',
+                overflow: 'hidden'
               }}
               onMouseEnter={(e) => {
+                if (loadingRecipeId) return;
                 e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
                 e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
               }}
               onMouseLeave={(e) => {
+                if (loadingRecipeId) return;
                 e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
                 e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
               }}
-              onClick={() => handleAddRecipe(recipe)}
+              onClick={() => {
+                if (!loadingRecipeId) {
+                  handleAddRecipe(recipe);
+                }
+              }}
             >
+              {loadingRecipeId === recipe.id && (
+                <div style={{
+                  position: 'absolute',
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  background: 'rgba(0,0,0,0.6)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 10
+                }}>
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    border: '2px solid rgba(255,255,255,0.2)',
+                    borderTopColor: '#fff',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                  <style>{`
+                    @keyframes spin {
+                      to { transform: rotate(360deg); }
+                    }
+                  `}</style>
+                </div>
+              )}
               <h4 style={{ margin: '0 0 8px 0', color: '#e0e0e0', fontSize: '16px', fontWeight: 600 }}>{recipe.title}</h4>
               <p style={{ margin: 0, color: '#888', fontSize: '13px', lineHeight: '1.5' }}>{recipe.description}</p>
               

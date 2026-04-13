@@ -218,9 +218,18 @@ export default function App() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success'; id: string } | undefined>(undefined);
 
+  const { setWorkflow } = useStore();
+
   const firebaseTemplates = useFirebaseTemplates(currentUserId);
   const firebaseAssets = useFirebaseAssets(currentUserId);
+
+  useEffect(() => {
+    const current = workflows.find(w => w.id === activeWorkflowId) || null;
+    setWorkflow(current);
+  }, [activeWorkflowId, workflows, setWorkflow]);
   const {
+    conversations: chatConversations,
+    activeConversationId,
     messages: chatMessages,
     sendMessage: persistChatMessage,
     startNewConversation,
@@ -228,6 +237,11 @@ export default function App() {
     userId: currentUserId,
     workflowId: activeWorkflowId
   });
+
+  const activeChat = useMemo(() => 
+    chatConversations.find(c => c.id === activeConversationId),
+    [chatConversations, activeConversationId]
+  );
   const { profile, initialize: initializeProfile } = useUser(currentUserId);
   const { updateCursor, trackAction, lockNode, unlockNode, locks } = useCollaboration({
     workflowId: activeWorkflowId || null,
@@ -249,14 +263,48 @@ export default function App() {
     setCurrentPage(page as PageType);
   }, []);
 
-  const SLP_KEY = 'slp_shown';
-
   // Toast helper
-  const showToast = (message: string, type: 'error' | 'success' = 'error') => {
+  const showToast = useCallback((message: string, type: 'error' | 'success' = 'error') => {
     const id = Date.now().toString();
     setToast({ message, type, id });
     setTimeout(() => setToast(undefined), 4000);
-  };
+  }, []);
+
+  const handleShareWorkflow = useCallback(async () => {
+    if (!activeWorkflowId) {
+      showToast('No active workflow to share', 'error');
+      return;
+    }
+    
+    const shareLink = `${window.location.origin}/share/${activeWorkflowId}`;
+    
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareLink);
+        showToast('Workflow link copied to clipboard!', 'success');
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = shareLink;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          showToast('Workflow link copied to clipboard!', 'success');
+        } catch (err) {
+          showToast('Failed to copy link', 'error');
+        }
+        document.body.removeChild(textArea);
+      }
+    } catch (err) {
+      showToast('Failed to copy workflow link', 'error');
+    }
+  }, [activeWorkflowId]);
+
+  const SLP_KEY = 'slp_shown';
 
   useEffect(() => {
     try {
@@ -425,6 +473,7 @@ export default function App() {
   const chatUIRef = useRef<any>(undefined);
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [isChatting, setIsChatting] = useState(false);
   const [_connectionDrop, setConnectionDrop] = useState<any>(undefined);
   const [canvasSearch, setCanvasSearch] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
   const lastLockedNodeIdRef = useRef<string | null>(null);
@@ -990,38 +1039,16 @@ const handleConnectEnd = useCallback(
     rfInstance?.fitView();
   }, [rfInstance]);
 
-  const handleApplyModelToAll = useCallback(
+  const handleAddNodeFromMegaMenu = useCallback(
     (kind: string, modelName: string) => {
-      saveHistory();
-      setNodes((nds) =>
-        nds.map((n) => {
-          if (kind === 'image' && n.type === 'universalGeneratorImage') {
-            return {
-              ...n,
-              data: {
-                ...n.data,
-                models: [modelName],
-                autoSelect: false,
-                useMultiple: false,
-              },
-            };
-          }
-          if (kind === 'video' && n.type === 'universalGeneratorVideo') {
-            return {
-              ...n,
-              data: {
-                ...n.data,
-                models: [modelName],
-                autoSelect: false,
-                useMultiple: false,
-              },
-            };
-          }
-          return n;
-        })
-      );
+      const type = kind === 'image' ? 'universalGeneratorImage' : 'universalGeneratorVideo';
+      addNodeAtViewportCenter(type, {
+        models: [modelName],
+        autoSelect: false,
+        useMultiple: false,
+      });
     },
-    [saveHistory, setNodes]
+    [addNodeAtViewportCenter]
   );
 
   const handleUndo = useCallback(() => {
@@ -1125,8 +1152,10 @@ const handleConnectEnd = useCallback(
           if (Array.isArray(routedInput)) results.push(...routedInput);
           else results.push(routedInput);
         }
-      } else if (sourceNode.type === 'layerEditor' && sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
-      else if (sourceNode.type === 'facialEditing' && sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
+      } else if (sourceNode.type === 'layerEditor') {
+        if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
+        if (sh === 'video-out' && sd.outputVideo) results.push(sd.outputVideo);
+      } else if (sourceNode.type === 'facialEditing' && sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
       else if (sourceNode.type === 'groupEditing') {
         if (sh === 'images-out' && sd.outputImages) results.push(...sd.outputImages);
         if (sh === 'video-out' && sd.outputVideo) results.push(sd.outputVideo);
@@ -2290,18 +2319,20 @@ const handleConnectEnd = useCallback(
 
   if (!isAuthenticated || currentPage === 'landing') {
     return (
-      <div className="app-container">
-        <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
-        <div className="app-content">
-          <LandingPage theme={theme} setTheme={setTheme} onCreateWorkflow={handleCreateWorkflow} onDeleteWorkflows={handleDeleteWorkflows} workflows={workflows} onNavigate={handleNavigate} />
+      <PageTransition key="landing" className="h-screen w-screen overflow-hidden">
+        <div className="app-container">
+          <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+          <div className="app-content">
+            <LandingPage theme={theme} setTheme={setTheme} onCreateWorkflow={handleCreateWorkflow} onDeleteWorkflows={handleDeleteWorkflows} workflows={workflows} onNavigate={handleNavigate} />
+          </div>
         </div>
-      </div>
+      </PageTransition>
     );
   }
 
   if (currentPage === 'home') {
     return (
-      <>
+      <PageTransition key="home" className="h-screen w-screen overflow-hidden">
         <ProjectsDashboard
           projects={workflows}
           communityWorkflows={communityWorkflows}
@@ -2323,53 +2354,62 @@ const handleConnectEnd = useCallback(
           setTheme={setTheme}
         />
         <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
-      </>
+      </PageTransition>
     );
   }
 
   if (currentPage === 'assets') {
     return (
-      <div className="app-container">
-        <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
-        <div className="app-content" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}><GlobalAssetVault assetsAPI={firebaseAssets} /></div>
-        <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
-      </div>
+      <PageTransition key="assets" className="h-screen w-screen overflow-hidden">
+        <div className="app-container">
+          <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+          <div className="app-content" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}><GlobalAssetVault assetsAPI={firebaseAssets} /></div>
+          <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+        </div>
+      </PageTransition>
     );
   }
 
   if (currentPage === 'workspaces') {
     return (
-      <div className="app-container">
-        <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
-        <div className="app-content"><WorkspacesPage onCreateWorkspace={() => setCurrentPage('home')} workspaces={[]} /></div>
-        <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
-      </div>
+      <PageTransition key="workspaces" className="h-screen w-screen overflow-hidden">
+        <div className="app-container">
+          <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+          <div className="app-content"><WorkspacesPage onCreateWorkspace={() => setCurrentPage('home')} workspaces={[]} /></div>
+          <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+        </div>
+      </PageTransition>
     );
   }
 
   if (currentPage === 'workflow-settings') {
     return (
-      <div className="app-container">
-        <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
-        <div className="app-content"><WorkflowSettingsPage /></div>
-        <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
-      </div>
+      <PageTransition key="workflow-settings" className="h-screen w-screen overflow-hidden">
+        <div className="app-container">
+          <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+          <div className="app-content"><WorkflowSettingsPage /></div>
+          <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+        </div>
+      </PageTransition>
     );
   }
 
   if (currentPage === 'drawflow' || currentPage === 'node-banana') {
     return (
-      <div className="app-container">
-        <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
-        <div className="app-content" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          {currentPage === 'drawflow' ? <DrawflowLab /> : <NodeBananaLab />}
+      <PageTransition key={currentPage} className="h-screen w-screen overflow-hidden">
+        <div className="app-container">
+          <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+          <div className="app-content" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            {currentPage === 'drawflow' ? <DrawflowLab /> : <NodeBananaLab />}
+          </div>
+          <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
         </div>
-        <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
-      </div>
+      </PageTransition>
     );
   }
 
   return (
+    <PageTransition key="editor" className="h-screen w-screen overflow-hidden">
     <CanvasProvider value={canvasContextValue}>
       <div className="app-container">
       <TopBar
@@ -2405,6 +2445,12 @@ const handleConnectEnd = useCallback(
           </div>
         </div>
       )}
+      <WorkflowBuilderDrawer 
+        isOpen={isWorkflowBuilderOpen} 
+        onClose={() => setIsWorkflowBuilderOpen(false)} 
+        nodes={nodes}
+        edges={edges}
+      />
       <EditorTopBar
         currentUserId={currentUserId}
         nodes={nodes}
@@ -2415,6 +2461,7 @@ const handleConnectEnd = useCallback(
         onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
         onOpenRecipes={() => setShowPromptRecipes(true)}
         onToggleCollaboration={() => setIsCollaborationHubOpen(!isCollaborationHubOpen)}
+        onShare={handleShareWorkflow}
         onExportJSON={() => { const b = new Blob([JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${activeWorkflowName}.json`; a.click(); }}
         onImportJSON={() => {
           const i = document.createElement('input');
@@ -2551,7 +2598,7 @@ const handleConnectEnd = useCallback(
           />
           <KeyboardShortcutsModal isOpen={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
           <PromptRecipeGallery isOpen={showPromptRecipes} onClose={() => setShowPromptRecipes(false)} />
-          <MegaMenuModelSearch open={browseModelsOpen} onClose={() => setBrowseModelsOpen(false)} onSelect={(k: string, m: string) => handleApplyModelToAll(k, m)} />
+          <MegaMenuModelSearch open={browseModelsOpen} onClose={() => setBrowseModelsOpen(false)} onSelect={(k: string, m: string) => handleAddNodeFromMegaMenu(k, m)} />
           <div style={{ position: 'absolute', bottom: 96, right: 24, zIndex: 10 }}><Queue nodes={nodes} /></div>
           
           <div style={{ position: 'absolute', top: 60, right: 20, zIndex: 1000, display: 'flex', gap: '8px', background: '#222', padding: '4px', borderRadius: '8px', border: '1px solid #333' }}>
@@ -2665,32 +2712,39 @@ const handleConnectEnd = useCallback(
           </ReactFlow>
           <CollaboratorPresence />
           <NodeLocks />
-          <CollaborationHub 
-            isOpen={isCollaborationHubOpen} 
-            onClose={() => setIsCollaborationHubOpen(false)} 
+          <CollaborationHub
+            isOpen={isCollaborationHubOpen}
+            onClose={() => setIsCollaborationHubOpen(false)}
+            showToast={showToast}
           />
+
           <CollaborationPresence />
           <ChatButton isOpen={isChatOpen} onClick={() => setIsChatOpen(!isChatOpen)} />
           <ChatUI
             ref={chatUIRef} 
             isOpen={isChatOpen} 
             onClose={() => setIsChatOpen(false)}
+            activeChat={activeChat}
             externalMessages={chatMessages as any}
-            onStartNewConversation={() => { startNewConversation(); setChatSuggestions([]); }}
-            isChatting={isRunning}
+            onStartNewConversation={() => { 
+              startNewConversation(); 
+              setChatSuggestions([]); 
+              chatUIRef.current?.clearMessages();
+            }}
+            isChatting={isChatting}
             suggestions={chatSuggestions}
             onAddImageToCanvas={(url) => addNodeAtViewportCenter('imageNode', { imageUrl: url })}
             currentUserAvatar={profile?.photoURL || profile?.avatarUri}
             currentUserDisplayName={profile?.displayName}
             onSendMessage={async (_msg: any) => {
-              setIsRunning(true);
+              setIsChatting(true);
               try {
                 // Save user message to Firebase
                 await persistChatMessage(_msg, 'user');
                 
                 // Get AI response from backend
                 const history = chatMessages.map(m => ({
-                  role: m.type === 'assistant' ? 'assistant' : 'user',
+                  role: (m.role ?? (m as any).type) === 'assistant' ? 'assistant' : 'user',
                   content: m.content
                 }));
                 
@@ -2760,6 +2814,9 @@ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisio
                 if (res.success && res.response) {
                   // Save assistant response to Firebase
                   await persistChatMessage(res.response, 'assistant');
+                  
+                  // Also add to UI directly for immediate feedback (handled by deduplication if Firebase syncs)
+                  chatUIRef.current?.addMessage({ type: 'assistant', content: res.response });
 
                   // Auto-apply actions and suggestions if present
                   let actions = res.commands;
@@ -2794,12 +2851,12 @@ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisio
               } catch (e: any) { 
                 chatUIRef.current?.addMessage({ type: 'assistant', content: 'Connection error' }); 
               } finally {
-                setIsRunning(false);
+                setIsChatting(false);
               }
             }}
             onGenerate={async (_msg: string) => {
               if (!_msg?.trim()) return;
-              setIsRunning(true);
+              setIsChatting(true);
               try {
                 // Save prompt to chat history
                 await persistChatMessage(_msg, 'user');
@@ -2817,22 +2874,26 @@ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisio
                     
                     const successMsg = `Successfully generated workflow: ${newWf.name}`;
                     await persistChatMessage(successMsg, 'assistant', { workflowId: newWf.id });
+                    chatUIRef.current?.addMessage({ type: 'assistant', content: successMsg });
                   } else {
+                    const fallbackMsg = "Generated workflow and applied to canvas.";
+                    chatUIRef.current?.addMessage({ type: 'assistant', content: fallbackMsg });
                     setNodes(res.workflow.nodes);
                     setEdges(res.workflow.edges as Edge[]);
                   }
                 } else {
                   const errorMsg = 'Failed to generate workflow. ' + (res.error?.message || '');
                   await persistChatMessage(errorMsg, 'assistant');
+                  chatUIRef.current?.addMessage({ type: 'assistant', content: errorMsg });
                 }
               } catch (e) {
                 console.error('[AI Workflow] Generation error:', e);
               } finally {
-                setIsRunning(false);
+                setIsChatting(false);
               }
             }}
-            isGenerating={isRunning} 
-            disabled={isRunning} 
+            isGenerating={isChatting} 
+            disabled={isChatting} 
             referenceImages={referenceImages}
             setReferenceImages={setReferenceImages}
             assets={firebaseAssets.assets}
@@ -2879,14 +2940,13 @@ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisio
       )}
     </div>
     </CanvasProvider>
+    </PageTransition>
   );
   };
 
   return (
     <AnimatePresence mode="wait">
-      <PageTransition key={currentPage} className="h-screen w-screen overflow-hidden">
-        {renderCurrentPage()}
-      </PageTransition>
+      {renderCurrentPage()}
     </AnimatePresence>
   );
 }

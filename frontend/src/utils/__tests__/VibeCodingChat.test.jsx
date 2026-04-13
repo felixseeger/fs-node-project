@@ -11,6 +11,14 @@ import VibeCodingChat from '../../components/VibeCodingChat';
 import { useStore } from '../../store';
 import { generateWorkflowFromPrompt } from '../aiWorkflowGenerator';
 
+vi.mock('blue-ether', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    Avatar: () => <div data-testid="mock-avatar" />
+  };
+});
+
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
 window.Element.prototype.scrollIntoView = vi.fn();
 

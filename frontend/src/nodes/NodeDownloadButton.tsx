@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { getFirebaseAuth } from '../config/firebase';
 
 /**
  * Download button to save generated image/video/audio/svg
@@ -12,6 +13,7 @@ import { useState } from 'react';
  * @param {string} props.filename - The filename for the download
  * @param {string} props.size - Button size: 'sm' | 'md' (default: 'md')
  * @param {string} props.type - File type: 'image' | 'video' | 'audio' | 'svg' (default: 'image')
+ * @param {string} props.modelName - The AI model used to generate the file
  */
 interface NodeDownloadButtonProps {
   url: string;
@@ -19,9 +21,10 @@ interface NodeDownloadButtonProps {
   nodeLabel?: string;
   size?: 'sm' | 'md';
   type?: 'image' | 'video' | 'audio' | 'svg' | string;
+  modelName?: string;
 }
 
-export default function NodeDownloadButton({ url, filename, nodeLabel, size = 'md', type = 'image' }: NodeDownloadButtonProps) {
+export default function NodeDownloadButton({ url, filename, nodeLabel, size = 'md', type = 'image', modelName }: NodeDownloadButtonProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   if (!url) return null;
@@ -41,10 +44,23 @@ export default function NodeDownloadButton({ url, filename, nodeLabel, size = 'm
     else if (type === 'audio') extension = 'mp3';
     else if (type === 'svg') extension = 'svg';
 
+    let username = 'anonymous';
+    try {
+      const auth = getFirebaseAuth();
+      username = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'anonymous';
+    } catch (err) {
+      // ignore
+    }
+    
+    const safeUser = username.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const safeModel = (modelName || '').toLowerCase().replace(/[^a-z0-9]/g, '-');
+
     // Generate a meaningful filename if not provided
-    const baseName = filename || (nodeLabel 
-      ? `${nodeLabel.toLowerCase().replace(/\s+/g, '-')}-${type}` 
-      : `generated-${type}`);
+    let baseName = filename;
+    if (!baseName) {
+      const safeLabel = (nodeLabel ? nodeLabel.toLowerCase().replace(/[^a-z0-9]/g, '-') : `generated-${type}`);
+      baseName = `${safeUser}${safeModel ? `-${safeModel}` : ''}-${safeLabel}`;
+    }
     
     link.download = `${baseName}-${Date.now()}.${extension}`;
     link.style.display = 'none';

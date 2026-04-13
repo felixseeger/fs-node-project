@@ -134,7 +134,8 @@ export interface MegaMenuModelSearchProps {
 }
 
 /**
- * Full-screen Browse Models modal (search, filters, grid). Applies model to all universal generator nodes via onSelect.
+ * Full-screen Browse Models modal (search, filters, grid).
+ * Calls onSelect with the chosen model kind and key.
  */
 export default function MegaMenuModelSearch({ open, onClose, onSelect }: MegaMenuModelSearchProps) {
   const [query, setQuery] = useState('');

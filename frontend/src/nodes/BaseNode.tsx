@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { surface, border, sp, radius, text, ui } from './nodeTokens';
 import { type BaseNodeProps, type NodeStatus } from './BaseNode.types';
 import NodeGenerateButton from './NodeGenerateButton';
@@ -30,6 +31,7 @@ export default function BaseNode({
   onToggleSettings,
   downloadUrl,
   downloadType = 'image',
+  modelName,
 }: BaseNodeProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -135,19 +137,44 @@ export default function BaseNode({
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          {onGenerate && (isHovered || isExecuting) && (
-            <NodeGenerateButton
-              onGenerate={onGenerate}
-              isGenerating={isExecuting}
-              size="sm"
-            />
-          )}
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center', position: 'relative' }}>
+          <AnimatePresence>
+            {onGenerate && (isHovered || isExecuting) && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 10, zIndex: 100 }}
+              >
+                <div style={{
+                  background: 'rgba(0,0,0,0.85)',
+                  backdropFilter: 'blur(10px)',
+                  border: `1.5px solid ${border.active}80`,
+                  borderRadius: radius.md,
+                  padding: '5px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
+                  whiteSpace: 'nowrap'
+                }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>RUN NODE</span>
+                  <NodeGenerateButton 
+                    onGenerate={onGenerate} 
+                    isGenerating={isExecuting} 
+                    size="sm"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           {downloadUrl && (
             <NodeDownloadButton
               url={downloadUrl}
               type={downloadType === 'svg' ? 'image' : downloadType}
               nodeLabel={label}
+              modelName={modelName}
               size="sm"
             />
           )}

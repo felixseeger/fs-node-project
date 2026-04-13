@@ -1,41 +1,14 @@
 import createVideoGeneratorNode from './createVideoGeneratorNode';
 import { klingO1Generate, pollKlingO1Status } from '../utils/api';
-import { compressImageBase64, alignImageToMatch } from '../utils/imageUtils';
-
-const MODELS = [
-  { value: 'std', label: 'Standard' },
-  { value: 'pro', label: 'Pro' },
-];
-
-const ASPECT_RATIOS = [
-  { value: '16:9', label: '16:9' },
-  { value: '9:16', label: '9:16' },
-  { value: '1:1', label: '1:1' },
-];
+import { compressImageBase64 } from '../utils/imageUtils';
 
 export default createVideoGeneratorNode({
   displayName: 'Kling O1',
-  promptOptional: true, // Prompt is optional if images are provided
+  promptOptional: true,
   apiGeneratorFn: async (params) => {
-    let { model, first_frame, last_frame, ...rest } = params;
-
-    if (!first_frame && !last_frame) {
-      return { error: { message: 'Kling O1 requires at least a first or last frame.' } };
-    }
-
-    // Backend Alignment for in-out frames
-    if (first_frame && last_frame) {
-      last_frame = await alignImageToMatch(first_frame, last_frame);
-    }
-
-    if (first_frame) {
-      rest.first_frame = await compressImageBase64(first_frame);
-    }
-    if (last_frame) {
-      rest.last_frame = await compressImageBase64(last_frame);
-    }
-
-    return klingO1Generate(model || 'std', rest);
+    if (params.first_frame) params.first_frame = await compressImageBase64(params.first_frame);
+    if (params.last_frame) params.last_frame = await compressImageBase64(params.last_frame);
+    return klingO1Generate(params.model || 'std', params);
   },
   apiPollerFn: async (taskId, params, maxAttempts, intervalMs, onProgress) => {
     return pollKlingO1Status(taskId, maxAttempts, intervalMs);
@@ -46,8 +19,7 @@ export default createVideoGeneratorNode({
     { id: 'end-image-in', label: 'Last Frame (Optional)', paramName: 'last_frame' },
   ],
   settingsControls: [
-    { key: 'model', type: 'pills', label: 'Model Tier', options: MODELS, defaultValue: 'std', paramName: 'model' },
-    { key: 'aspectRatio', type: 'pills', label: 'Aspect Ratio', options: ASPECT_RATIOS, defaultValue: '16:9', paramName: 'aspect_ratio' },
-    { key: 'duration', type: 'slider', label: 'Duration (seconds)', defaultValue: 5, paramName: 'duration', min: 3, max: 15, step: 1, unit: 's' }
+    { key: 'model', type: 'pills', label: 'Model Tier', options: [{ value: 'std', label: 'Standard' }, { value: 'pro', label: 'Pro' }], defaultValue: 'std', paramName: 'model' },
+    { key: 'aspectRatio', type: 'pills', label: 'Aspect Ratio', options: [{ value: '16:9', label: '16:9' }, { value: '9:16', label: '9:16' }, { value: '1:1', label: '1:1' }], defaultValue: '16:9', paramName: 'aspect_ratio' }
   ]
 });

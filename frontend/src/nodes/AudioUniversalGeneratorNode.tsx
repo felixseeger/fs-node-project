@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef, type FC } from 'react';
+import { getFirebaseAuth } from '../config/firebase';
 import { Position, Handle, type Node, type NodeProps } from '@xyflow/react';
 import {
   UniversalSimplifiedNodeChrome,
@@ -188,7 +189,18 @@ const AudioUniversalGeneratorNode: FC<NodeProps> = ({ id, data, selected }) => {
       onDownload={data.outputAudio ? () => {
         const a = document.createElement('a');
         a.href = data.outputAudio as string;
-        a.download = `audio-${Date.now()}.mp3`;
+        
+        let username = 'anonymous';
+        try {
+          const auth = getFirebaseAuth();
+          username = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'anonymous';
+        } catch (err) {}
+        
+        const safeUser = username.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const safeModel = (data.model || 'audio-auto').toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const label = (data.label || 'Generate Audio').toLowerCase().replace(/[^a-z0-9]/g, '-');
+        
+        a.download = `${safeUser}-${safeModel}-${label}-${Date.now()}.mp3`;
         a.click();
       } : undefined}
     >

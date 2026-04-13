@@ -1,4 +1,5 @@
 import { Position, Handle } from '@xyflow/react';
+import { getFirebaseAuth } from '../config/firebase';
 import NodeShell from './NodeShell';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
@@ -63,10 +64,18 @@ export default function VideoOutputNode({ id, data, selected }) {
         <div style={{ marginTop: sp[3], display: 'flex', justifyContent: 'center', gap: sp[2] }}>
           <button
             onClick={() => {
+              let username = 'anonymous';
+              try {
+                const auth = getFirebaseAuth();
+                username = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'anonymous';
+              } catch (err) {}
+              const safeUser = username.toLowerCase().replace(/[^a-z0-9]/g, '-');
+              const label = (data.label || 'Video Output').toLowerCase().replace(/[^a-z0-9]/g, '-');
+              const safeModel = (data.model || 'auto').toLowerCase().replace(/[^a-z0-9]/g, '-');
+              
               const a = document.createElement('a');
               a.href = videoUrl;
-              const label = (data.label || 'Video Output').toLowerCase().replace(/\s+/g, '-');
-              a.download = `${label}-${Date.now()}.mp4`;
+              a.download = `${safeUser}-${safeModel}-${label}-${Date.now()}.mp4`;
               a.click();
             }}
             style={{

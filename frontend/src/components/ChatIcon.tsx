@@ -1,4 +1,5 @@
 import type { MouseEvent, CSSProperties, FC } from 'react';
+import { Icon } from 'blue-ether';
 
 interface ChatIconProps {
   isOpen: boolean;
@@ -84,20 +85,7 @@ const ChatIcon: FC<ChatIconProps> = ({ isOpen, onClick, unreadCount = 0 }) => {
       aria-label={isOpen ? 'Close chat' : 'Open chat'}
       aria-pressed={isOpen}
     >
-      {/* Chat Icon SVG */}
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
+      <Icon name="chat" size={24} aria-hidden="true" />
 
       {/* Unread Badge */}
       {unreadCount > 0 && !isOpen && (

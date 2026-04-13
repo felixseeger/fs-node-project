@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { border } from './nodeTokens';
 
 /**
  * Generate button that appears on hover
@@ -24,12 +25,12 @@ export default function NodeGenerateButton({ onGenerate, isGenerating, size = 'm
 
   if (!onGenerate) return null;
 
-  const dimensions = size === 'sm' ? { width: 28, height: 28, icon: 14 } : { width: 32, height: 32, icon: 16 };
+  const dimensions = size === 'sm' ? { width: 24, height: 24, icon: 12 } : { width: 32, height: 32, icon: 16 };
 
   return (
     <motion.button
-      whileHover={{ scale: 1.08 }}
-      whileTap={{ scale: 0.92 }}
+      whileHover={{ scale: 1.15, backgroundColor: border.active }}
+      whileTap={{ scale: 0.9 }}
       transition={{ type: "spring", stiffness: 400, damping: 20 }}
       onClick={(e: React.MouseEvent) => {
         e.stopPropagation();
@@ -37,19 +38,14 @@ export default function NodeGenerateButton({ onGenerate, isGenerating, size = 'm
           onGenerate();
         }
       }}
-      title={isGenerating ? 'Generating...' : 'Generate / Regenerate'}
+      title={isGenerating ? 'Generating...' : 'Run Node'}
       disabled={isGenerating}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
-        background: '#000',
-        border: `1px solid ${isGenerating ? '#3b82f6' : isHovered ? '#555' : '#222'}`,
+        background: isGenerating ? border.active : '#000',
+        border: 'none',
         color: '#fff',
-        boxShadow: isGenerating 
-          ? '0 0 10px rgba(59, 130, 246, 0.5)' 
-          : isHovered 
-            ? '0 0 12px rgba(255, 255, 255, 0.3)' 
-            : '0 0 8px rgba(0, 0, 0, 0.5)',
         cursor: isGenerating ? 'not-allowed' : 'pointer',
         width: dimensions.width,
         height: dimensions.height,
@@ -58,8 +54,8 @@ export default function NodeGenerateButton({ onGenerate, isGenerating, size = 'm
         alignItems: 'center',
         justifyContent: 'center',
         padding: 0,
-        opacity: isHovered || isGenerating ? 1 : 0.85,
         outline: 'none',
+        boxShadow: isGenerating ? `0 0 12px ${border.active}` : 'none',
       }}
     >
       {isGenerating ? (

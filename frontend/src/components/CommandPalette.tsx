@@ -15,6 +15,9 @@ export interface CommandPaletteProps {
   onExportScreenshot: () => void;
   onProjectSettings: () => void;
   onOpenHistory: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onMenuAction?: (action: string) => void;
 }
 
 interface PaletteItem {
@@ -56,6 +59,9 @@ const NodeIcon = () => (
   </svg>
 );
 
+const isMacOS = typeof navigator !== 'undefined' && navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
+const modKey = isMacOS ? '⌘' : 'Ctrl';
+
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
   onClose,
@@ -67,6 +73,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onExportScreenshot,
   onProjectSettings,
   onOpenHistory,
+  onUndo,
+  onRedo,
+  onMenuAction,
 }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -79,14 +88,31 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
     // Commands
     list.push(
-      { id: 'cmd-run', category: 'Commands', title: 'Run Workflow', action: onRunWorkflow, icon: <CommandIcon />, shortcut: '⌘ Enter' },
+      { id: 'cmd-run', category: 'Commands', title: 'Run Workflow', action: onRunWorkflow, icon: <CommandIcon />, shortcut: `${modKey} Enter` },
       { id: 'cmd-clear', category: 'Commands', title: 'Clear Canvas', action: onClearCanvas, icon: <CommandIcon /> },
-      { id: 'cmd-fit', category: 'Commands', title: 'Fit View', action: onFitView, icon: <CommandIcon />, shortcut: 'Shift 1' },
+      { id: 'cmd-fit', category: 'Commands', title: 'Fit View', action: onFitView, icon: <CommandIcon />, shortcut: `${modKey} 1` },
       { id: 'cmd-export-json', category: 'Commands', title: 'Export to JSON', action: onExportJSON, icon: <CommandIcon /> },
-      { id: 'cmd-export-png', category: 'Commands', title: 'Export Screenshot', action: onExportScreenshot, icon: <CommandIcon /> },
+      { id: 'cmd-export-png', category: 'Commands', title: 'Export Screenshot', action: onExportScreenshot, icon: <CommandIcon />, shortcut: `${modKey}⇧S` },
       { id: 'cmd-settings', category: 'Commands', title: 'Project Settings', action: onProjectSettings, icon: <CommandIcon /> },
       { id: 'cmd-history', category: 'Commands', title: 'Open History', action: onOpenHistory, icon: <CommandIcon /> }
     );
+
+    if (onUndo) {
+      list.push({ id: 'cmd-undo', category: 'Commands', title: 'Undo', action: onUndo, icon: <CommandIcon />, shortcut: `${modKey} Z` });
+    }
+    if (onRedo) {
+      list.push({ id: 'cmd-redo', category: 'Commands', title: 'Redo', action: onRedo, icon: <CommandIcon />, shortcut: `${modKey}⇧Z` });
+    }
+    if (onMenuAction) {
+      list.push(
+        { id: 'cmd-copy', category: 'Commands', title: 'Copy', action: () => onMenuAction('copy'), icon: <CommandIcon />, shortcut: `${modKey} C` },
+        { id: 'cmd-cut', category: 'Commands', title: 'Cut', action: () => onMenuAction('cut'), icon: <CommandIcon />, shortcut: `${modKey} X` },
+        { id: 'cmd-paste', category: 'Commands', title: 'Paste', action: () => onMenuAction('paste'), icon: <CommandIcon />, shortcut: `${modKey} V` },
+        { id: 'cmd-duplicate', category: 'Commands', title: 'Duplicate', action: () => onMenuAction('duplicate'), icon: <CommandIcon />, shortcut: `${modKey} D` },
+        { id: 'cmd-disconnect', category: 'Commands', title: 'Disconnect Nodes', action: () => onMenuAction('disconnect_nodes'), icon: <CommandIcon />, shortcut: `${modKey}⇧D` },
+        { id: 'cmd-clear-contents', category: 'Commands', title: 'Clear Contents', action: () => onMenuAction('clear_contents'), icon: <CommandIcon />, shortcut: `${modKey}⇧X` }
+      );
+    }
 
     // Tools (Utilities)
     const utilsSection = NODE_MENU.find(s => s.section === 'Utilities');
@@ -145,16 +171,20 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     });
 
     return list;
-  }, [onAddNode, onRunWorkflow, onClearCanvas, onFitView, onExportJSON, onExportScreenshot, onProjectSettings, onOpenHistory]);
+  }, [onAddNode, onRunWorkflow, onClearCanvas, onFitView, onExportJSON, onExportScreenshot, onProjectSettings, onOpenHistory, onUndo, onRedo, onMenuAction]);
 
   const filteredItems = useMemo(() => {
-    if (!query.trim()) return items;
-    const lowerQuery = query.toLowerCase();
-    return items.filter(item => 
-      item.title.toLowerCase().includes(lowerQuery) || 
-      item.category.toLowerCase().includes(lowerQuery) ||
-      (item.subtitle && item.subtitle.toLowerCase().includes(lowerQuery))
-    );
+    let result = items;
+    if (query.trim()) {
+      const lowerQuery = query.toLowerCase();
+      result = items.filter(item => 
+        item.title.toLowerCase().includes(lowerQuery) || 
+        item.category.toLowerCase().includes(lowerQuery) ||
+        (item.subtitle && item.subtitle.toLowerCase().includes(lowerQuery))
+      );
+    }
+    // Sort items alphabetically by title
+    return result.sort((a, b) => a.title.localeCompare(b.title));
   }, [items, query]);
 
   useEffect(() => {

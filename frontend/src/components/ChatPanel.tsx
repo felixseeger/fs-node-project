@@ -5,6 +5,7 @@ import type {
   FC 
 } from 'react';
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { Avatar } from 'blue-ether';
 import type { Node } from '@xyflow/react';
 import { 
   generateWorkflowFromPrompt, 
@@ -38,12 +39,20 @@ interface ChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onWorkflowGenerated?: (workflow: GeneratedWorkflow) => void;
+  currentUserAvatar?: string;
+  currentUserDisplayName?: string;
 }
 
 /**
  * ChatPanel - Accessible chat interface for workflow generation
  */
-const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated }) => {
+const ChatPanel: FC<ChatPanelProps> = ({ 
+  isOpen, 
+  onClose, 
+  onWorkflowGenerated,
+  currentUserAvatar,
+  currentUserDisplayName
+}) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -234,45 +243,76 @@ const ChatPanel: FC<ChatPanelProps> = ({ isOpen, onClose, onWorkflowGenerated })
         role="log"
         aria-live="polite"
       >
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            style={{
-              alignSelf: message.sender === 'user' ? 'flex-end' : 'flex-start',
-              maxWidth: '80%',
-            }}
-          >
+        {messages.map((message) => {
+          const isUser = message.sender === 'user';
+          const isSystem = message.sender === 'system';
+          
+          return (
             <div
+              key={message.id}
               style={{
-                background: getMessageBackground(message),
-                color: 'white',
-                padding: '10px 15px',
-                borderRadius: '15px',
-                wordBreak: 'break-word',
-                position: 'relative',
+                alignSelf: isUser ? 'flex-end' : 'flex-start',
+                maxWidth: '85%',
+                display: 'flex',
+                flexDirection: isUser ? 'row-reverse' : 'row',
+                gap: '10px',
+                alignItems: 'flex-end'
               }}
             >
-              {message.content}
-
-              {/* Workflow preview */}
-              {message.workflowPreview && (
-                <div style={{ marginTop: '10px', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-                  <strong>Workflow Preview:</strong>
-                  <div style={{ fontSize: '12px', marginTop: '5px' }}>
-                    {message.workflowPreview.nodes.length} nodes | {message.workflowPreview.edges.length} edges
-                  </div>
-                  <div style={getStatusIndicatorStyles(message.workflowPreview.isValid)}>
-                    {message.workflowPreview.isValid ? '✅ Valid workflow' : '⚠️ Needs review'}
-                  </div>
+              {!isSystem && (
+                <div style={{ flexShrink: 0, marginBottom: '2px' }}>
+                  {isUser ? (
+                    <Avatar 
+                      src={currentUserAvatar} 
+                      name={currentUserDisplayName || 'User'} 
+                      size="sm" 
+                      crt 
+                    />
+                  ) : (
+                    <Avatar 
+                      src="/gemini_avatar_improved.png" 
+                      name="AI Assistant" 
+                      size="sm" 
+                      crt 
+                    />
+                  )}
                 </div>
               )}
+              
+              <div
+                style={{
+                  background: getMessageBackground(message),
+                  color: 'white',
+                  padding: '10px 15px',
+                  borderRadius: isUser ? '15px 15px 4px 15px' : '15px 15px 15px 4px',
+                  wordBreak: 'break-word',
+                  position: 'relative',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  flex: 1
+                }}
+              >
+                {message.content}
 
-              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginTop: '5px' }}>
-                {new Date(message.timestamp).toLocaleTimeString()}
+                {/* Workflow preview */}
+                {message.workflowPreview && (
+                  <div style={{ marginTop: '10px', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                    <strong>Workflow Preview:</strong>
+                    <div style={{ fontSize: '12px', marginTop: '5px' }}>
+                      {message.workflowPreview.nodes.length} nodes | {message.workflowPreview.edges.length} edges
+                    </div>
+                    <div style={getStatusIndicatorStyles(message.workflowPreview.isValid)}>
+                      {message.workflowPreview.isValid ? '✅ Valid workflow' : '⚠️ Needs review'}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginTop: '5px' }}>
+                  {new Date(message.timestamp).toLocaleTimeString()}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 

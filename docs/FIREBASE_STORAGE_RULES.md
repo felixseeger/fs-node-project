@@ -1,0 +1,67 @@
+# Firebase Storage Security Rules
+
+These are the security rules for Firebase Storage in the FS Node Project.
+
+## Copy-Paste Rules
+
+```javascript
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isUnderSizeLimit(mb) {
+      return request.resource.size <= mb * 1024 * 1024;
+    }
+
+    // Avatar Images:
+    // Anyone can read avatars
+    // Only the authenticated owner can upload/update/delete their own avatar
+    // Must be an image under 5MB
+    match /avatars/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated() 
+                   && isOwner(userId)
+                   && isImage()
+                   && isUnderSizeLimit(5);
+    }
+
+    // User Image Assets:
+    // Only the owner can read/write their own assets
+    // Must be an image under 20MB
+    match /assets/{userId}/{fileName} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow write: if isAuthenticated() 
+                   && isOwner(userId)
+                   && isImage()
+                   && isUnderSizeLimit(20);
+    }
+    
+    // Default deny for everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+```
+
+## How to Apply
+
+1.  Open the [Firebase Console](https://console.firebase.google.com/).
+2.  Select your project: **fs-nodes-project**.
+3.  Click on **Storage** in the left sidebar.
+4.  Select the **Rules** tab at the top.
+5.  Delete all existing text and paste the rules from above.
+6.  Click **Publish**.

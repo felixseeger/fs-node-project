@@ -10,6 +10,7 @@ import type { Collaborator, ActionEvent, ChatMessage, NodeLock } from '../servic
 interface CollaborationHubProps {
   isOpen: boolean;
   onClose: () => void;
+  showToast?: (message: string, type?: 'error' | 'success') => void;
 }
 
 /**
@@ -25,7 +26,7 @@ export const CollaboratorPresence: FC = () => {
     workflowId: currentWorkflow?.id || null,
     userId: user?.uid || null,
     userName: profile?.displayName || user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
-    userAvatar: profile?.avatarUri || '👤',
+    userAvatar: profile?.photoURL || profile?.avatarUri || '👤',
     userColor: profile?.themeColor || '#3b82f6'
   });
 
@@ -55,8 +56,12 @@ export const CollaboratorPresence: FC = () => {
               className="mt-1 px-2 py-1 rounded text-white text-xs shadow-lg flex items-center gap-1.5 max-w-[150px]"
               style={{ backgroundColor: collaborator.color || '#3b82f6' }}
             >
-              <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[8px] font-bold shrink-0">
-                {collaborator.avatar?.slice(0, 2) || 'U'}
+              <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[8px] font-bold shrink-0 overflow-hidden">
+                {collaborator.avatar?.startsWith('http') || collaborator.avatar?.startsWith('data:') ? (
+                  <img src={collaborator.avatar} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  collaborator.avatar?.slice(0, 2) || 'U'
+                )}
               </div>
               <div className="min-w-0 overflow-hidden">
                 <div className="font-bold leading-tight truncate">{collaborator.name || 'Unknown User'}</div>
@@ -183,7 +188,7 @@ export const LiveActionFeed: FC = () => {
  * CollaborationHub - Real-time collaboration interface
  * Enables multi-user workflow editing with presence and communication
  */
-export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose }) => {
+export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose, showToast }) => {
   const { currentWorkflow } = useStore();
   const { user } = useAuth();
   const { profile } = useUser(user?.uid);
@@ -192,7 +197,7 @@ export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose })
     workflowId: currentWorkflow?.id || null,
     userId: user?.uid || null,
     userName: profile?.displayName || user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
-    userAvatar: profile?.avatarUri || '👤',
+    userAvatar: profile?.photoURL || profile?.avatarUri || '👤',
     userColor: profile?.themeColor || '#3b82f6'
   });
 
@@ -211,15 +216,45 @@ export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose })
   /**
    * Share current workflow
    */
-  const shareWorkflow = useCallback(() => {
-    if (!currentWorkflow) return;
+  const shareWorkflow = useCallback(async () => {
+    if (!currentWorkflow) {
+      if (showToast) showToast('No active workflow to share', 'error');
+      return;
+    }
     
-    const shareLink = `${window.location.origin}/share/${currentWorkflow.id}`;
-    navigator.clipboard.writeText(shareLink);
-    
-    // System message locally or via trackAction
-    console.log(`Workflow shared! Link copied to clipboard: ${shareLink}`);
-  }, [currentWorkflow]);
+    try {
+      const shareLink = `${window.location.origin}/share/${currentWorkflow.id}`;
+      
+      // Try using the modern clipboard API
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareLink);
+        if (showToast) showToast('Workflow link copied to clipboard!', 'success');
+      } else {
+        // Fallback for non-secure contexts or older browsers
+        const textArea = document.createElement("textarea");
+        textArea.value = shareLink;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          if (showToast) showToast('Workflow link copied to clipboard!', 'success');
+        } catch (err) {
+          console.error('Fallback copy failed', err);
+          if (showToast) showToast('Failed to copy link', 'error');
+        }
+        document.body.removeChild(textArea);
+      }
+      
+      console.log(`Workflow shared! Link copied to clipboard: ${shareLink}`);
+    } catch (err) {
+      console.error('Failed to copy workflow link:', err);
+      if (showToast) showToast('Failed to copy workflow link', 'error');
+    }
+  }, [currentWorkflow, showToast]);
 
   if (!isOpen) return null;
 
@@ -270,8 +305,12 @@ export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose })
               {/* Current User */}
               <div className="flex items-center justify-between p-2 bg-blue-900/20 rounded border border-blue-700/50">
                 <div className="flex items-center">
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-2 text-sm">
-                    {profile?.avatarUri || '👤'}
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-2 text-sm overflow-hidden">
+                    {profile?.photoURL || profile?.avatarUri ? (
+                      <img src={profile.photoURL || profile.avatarUri} alt="You" className="w-full h-full object-cover" />
+                    ) : (
+                      '👤'
+                    )}
                   </div>
                   <div>
                     <div className="text-white font-medium text-sm">You ({profile?.displayName || 'Anonymous'})</div>
@@ -289,10 +328,14 @@ export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose })
                 <div key={collab.id} className="flex items-center justify-between p-2 bg-gray-800 rounded border border-gray-700">
                   <div className="flex items-center">
                     <div 
-                      className="w-8 h-8 rounded-full flex items-center justify-center mr-2 text-sm"
+                      className="w-8 h-8 rounded-full flex items-center justify-center mr-2 text-sm overflow-hidden"
                       style={{ backgroundColor: collab.color + '40', color: collab.color }}
                     >
-                      {collab.avatar || '👤'}
+                      {collab.avatar?.startsWith('http') || collab.avatar?.startsWith('data:') ? (
+                        <img src={collab.avatar} alt={collab.name} className="w-full h-full object-cover" />
+                      ) : (
+                        collab.avatar?.slice(0, 2) || '👤'
+                      )}
                     </div>
                     <div>
                       <div className="text-white font-medium text-sm">{collab.name}</div>
@@ -318,10 +361,7 @@ export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose })
                 </button>
                 <button
                   className="w-full flex items-center justify-center py-2 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 transition-colors"
-                  onClick={() => {
-                    const link = `${window.location.origin}/share/${currentWorkflow?.id}`;
-                    navigator.clipboard.writeText(link);
-                  }}
+                  onClick={shareWorkflow}
                 >
                   📋 Copy Workflow Link
                 </button>
@@ -339,8 +379,20 @@ export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose })
                 messages.map((message, idx) => (
                   <div
                     key={message.id || idx}
-                    className={`message ${message.senderId === user?.uid ? 'text-right' : 'text-left'}`}
+                    className={`message flex items-end ${message.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}
                   >
+                    {message.senderId !== user?.uid && message.type !== 'system' && (
+                      <div className="flex-shrink-0 mr-2 mb-1">
+                        {message.senderAvatar?.startsWith('http') || message.senderAvatar?.startsWith('data:') ? (
+                          <img src={message.senderAvatar} alt={message.senderName} className="w-6 h-6 rounded-full object-cover shadow-sm" />
+                        ) : (
+                          <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-[10px] text-white shadow-sm">
+                            {message.senderAvatar?.slice(0, 2) || '👤'}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div
                       className={`inline-block max-w-[85%] p-2 rounded-lg text-sm ${
                         message.type === 'system'
@@ -422,27 +474,37 @@ export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose })
 export const CollaborationPresence: FC = () => {
   const { currentWorkflow } = useStore();
   const { user } = useAuth();
+  const { profile } = useUser(user?.uid);
   const { collaborators } = useCollaboration({
     workflowId: currentWorkflow?.id || null,
     userId: user?.uid || null
   });
 
   const totalCount = collaborators.length + 1;
+  const userAvatar = profile?.photoURL || profile?.avatarUri || '👤';
   
   return (
     <div className="fixed bottom-4 left-4 flex items-center space-x-2" style={{ zIndex: 10000 }}>
       <div className="flex -space-x-2">
-        <div className="w-8 h-8 bg-blue-600 rounded-full border-2 border-gray-900 flex items-center justify-center text-xs shadow-lg z-30" title="You">
-          👤
+        <div className="w-8 h-8 bg-blue-600 rounded-full border-2 border-gray-900 flex items-center justify-center text-xs shadow-lg z-30 overflow-hidden" title="You">
+          {userAvatar.startsWith('http') || userAvatar.startsWith('data:') ? (
+             <img src={userAvatar} alt="You" className="w-full h-full object-cover" />
+          ) : (
+             userAvatar.slice(0, 2)
+          )}
         </div>
         {collaborators.slice(0, 2).map((collab, index) => (
           <div 
             key={collab.id}
-            className="w-8 h-8 bg-gray-600 rounded-full border-2 border-gray-900 flex items-center justify-center text-xs shadow-lg"
+            className="w-8 h-8 bg-gray-600 rounded-full border-2 border-gray-900 flex items-center justify-center text-xs shadow-lg overflow-hidden"
             style={{ zIndex: 20 - index, backgroundColor: collab.color + '80' }}
             title={collab.name}
           >
-            {collab.avatar || '👤'}
+            {collab.avatar?.startsWith('http') || collab.avatar?.startsWith('data:') ? (
+              <img src={collab.avatar} alt={collab.name} className="w-full h-full object-cover" />
+            ) : (
+              collab.avatar?.slice(0, 2) || '👤'
+            )}
           </div>
         ))}
         {totalCount > 3 && (

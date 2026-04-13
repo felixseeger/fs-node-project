@@ -1,0 +1,163 @@
+# Firebase Firestore Security Rules
+
+These are the updated Firestore security rules for the FS Node Project, including the new Colab Hub comments and AI Chatbot conversation collections.
+
+## Copy-Paste Rules
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Completely locked down default rule: reject everything that doesn't match below.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Presence collection for real-time collaboration
+    match /presence/{userId} {
+      // Anyone can see who else is online
+      allow read: if true;
+      // Users can only update their own presence data
+      allow write: if isOwner(userId);
+    }
+
+    // Workflows collection
+    match /workflows/{workflowId} {
+      // Any logged-in user can create a workflow
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Allow reading public workflows, own workflows, or workflows shared with the user's email
+      allow read: if resource.data.isPublic == true
+                  || isOwner(resource.data.userId)
+                  || (isAuthenticated() && request.auth.token.email != null && request.auth.token.email in resource.data.sharedWith);
+      
+      // Only owner can update or delete the main workflow document
+      allow update, delete: if isOwner(resource.data.userId);
+
+      // Sub-collections for real-time collaboration features
+      
+      // Locks for node editing
+      match /locks/{nodeId} {
+        allow read: if true; // Everyone can see what's locked
+        allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+        allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      }
+      
+      // Event feed for user actions
+      match /events/{eventId} {
+        allow read: if true; // Everyone can see the action feed
+        allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      }
+
+      // Snapshots for versioning
+      match /snapshots/{snapshotId} {
+        allow read: if get(/databases/$(database)/documents/workflows/$(workflowId)).data.userId == request.auth.uid
+                    || get(/databases/$(database)/documents/workflows/$(workflowId)).data.isPublic == true;
+        allow create, delete: if isAuthenticated() && get(/databases/$(database)/documents/workflows/$(workflowId)).data.userId == request.auth.uid;
+      }
+
+      // Colab Hub Project Comments
+      match /comments/{commentId} {
+        // Anyone can read comments on a public workflow or their own workflow
+        allow read: if get(/databases/$(database)/documents/workflows/$(workflowId)).data.isPublic == true 
+                    || get(/databases/$(database)/documents/workflows/$(workflowId)).data.userId == request.auth.uid;
+        // Any authenticated user can comment on a public workflow
+        allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+        // Users can edit/delete their own comments
+        allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      }
+    }
+    
+    // AI Chatbot Conversations (Sessions)
+    match /ai_chats/{chatId} {
+      // Users can only access their own chat sessions
+      allow read, update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // AI Chatbot Messages within a session
+      match /messages/{messageId} {
+        // Read/Write restricted to the owner of the parent chat session
+        allow read, write: if isAuthenticated() && get(/databases/$(database)/documents/ai_chats/$(chatId)).data.userId == request.auth.uid;
+      }
+    }
+
+    // Messages collection (multiplayer chat / collaboration flow)
+    match /messages/{messageId} {
+      // Anyone can read messages (can be restricted by workflowId if needed)
+      allow read: if true; 
+      // Only authenticated users can create messages under their own senderId
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+      // Optionally allow delete/update by senderId
+      allow update, delete: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Anyone can read a user profile (for display names, avatars)
+      allow read: if true;
+      
+      // Only the user themselves can create, update, or delete their profile
+      allow create, update, delete: if isOwner(userId);
+    }
+
+    // Templates collection
+    match /templates/{templateId} {
+      // Any logged-in user can create a template
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Allow reading public templates or own templates
+      allow read: if resource.data.isPublic == true || isOwner(resource.data.userId);
+      
+      // Only owner can update or delete
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    // Wallets collection
+    match /wallets/{userId} {
+      // Users can only read and update their own wallet
+      allow read, update: if isOwner(userId);
+      // Only server/admin should create, but for simplicity allowing user create if match uid
+      allow create: if isOwner(userId);
+    }
+
+    // Credit transactions collection
+    match /credit_transactions/{txId} {
+      // Users can only read their own transactions
+      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      // Allow create if uid matches
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+    }
+
+    // Assets collection
+    match /assets/{assetId} {
+      // Only the owner can create an asset
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Users can read their own assets. Public assets can be read by anyone.
+      allow read: if isOwner(resource.data.userId) || resource.data.isPublic == true;
+      
+      // Only the owner can update or delete their asset
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+  }
+}
+```
+
+## How to Apply
+
+1.  Open the [Firebase Console](https://console.firebase.google.com/).
+2.  Select your project: **fs-nodes-project**.
+3.  Click on **Firestore Database** in the left sidebar.
+4.  Select the **Rules** tab at the top.
+5.  Delete all existing text and paste the rules from above.
+6.  Click **Publish**.

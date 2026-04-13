@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, type FC, type FormEvent, type ChangeEvent } from 'react';
+import { Avatar } from 'blue-ether';
 // @ts-ignore
 import { useStore } from '../store';
 // @ts-ignore
@@ -14,13 +15,20 @@ interface Message {
 interface VibeCodingChatProps {
   isOpen: boolean;
   onClose: () => void;
+  currentUserAvatar?: string;
+  currentUserDisplayName?: string;
 }
 
 /**
  * VibeCodingChat - AI-powered chat interface for workflow generation
  * Enables natural language to workflow conversion
  */
-const VibeCodingChat: FC<VibeCodingChatProps> = ({ isOpen, onClose }) => {
+const VibeCodingChat: FC<VibeCodingChatProps> = ({ 
+  isOpen, 
+  onClose,
+  currentUserAvatar,
+  currentUserDisplayName
+}) => {
   const { addNodes, addEdges, setWorkflow } = useStore();
   const [messages, setMessages] = useState<Message[]>([
     { id: 'welcome', sender: 'ai', text: 'Hello! I\'m your AI workflow assistant. Describe what you want to create and I\'ll generate the workflow for you.' }
@@ -127,29 +135,60 @@ const VibeCodingChat: FC<VibeCodingChatProps> = ({ isOpen, onClose }) => {
       </div>
 
       <div className="chat-messages h-80 overflow-y-auto p-3 space-y-3">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`message ${message.sender === 'user' ? 'text-right' : 'text-left'}`}
-          >
+        {messages.map((message) => {
+          const isUser = message.sender === 'user';
+          
+          return (
             <div
-              className={`inline-block max-w-xs p-3 rounded-lg text-sm ${
-                message.sender === 'user' 
-                  ? 'bg-blue-600 text-white rounded-br-none'
-                  : 'bg-gray-700 text-gray-200 rounded-bl-none'
-              }`}
+              key={message.id}
+              className={`message ${isUser ? 'text-right' : 'text-left'}`}
+              style={{
+                display: 'flex',
+                flexDirection: isUser ? 'row-reverse' : 'row',
+                gap: '10px',
+                alignItems: 'flex-end',
+              }}
             >
-              {message.isGenerating ? (
-                <span className="flex items-center">
-                  <span className="animate-pulse mr-2">●</span>
-                  {message.text}
-                </span>
-              ) : (
-                message.text
-              )}
+              <div style={{ flexShrink: 0, marginBottom: '2px' }}>
+                {isUser ? (
+                  <Avatar 
+                    src={currentUserAvatar} 
+                    name={currentUserDisplayName || 'User'} 
+                    size="sm" 
+                    crt 
+                  />
+                ) : (
+                  <Avatar 
+                    src="/gemini_avatar_improved.png" 
+                    name="AI Assistant" 
+                    size="sm" 
+                    crt 
+                  />
+                )}
+              </div>
+              
+              <div
+                className={`inline-block max-w-xs p-3 rounded-lg text-sm ${
+                  isUser 
+                    ? 'bg-blue-600 text-white rounded-br-none'
+                    : 'bg-gray-700 text-gray-200 rounded-bl-none'
+                }`}
+                style={{
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                }}
+              >
+                {message.isGenerating ? (
+                  <span className="flex items-center">
+                    <span className="animate-pulse mr-2">●</span>
+                    {message.text}
+                  </span>
+                ) : (
+                  message.text
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 

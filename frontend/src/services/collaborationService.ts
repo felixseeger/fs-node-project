@@ -54,6 +54,7 @@ export interface ChatMessage {
   id?: string;
   senderId: string;
   senderName: string;
+  senderAvatar?: string;
   text: string;
   timestamp: any;
   type: 'message' | 'system';
@@ -264,6 +265,8 @@ export function subscribeToActionFeed(
   });
 }
 
+const MESSAGES_COLLECTION = 'messages';
+
 /**
  * Send a chat message
  */
@@ -274,11 +277,12 @@ export async function sendChatMessage(
   if (!isFirebaseConfigured()) return;
 
   const db = getDb();
-  const chatRef = collection(db, WORKFLOWS_COLLECTION, workflowId, 'chat');
+  const chatRef = collection(db, MESSAGES_COLLECTION);
 
   try {
     await addDoc(chatRef, {
       ...message,
+      workflowId,
       timestamp: serverTimestamp(),
     });
   } catch (error) {
@@ -296,10 +300,11 @@ export function subscribeToChat(
   if (!isFirebaseConfigured()) return () => {};
 
   const db = getDb();
-  const chatRef = collection(db, WORKFLOWS_COLLECTION, workflowId, 'chat');
+  const chatRef = collection(db, MESSAGES_COLLECTION);
   
   const q = query(
     chatRef,
+    where('workflowId', '==', workflowId),
     orderBy('timestamp', 'asc'),
     limit(100)
   );

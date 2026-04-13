@@ -3,12 +3,12 @@ import type { Unsubscribe } from 'firebase/firestore';
 import type { ChatMessage, ChatConversation } from '../types/chat';
 import { isFirebaseConfigured } from '../config/firebase';
 import {
-  createConversation,
+  createChatSession as createConversation,
   addChatMessage,
-  subscribeToConversations,
-  subscribeToMessages,
-  deleteConversation,
-  updateConversationTitle
+  subscribeToUserChats as subscribeToConversations,
+  subscribeToChatMessages as subscribeToMessages,
+  deleteChatSession as deleteConversation,
+  updateChatTitle as updateConversationTitle
 } from '../services/chatService';
 
 interface UseFirebaseChatOptions {
@@ -35,8 +35,12 @@ export function useFirebaseChat(options: UseFirebaseChatOptions = {}) {
     if (!isAvailable || !userId) return;
     
     setIsLoading(true);
+    setError(null);
     const unsubscribe = subscribeToConversations(userId, (updatedConvs) => {
       setConversations(updatedConvs);
+      setIsLoading(false);
+    }, (err) => {
+      setError(err);
       setIsLoading(false);
     });
     
@@ -53,6 +57,8 @@ export function useFirebaseChat(options: UseFirebaseChatOptions = {}) {
     
     const unsubscribe = subscribeToMessages(activeConversationId, (updatedMsgs) => {
       setMessages(updatedMsgs);
+    }, (err) => {
+      setError(err);
     });
     
     unsubscribeMsgRef.current = unsubscribe;

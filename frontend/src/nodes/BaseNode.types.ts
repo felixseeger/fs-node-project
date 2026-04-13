@@ -37,4 +37,5 @@ export interface BaseNodeProps {
   // Other
   downloadUrl?: string;
   downloadType?: 'image' | 'video' | 'audio' | 'svg';
+  modelName?: string;
 }

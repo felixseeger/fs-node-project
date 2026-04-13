@@ -3,6 +3,7 @@ import './GooeyNodesMenu.css';
 import UpdateAssetModal from './UpdateAssetModal';
 import SearchHistoryMenu from './SearchHistoryMenu';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
+import { WorkflowTemplateCard } from './components/WorkflowTemplateCard';
 import { type NodeMenuSection } from './types';
 
 interface Asset {
@@ -145,6 +146,7 @@ export const GooeyNodesMenu: FC<GooeyNodesMenuProps> = ({
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
   useEffect(() => {
     const handleOpenHistory = () => setShowHistoryModal(true);
@@ -216,6 +218,7 @@ export const GooeyNodesMenu: FC<GooeyNodesMenuProps> = ({
         label: t.name,
         description: t.description || 'Custom Template',
         defaults: { templateData: t },
+        template: t,
       }));
     }
 
@@ -465,9 +468,14 @@ export const GooeyNodesMenu: FC<GooeyNodesMenuProps> = ({
                       }
                     }}
                     onClick={() => {
-                      onAddNode(item.type, (item as any).defaults);
-                      setSearchQuery('');
-                      setIsOpen(false);
+                      if ((item as any).type === 'workflowTemplate' && (item as any).template) {
+                        setSelectedTemplate((item as any).template);
+                        setIsOpen(false);
+                      } else {
+                        onAddNode(item.type, (item as any).defaults);
+                        setSearchQuery('');
+                        setIsOpen(false);
+                      }
                     }}
                   >
                     {item.label}
@@ -641,6 +649,15 @@ export const GooeyNodesMenu: FC<GooeyNodesMenuProps> = ({
         }}
       />
       <KeyboardShortcutsModal isOpen={showShortcutsModal} onClose={() => setShowShortcutsModal(false)} />
+      <WorkflowTemplateCard 
+        isOpen={!!selectedTemplate} 
+        onClose={() => setSelectedTemplate(null)} 
+        template={selectedTemplate} 
+        onAddToCanvas={(template) => {
+          onAddNode('workflowTemplate', { templateData: template });
+          setSearchQuery('');
+        }}
+      />
     </div>
   );
 };

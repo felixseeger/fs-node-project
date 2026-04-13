@@ -58,6 +58,10 @@
   --shadow-default: 0 8px 32px rgba(0, 0, 0, 0.2);
   --shadow-hover: 0 20px 48px rgba(0, 0, 0, 0.4), 0 0 20px rgba(94, 231, 223, 0.1);
 
+  /* Blueprint / Cyberpunk UI Transition Tokens */
+  --glow-cyan: drop-shadow(0 0 8px rgba(94, 231, 223, 0.8)) drop-shadow(0 0 12px rgba(94, 231, 223, 0.4));
+  --bg-blueprint: #0a0f1d;
+
   /* Node-Specific Colors */
   --color-node-background: var(--color-surface);
   --color-node-border: var(--color-border);

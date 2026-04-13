@@ -14,6 +14,8 @@ interface EditorTopBarProps {
   onShare?: () => void;
   onToggleCollaboration?: () => void;
   onOpenRecipes?: () => void;
+  onExportJSON?: () => void;
+  onImportJSON?: () => void;
   projectName?: string;
   onRenameProject?: (name: string) => void;
   nodes?: any[];
@@ -31,6 +33,8 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
   onShare,
   onToggleCollaboration,
   onOpenRecipes,
+  onExportJSON,
+  onImportJSON,
   projectName = '',
   onRenameProject,
   nodes = [],
@@ -256,6 +260,79 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
             <span style={{ fontSize: 14 }}>👥</span>
             Collab
           </button>
+
+          {/* JSON Controls */}
+          {onImportJSON && (
+            <button
+              onClick={onImportJSON}
+              title="Import JSON"
+              style={{
+                padding: '5px 12px',
+                fontSize: 12,
+                fontWeight: 600,
+                background: 'transparent',
+                border: '1px solid var(--color-border)',
+                borderRadius: 8,
+                color: 'var(--color-text-dim)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-text-muted)';
+                e.currentTarget.style.background = 'var(--color-surface-hover)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-border)';
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M8 2V11" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                <path d="M4.5 7.5L8 11L11.5 7.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M3 14H13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+              </svg>
+              Import
+            </button>
+          )}
+
+          {onExportJSON && (
+            <button
+              onClick={onExportJSON}
+              title="Export JSON"
+              style={{
+                padding: '5px 12px',
+                fontSize: 12,
+                fontWeight: 600,
+                background: 'transparent',
+                border: '1px solid var(--color-border)',
+                borderRadius: 8,
+                color: 'var(--color-text-dim)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-text-muted)';
+                e.currentTarget.style.background = 'var(--color-surface-hover)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-border)';
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M8 11V2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                <path d="M4.5 5.5L8 2L11.5 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M3 14H13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+              </svg>
+              Export
+            </button>
+          )}
 
           {/* Share */}
           <button

@@ -173,10 +173,21 @@ export interface AdaptedPromptNodeData extends BaseNodeData {
 }
 
 /**
+ * Image Element Node - Simple visual image on canvas
+ */
+export interface ImageElementNodeData extends BaseNodeData {
+  type: "imageElement";
+  imageUrl: string | null;
+  imageRef?: string;
+  filename?: string;
+}
+
+/**
  * Union type for all possible node data types
  */
 export type NodeData =
   | ImageInputNodeData
+  | ImageElementNodeData
   | VideoInputNodeData
   | AudioInputNodeData
   | TextNodeData
@@ -209,7 +220,7 @@ export type NodeData =
  * Comprehensive list covering all 63+ node types
  */
 export type NodeType =
-  | "input" | "text" | "image" | "video" | "audio" | "asset"
+  | "input" | "text" | "image" | "imageElement" | "video" | "audio" | "asset"
   | "generator" | "fluxReimagine" | "textToIcon"
   | "creativeUpScale" | "precisionUpScale" | "relight" | "styleTransfer"
   | "removeBackground" | "fluxImageExpand" | "seedreamExpand" | "ideogramExpand"

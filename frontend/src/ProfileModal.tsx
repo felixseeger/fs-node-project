@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type FC, type ReactElement, type ChangeEvent } from 'react';
 import './ProfileModal.css';
 import { getFirebaseAuth } from './config/firebase';
-import { updateEmail, updatePassword, deleteUser, type User } from 'firebase/auth';
+import { updateEmail, updatePassword, deleteUser, updateProfile as updateAuthProfile, type User } from 'firebase/auth';
 import { useUser } from './hooks/useUser';
 import { useBilling } from './hooks/useBilling';
 import { PRICING_CATALOG } from './config/pricing';
@@ -120,6 +120,9 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
     try {
       const newDisplayName = `${firstName} ${lastName}`.trim();
 
+      // Update Firebase Auth profile
+      await updateAuthProfile(user, { displayName: newDisplayName });
+
       // Update Firestore Profile
       const profileUpdates: UpdateProfilePayload = { 
         displayName: newDisplayName,
@@ -146,7 +149,10 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
 
       // Handle Avatar Upload if file selected
       if (croppedAvatarDataUrl) {
-        await updateAvatar(croppedAvatarDataUrl);
+        const url = await updateAvatar(croppedAvatarDataUrl);
+        if (url) {
+          await updateAuthProfile(user, { photoURL: url });
+        }
         setCroppedAvatarDataUrl(null);
       }
 
@@ -375,22 +381,25 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                 <button className="pm-save-btn" onClick={handleSave} disabled={isLoading}>
                   {isLoading ? 'Saving...' : 'Save changes'}
                 </button>
-                <button className="pm-delete-btn" onClick={handleDeleteAccount} disabled={isLoading}>
-                  Delete account
-                </button>
               </div>
 
               <div className="pm-divider"></div>
 
               <div className="pm-security-section">
                 <div className="pm-security-text">
-                  <h3>Secure your account</h3>
-                  <p>Enable two-factor authentication to add an extra layer of security to your account.</p>
+                  <h3 style={{ color: '#ef4444' }}>Danger Zone</h3>
+                    <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                  </div>
+                  <button 
+                    className="pm-delete-btn" 
+                    onClick={handleDeleteAccount} 
+                    disabled={isLoading}
+                  >
+                    Delete account
+                  </button>
                 </div>
-                <button className="pm-2fa-btn">Set up 2FA</button>
               </div>
-            </div>
-          )}
+            )}
 
 
           {activeTab === 'Preferences' && (
@@ -839,11 +848,13 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
         </div>
       </div>
       {isCropping && imageToCrop && (
-        <AvatarCropper
-          image={imageToCrop}
-          onCropComplete={handleCropComplete}
-          onCancel={handleCropCancel}
-        />
+        <div onClick={e => e.stopPropagation()}>
+          <AvatarCropper
+            image={imageToCrop}
+            onCropComplete={handleCropComplete}
+            onCancel={handleCropCancel}
+          />
+        </div>
       )}
     </div>
   );

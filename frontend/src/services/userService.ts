@@ -114,6 +114,7 @@ export async function updateUserAvatar(uid: string, avatarUri: string): Promise<
   
   await updateUserProfile(uid, {
     photoURL: url,
+    avatarUri: url,
     avatarPath: path,
   });
 

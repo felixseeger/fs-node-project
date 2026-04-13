@@ -67,7 +67,7 @@ export const NODE_TYPE_CAPABILITIES: Record<string, NodeCapability[]> = {
   imageAnalyzer: [NodeCapabilities.IMAGE_ANALYZE],
   routerNode: [NodeCapabilities.UTILITY_ROUTER],
   comment: [NodeCapabilities.UTILITY_COMMENT],
-  layerEditor: [NodeCapabilities.IMAGE_EDIT],
+  layerEditor: [NodeCapabilities.IMAGE_EDIT, NodeCapabilities.VIDEO_EDIT],
 };
 
 /**

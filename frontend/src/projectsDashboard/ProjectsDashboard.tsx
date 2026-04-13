@@ -548,16 +548,6 @@ export const ProjectsDashboard: FC<ProjectsDashboardProps> = ({
               borderBottom: '1px solid var(--color-border-subtle)',
             }}
           >
-            <DecodeTextButton
-              data-testid="new-project-btn"
-              onClick={() => onCreateProject && setNewProjectModalOpen(true)}
-              variant="primary"
-              startIcon={Icons.Plus}
-              style={{ padding: '8px 16px', borderRadius: 8 }}
-            >
-              New Project
-            </DecodeTextButton>
-
             <div
               style={{
                 position: 'relative',
@@ -629,7 +619,15 @@ export const ProjectsDashboard: FC<ProjectsDashboardProps> = ({
                 Invite
               </button>
 
-
+              <DecodeTextButton
+                data-testid="new-project-btn"
+                onClick={() => onCreateProject && setNewProjectModalOpen(true)}
+                variant="primary"
+                startIcon={Icons.Plus}
+                style={{ padding: '8px 16px', borderRadius: 8, marginLeft: 8 }}
+              >
+                New Project
+              </DecodeTextButton>
             </div>
           </header>
 

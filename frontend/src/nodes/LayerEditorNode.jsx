@@ -131,14 +131,30 @@ export default function LayerEditorNode({ id, data, selected }) {
   const [dimensions, setDimensions] = useState({ width: 1024, height: 1024 });
 
   const incomingImages = resolve.image('image-in') || [];
+  const incomingVideos = resolve.video('video-in') || [];
   const bgImage = incomingImages[0];
+  const bgVideo = incomingVideos[0];
 
   useEffect(() => {
-    // Pass the primary input image to the output handle
+    let updates = {};
     if (bgImage && bgImage !== data.outputImage) {
-      update({ outputImage: bgImage });
+      updates.outputImage = bgImage;
     }
-  }, [bgImage, data.outputImage, update]);
+    if (!bgImage && data.outputImage) {
+      updates.outputImage = null;
+    }
+    if (bgVideo && bgVideo !== data.outputVideo) {
+      updates.outputVideo = bgVideo;
+    }
+    if (!bgVideo && data.outputVideo) {
+      updates.outputVideo = null;
+    }
+    if (Object.keys(updates).length > 0) {
+      update(updates);
+    }
+  }, [bgImage, data.outputImage, bgVideo, data.outputVideo, update]);
+
+  const hasMedia = incomingImages.length > 0 || incomingVideos.length > 0;
 
   return (
     <>
@@ -165,8 +181,11 @@ export default function LayerEditorNode({ id, data, selected }) {
         position: 'relative',
         overflow: 'hidden'
       }}>
-        <Handle type="target" position={Position.Left} id="image-in" style={{ width: 14, height: 14, background: getHandleColor('image'), border: '2px solid #1a1a1a', left: -8, zIndex: 100 }} />
-        <Handle type="source" position={Position.Right} id="image-out" style={{ width: 14, height: 14, background: getHandleColor('image'), border: '2px solid #1a1a1a', right: -8, zIndex: 100 }} />
+        <Handle type="target" position={Position.Left} id="image-in" style={{ top: '40%', width: 14, height: 14, background: getHandleColor('image'), border: '2px solid #1a1a1a', left: -8, zIndex: 100 }} />
+        <Handle type="target" position={Position.Left} id="video-in" style={{ top: '60%', width: 14, height: 14, background: getHandleColor('video'), border: '2px solid #1a1a1a', left: -8, zIndex: 100 }} />
+        
+        <Handle type="source" position={Position.Right} id="image-out" style={{ top: '40%', width: 14, height: 14, background: getHandleColor('image'), border: '2px solid #1a1a1a', right: -8, zIndex: 100 }} />
+        <Handle type="source" position={Position.Right} id="video-out" style={{ top: '60%', width: 14, height: 14, background: getHandleColor('video'), border: '2px solid #1a1a1a', right: -8, zIndex: 100 }} />
         
         <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: '#fff', fontSize: 10, fontWeight: 700, pointerEvents: 'none', zIndex: 10, textTransform: 'uppercase', tracking: '0.05em' }}>
           In
@@ -178,11 +197,30 @@ export default function LayerEditorNode({ id, data, selected }) {
         <div style={{
           position: 'absolute',
           inset: 0,
-          opacity: incomingImages.length > 0 ? 0 : 0.1,
+          opacity: hasMedia ? 0 : 0.1,
           backgroundImage: 'linear-gradient(45deg, #808080 25%, transparent 25%), linear-gradient(-45deg, #808080 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #808080 75%), linear-gradient(-45deg, transparent 75%, #808080 75%)',
           backgroundSize: '20px 20px',
           backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
         }} />
+
+        {incomingVideos.map((vid, idx) => (
+          <video 
+            key={`vid-${vid}-${idx}`}
+            src={vid} 
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{ 
+              position: 'absolute', 
+              inset: 0, 
+              width: '100%', 
+              height: '100%', 
+              objectFit: 'contain', 
+              zIndex: idx 
+            }} 
+          />
+        ))}
 
         {incomingImages.map((img, idx) => (
           <img 
@@ -195,13 +233,13 @@ export default function LayerEditorNode({ id, data, selected }) {
               width: '100%', 
               height: '100%', 
               objectFit: 'contain', 
-              zIndex: idx 
+              zIndex: incomingVideos.length + idx 
             }} 
           />
         ))}
 
-        <span style={{ color: '#555', fontSize: 14, fontWeight: 500, zIndex: 100, textShadow: incomingImages.length > 0 ? '0 1px 4px rgba(0,0,0,0.8)' : 'none' }}>
-          {incomingImages.length > 0 ? '' : `Canvas ${dimensions.width}x${dimensions.height}`}
+        <span style={{ color: '#555', fontSize: 14, fontWeight: 500, zIndex: 100, textShadow: hasMedia ? '0 1px 4px rgba(0,0,0,0.8)' : 'none' }}>
+          {hasMedia ? '' : `Canvas ${dimensions.width}x${dimensions.height}`}
         </span>
       </div>
 

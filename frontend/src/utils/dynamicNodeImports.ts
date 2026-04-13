@@ -264,6 +264,11 @@ const VideoImproveNode = lazy(() => (import('../nodes/VideoImproveNode') as any)
 }));
 
 // Audio Nodes
+const StrudelNode = lazy(() => (import('../nodes/StrudelNode') as any).catch((error: any) => {
+  console.error('Failed to load StrudelNode:', error);
+  throw error;
+}));
+
 const MusicGenerationNode = lazy(() => (import('../nodes/MusicGenerationNode') as any).catch((error: any) => {
   console.error('Failed to load MusicGenerationNode:', error);
   throw error;
@@ -323,6 +328,11 @@ const ImageUniversalGeneratorNode = lazy(() => (import('../nodes/ImageUniversalG
 
 const VideoUniversalGeneratorNode = lazy(() => (import('../nodes/VideoUniversalGeneratorNode') as any).catch((error: any) => {
   console.error('Failed to load VideoUniversalGeneratorNode:', error);
+  throw error;
+}));
+
+const AudioUniversalGeneratorNode = lazy(() => (import('../nodes/AudioUniversalGeneratorNode') as any).catch((error: any) => {
+  console.error('Failed to load AudioUniversalGeneratorNode:', error);
   throw error;
 }));
 
@@ -456,6 +466,7 @@ export const dynamicNodes = {
   VideoImproveNode,
   
   // Audio Nodes
+  StrudelNode,
   MusicGenerationNode,
   SoundEffectsNode,
   AudioIsolationNode,
@@ -472,6 +483,7 @@ export const dynamicNodes = {
   // Advanced Nodes
   ImageUniversalGeneratorNode,
   VideoUniversalGeneratorNode,
+  AudioUniversalGeneratorNode,
   QuiverTextToVectorGenerationNode,
   QuiverImageToVectorGenerationNode,
   Tripo3DNode,
@@ -543,6 +555,7 @@ export const prefetchFunctions = {
   prefetchVideoImproveNode: () => prefetchNode(() => import('../nodes/VideoImproveNode')),
   
   // Audio Nodes
+  prefetchStrudelNode: () => prefetchNode(() => import('../nodes/StrudelNode')),
   prefetchMusicGenerationNode: () => prefetchNode(() => import('../nodes/MusicGenerationNode')),
   prefetchSoundEffectsNode: () => prefetchNode(() => import('../nodes/SoundEffectsNode')),
   prefetchAudioIsolationNode: () => prefetchNode(() => import('../nodes/AudioIsolationNode')),
@@ -559,6 +572,7 @@ export const prefetchFunctions = {
   // Advanced Nodes
   prefetchImageUniversalGeneratorNode: () => prefetchNode(() => import('../nodes/ImageUniversalGeneratorNode')),
   prefetchVideoUniversalGeneratorNode: () => prefetchNode(() => import('../nodes/VideoUniversalGeneratorNode')),
+  prefetchAudioUniversalGeneratorNode: () => prefetchNode(() => import('../nodes/AudioUniversalGeneratorNode')),
   prefetchQuiverTextToVectorGenerationNode: () => prefetchNode(() => import('../nodes/QuiverTextToVectorGenerationNode')),
   prefetchQuiverImageToVectorGenerationNode: () => prefetchNode(() => import('../nodes/QuiverImageToVectorGenerationNode')),
   prefetchTripo3DNode: () => prefetchNode(() => import('../nodes/Tripo3DNode')),

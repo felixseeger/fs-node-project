@@ -168,7 +168,7 @@ const inspectorStyles = `
     position: absolute;
     top: 16px;
     right: 16px;
-    bottom: 16px;
+    max-height: calc(100% - 32px);
     width: 320px;
     z-index: 1400;
     background: rgba(18, 18, 24, 0.92);
@@ -176,6 +176,8 @@ const inspectorStyles = `
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
     box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
     animation: inspectorSlideIn 0.25s ease-out;
   }

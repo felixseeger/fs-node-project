@@ -9,6 +9,14 @@ vi.mock('./DecodedText', () => ({
   default: ({ text }) => <span>{text}</span>
 }));
 
+vi.mock('blue-ether', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    Avatar: () => <div data-testid="mock-avatar" />
+  };
+});
+
 describe('ChatUI', () => {
   it('renders nothing when closed', () => {
     const { container } = render(

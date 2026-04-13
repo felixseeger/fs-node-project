@@ -1,23 +1,18 @@
 export interface ChatMessage {
-  id: string;
-  type: 'user' | 'assistant';
+  id?: string;
+  role: 'user' | 'assistant' | 'system';
   content: string;
-  timestamp: any; // Firestore Timestamp
-  metadata?: {
-    workflowId?: string;
-    nodeId?: string;
-    tokens?: number;
-    model?: string;
-  };
+  createdAt?: Date | number;
+  metadata?: any;
 }
 
-export interface ChatConversation {
-  id: string;
+export interface ChatSession {
+  id?: string;
   userId: string;
   title: string;
-  createdAt: any;
-  updatedAt: any;
-  lastMessage?: string;
   workflowId?: string;
-  isDeleted: boolean;
+  createdAt?: Date | number;
+  updatedAt?: Date | number;
 }
+
+export type ChatConversation = ChatSession;

@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `AGENTS.md` at the project root enforcing strict file organization and artifact storage policies for AI agents.
+
+### Changed
+- Massively reorganized the project root directory:
+  - Relocated 26+ patch scripts (`patch_*.js/mjs/cjs/py`) to `scripts/patches/`.
+  - Moved test scripts (`test_*.js`) to `tests/`.
+  - Migrated analysis tools (`analyze.js`, `analyze.py`) to `scripts/`.
+  - Consolidated 15+ documentation files (e.g., `PROJECT-ARCHITECTURE.md`, `SECURITY_ASSESSMENT.md`, `HARDENING_GUIDE.md`) to the `docs/` folder.
+  - Moved miscellaneous assets (`layer-editor.jpg`) to `docs/`.
+
 ### Security
 
 #### Assessment

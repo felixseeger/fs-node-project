@@ -1,5 +1,6 @@
-import { useRef, useEffect, type ReactNode } from 'react';
+import { useRef, useEffect, useState, type ReactNode } from 'react';
 import { text, surface, border, radius, sp, font, control } from './nodeTokens';
+import { motion, AnimatePresence } from 'framer-motion';
 
 /**
  * Pill-style toggle button for option selection.
@@ -287,20 +288,70 @@ export function TextInput({ value, onChange, placeholder, type = 'text' }: TextI
 interface SettingsPanelProps {
   title?: string;
   children: ReactNode;
+  defaultExpanded?: boolean;
 }
 
-export function SettingsPanel({ title, children }: SettingsPanelProps) {
+export function SettingsPanel({ title, children, defaultExpanded = false }: SettingsPanelProps) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
   return (
     <div style={{
       background: surface.sunken, borderRadius: radius.lg, border: `1px solid ${border.subtle}`,
       padding: sp[5], marginTop: sp[4],
     }}>
       {title && (
-        <div style={{ fontSize: 11, fontWeight: 600, color: text.primary, marginBottom: sp[4], textAlign: 'center' }}>
-          {title}
+        <div 
+          onClick={() => setIsExpanded(!isExpanded)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setIsExpanded(!isExpanded);
+            }
+          }}
+          tabIndex={0}
+          role="button"
+          aria-expanded={isExpanded}
+          style={{ 
+            fontSize: 11, 
+            fontWeight: 600, 
+            color: text.primary, 
+            marginBottom: isExpanded ? sp[4] : 0, 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            cursor: 'pointer',
+            userSelect: 'none',
+            transition: 'margin 0.16s ease'
+          }}
+        >
+          <span>{title}</span>
+          <motion.div
+            initial={false}
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.16 }}
+            style={{ display: 'flex' }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </motion.div>
         </div>
       )}
-      {children}
+      <AnimatePresence initial={false}>
+        {(!title || isExpanded) && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.16, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{ paddingTop: title ? sp[2] : 0 }}>
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

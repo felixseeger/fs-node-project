@@ -29,10 +29,40 @@ export const NODE_TYPE_METADATA: Record<string, NodeTypeMetadata> = {
   },
   textNode: {
     category: NodeCategory.INPUT,
+    displayName: 'Prompt',
+    inputs: [],
+    outputs: ['text-out'],
+    isAsync: false,
+  },
+  prompt: {
+    category: NodeCategory.INPUT,
+    displayName: 'Prompt',
+    inputs: [],
+    outputs: ['text-out'],
+    isAsync: false,
+  },
+  text: {
+    category: NodeCategory.INPUT,
     displayName: 'Text',
     inputs: [],
     outputs: ['text-out'],
     isAsync: false,
+  },
+  textLLM: {
+    category: NodeCategory.INPUT,
+    displayName: 'Claude Sonnet 4',
+    inputs: ['prompt-in', 'system-in'],
+    outputs: ['text-out'],
+    isAsync: true,
+    estimatedDuration: 10000,
+  },
+  adaptedPrompt: {
+    category: NodeCategory.VISION,
+    displayName: 'Adapted Prompt',
+    inputs: ['prompt-in'],
+    outputs: ['prompt-out'],
+    isAsync: true,
+    estimatedDuration: 5000,
   },
   imageNode: {
     category: NodeCategory.INPUT,
@@ -538,7 +568,28 @@ const inputNodeExecutor: NodeExecutor = async (node) => {
 /** Text node executor */
 const textNodeExecutor: NodeExecutor = async (node) => {
   const data = node.data as Record<string, unknown>;
-  return { text: data.text };
+  return { text: data.text || data.prompt };
+};
+
+/** Text LLM node executor */
+const textLLMExecutor: NodeExecutor = async (node, context) => {
+  const data = node.data as Record<string, unknown>;
+  const inputs = context.getInputs(node.id);
+
+  const prompt = extractPromptFromUpstream(inputs['prompt-in'], (data.localPrompt as string) || '');
+  const system = extractPromptFromUpstream(inputs['system-in'], (data.systemDirections as string) || '');
+
+  if (!prompt) throw new Error('No prompt provided for LLM');
+
+  context.updateNodeState(node.id, { message: 'Generating response...' });
+
+  const result = await api.sendChat(prompt, [], system || null, []);
+  
+  if ((result as any).error) {
+    throw new Error((result as any).error);
+  }
+  
+  return { resultText: result.response || 'No response returned.' };
 };
 
 /** Image node executor */
@@ -1617,6 +1668,10 @@ export function registerBuiltinExecutors(): void {
   // Input nodes
   registerExecutor('inputNode', inputNodeExecutor);
   registerExecutor('textNode', textNodeExecutor);
+  registerExecutor('prompt', textNodeExecutor);
+  registerExecutor('text', textNodeExecutor);
+  registerExecutor('textLLM', textLLMExecutor);
+  registerExecutor('adaptedPrompt', commentExecutor); // Or a specific executor if needed
   registerExecutor('imageNode', imageNodeExecutor);
   registerExecutor('assetNode', assetNodeExecutor);
 
