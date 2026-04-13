@@ -6,6 +6,7 @@ interface Template {
   name: string;
   description?: string;
   thumbnailUrl?: string;
+  coverImage?: string;
   nodes?: any[];
   edges?: any[];
   authorName?: string;
@@ -333,9 +334,9 @@ export const WorkflowTemplateCard: FC<WorkflowTemplateCardProps> = ({
             justifyContent: 'center',
             position: 'relative'
           }}>
-            {template.thumbnailUrl ? (
+            {(template.thumbnailUrl || template.coverImage) ? (
               <img 
-                src={template.thumbnailUrl} 
+                src={template.thumbnailUrl || template.coverImage} 
                 alt={template.name} 
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
               />

@@ -59,6 +59,22 @@ export async function uploadWorkflowThumbnail(imageDataUrl, workflowId) {
   return data;
 }
 
+export async function uploadTemplateThumbnail(imageDataUrl, templateId) {
+  const res = await fetch(`${API_BASE}/api/template-thumbnail`, {
+    method: 'POST',
+    headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ imageDataUrl, templateId }),
+  });
+
+  const data = await safeJson(res);
+  if (!res.ok || data?.success === false || !data?.url) {
+    const message = data?.error || data?.message || `Failed to upload template thumbnail (HTTP ${res.status})`;
+    throw new Error(message);
+  }
+
+  return data;
+}
+
 /**
  * Generic status polling helper
  */

@@ -18,6 +18,7 @@ interface Template {
   id: string;
   name: string;
   description?: string;
+  coverImage?: string;
   nodes?: any[];
   edges?: any[];
 }

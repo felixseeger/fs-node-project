@@ -131,11 +131,26 @@ export const NODE_MENU: NodeMenuSection[] = [
           useMultiple: false,
         },
       },
+      {
+        type: 'ltxVideo',
+        label: 'LTX Video AI',
+        defaults: { label: 'LTX Video AI', prompt: '', outputVideo: null },
+      },
     ],
   },
   {
     section: 'Video Editing',
     items: [
+      {
+        type: 'layerEditor',
+        label: 'Layer Editor',
+        defaults: { label: 'Layer Editor', outputImage: null, outputVideo: null },
+      },
+      {
+        type: 'corridorKey',
+        label: 'CorridorKey AI',
+        defaults: { label: 'CorridorKey AI', sensitivity: 50, refinement: false, outputImage: null },
+      },
       {
         type: 'vfx',
         label: 'Video FX',
@@ -275,11 +290,6 @@ export const NODE_MENU: NodeMenuSection[] = [
   {
     section: 'Utilities',
     items: [
-      {
-        type: 'layerEditor',
-        label: 'Layer Editor',
-        defaults: { label: 'Layer Editor', outputImage: null },
-      },
       {
         type: 'routerNode',
         label: 'Router',

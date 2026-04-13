@@ -17,6 +17,7 @@ interface Template {
   edges: any[];
   inputs: IOPoint[];
   outputs: IOPoint[];
+  coverImage?: string;
 }
 
 interface TemplateBuilderModalProps {
