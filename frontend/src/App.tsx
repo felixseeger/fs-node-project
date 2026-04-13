@@ -359,11 +359,18 @@ export default function App() {
     unshare: unshareFirebaseWorkflow,
     subscribe,
     unsubscribe,
+    isLoading: workflowsLoading,
   } = useFirebaseWorkflows({
     userId: currentUserId,
     userEmail: currentUserEmail,
     enableRealtime: true,
   });
+
+  const { templates: fbTemplates, isLoading: templatesLoading } = firebaseTemplates;
+  const { assets: fbAssets, isLoading: assetsLoading } = firebaseAssets;
+
+  const isDataLoading = workflowsLoading || templatesLoading || assetsLoading;
+  const loadingProgress = (authLoading ? 0 : 40) + (!workflowsLoading ? 20 : 0) + (!templatesLoading ? 20 : 0) + (!assetsLoading ? 20 : 0);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -2347,7 +2354,7 @@ const handleConnectEnd = useCallback(
 
   if (showSystemLoading) {
     const total = IMAGE_MODELS.length + VIDEO_MODELS.length;
-    return <PageTransition key="loading" className="h-screen w-screen"><SystemLoadingProcess config={{ phases: [{ label: 'Phase 01', value: `Loading ${Object.keys(nodeTypes).length} nodes` }, { label: 'Signal Scan', value: `Loading ${total} models` }], code: `Felix Seeger | ${new Date().toISOString().split('T')[0]}` }} onComplete={() => { sessionStorage.setItem(SLP_KEY, '1'); setShowSystemLoading(false); }} /></PageTransition>;
+    return <PageTransition key="loading" className="h-screen w-screen"><SystemLoadingProcess progress={loadingProgress} isProcessing={isDataLoading} config={{ phases: [{ label: 'Phase 01', value: `Loading ${Object.keys(nodeTypes).length} nodes` }, { label: 'Signal Scan', value: `Loading ${total} models` }], code: `Felix Seeger | ${new Date().toISOString().split('T')[0]}` }} onComplete={() => { sessionStorage.setItem(SLP_KEY, '1'); setShowSystemLoading(false); }} /></PageTransition>;
   }
 
   if (!isAuthenticated || currentPage === 'landing') {

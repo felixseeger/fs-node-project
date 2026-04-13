@@ -230,6 +230,9 @@ const SystemLoadingProcess: FC<SystemLoadingProcessProps> = ({
       }, '-=1.45');
   }, [onComplete, playSound]);
 
+  const entryFinishedRef = useRef(false);
+  const readinessTriggeredRef = useRef(false);
+
   useEffect(() => {
     if (!autoStart) return undefined;
     
@@ -244,15 +247,19 @@ const SystemLoadingProcess: FC<SystemLoadingProcessProps> = ({
 
     gsap.set([...rowLinesRef.current, labelLineRef.current, outroLineRef.current], { y: '100%' });
 
-    const progressStops = [0.2, 0.25, 0.85, 1].map((base, i) =>
-      i === 3 ? 1 : base + (Math.random() - 0.5) * 0.1
-    );
-
-    const tl = gsap.timeline({ delay: 0.5 });
+    const tl = gsap.timeline({ 
+      delay: 0.5,
+      onComplete: () => {
+        entryFinishedRef.current = true;
+        // Trigger check in case progress is already 100
+        setReady(prev => prev); 
+      }
+    });
 
     tl.to(rowLinesRef.current, { y: '0%', duration: 0.75, ease: 'power3.out', stagger: 0.1 })
       .to(trackRef.current, { strokeDashoffset: 0, duration: 2, ease: 'hop' }, '<')
       .to(btnRef.current?.querySelector('svg') || null, { rotation: 270, duration: 2, ease: 'hop' }, '<');
+      
     const cyanPaths = logoRef.current?.querySelectorAll('.slp-logo-cyan .slp-logo-path');
     const magentaPaths = logoRef.current?.querySelectorAll('.slp-logo-magenta .slp-logo-path');
     const mainPaths = logoRef.current?.querySelectorAll('.slp-logo-main .slp-logo-path');
@@ -272,37 +279,55 @@ const SystemLoadingProcess: FC<SystemLoadingProcessProps> = ({
         .to('.slp-logo-magenta', { opacity: 0, scale: 0.95, filter: 'blur(2px)', duration: 0.6, ease: 'power2.out' }, '<');
     }
 
-
-    progressStops.forEach((stop, i) => {
-      tl.to(progressRef.current, {
-        strokeDashoffset: svgLen - svgLen * stop,
-        duration: 0.75,
-        ease: 'glide',
-        delay: i === 0 ? 0.3 : 0.3 + Math.random() * 0.2,
-      });
-    });
-
-    tl.to(logoRef.current, { opacity: 0, duration: 0.35, ease: 'power1.out' }, '-=0.25')
-      .to(btnRef.current, { scale: 0.9, duration: 1.5, ease: 'hop' }, '-=0.5')
-      .to(labelLineRef.current, {
-        y: '0%',
-        duration: 0.75,
-        ease: 'power3.out',
-        onComplete: () => {
-          timelineFinishedRef.current = true;
-          if (!isProcessing) {
-            readyRef.current = true;
-            setReady(true);
-          }
-        },
-      }, '-=0.75');
-
     return () => {
       tl.kill();
       readyRef.current = false;
       setReady(false);
     };
   }, [autoStart, playSound]);
+
+  // Handle dynamic progress updates
+  useEffect(() => {
+    if (!entryFinishedRef.current) return;
+    const svgLen = trackRef.current?.getTotalLength() ?? 974;
+    
+    let currentProgress = 0;
+    if (progress !== undefined) {
+      currentProgress = progress;
+    } else if (isProcessing) {
+      // Fake progress if we just have a boolean isProcessing but no numerical progress
+      currentProgress = 85; 
+    } else {
+      currentProgress = 100;
+    }
+    
+    const boundedP = Math.max(0, Math.min(100, currentProgress)) / 100;
+
+    gsap.to(progressRef.current, {
+      strokeDashoffset: svgLen - svgLen * boundedP,
+      duration: 0.5,
+      ease: 'power2.out',
+    });
+
+    // Check readiness
+    if (boundedP >= 1 && !isProcessing && !readinessTriggeredRef.current) {
+      readinessTriggeredRef.current = true;
+      const completeTl = gsap.timeline();
+      
+      completeTl.to(logoRef.current, { opacity: 0, duration: 0.35, ease: 'power1.out' })
+        .to(btnRef.current, { scale: 0.9, duration: 1.5, ease: 'hop' }, '-=0.5')
+        .to(labelLineRef.current, {
+          y: '0%',
+          duration: 0.75,
+          ease: 'power3.out',
+          onComplete: () => {
+            timelineFinishedRef.current = true;
+            readyRef.current = true;
+            setReady(true);
+          },
+        }, '-=0.75');
+    }
+  }, [progress, isProcessing, ready]); // Reacts to progress and ready state tick
 
   useEffect(() => {
     if (!ready || requireInteraction || exiting) return undefined;
