@@ -76,6 +76,15 @@ export const VIDEO_UNIVERSAL_MODEL_DEFS = {
     supportsEndFrame: false,
     supportsSoundGeneration: true,
   },
+  'luma-ray-2': {
+    name: 'Luma Ray 2',
+    provider: 'Luma',
+    featured: true,
+    tags: ['Cinematic', '5s'],
+    description: 'Highly realistic cinematic motion and physics',
+    supportsImageInput: true,
+    supportsEndFrame: true,
+  },
 } as const;
 
 export type VideoUniversalModelId = keyof typeof VIDEO_UNIVERSAL_MODEL_DEFS;

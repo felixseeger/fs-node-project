@@ -8,6 +8,11 @@ export interface RemotionLayer {
   durationInFrames: number;
   zIndex: number;
   style?: CSSProperties;
+  status: 'idle' | 'loading' | 'completed' | 'failed';
+  progress: number;
+  jobId?: string;
+  error?: string;
+  jobType: 'none' | 'corridorkey' | 'ltx';
 }
 
 export interface RemotionCompositionState {

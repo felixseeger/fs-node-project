@@ -1,62 +1,47 @@
-### 1. Problem Statement
-The Vercel Serverless environment restricts long-running HTTP connections (typically timing out after 10-60 seconds). However, AI video generation (LTX) and complex VFX compositing (CorridorKey) on external GPU clusters like RunPod or Fal.ai can take 2 to 5 minutes per frame/clip. The Node-Project needs a robust, non-blocking way to dispatch these heavy tasks from the React Flow canvas, monitor their progress in real-time, and securely retrieve the final `.webm` or `.mp4` outputs without blocking the main UI thread or timing out the serverless backend.
-
-### 2. Requirements
-**Functional Requirements:**
-*   Users must be able to trigger a CorridorKey extraction or an LTX video generation from their respective React Flow nodes.
-*   The frontend must poll the backend for job status (`pending`, `processing`, `completed`, `failed`) and display visual progress (0-100%).
-*   Upon completion, the node must display the resulting video inline using a native HTML5 `<video>` element with `autoPlay`, `loop`, and `muted` attributes.
-*   The node must explicitly construct and send its unique configuration payload (e.g., Prompt, Dimensions, Despill, Optimization Profile) to the backend.
-
-**Non-Functional Requirements:**
-*   The UI must provide inline error views with actionable messages if a job fails (e.g., "RunPod GPU timeout").
-*   The polling mechanism must be reusable across any future long-running async node.
-*   The backend endpoints must immediately return a `jobId` after dispatching the task to the external provider.
 ### 3. Approach
-**Selected Approach**: Node-Level Polling Hook (`useAsyncPolling`)
-We will create a specialized, reusable React hook called `useAsyncPolling` within the frontend. This hook will manage the lifecycle of a long-running job. It takes an initial `submitUrl`, a `pollUrl` template (e.g., `/api/vfx/job/:id/status`), and the specific payload to send.
+**Selected Approach**: Unified Remotion NLE Node
+We will construct a comprehensive `LayerEditorNode` (or update the existing `LayerNode.tsx`) that embeds the Remotion `<Player>`, a layer stack management UI, and the specific controls for launching AI processing tasks. The node maintains a complex state array of `RemotionLayer`s. Each layer object will be augmented to track its own `status` (`idle`, `loading`, `completed`, `failed`), `progress`, and `jobId`.
 
-*   When invoked by the node's "Generate" button, it sends the payload, stores the returned `jobId`, and starts a `setInterval` loop.
-*   The hook yields `status` (idle, loading, completed, failed), `progress` (0-100), `resultUrl`, and `error` to the component.
-*   The `CorridorKeyNode` and `LtxVideoNode` components will consume this hook, wrapping their inputs and rendering the final `<video>` tag or an inline error state directly within the node's `OutputPreview` container.
+When a user initiates an AI task on a layer (e.g., applying CorridorKey to a video layer or adding a new LTX background), the node invokes a specialized polling hook or logic per layer to hit the `submitUrl` and subsequently poll the `pollUrl`. The `<Player>` will dynamically re-render the `VideoComposition` as layer statuses change from `loading` to `completed`.
 
 **Alternatives Considered**:
-*   *Global Job Queue Context*: We considered lifting the job polling to a global React Context or Redux slice. While this would allow polling to survive component unmounts, it adds significant complexity to the node state management. Given that users typically remain on the canvas while generating, the node-level hook provides a simpler, decoupled architecture.
+*   *Etro Web Worker*: The original spec called for an `etro-js` WebGL worker. This was discarded because Remotion provides a much cleaner React-based declarative timeline, easier server-side rendering integration, and we already laid the groundwork in Phase 2/3.
+*   *Strict Graph-Based Workflow*: We considered forcing users to only use the standalone LTX and CorridorKey nodes connected to a generic "Mixer" node. However, the user requested an integrated NLE experience where AI tools act like "effects" or "smart layers" inside a single powerful node.
 
 ### 4. Architecture
 **Data Flow:**
-1.  User clicks "Generate" on `LtxVideoNode`.
-2.  Node constructs a JSON payload (Prompt, Width, Height, Frames) and calls `execute(payload)` from `useAsyncPolling`.
-3.  The frontend issues a `POST /api/vfx/ltx/generate` request.
-4.  The Vercel backend dispatches the job to Fal.ai, receives a Fal Request ID, saves it in a Firebase `vfx_jobs` collection with status `processing`, and returns the `jobId` to the frontend.
-5.  `useAsyncPolling` starts hitting `GET /api/vfx/job/{jobId}/status` every 3 seconds.
-6.  The Vercel backend checks the Firestore document. (Meanwhile, Fal.ai/RunPod will eventually hit a webhook endpoint `POST /api/webhooks/vfx-complete` to update that document).
-7.  Once the document reads `status: 'completed'` with a `resultUrl`, the polling stops.
-8.  The hook returns the `resultUrl`, and the node renders `<video src={resultUrl} autoPlay loop muted />`.
+1.  **Layer Addition**: User adds a layer via the node UI (e.g., clicks "Add LTX Background").
+2.  **State Init**: The node appends a new `RemotionLayer` to its state array with `status: 'loading'`.
+3.  **API Dispatch**: The node dispatches an async request to `/api/vfx/ltx/generate`.
+4.  **Polling**: The node polls `/api/vfx/job/:id/status` and updates the layer's `progress` state, displaying a progress bar in the layer stack UI.
+5.  **Completion**: Upon receiving the `resultUrl`, the layer state is updated to `status: 'completed'` and the `src` is set.
+6.  **Preview**: The Remotion `<Player>` component automatically re-renders the `VideoComposition`, incorporating the new layer based on its `zIndex`, `from`, and `durationInFrames`.
+7.  **Export**: The user clicks "Render Video", and the node's entire `layers` state array is sent to the `/api/render-video` endpoint we built in Phase 4.
 
 **Key Components:**
-*   `frontend/src/hooks/useAsyncPolling.ts`: The reusable polling hook.
-*   `frontend/src/nodes/CorridorKeyNode.tsx`: The green-screen extraction UI node.
-*   `frontend/src/nodes/LtxVideoNode.tsx`: The video generation UI node.
-*   `frontend/src/components/VideoPreview.tsx`: A robust wrapper for the `<video>` element handling loading and error states.
+*   `frontend/src/nodes/LayerEditorNode.tsx`: The unified NLE node containing the Player, Layer Stack, and specific AI controls.
+*   `frontend/src/components/LayerItem.tsx`: A UI row representing a single layer, featuring a thumbnail, visibility toggle, and progress bar for AI tasks.
+*   `frontend/src/components/LayerTimeline.tsx`: (Existing) The scrubber and timeline visualization.
+*   `frontend/src/remotion/VideoComposition.tsx`: (Existing) The core React component mapping layers to Remotion primitives.
 ### 5. Agent Team
-- **coder**: To implement the `useAsyncPolling` React hook, the new `VideoPreview` component, and build the `CorridorKeyNode` and `LtxVideoNode` components in React Flow.
-- **tester**: To implement robust unit and component tests ensuring the polling hook correctly transitions states (idle -> loading -> completed/failed) and that the video nodes gracefully render errors.
+- **coder**: To implement the complex `LayerEditorNode.tsx` React Flow node, building out the internal state management (adding/removing layers, updating specific layer parameters like `zIndex` or `from`), and constructing the `LayerItem` UI components that handle individual polling for AI tasks (CorridorKey, LTX).
+- **tester**: To implement unit tests for the layer state management (ensuring adding/updating/sorting layers by z-index works correctly) and validating that the `LayerEditorNode` correctly updates the `VideoComposition` preview.
 
 ### 6. Risk Assessment & Mitigation
-**Risk 1: Browser resource exhaustion from rapid polling**
-*   *Mitigation*: The `useAsyncPolling` hook will implement a minimum 3-second delay between requests and clear the interval cleanly on component unmount to prevent memory leaks.
+**Risk 1: State management complexity**
+*   *Mitigation*: The node's internal state will track an array of `RemotionLayer` objects. We must carefully design the updater functions to be immutable and performant, ensuring we don't trigger unnecessary re-renders of the entire `VideoComposition` timeline if only a single layer's progress bar is updating.
 
-**Risk 2: Edge inputs disconnecting during processing**
-*   *Mitigation*: The hook will snapshot the incoming payload at the moment `execute()` is called, ensuring that changes to the node's inputs while polling do not corrupt the ongoing job request.
+**Risk 2: UI clutter inside a React Flow Node**
+*   *Mitigation*: The `LayerEditorNode` will be significantly larger than standard nodes. We will utilize the existing `SettingsPanel` or a dedicated inspector pattern to hide complex configuration (e.g., LTX prompt parameters, CorridorKey despill sliders) until a specific `LayerItem` is clicked or expanded.
 
-**Risk 3: Unhandled failed job statuses**
-*   *Mitigation*: The hook explicitly parses the status returned from the backend. If `failed`, the `error` string is extracted and the `status` state is flipped to trigger the inline error UI in the `VideoPreview` component.
+**Risk 3: Unhandled or abandoned polling jobs**
+*   *Mitigation*: If a user deletes a layer while its status is `loading`, the component must safely clear the associated polling interval and discard the response to prevent memory leaks and state updates on unmounted components.
 
 ### 7. Success Criteria
-*   Both the `CorridorKeyNode` and `LtxVideoNode` render correctly on the React Flow canvas with their specific controls (Sliders, TextAreas).
-*   Connecting to the nodes and pressing "Generate" initiates a backend request and returns a `jobId`.
-*   The nodes display a visual loading state (e.g., a spinner with a progress percentage) while polling the `/api/vfx/job/:id/status` endpoint.
-*   Upon successful completion, the nodes transition to displaying a `<video autoPlay loop muted>` tag containing the result URL.
-*   If the job fails, the nodes display an inline error message within the `OutputPreview` container.
-*   The `useAsyncPolling` hook can be easily imported and reused by future long-running async nodes.
+*   The `LayerEditorNode` successfully mounts in the React Flow canvas, displaying the Remotion Player.
+*   Users can add standard video/image layers by connecting input handles or via a UI button.
+*   Users can click "Add AI Background" (LTX) or "Apply Green Screen Key" (CorridorKey) on a layer, which changes that layer's state to `loading` and begins polling the backend.
+*   The `LayerItem` UI displays a progress bar (0-100%) during processing.
+*   Upon successful completion, the new media replaces or updates the layer's source, and the Remotion `<Player>` updates to reflect the composited timeline.
+*   Users can drag or adjust the ordering of layers (Z-index), affecting the final composite.
+*   A "Render Export" button is available, successfully triggering the `/api/render-video` endpoint to generate an MP4 file.

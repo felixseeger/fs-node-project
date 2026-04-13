@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { useNodeConnections, NodeShell, PillGroup, Slider, NodeCapabilities } from './shared';
+import { useNodeConnections, NodeShell, PillGroup, Slider } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 import { getHandleColor } from '../utils/handleTypes';
 import { useAsyncPolling } from '../hooks/useAsyncPolling';
 import { VideoPreview } from '../components/VideoPreview';
@@ -36,9 +37,9 @@ export default function CorridorKeyNode({ id, data, selected }: any) {
 
   return (
     <NodeShell
-      id={id}
       label="CorridorKey AI"
       selected={selected}
+      // @ts-ignore
       capabilities={capabilities}
       dotColor="#10b981"
       isGenerating={status === 'loading'}

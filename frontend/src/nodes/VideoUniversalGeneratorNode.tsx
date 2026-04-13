@@ -54,6 +54,14 @@ const VideoUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
           aspectRatio: aspectRatio, 
           imagePath: startFrameUrl 
         });
+      } else if (activeModel === 'luma-ray-2') {
+        // Interfacing with the internal video_generate tool capabilities
+        // Note: In a real production app, this would route to a /api/luma endpoint
+        result = await postToApi('/api/luma/generate', { 
+          prompt, 
+          image: startFrameUrl,
+          model: 'luma/ray-2' 
+        });
       } else {
         throw new Error(`Model ${activeModel} logic not fully implemented in universal node wrapper`);
       }
