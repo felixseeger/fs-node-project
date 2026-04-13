@@ -1,69 +1,95 @@
-# VFX Integration Task List
+# Implementation Plan: Cloud-Native VFX & Video Nodes (CorridorKey, LTX, Etro)
 
-This task list tracks the integration of CorridorKey, LTX Desktop, Etro, and GIMP into the Node-Project platform.
+This document outlines the end-to-end implementation plan for integrating **CorridorKey-Engine** (Green Screen Keying), **LTX Video** (Video Generation), and **Etro** (Video/Image Compositing) into the Node-Project.
 
-## Phase 1: Backend Infrastructure & Services
+This plan has been completely revised for **Vercel Serverless Compatibility**. Local macOS `.app` bundles and heavy TCP daemons are being replaced with cloud-native Async Worker patterns (RunPod/Fal.ai), while WebGL compositing (Etro) and lightning-fast image processing (Sharp) handle the real-time node interactions.
 
-### 1.1 CorridorKey JSON-RPC Daemon Integration
-- [ ] Create `api/services/corridorKeyClient.js`: Implement the TCP socket connection with Content-Length framing.
-- [ ] Create `api/services/corridorKeyService.js`: Handle the `project.scan` and `job.submit` workflow.
-- [ ] Implement Job Queuing (BullMQ) with `concurrency: 1` to manage VRAM requests and prevent `-32000 Engine busy` errors.
-- [ ] Implement Server-Sent Events (SSE) to broadcast `event.job.progress` to the React frontend.
-- [ ] Expose `POST /api/corridorkey/extract` endpoint.
+---
 
-### 1.2 LTX Desktop API Integration
-- [ ] Create `api/services/ltxService.js`: Proxy for `localhost:8000` (FastAPI).
-- [ ] Implement a startup script that spawns `/Applications/LTX Desktop.app/Contents/MacOS/LTX Desktop` and polls the `/health` check.
-- [ ] Implement **VRAM Mutual Exclusion**: Ensure CorridorKey is paused/unloaded when LTX generates a video to prevent OOM kills.
-- [ ] Expose `POST /api/ltx/generate` endpoint.
+## Phase 1: Serverless Backend Infrastructure & Webhooks
 
-### 1.3 GIMP Headless Compositing Integration
-- [ ] Create `api/services/gimpService.js`: Wrapper for `child_process.execFile` calling the GIMP executable.
-- [ ] Implement `buildSchemeScript(layers)` to generate LISP/Scheme batch scripts for dynamic layer insertion, scaling, positioning, and GEGL filtering.
-- [ ] Handle temporary file management (downloading layer assets to `/tmp`, executing GIMP, and cleanup).
-- [ ] Expose `POST /api/gimp/process` endpoint.
+Vercel functions cannot hold open connections for minutes. We must implement a robust **Submit -> Poll -> Complete** asynchronous architecture.
 
-### 1.4 High-Fidelity Video Render Engine (Etro-Node / FFmpeg)
-- [ ] Create `api/services/renderService.js`: Handles compiling the final timeline.
-- [ ] Accept Etro JSON state from the frontend and execute a perfect frame-accurate render via FFmpeg `filter_complex` or headless `etro-node`.
-- [ ] Expose `POST /api/render/timeline` endpoint.
+### 1.1 Job State Database (Firebase Firestore)
+*   **Tasks:**
+    *   [ ] Create a `vfx_jobs` Firestore collection schema to track async generation tasks.
+    *   [ ] Implement a `jobTrackerService.js` with methods: `createJob()`, `updateJobStatus()`, `getJob()`.
+    *   [ ] Jobs should track `id`, `provider` (runpod/fal), `status` (pending, processing, completed, failed), `progress`, and `resultUrl`.
 
-## Phase 2: Separated Standalone Nodes
+### 1.2 CorridorKey Cloud Integration (RunPod/Modal)
+*   **Execution Model:** Vercel -> RunPod Serverless Endpoint.
+*   **Tasks:**
+    *   [ ] (Cloud Setup): Package the CorridorKey-Engine into a Docker container and deploy to a RunPod/Modal Serverless endpoint.
+    *   [ ] Create `api/services/corridorKeyService.js` in Vercel.
+    *   [ ] Implement `submitExtraction(videoUrl, settings)`: Sends a `POST` request to the RunPod endpoint with the Vercel Webhook URL and returns the job ID.
+    *   [ ] **Endpoint:** `POST /api/vfx/corridorkey/extract`
+
+### 1.3 LTX Video Generation (Fal.ai / Replicate)
+*   **Execution Model:** Vercel -> Fal.ai/Replicate Serverless API.
+*   **Tasks:**
+    *   [ ] Create `api/services/ltxService.js` in Vercel.
+    *   [ ] Implement `generateVideo(prompt, dimensions, frames)`: Calls the Fal.ai LTX Video API, passing the Vercel Webhook URL.
+    *   [ ] **Endpoint:** `POST /api/vfx/ltx/generate`
+
+### 1.4 The Vercel Webhook Receiver & Polling
+*   **Tasks:**
+    *   [ ] Create a secure Webhook Receiver endpoint: `POST /api/webhooks/vfx-complete`.
+    *   [ ] When RunPod or Fal.ai finish, they hit this endpoint. It updates the Firestore `vfx_jobs` document to `completed` and attaches the final video URL.
+    *   [ ] Create a polling endpoint for the React frontend: `GET /api/vfx/job/:id/status`.
+
+### 1.5 Server-Side Image Processing (`sharp`)
+*   **Execution Model:** Synchronous Vercel Edge/Serverless function.
+*   **Tasks:**
+    *   [ ] Create `api/services/imageProcessingService.js`.
+    *   [ ] Replace GIMP entirely. Use the `sharp` library to composite multiple static image URLs (X/Y offsets, opacities, blend modes) and apply standard filters (blur, grayscale).
+    *   [ ] **Endpoint:** `POST /api/vfx/image/composite` (Returns image buffer or uploads to Firebase and returns URL).
+
+---
+
+## Phase 2: Separated Standalone Nodes (React Flow)
+
+These nodes allow users to manually string together the AI VFX steps on the canvas.
 
 ### 2.1 CorridorKey Extraction Node (`frontend/src/nodes/CorridorKeyNode.tsx`)
-- [ ] Scaffold node structure with inputs (`video_in`) and outputs (`fg_out`, `matte_out`, `comp_out`).
-- [ ] Add UI controls for Optimization Profile (`optimized`, `performance`) and Despill Strength.
-- [ ] Connect the node's `executionProgress` to the backend SSE stream to visualize real-time extraction frames.
+*   **Inputs:** `video_in`
+*   **Controls:** Optimization Profile (`optimized`, `performance`), Despill (0-10).
+*   **Execution:** 
+    *   Hits `/api/vfx/corridorkey/extract` and receives a `jobId`.
+    *   Starts a `setInterval` polling `/api/vfx/job/:id/status` every 3 seconds.
+    *   Updates internal `executionProgress` UI state based on the polling response.
+    *   Outputs a transparent `.webm` or `.mp4` when status is `completed`.
 
-### 2.2 LTX Video Generation Node (`frontend/src/nodes/LtxVideoNode.tsx`)
-- [ ] Scaffold node structure with a text prompt input and `video_out` handle.
-- [ ] Add UI controls for Dimensions (Width/Height) and Frame Count.
-- [ ] Integrate with `/api/ltx/generate` and manage the loading state (which may take several minutes).
+### 2.2 LTX Video Node (`frontend/src/nodes/LtxVideoNode.tsx`)
+*   **Inputs:** `image_in` (optional, for Image-to-Video).
+*   **Controls:** Prompt TextArea, Width, Height, Frames.
+*   **Execution:** 
+    *   Hits `/api/vfx/ltx/generate` and receives a `jobId`.
+    *   Polls status endpoint. Manages the 2-5 minute loading expectation in the node's visual state.
 
-### 2.3 GIMP Filter & Composite Node (`frontend/src/nodes/GimpNode.tsx`)
-- [ ] Scaffold node structure with `base_image` and `overlay_image` inputs, and `image_out` output.
-- [ ] Add UI controls for GEGL filters (e.g., Gaussian Blur, Unsharp Mask, Drop Shadow) and Blend Modes.
-- [ ] Manage the 5-10s cold start expectation in the node's visual state.
+---
 
-## Phase 3: The Unified Layer Node (`frontend/src/nodes/LayerEditorNode.tsx`)
+## Phase 3: The Unified "Layer Editor" Node (Powered by Etro)
 
-### 3.1 Etro Canvas & Playback Integration
-- [ ] Embed an `etro.Movie` instance connected to an HTML `<canvas>` inside the node interface.
-- [ ] Build internal layer state management (`data.layers`): track start times, durations, x/y offsets, and Z-index ordering.
-- [ ] Map React UI changes (dragging a layer, adjusting opacity) instantly to `etro.layer.addEffect(new etro.effect.Transform({...}))` for real-time 60fps previews.
-- [ ] Implement a visual timeline scrubber with Play/Pause controls.
+The `LayerEditorNode.jsx` becomes a full NLE (Non-Linear Editor) running inside the React Flow canvas. Etro handles the compositing via WebGL, while CorridorKey and LTX act as "AI Plugins".
 
-### 3.2 "Smart AI Keying" (CorridorKey inside the Layer Stack)
-- [ ] Add UI action: "Add Effect -> AI Green Screen Key".
-- [ ] Orchestration: When clicked, pause Etro, send the raw layer's video URL to the CorridorKey service, and show progress.
-- [ ] Callback: Swap the `etro.layer.Video` source to the newly extracted foreground video returned by the backend.
+### 3.1 Etro Web Worker & Canvas Integration
+*   [ ] **Crucial**: Create `frontend/src/workers/etro.worker.ts` to offload `etro.Movie` rendering from the main browser thread.
+*   [ ] Pass an `OffscreenCanvas` from the `LayerEditorNode` UI to the worker.
+*   [ ] Build internal layer state management (`data.layers`): track start times, durations, x/y offsets, and Z-index ordering.
+*   [ ] Map React UI changes (dragging a layer, adjusting opacity) to `postMessage` calls that update the Etro worker state for real-time 60fps previews.
 
-### 3.3 "Smart AI Backgrounds" (LTX Video inside the Layer Stack)
-- [ ] Add UI action: "Add Generative Background".
-- [ ] Provide prompt input directly within the layer's properties pane.
-- [ ] Orchestration: Send to LTX Service. Upon completion, instantiate a new `etro.layer.Video` at Z-index 0 underneath the composited elements.
+### 3.2 "Smart AI Backgrounds" (LTX Integration inside Etro)
+*   **Workflow:** User selects "Add Layer -> AI Generated Video Background".
+*   The node shows a loading state on the new layer in the UI list and hits `/api/vfx/ltx/generate`.
+*   It begins polling the job status.
+*   Once the URL is returned via the webhook/polling flow, it sends a message to the Etro Worker to instantiate a new `etro.layer.Video` at Z-index 0.
 
-### 3.4 Final GIMP / FFmpeg High-Fidelity Export
-- [ ] Add a prominent "Finalize Render" button to the node.
-- [ ] Serialize the precise Etro timeline layout (all timings, offsets, and filters) and send it to the backend's `renderService`.
-- [ ] Depending on the content type (Static Image vs Video Timeline), dispatch to GIMP (for high-end image filters) or FFmpeg/Etro-node (for video) to produce the final output asset for the `output` handle.
+### 3.3 "Smart AI Keying" (CorridorKey Integration inside Etro)
+*   **Workflow:** User adds a raw green-screen video layer. They click "Add Effect -> AI Green Screen Key".
+*   The node hits `/api/vfx/corridorkey/extract` and displays a progress bar over the layer item in the UI list.
+*   Once the transparent video URL is returned, it tells the Etro Worker to swap the source of the `etro.layer.Video` to the new transparent video.
+
+### 3.4 Final Export
+*   When the user is happy with the real-time Etro preview, they click "Render High Quality".
+*   The Etro Web Worker runs `movie.record({ frameRate: 60 })` using the browser's `MediaRecorder` API to generate the final Blob.
+*   The Blob is uploaded to Firebase Storage, and the resulting public URL is passed to the node's `video_out` handle.
