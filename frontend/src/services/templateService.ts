@@ -29,6 +29,7 @@ function serializeTemplate(template: any): any {
     edges: JSON.parse(JSON.stringify(template.edges || [])),
     inputs: JSON.parse(JSON.stringify(template.inputs || [])),
     outputs: JSON.parse(JSON.stringify(template.outputs || [])),
+    coverImage: template.coverImage || null,
     updatedAt: serverTimestamp(),
   };
 }

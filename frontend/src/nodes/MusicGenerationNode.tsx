@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, type CSSProperties, type ReactNode } fr
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
+import { NodeCapabilities } from './nodeCapabilities';
 import { musicGenerate, pollMusicStatus } from '../utils/api';
 import ImprovePromptButton from './ImprovePromptButton';
 import NodeProgress from './NodeProgress';
@@ -259,6 +260,7 @@ export default function MusicGenerationNode({
       hasError={!!data.outputError && !isActive}
       downloadUrl={data.outputAudio || undefined}
       downloadType="audio"
+      capabilities={[NodeCapabilities.AUDIO_MUSIC_GENERATE, NodeCapabilities.OUTPUT_AUDIO]}
     >
       <div
         style={{

@@ -7,6 +7,7 @@ import {
   useNodeConnections, OutputPreview, OutputHandle,
   NodeGenerateButton, NodeDownloadButton, NodeShell
 } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 import {
   kling3Generate, pollKling3Status,
   pixVerseV5Generate, pollPixVerseV5Status,
@@ -79,6 +80,7 @@ const VideoUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
         downloadUrl={data.outputVideo || undefined}
         downloadType="video"
         data={data}
+        capabilities={[NodeCapabilities.VIDEO_GENERATE, NodeCapabilities.OUTPUT_VIDEO]}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Handles Area */}

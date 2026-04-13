@@ -300,6 +300,16 @@ const LayerEditorNode = lazy(() => (import('../nodes/LayerEditorNode') as any).c
   throw error;
 }));
 
+const CorridorKeyNode = lazy(() => (import('../nodes/CorridorKeyNode') as any).catch((error: any) => {
+  console.error('Failed to load CorridorKeyNode:', error);
+  throw error;
+}));
+
+const LtxVideoNode = lazy(() => (import('../nodes/LtxVideoNode') as any).catch((error: any) => {
+  console.error('Failed to load LtxVideoNode:', error);
+  throw error;
+}));
+
 const CommentNode = lazy(() => (import('../nodes/CommentNode') as any).catch((error: any) => {
   console.error('Failed to load CommentNode:', error);
   throw error;
@@ -475,6 +485,8 @@ export const dynamicNodes = {
   // Utility Nodes
   AdaptedPromptNode,
   LayerEditorNode,
+  CorridorKeyNode,
+  LtxVideoNode,
   CommentNode,
   RouterNode,
   GroupEditingNode,
@@ -564,6 +576,8 @@ export const prefetchFunctions = {
   // Utility Nodes
   prefetchAdaptedPromptNode: () => prefetchNode(() => import('../nodes/AdaptedPromptNode')),
   prefetchLayerEditorNode: () => prefetchNode(() => import('../nodes/LayerEditorNode')),
+  prefetchCorridorKeyNode: () => prefetchNode(() => import('../nodes/CorridorKeyNode')),
+  prefetchLtxVideoNode: () => prefetchNode(() => import('../nodes/LtxVideoNode')),
   prefetchCommentNode: () => prefetchNode(() => import('../nodes/CommentNode')),
   prefetchRouterNode: () => prefetchNode(() => import('../nodes/RouterNode')),
   prefetchGroupEditingNode: () => prefetchNode(() => import('../nodes/GroupEditingNode')),

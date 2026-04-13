@@ -397,15 +397,13 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
     }
   };
 
-  const handleExportChat = useCallback(() => {
+  const handleExportChatMarkdown = useCallback(() => {
     if (messages.length === 0) {
       notifyUser('No messages to export.', 'info');
       return;
     }
     
     try {
-      // Use the new chatToMarkdown utility for formatted export
-      // Construct a minimal chat object if activeChat is missing
       const chatMetadata = activeChat || {
         id: `local-${Date.now()}`,
         title: 'Chat Export',
@@ -423,15 +421,52 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'index.md';
+      a.download = `chat-export-${Date.now()}.md`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      notifyUser('Chat history exported as index.md!', 'success');
+      notifyUser('Chat history exported as Markdown!', 'success');
     } catch (err) {
-      console.error('[ChatUI] Export chat error:', err);
-      notifyUser('Failed to export chat history.', 'error');
+      console.error('[ChatUI] Export markdown error:', err);
+      notifyUser('Failed to export chat as Markdown.', 'error');
+    }
+  }, [messages, notifyUser, activeChat]);
+
+  const handleExportChatJSON = useCallback(() => {
+    if (messages.length === 0) {
+      notifyUser('No messages to export.', 'info');
+      return;
+    }
+    
+    try {
+      const exportData = {
+        metadata: activeChat || {
+          title: 'Chat Export',
+          exportedAt: new Date(),
+        },
+        messages: messages.map(m => ({
+          id: m.id,
+          role: m.role || m.type,
+          content: m.content,
+          timestamp: m.timestamp
+        }))
+      };
+
+      const json = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chat-export-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      notifyUser('Chat history exported as JSON!', 'success');
+    } catch (err) {
+      console.error('[ChatUI] Export JSON error:', err);
+      notifyUser('Failed to export chat as JSON.', 'error');
     }
   }, [messages, notifyUser, activeChat]);
 
@@ -770,16 +805,22 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
             </svg>
             Workflow
           </button>
-          <button onClick={handleExportChat} disabled={messages.length === 0}
-            className="nodrag nopan flex items-center gap-1.5"
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            style={{ padding: '5px 10px', borderRadius: 6, background: messages.length > 0 ? '#10b981' : '#2a2a2a', border: 'none', color: messages.length > 0 ? '#fff' : '#555', fontSize: 11, fontWeight: 500, cursor: messages.length > 0 ? 'pointer' : 'default' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-            Export Chat
-          </button>
+          <div style={{ display: 'flex', gap: 2, background: '#2a2a2a', borderRadius: 6, padding: 2 }}>
+            <button onClick={handleExportChatMarkdown} disabled={messages.length === 0}
+              className="nodrag nopan"
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              style={{ padding: '3px 8px', borderRadius: 4, background: messages.length > 0 ? '#10b981' : 'transparent', border: 'none', color: messages.length > 0 ? '#fff' : '#555', fontSize: 10, fontWeight: 500, cursor: messages.length > 0 ? 'pointer' : 'default' }}>
+              MD
+            </button>
+            <button onClick={handleExportChatJSON} disabled={messages.length === 0}
+              className="nodrag nopan"
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              style={{ padding: '3px 8px', borderRadius: 4, background: messages.length > 0 ? '#059669' : 'transparent', border: 'none', color: messages.length > 0 ? '#fff' : '#555', fontSize: 10, fontWeight: 500, cursor: messages.length > 0 ? 'pointer' : 'default' }}>
+              JSON
+            </button>
+          </div>
           <button onClick={handleImportWorkflow}
             className="nodrag nopan flex items-center gap-1.5"
             onMouseDown={(e) => e.stopPropagation()}

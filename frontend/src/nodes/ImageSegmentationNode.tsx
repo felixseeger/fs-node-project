@@ -12,6 +12,7 @@ import {
   sp,
   font,
 } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 // @ts-ignore
 import useNodeProgress from '../hooks/useNodeProgress';
 // @ts-ignore
@@ -121,6 +122,7 @@ const ImageSegmentationNode: FC<NodeProps<Node<SegmentNodeData>>> = ({ id, data,
       isRunning={isActive}
       runDisabled={!inputImage}
       width={280}
+      capabilities={[NodeCapabilities.IMAGE_REMOVE_BACKGROUND, NodeCapabilities.IMAGE_EDIT]}
       onDownload={outputImages.length > 0 ? () => {
         let username = 'anonymous';
         try {

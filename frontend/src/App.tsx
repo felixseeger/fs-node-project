@@ -18,7 +18,7 @@ import {
   type NodeTypes,
 } from '@xyflow/react';
 
-import { generateAIWorkflow, sendChat, uploadWorkflowThumbnail } from './utils/api';
+import { generateAIWorkflow, sendChat, uploadWorkflowThumbnail, uploadTemplateThumbnail } from './utils/api';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirebaseAuth } from './config/firebase';
 import { useFirebaseWorkflows } from './hooks/useFirebaseWorkflows';
@@ -148,6 +148,9 @@ const initialNodeTypes: NodeTypes = {
   precisionVideoUpscale: createDynamicNodeWrapper(dynamicNodes.PrecisionVideoUpscaleNode),
   textToIcon: createDynamicNodeWrapper(dynamicNodes.TextToIconNode),
   imageToPrompt: createDynamicNodeWrapper(dynamicNodes.ImageToPromptNode),
+  layerEditor: createDynamicNodeWrapper(dynamicNodes.LayerEditorNode),
+  corridorKey: createDynamicNodeWrapper(dynamicNodes.CorridorKeyNode),
+  ltxVideo: createDynamicNodeWrapper(dynamicNodes.LtxVideoNode),
   improvePrompt: createDynamicNodeWrapper(dynamicNodes.ImprovePromptNode),
   aiImageClassifier: createDynamicNodeWrapper(dynamicNodes.AIImageClassifierNode),
   strudelNode: createDynamicNodeWrapper(dynamicNodes.StrudelNode),
@@ -2920,7 +2923,24 @@ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisio
       </div>
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
       <OnboardingTour />
-      <TemplateBuilderModal isOpen={showTemplateModal} onClose={() => setShowTemplateModal(false)} selectedNodes={nodes.filter(n => n.selected)} nodes={nodes} edges={edges} onCreated={({ template }: any) => { setShowTemplateModal(false); saveLocalTemplate(template); if (firebaseTemplates.create) firebaseTemplates.create(template).catch(err => showToast(`Failed to save template: ${err.message}`)); }} />
+      <TemplateBuilderModal isOpen={showTemplateModal} onClose={() => setShowTemplateModal(false)} selectedNodes={nodes.filter(n => n.selected)} nodes={nodes} edges={edges} onCreated={async ({ template }: any) => {
+        setShowTemplateModal(false);
+        try {
+          const dataUrl = await captureCanvasViewportPngDataUrl({ reactFlowWrapper: reactFlowWrapper, maxWidth: 1600, maxHeight: 900 });
+          if (dataUrl) {
+            const uploadRes = await uploadTemplateThumbnail(dataUrl, template.id);
+            if (uploadRes && uploadRes.success) {
+              template.coverImage = uploadRes.url;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to upload template thumbnail:", err);
+        }
+        saveLocalTemplate(template);
+        if (firebaseTemplates.create) {
+          firebaseTemplates.create(template).catch(err => showToast(`Failed to save template: ${err.message}`));
+        }
+      }} />
       <BottomBar workflows={workflows} activeWorkflowId={activeWorkflowId} onSwitchWorkflow={handleCreateWorkflow} onRenameBoard={handleRenameBoard} onDeleteBoard={handleDeleteBoard} />
       <CommandPalette 
         isOpen={isCommandPaletteOpen}

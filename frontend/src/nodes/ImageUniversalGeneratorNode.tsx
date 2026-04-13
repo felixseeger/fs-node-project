@@ -10,6 +10,7 @@ import {
   surface, border, radius, sp, font, text,
   NodeGenerateButton, NodeDownloadButton, NodeShell
 } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 import useNodeProgress from '../hooks/useNodeProgress';
 import {
   generateImage, pollStatus,
@@ -87,6 +88,7 @@ const ImageUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
         isGenerating={isGenerating}
         downloadUrl={data.outputImage || undefined}
         data={data}
+        capabilities={[NodeCapabilities.IMAGE_GENERATE, NodeCapabilities.OUTPUT_IMAGE]}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Handles Area */}

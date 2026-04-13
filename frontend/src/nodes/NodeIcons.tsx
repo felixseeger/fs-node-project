@@ -37,6 +37,22 @@ export const PlayIcon: FC<IconProps> = ({ style }) => (
   <Icon name="play" size={16} style={style} fill="currentColor" stroke="none" />
 );
 
+export const PauseIcon: FC<IconProps> = ({ style }) => (
+  <Icon name="pause" size={16} style={style} fill="currentColor" stroke="none" />
+);
+
+export const StopIcon: FC<IconProps> = ({ style }) => (
+  <Icon name="stop" size={16} style={style} fill="currentColor" stroke="none" />
+);
+
+export const EyeIcon: FC<IconProps> = ({ style }) => (
+  <Icon name="eye" size={16} style={style} />
+);
+
+export const LockIcon: FC<IconProps> = ({ style }) => (
+  <Icon name="lock" size={16} style={style} />
+);
+
 /** Frame / aspect — used for aspect-ratio only controls */
 export const AspectRatioIcon: FC<IconProps> = ({ style }) => (
   <Icon name="aspect-ratio" size={16} style={style} />
