@@ -23,3 +23,11 @@
 - [x] TASK-016: Create auth middleware (`lib/api/middleware/auth.js`) to verify Firebase ID tokens.
 - [x] TASK-017: Protect all generation and upload API routes by applying the auth middleware.
 - [x] TASK-018: Update frontend API client (`frontend/src/utils/api.js`) to fetch and send `Authorization: Bearer <token>`.
+
+## Video Editing Integration (etro-js)
+- [ ] TASK-019: Research and document etro-js API in `knowledgebase/etro-js.md`.
+- [ ] TASK-020: Scaffold `Movie` instance and `<canvas>` target in `LayerEditorNode.jsx`.
+- [ ] TASK-021: Build a `LayerRegistry` to map incoming node media (images/videos) to `etro.layer` objects.
+- [ ] TASK-022: Implement property binding (opacity, x/y, scale) between UI and etro layers.
+- [ ] TASK-023: Add video export logic using `movie.record()` and blob handling.
+- [ ] TASK-024: Design and implement playback controls (Play/Pause/Seek) in the Layer Editor side panel.

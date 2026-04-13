@@ -30,3 +30,16 @@
 - [x] Add unit tests for the new Capability system.
 - [x] Run `vitest` suite to ensure no regressions.
 - [x] Perform visual regression testing using the existing `visual-compare.mjs`.
+
+## 6. Advanced VFX Engine Integration (GIMP, CorridorKey, LTX, Etro)
+- **Objective**: Integrate professional-grade visual effects and AI video/image manipulation natively into the canvas.
+- **Strategy**:
+  - Deploy **CorridorKey-Engine** as a long-running JSON-RPC daemon to handle heavy, stateful green-screen extraction.
+  - Deploy **LTX Desktop** via a local FastAPI proxy to handle generative video backgrounds.
+  - Deploy **GIMP** via headless LISP/Scheme scripting to handle complex multi-layer image compositing and GEGL filter application.
+  - Deploy **Etro** natively within the browser canvas to provide a real-time, hardware-accelerated WebGL timeline preview.
+- **Deliverables**:
+  - `CorridorKeyNode`: Standalone node for AI matte extraction.
+  - `LtxVideoNode`: Standalone node for AI video generation.
+  - `GimpNode`: Standalone node for advanced image filtering/compositing.
+  - `LayerEditorNode`: A unified Non-Linear Editor (NLE) node that orchestrates Etro (for real-time preview) alongside CorridorKey, LTX, and GIMP (as high-fidelity render backends).

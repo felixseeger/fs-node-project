@@ -18,10 +18,14 @@ This PR implements Phase 7.4 of the hardening guide by integrating Backend Authe
     - 26+ patch scripts (`patch_*.js/mjs/cjs/py`) to `scripts/patches/`
     - Test scripts (`test_*.js`) to `tests/`
     - Analysis scripts (`analyze.js`, `analyze.py`) to `scripts/`
-    - 15+ architectural, security, and planning markdown documents to `docs/`
+    - Consolidated 15+ architectural, security, and planning markdown documents to `docs/`
     - Visual assets (`layer-editor.jpg`) to `docs/`
+    - **Video Editing Pipeline (etro-js):**
+    - Planned the integration of the `etro-js` framework for high-performance, browser-based video compositing.
+    - Created `knowledgebase/etro-js.md` to document the framework's architecture (Movie, Layers, Effects).
+    - Drafted a 6-task implementation roadmap for the `LayerEditorNode` to support dynamic multi-layer video/image merging with GLSL effects.
 
-### Security Impact
+    ### Security Impact
 - Closes the final major loophole identified in the 2026-04-11 Security Assessment.
 - All backend proxy endpoints for AI models are now strictly bound to authenticated user sessions.
 - Rate limiting can now be applied on a per-user level in the future by utilizing `req.user.uid`.

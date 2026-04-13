@@ -27,3 +27,11 @@ Implement security and type-safety improvements as specified in the API Hardenin
 - [x] Run API security tests
 - [x] Run frontend type-check
 - [x] Update HARDENING_GUIDE.md and NEXT_PHASE_PLAN.md
+
+## Phase 5: Video Editing Pipeline Integration (etro-js) - 🚀 PLANNED
+- [ ] Initialize `etro.Movie` instance within `LayerEditorNode`.
+- [ ] Implement Dynamic Layer Management (add/remove `etro.layer` objects based on node connections).
+- [ ] Synchronize React State with `etro` timeline and properties.
+- [ ] Integrate Hardware-Accelerated Effects (GLSL filters for brightness, contrast, etc.).
+- [ ] Implement Export/Record functionality to generate downloadable video Blobs.
+- [ ] Add real-time preview playback controls to the `LayerEditorMenu`.
