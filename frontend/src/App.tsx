@@ -78,7 +78,6 @@ import { isHandleConnected, getConnectionInfo as getConnectionInfoBase } from '.
 import { captureCanvasViewportPngDataUrl, exportCanvasViewportToPng } from './utils/canvasUtils';
 import InspectorPanel from './InspectorPanel';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
-import { CommandPalette } from './components/CommandPalette';
 import { nextId } from './app/nextId';
 import { GridIcon, CollageIcon, WorkflowIcon, DisconnectIcon } from './app/contextMenuIcons';
 import { CanvasNavigation } from './app/CanvasNavigation';
@@ -86,6 +85,7 @@ import {
   findCompatibleHandle,
 } from './app/connectionHandleMaps';
 import { CanvasSearch } from './components/CanvasSearch';
+import { CommandPalette } from './components/CommandPalette';
 import OnboardingTour from './components/OnboardingTour';
 import { useCanvasHistory } from './hooks/useCanvasHistory';
 import { useCollaboration } from './hooks/useCollaboration';
@@ -124,6 +124,7 @@ const initialNodeTypes: NodeTypes = {
   relight: createDynamicNodeWrapper(dynamicNodes.RelightNode),
   styleTransfer: createDynamicNodeWrapper(dynamicNodes.StyleTransferNode),
   removeBackground: createDynamicNodeWrapper(dynamicNodes.RemoveBackgroundNode),
+  layerEditor: createDynamicNodeWrapper(dynamicNodes.LayerEditorNode),
   fluxReimagine: createDynamicNodeWrapper(dynamicNodes.FluxReimagineNode),
   fluxImageExpand: createDynamicNodeWrapper(dynamicNodes.FluxImageExpandNode),
   seedreamExpand: createDynamicNodeWrapper(dynamicNodes.SeedreamExpandNode),
@@ -150,7 +151,6 @@ const initialNodeTypes: NodeTypes = {
   precisionVideoUpscale: createDynamicNodeWrapper(dynamicNodes.PrecisionVideoUpscaleNode),
   textToIcon: createDynamicNodeWrapper(dynamicNodes.TextToIconNode),
   imageToPrompt: createDynamicNodeWrapper(dynamicNodes.ImageToPromptNode),
-  layerEditor: createDynamicNodeWrapper(dynamicNodes.LayerEditorNode),
   corridorKey: createDynamicNodeWrapper(dynamicNodes.CorridorKeyNode),
   ltxVideo: createDynamicNodeWrapper(dynamicNodes.LtxVideoNode),
   improvePrompt: createDynamicNodeWrapper(dynamicNodes.ImprovePromptNode),
@@ -163,7 +163,6 @@ const initialNodeTypes: NodeTypes = {
   universalGeneratorAudio: createDynamicNodeWrapper(dynamicNodes.AudioUniversalGeneratorNode),
   response: createDynamicNodeWrapper(dynamicNodes.ResponseNode),
   adaptedPrompt: createDynamicNodeWrapper(dynamicNodes.AdaptedPromptNode),
-  layerEditor: createDynamicNodeWrapper(dynamicNodes.LayerEditorNode),
   comment: createDynamicNodeWrapper(dynamicNodes.CommentNode),
   routerNode: createDynamicNodeWrapper(dynamicNodes.RouterNode),
   groupEditing: createDynamicNodeWrapper(dynamicNodes.GroupEditingNode),
@@ -216,6 +215,12 @@ export default function App() {
     localStorage.setItem('app_theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    const handleOpenCommandPalette = () => setIsCommandPaletteOpen(prev => !prev);
+    window.addEventListener('open-command-palette', handleOpenCommandPalette);
+    return () => window.removeEventListener('open-command-palette', handleOpenCommandPalette);
+  }, []);
 
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showPromptRecipes, setShowPromptRecipes] = useState(false);
@@ -1743,6 +1748,11 @@ const handleConnectEnd = useCallback(
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName) || (e.target as HTMLElement).isContentEditable) return;
       const cmdOrCtrl = isMacOS ? e.metaKey : e.ctrlKey;
+      if (cmdOrCtrl && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('open-command-palette'));
+        return;
+      }
       if (cmdOrCtrl && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) handleRedo(); else handleUndo();
@@ -1762,9 +1772,6 @@ const handleConnectEnd = useCallback(
         e.preventDefault(); handleMenuAction('clear_contents', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
       } else if (cmdOrCtrl && e.key === '.') {
         e.preventDefault(); setShowKeyboardShortcuts(true);
-      } else if (cmdOrCtrl && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        window.dispatchEvent(new CustomEvent('open-command-palette'));
       } else if (cmdOrCtrl && e.key.toLowerCase() === 'a') {
         e.preventDefault(); setNodes(nds => nds.map(n => ({ ...n, selected: true })));
       } else if (e.key === 'Escape') {
@@ -1843,12 +1850,6 @@ const handleConnectEnd = useCallback(
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleUndo, handleRedo, rfInstance, setNodes, saveHistory, handleExportScreenshot, isMacOS]);
-
-  useEffect(() => {
-    const handleOpenCommandPalette = () => setIsCommandPaletteOpen(true);
-    window.addEventListener('open-command-palette', handleOpenCommandPalette);
-    return () => window.removeEventListener('open-command-palette', handleOpenCommandPalette);
-  }, []);
 
   // Handle-level disconnect (Alt + Click on a handle)
   useEffect(() => {
@@ -2226,6 +2227,12 @@ const handleConnectEnd = useCallback(
     a.download = `${activeWorkflowName || 'workflow'}.json`;
     a.click();
   }, [activeWorkflowName]);
+
+  const clearCanvas = useCallback(() => {
+    saveHistory();
+    setNodes([]);
+    setEdges([]);
+  }, [saveHistory, setNodes, setEdges]);
 
   const handleApplyActions = useCallback((actions: any[]) => {
     if (!actions || !Array.isArray(actions)) return;
@@ -2613,6 +2620,7 @@ const handleConnectEnd = useCallback(
             onScreenshot={handleExportScreenshot}
           />
           <KeyboardShortcutsModal isOpen={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
+          <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} onAddNode={addNodeAtViewportCenter} handleClear={clearCanvas} handleExport={handleExportJSON} />
           <PromptRecipeGallery isOpen={showPromptRecipes} onClose={() => setShowPromptRecipes(false)} />
           <MegaMenuModelSearch open={browseModelsOpen} onClose={() => setBrowseModelsOpen(false)} onSelect={(k: string, m: string) => handleAddNodeFromMegaMenu(k, m)} />
           <div style={{ position: 'absolute', bottom: 96, right: 24, zIndex: 10 }}><Queue nodes={nodes} /></div>
@@ -2945,18 +2953,6 @@ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisio
         }
       }} />
       <BottomBar workflows={workflows} activeWorkflowId={activeWorkflowId} onSwitchWorkflow={handleCreateWorkflow} onRenameBoard={handleRenameBoard} onDeleteBoard={handleDeleteBoard} />
-      <CommandPalette 
-        isOpen={isCommandPaletteOpen}
-        onClose={() => setIsCommandPaletteOpen(false)}
-        onAddNode={addNodeAtViewportCenter}
-        onRunWorkflow={() => handleRunWorkflow()}
-        onClearCanvas={() => { setNodes([]); setEdges([]); }}
-        onFitView={handleCanvasFitView}
-        onExportJSON={handleExportJSON}
-        onExportScreenshot={handleExportScreenshot}
-        onProjectSettings={() => window.dispatchEvent(new CustomEvent('open-project-settings'))}
-        onOpenHistory={() => window.dispatchEvent(new CustomEvent('open-search-history'))}
-      />
 
       {/* Toast Notification */}
       {toast && (
