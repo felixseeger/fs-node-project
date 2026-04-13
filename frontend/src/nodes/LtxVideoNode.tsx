@@ -5,28 +5,54 @@ import { getHandleColor } from '../utils/handleTypes';
 import { NodeCapabilities } from './nodeCapabilities';
 import NodeShell from './NodeShell';
 import * as NodeControls from './NodeControls';
+import { vfxLtxGenerate, pollVfxJobStatus } from '../utils/api';
 
 export default function LtxVideoNode({ id, data, selected }) {
   const { resolve, update } = useNodeConnections(id, data);
   const [isExecuting, setIsExecuting] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const incomingImages = resolve.image('image-in') || [];
+  const sourceImage = incomingImages[0];
 
   const handleGenerate = async () => {
     if (!data.prompt) return;
 
     setIsExecuting(true);
     setHasError(false);
+    setProgress(0);
 
     try {
-      // TODO: replace mock - Placeholder for LTX Video Generation API call
-      console.log('[LTX] Generating video with prompt:', data.prompt);
+      console.log('[LTX] Submitting job with prompt:', data.prompt);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      const resultUrl = 'https://example.com/generated-video.mp4';
-      update({ outputVideo: resultUrl });
+      const payload = {
+        prompt: data.prompt,
+        width: data.width || 768,
+        height: data.height || 512,
+        frames: data.frames || 121
+      };
+
+      if (sourceImage) {
+        payload.image_url = sourceImage;
+      }
+
+      const res = await vfxLtxGenerate(payload);
+
+      if (res.error) {
+        throw new Error(res.error.message || res.error);
+      }
+
+      console.log('[LTX] Job submitted, polling status for jobId:', res.jobId);
+      const finalStatus = await pollVfxJobStatus(res.jobId, 120, 3000, (p) => setProgress(p));
+
+      if (finalStatus.status === 'failed') {
+        throw new Error(finalStatus.error || 'Generation failed.');
+      }
+
+      update({ outputVideo: finalStatus.resultUrl });
       setIsExecuting(false);
+      setProgress(100);
     } catch (err) {
       console.error('[LTX] Failed:', err);
       setHasError(true);

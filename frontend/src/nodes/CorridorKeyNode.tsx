@@ -5,11 +5,13 @@ import { getHandleColor } from '../utils/handleTypes';
 import { NodeCapabilities } from './nodeCapabilities';
 import NodeShell from './NodeShell';
 import * as NodeControls from './NodeControls';
+import { vfxCorridorKeyExtract, pollVfxJobStatus } from '../utils/api';
 
 export default function CorridorKeyNode({ id, data, selected }) {
   const { resolve, update } = useNodeConnections(id, data);
   const [isExecuting, setIsExecuting] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const incomingImages = resolve.image('image-in') || [];
   const sourceImage = incomingImages[0];
@@ -19,17 +21,31 @@ export default function CorridorKeyNode({ id, data, selected }) {
 
     setIsExecuting(true);
     setHasError(false);
+    setProgress(0);
 
     try {
-      // TODO: replace mock - Placeholder for CorridorKey AI matte extraction API call
-      // In a real scenario, this would call our backend /api/vfx/corridorkey
       console.log('[CorridorKey] Extracting matte from:', sourceImage);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const payload = {
+        videoUrl: sourceImage, // Although it's 'image-in' the capability might be video or image sequence
+        sensitivity: data.sensitivity || 50,
+        refinement: data.refinement || false
+      };
+
+      const res = await vfxCorridorKeyExtract(payload);
       
-      const resultUrl = sourceImage; // In real life, this would be the matte or keyed image
-      update({ outputImage: resultUrl });
+      if (res.error) {
+        throw new Error(res.error.message || res.error);
+      }
+
+      console.log('[CorridorKey] Job submitted, polling status for jobId:', res.jobId);
+      const finalStatus = await pollVfxJobStatus(res.jobId, 120, 3000, (p) => setProgress(p));
+
+      if (finalStatus.status === 'failed') {
+        throw new Error(finalStatus.error || 'Extraction failed.');
+      }
+
+      update({ outputImage: finalStatus.resultUrl });
       setIsExecuting(false);
     } catch (err) {
       console.error('[CorridorKey] Failed:', err);

@@ -790,3 +790,46 @@ export function getApiErrorMessage(response) {
   }
   return 'Unknown error';
 }
+
+export async function vfxLtxGenerate(params) {
+  const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+  const res = await fetch(`${API_BASE}/api/vfx/ltx/generate`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(params)
+  });
+  return safeJson(res);
+}
+
+export async function vfxCorridorKeyExtract(params) {
+  const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+  const res = await fetch(`${API_BASE}/api/vfx/corridorkey/extract`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(params)
+  });
+  return safeJson(res);
+}
+
+export async function pollVfxJobStatus(jobId, maxAttempts = 120, intervalMs = 3000, onProgress) {
+  for (let i = 0; i < maxAttempts; i++) {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE}/api/vfx/job/${jobId}/status`, { headers });
+    const data = await safeJson(res);
+
+    if (data.error) {
+      throw new Error(data.error.message || data.error);
+    }
+
+    if (data.progress && onProgress) {
+      onProgress(data.progress);
+    }
+
+    if (data.status === 'completed' || data.status === 'failed') {
+      return data;
+    }
+
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  throw new Error('VFX Job polling timed out');
+}
