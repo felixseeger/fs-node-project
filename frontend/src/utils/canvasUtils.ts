@@ -42,10 +42,11 @@ export function isNodeVisible(node: Node, viewport: Viewport, containerSize: { w
   const nodeRight = node.position.x + nodeWidth;
   const nodeBottom = node.position.y + nodeHeight;
 
-  const viewportLeft = -viewport.x / viewport.zoom;
-  const viewportRight = (-viewport.x + containerSize.width) / viewport.zoom;
-  const viewportTop = -viewport.y / viewport.zoom;
-  const viewportBottom = (-viewport.y + containerSize.height) / viewport.zoom;
+  const zoom = Math.max(viewport.zoom || 1, 0.01);
+  const viewportLeft = -viewport.x / zoom;
+  const viewportRight = (-viewport.x + containerSize.width) / zoom;
+  const viewportTop = -viewport.y / zoom;
+  const viewportBottom = (-viewport.y + containerSize.height) / zoom;
 
   return (
     nodeRight > viewportLeft &&
@@ -102,10 +103,11 @@ export function calculateCanvasBounds(nodes: Node[]) {
  * Center viewport on specific position
  */
 export function centerViewportOnPosition(currentViewport: Viewport, targetPosition: { x: number; y: number }, containerSize: { width: number; height: number }) {
+  const zoom = Math.max(currentViewport.zoom || 1, 0.01);
   return {
-    x: targetPosition.x - containerSize.width / (2 * currentViewport.zoom),
-    y: targetPosition.y - containerSize.height / (2 * currentViewport.zoom),
-    zoom: currentViewport.zoom,
+    x: targetPosition.x - containerSize.width / (2 * zoom),
+    y: targetPosition.y - containerSize.height / (2 * zoom),
+    zoom: zoom,
   };
 }
 
@@ -113,10 +115,10 @@ export function centerViewportOnPosition(currentViewport: Viewport, targetPositi
  * Calculate optimal zoom level to fit content
  */
 export function calculateOptimalZoom(bounds: { width: number; height: number }, containerSize: { width: number; height: number }) {
-  const widthRatio = containerSize.width / bounds.width;
-  const heightRatio = containerSize.height / bounds.height;
+  const widthRatio = bounds.width > 0 ? containerSize.width / bounds.width : 1;
+  const heightRatio = bounds.height > 0 ? containerSize.height / bounds.height : 1;
   const optimalZoom = Math.min(widthRatio, heightRatio, 1);
-  return Math.max(optimalZoom, 0.1);
+  return Math.max(optimalZoom || 0.1, 0.1);
 }
 
 /**

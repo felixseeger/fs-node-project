@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export interface TimelineLayer {
   id: string;
@@ -6,7 +6,54 @@ export interface TimelineLayer {
   from: number;
   durationInFrames: number;
   color?: string;
+  type?: string;
+  src?: string;
 }
+
+const AudioWaveform = ({ src, color }: { src: string, color: string }) => {
+  const [peaks, setPeaks] = useState<number[]>([]);
+  
+  useEffect(() => {
+    if (!src) return;
+    fetch('/api/audio/waveform', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: src })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success && data.peaks) {
+        setPeaks(data.peaks);
+      }
+    })
+    .catch(err => console.error('Failed to fetch waveform:', err));
+  }, [src]);
+
+  if (!peaks.length) {
+    return <div className="h-full w-full rounded opacity-80" style={{ backgroundColor: color }} />;
+  }
+
+  // Simple SVG generation for the waveform
+  const svgPoints = peaks.map((p, i) => {
+    const x = (i / peaks.length) * 100;
+    const y = 50 + (p * 50);
+    return `${x}%,${y}%`;
+  }).join(' ');
+
+  return (
+    <div className="h-full w-full rounded opacity-80 flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${color}40` }}>
+      <svg width="100%" height="100%" preserveAspectRatio="none" className="opacity-60">
+        <path 
+          d={`M 0,50 L ${peaks.map((p, i) => `${(i / peaks.length) * 100},${50 + (p * 45)}`).join(' L ')}`} 
+          fill="none" 
+          stroke={color} 
+          strokeWidth="2" 
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    </div>
+  );
+};
 
 interface LayerTimelineProps {
   layers: TimelineLayer[];
@@ -63,13 +110,22 @@ export const LayerTimeline: React.FC<LayerTimelineProps> = ({
               <span className="text-xs text-gray-400 w-20 truncate z-10">{layer.name}</span>
               <div className="absolute left-24 right-2 h-full py-1">
                 <div 
-                  className="h-full rounded opacity-80"
                   style={{ 
                     marginLeft: `${left}%`, 
                     width: `${width}%`,
-                    backgroundColor: layer.color || '#3b82f6'
+                    height: '100%',
+                    position: 'relative'
                   }}
-                />
+                >
+                  {layer.type === 'audio' && layer.src ? (
+                    <AudioWaveform src={layer.src} color={layer.color || '#a855f7'} />
+                  ) : (
+                    <div 
+                      className="h-full rounded opacity-80"
+                      style={{ backgroundColor: layer.color || '#3b82f6' }}
+                    />
+                  )}
+                </div>
               </div>
             </div>
           );

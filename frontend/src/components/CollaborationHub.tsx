@@ -11,6 +11,7 @@ interface CollaborationHubProps {
   isOpen: boolean;
   onClose: () => void;
   showToast?: (message: string, type?: 'error' | 'success') => void;
+  onShare?: () => void;
 }
 
 /**
@@ -188,7 +189,7 @@ export const LiveActionFeed: FC = () => {
  * CollaborationHub - Real-time collaboration interface
  * Enables multi-user workflow editing with presence and communication
  */
-export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose, showToast }) => {
+export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose, showToast, onShare }) => {
   const { currentWorkflow } = useStore();
   const { user } = useAuth();
   const { profile } = useUser(user?.uid);
@@ -214,9 +215,9 @@ export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose, s
   }, [newMessage, sendMessage]);
 
   /**
-   * Share current workflow
+   * Copy link to current workflow
    */
-  const shareWorkflow = useCallback(async () => {
+  const copyShareLink = useCallback(async () => {
     if (!currentWorkflow) {
       if (showToast) showToast('No active workflow to share', 'error');
       return;
@@ -353,15 +354,17 @@ export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose, s
             <div className="mt-4 p-3 bg-gray-800/50 rounded border border-gray-700">
               <h4 className="text-white font-medium mb-2">Collaboration Actions</h4>
               <div className="space-y-2">
-                <button
-                  onClick={shareWorkflow}
-                  className="w-full flex items-center justify-center py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
-                >
-                  🔗 Share Workflow
-                </button>
+                {onShare && (
+                  <button
+                    onClick={onShare}
+                    className="w-full flex items-center justify-center py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+                  >
+                    🔗 Share Workflow
+                  </button>
+                )}
                 <button
                   className="w-full flex items-center justify-center py-2 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 transition-colors"
-                  onClick={shareWorkflow}
+                  onClick={copyShareLink}
                 >
                   📋 Copy Workflow Link
                 </button>

@@ -40,7 +40,7 @@ describe('ShareWorkflowModal', () => {
   it('renders correctly', () => {
     render(<ShareWorkflowModal {...defaultProps} />);
     expect(screen.getByText('Share Workflow')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Enter email address...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search or enter email address...')).toBeInTheDocument();
   });
 
   it('shows error for invalid email', async () => {

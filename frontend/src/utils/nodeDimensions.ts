@@ -88,10 +88,13 @@ export async function getMediaDimensions(
           signal.removeEventListener('abort', abortHandler);
         }
         
+        const naturalWidth = img.naturalWidth || img.width || 800;
+        const naturalHeight = img.naturalHeight || img.height || 600;
+        
         const dimensions = {
-          width: img.naturalWidth || img.width,
-          height: img.naturalHeight || img.height,
-          aspectRatio: img.naturalWidth / img.naturalHeight
+          width: naturalWidth,
+          height: naturalHeight,
+          aspectRatio: naturalHeight > 0 ? naturalWidth / naturalHeight : 4/3
         };
         
         // Cache the result
@@ -138,8 +141,8 @@ export function calculateAspectFitSize(
   maxWidth: number,
   maxHeight: number
 ): { width: number; height: number } {
-  const mediaRatio = mediaWidth / mediaHeight;
-  const containerRatio = maxWidth / maxHeight;
+  const mediaRatio = mediaHeight > 0 ? mediaWidth / mediaHeight : 1;
+  const containerRatio = maxHeight > 0 ? maxWidth / maxHeight : 1;
   
   let width = maxWidth;
   let height = maxHeight;
@@ -270,7 +273,7 @@ export function calculateGridLayout(
   }
   
   const rows = Math.ceil(itemCount / columns);
-  const itemHeight = itemWidth / itemAspectRatio;
+  const itemHeight = itemAspectRatio > 0 ? itemWidth / itemAspectRatio : itemWidth;
   
   return {
     columns,

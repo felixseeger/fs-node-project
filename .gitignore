@@ -105,3 +105,4 @@ frontend/design-md/
 /tsc
 /frontend@0.0.0
 /fs-node-project-root@1.0.0
+\n# Orchestration artifacts\n*.cjs\ntsc_output*.txt

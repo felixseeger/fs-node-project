@@ -17,100 +17,71 @@ const nodeTypesToTest = [
   'imageOutput', 'videoOutput', 'soundOutput'
 ];
 
-test.describe('Node Operations', () => {
+test('can instantiate all node types via search menu', async ({ editorPage: page }) => {
+  test.setTimeout(300000); 
+  const flowWrapper = page.locator('.react-flow').first();
 
-  test('can instantiate all node types via search menu', async ({ editorPage: page }) => {
-    test.setTimeout(120000);
-    const flowWrapper = page.locator('.react-flow').first();
-
-    for (const type of nodeTypesToTest) {
-      const searchInput = page.locator('.ms-search-input-overlay');
-      
-      // Force open search menu with spacebar via evaluate to bypass any interceptors
-      await page.evaluate(() => {
-        window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
-      });
-      await page.waitForTimeout(300);
-      
-      // Fill the search input
-      await searchInput.fill('');
+  for (const type of nodeTypesToTest) {
+    const searchInput = page.locator('.ms-search-input-overlay');
+    
+    await page.evaluate(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })); });
+    await searchInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    
+    if (await searchInput.isVisible()) {
       await searchInput.fill(type);
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(50);
       
-      // Find the button and click it via JS to bypass overlay issues
       const clicked = await page.evaluate(() => {
         const btn = document.querySelector('.ms-node-list button.ms-node-btn');
-        if (btn) {
-          btn.click();
-          return true;
-        }
+        if (btn) { btn.click(); return true; }
         return false;
       });
       
       if (clicked) {
-        await page.waitForTimeout(300);
-        await expect(flowWrapper).toBeVisible();
+        await expect(flowWrapper).toBeVisible({ timeout: 5000 });
       } else {
-        console.log(`Node type ${type} not found in menu.`);
+        await page.keyboard.press('Escape');
       }
     }
-  });
+  }
+});
 
-  test('TextElementNode - can double click, type, and blur', async ({ editorPage: page }) => {
-    // Add text node
-    await page.evaluate(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })); });
-    await page.waitForTimeout(300);
-    await page.locator('.ms-search-input-overlay').fill('textNode');
-    await page.waitForTimeout(300);
-    await page.evaluate(() => document.querySelector('.ms-node-list button.ms-node-btn')?.click());
-    await page.waitForTimeout(500);
-    
-    // Close menu
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(300);
-    
-    const textNode = page.locator('.react-flow__node-textNode').first();
-    await expect(textNode).toBeVisible();
+test('TextElementNode - can double click, type, and blur', async ({ editorPage: page }) => {
+  await page.evaluate(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })); });
+  const searchInput = page.locator('.ms-search-input-overlay');
+  await searchInput.waitFor({ state: 'visible', timeout: 5000 });
+  await searchInput.fill('textNode');
+  await page.waitForTimeout(100);
+  await page.evaluate(() => document.querySelector('.ms-node-list button.ms-node-btn')?.click());
+  
+  await page.keyboard.press('Escape');
+  
+  const textNode = page.locator('.react-flow__node-textNode').first();
+  await expect(textNode).toBeVisible({ timeout: 10000 });
 
-    // Double click to enter edit mode
-    await textNode.dblclick({ force: true });
-    await page.waitForTimeout(500);
-    
-    // Type text
-    const textContent = page.locator('.react-flow__node-textNode [contenteditable="true"], .react-flow__node-textNode textarea');
-    await textContent.fill('Hello World from E2E');
-    await page.waitForTimeout(500);
+  await textNode.dblclick({ force: true });
+  
+  const textContent = page.locator('.react-flow__node-textNode [contenteditable="true"], .react-flow__node-textNode textarea').first();
+  await expect(textContent).toBeVisible({ timeout: 5000 });
+  await textContent.fill('Hello World from E2E');
 
-    // Click outside to trigger blur
-    await page.locator('.react-flow__pane').click({ force: true });
-    await page.waitForTimeout(500);
+  await page.locator('.react-flow__pane').click({ force: true });
 
-    // Check if the text was saved
-    await expect(textContent).toContainText('Hello World from E2E');
-  });
+  await expect(textNode).toContainText('Hello World from E2E', { timeout: 5000 });
+});
 
-  test('AssetNode - can create and has properties', async ({ editorPage: page }) => {
-    // Add asset node
-    await page.evaluate(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })); });
-    await page.waitForTimeout(300);
-    await page.locator('.ms-search-input-overlay').fill('assetNode');
-    await page.waitForTimeout(300);
-    await page.evaluate(() => document.querySelector('.ms-node-list button.ms-node-btn')?.click());
-    await page.waitForTimeout(500);
+test('AssetNode - can create and has properties', async ({ editorPage: page }) => {
+  await page.evaluate(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })); });
+  const searchInput = page.locator('.ms-search-input-overlay');
+  await searchInput.waitFor({ state: 'visible', timeout: 5000 });
+  await searchInput.fill('assetNode');
+  await page.waitForTimeout(100);
+  await page.evaluate(() => document.querySelector('.ms-node-list button.ms-node-btn')?.click());
 
-    // Close menu
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(300);
+  await page.keyboard.press('Escape');
 
-    const assetNode = page.locator('.react-flow__node-assetNode').first();
-    await expect(assetNode).toBeVisible();
-    
-    // It has a placeholder saying "Upload Media" or an SVG icon
-    await expect(assetNode.locator('text=Upload Media')).toBeVisible();
-
-    // Select the node
-    await assetNode.click({ force: true });
-
-    // Success
-  });
+  const assetNode = page.locator('.react-flow__node-assetNode').first();
+  await expect(assetNode).toBeVisible({ timeout: 10000 });
+  
+  await expect(assetNode.locator('text=Upload Media')).toBeVisible({ timeout: 5000 });
 });

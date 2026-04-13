@@ -34,7 +34,7 @@ export const Default: Story = {
 // All available icons in a grid for reference
 const ALL_ICONS: IconName[] = [
   // Basic Actions
-  'plus', 'close', 'check', 'trash', 'edit', 'copy', 'search', 'settings', 'menu',
+  'plus', 'minus', 'close', 'check', 'trash', 'edit', 'copy', 'search', 'settings', 'menu',
   // Navigation
   'arrow-up', 'arrow-down', 'arrow-left', 'arrow-right', 'chevron-up', 'chevron-down', 'chevron-left', 'chevron-right',
   // Media / Content
@@ -69,6 +69,7 @@ export const AllIcons: Story = {
     </div>
   ),
   args: {
+    name: 'plus',
     size: 24,
   },
 };

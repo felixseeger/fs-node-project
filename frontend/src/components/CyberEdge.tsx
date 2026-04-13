@@ -14,6 +14,11 @@ export default function CyberEdge({
   markerEnd,
   data
 }: EdgeProps) {
+  // Guard against NaN coordinates which can crash SVG rendering
+  if (isNaN(sourceX) || isNaN(sourceY) || isNaN(targetX) || isNaN(targetY)) {
+    return null;
+  }
+
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,

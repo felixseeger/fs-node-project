@@ -43,7 +43,7 @@ service cloud.firestore {
       match /locks/{nodeId} {
         allow read: if true; // Everyone can see what's locked
         allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-        allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+        allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/workflows/$(workflowId)).data.userId == request.auth.uid);
       }
       
       // Event feed for user actions

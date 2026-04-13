@@ -136,6 +136,21 @@ function validateNode(node: unknown, index: number): ValidationResult {
     errors.push(`Node ${index}: label exceeds maximum length`);
   }
   
+  // Validate position
+  if (nodeObj.position === undefined || nodeObj.position === null) {
+    errors.push(`Node ${index}: missing 'position'`);
+  } else if (typeof nodeObj.position !== 'object') {
+    errors.push(`Node ${index}: 'position' must be an object`);
+  } else {
+    const pos = nodeObj.position as Record<string, unknown>;
+    if (typeof pos.x !== 'number' || Number.isNaN(pos.x)) {
+      errors.push(`Node ${index}: 'position.x' must be a valid number`);
+    }
+    if (typeof pos.y !== 'number' || Number.isNaN(pos.y)) {
+      errors.push(`Node ${index}: 'position.y' must be a valid number`);
+    }
+  }
+  
   // Check for dangerous properties
   const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
   const nodeKeys = Object.keys(nodeObj);

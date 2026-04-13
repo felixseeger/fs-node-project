@@ -186,7 +186,10 @@ export async function releaseLock(
 
   try {
     await deleteDoc(lockRef);
-  } catch (error) {
+  } catch (error: any) {
+    // Permission denied usually means someone else owns the lock now
+    // which is fine when we're trying to release it anyway.
+    if (error.code === 'permission-denied') return;
     console.error('[CollaborationService] Release lock error:', error);
   }
 }

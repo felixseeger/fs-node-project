@@ -5,9 +5,10 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1, // Single-threaded to avoid dev server overload/Firebase contention
+  workers: 1,
   reporter: [['html', { open: 'never' }]],
   timeout: 60000,
+  globalSetup: './tests/e2e/global-setup.js',
   expect: {
     timeout: 10000,
   },
@@ -17,6 +18,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 15000,
+    storageState: 'storageState.json',
   },
   projects: [
     {

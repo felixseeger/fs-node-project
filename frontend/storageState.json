@@ -1,0 +1,83 @@
+{
+  "cookies": [
+    {
+      "name": "_ga_TZWFY20XY2",
+      "value": "GS2.1.s1776107374$o1$g0$t1776107374$j60$l0$h0",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1810667374.619053,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_ga",
+      "value": "GA1.1.111980715.1776107375",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1810667374.619319,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_14",
+          "value": "{\"state\":\"current\",\"updateTimeMs\":1776107377766}"
+        },
+        {
+          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_4",
+          "value": "{\"state\":\"current\",\"updateTimeMs\":1776107377766}"
+        },
+        {
+          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_10",
+          "value": "{\"state\":\"current\",\"updateTimeMs\":1776107377766}"
+        },
+        {
+          "name": "canvas_zoom_mode",
+          "value": "ctrlScroll"
+        },
+        {
+          "name": "firestore_clients_firestore/[DEFAULT]/fs-nodes-project/_mexfajJ9Lsey90EmILQx",
+          "value": "{\"activeTargetIds\":[2,4,6,8,10,12,14,16],\"updateTimeMs\":1776107377682}"
+        },
+        {
+          "name": "firestore_online_state_firestore/[DEFAULT]/fs-nodes-project/",
+          "value": "{\"clientId\":\"mexfajJ9Lsey90EmILQx\",\"onlineState\":\"Online\"}"
+        },
+        {
+          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_8",
+          "value": "{\"state\":\"current\",\"updateTimeMs\":1776107377766}"
+        },
+        {
+          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_12",
+          "value": "{\"state\":\"current\",\"updateTimeMs\":1776107377766}"
+        },
+        {
+          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_16",
+          "value": "{\"state\":\"current\",\"updateTimeMs\":1776107377766}"
+        },
+        {
+          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_2",
+          "value": "{\"state\":\"current\",\"updateTimeMs\":1776107377766}"
+        },
+        {
+          "name": "firestore_sequence_number_firestore/[DEFAULT]/fs-nodes-project/",
+          "value": "59"
+        },
+        {
+          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_6",
+          "value": "{\"state\":\"current\",\"updateTimeMs\":1776107377766}"
+        },
+        {
+          "name": "app_theme",
+          "value": "dark"
+        }
+      ]
+    }
+  ]
+}

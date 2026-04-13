@@ -14,8 +14,23 @@ export function useLayerManager(initialLayers: RemotionLayer[] = []): UseLayerMa
 
   const addLayer = useCallback((layer: Omit<RemotionLayer, 'id'>) => {
     const id = crypto.randomUUID();
-    const newLayer: RemotionLayer = { ...layer, id };
-    setLayers((prev) => [...prev, newLayer]);
+    
+    setLayers((prev) => {
+      // Audio layers default to 10 seconds (300 frames @ 30fps) if not specified
+      const durationInFrames = layer.durationInFrames || (layer.type === 'audio' ? 300 : 120);
+      
+      // Audio layers default to zIndex 0 (bottom) if not specified
+      const zIndex = layer.zIndex !== undefined ? layer.zIndex : (layer.type === 'audio' ? 0 : prev.length);
+
+      const newLayer: RemotionLayer = { 
+        ...layer, 
+        id,
+        durationInFrames,
+        zIndex
+      };
+      return [...prev, newLayer];
+    });
+    
     return id;
   }, []);
 

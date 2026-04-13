@@ -40,14 +40,68 @@ export const ShareWorkflowModal: FC<ShareWorkflowModalProps> = ({
   const [userProfiles, setUserProfiles] = useState<Record<string, SharedUserProfile>>({});
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
 
+  const [suggestions, setSuggestions] = useState<SharedUserProfile[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   // Clear messages when modal opens/closes
   useEffect(() => {
     setError(null);
     setSuccessMsg(null);
+    setSuggestions([]);
     if (inputRef.current) {
       inputRef.current.focus();
     }
   }, [shareModal.projectId]);
+
+  // Search users based on input
+  useEffect(() => {
+    const searchUsers = async () => {
+      if (!shareEmail || shareEmail.length < 2) {
+        setSuggestions([]);
+        setIsSearching(false);
+        return;
+      }
+      
+      if (!isFirebaseConfigured()) return;
+      
+      setIsSearching(true);
+      try {
+        const db = getDb();
+        const searchStr = shareEmail.trim().toLowerCase();
+        
+        // Simple prefix search on 'email'
+        const q = query(
+          collection(db, 'users'), 
+          where('email', '>=', searchStr),
+          where('email', '<=', searchStr + '\uf8ff')
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const results: SharedUserProfile[] = [];
+        
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.email && !shareModal.sharedWith?.includes(data.email)) {
+            results.push({
+              email: data.email,
+              displayName: data.displayName,
+              photoURL: data.photoURL || data.avatarUri
+            });
+          }
+        });
+        
+        setSuggestions(results);
+      } catch (err) {
+        console.error('Error searching users:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+    
+    const timer = setTimeout(searchUsers, 300);
+    return () => clearTimeout(timer);
+  }, [shareEmail, shareModal.sharedWith]);
 
   // Fetch profiles for users already in sharedWith
   useEffect(() => {
@@ -100,10 +154,17 @@ export const ShareWorkflowModal: FC<ShareWorkflowModalProps> = ({
     fetchProfiles();
   }, [shareModal.sharedWith]);
 
-  const addShare = async () => {
+  const handleSelectUser = async (user: SharedUserProfile) => {
+    setShareEmail(user.email);
+    setShowSuggestions(false);
+    await addShare(user.email, user);
+  };
+
+  const addShare = async (targetEmail?: string, profileData?: SharedUserProfile) => {
     setError(null);
     setSuccessMsg(null);
-    const email = shareEmail.trim().toLowerCase();
+    const emailToUse = targetEmail || shareEmail;
+    const email = emailToUse.trim().toLowerCase();
 
     if (!email) {
       setError('Please enter an email address.');
@@ -123,26 +184,32 @@ export const ShareWorkflowModal: FC<ShareWorkflowModalProps> = ({
     setIsSubmitting(true);
     try {
       if (isFirebaseConfigured()) {
-        const db = getDb();
-        const q = query(collection(db, 'users'), where('email', '==', email));
-        const querySnapshot = await getDocs(q);
-        
-        if (querySnapshot.empty) {
-          setError(`No user found with email ${email}`);
-          setIsSubmitting(false);
-          return;
-        }
-        
-        // Add to our local profiles cache so it shows up immediately
-        const userData = querySnapshot.docs[0].data();
-        setUserProfiles(prev => ({
-          ...prev,
-          [email]: {
+        if (!profileData) {
+          const db = getDb();
+          const q = query(collection(db, 'users'), where('email', '==', email));
+          const querySnapshot = await getDocs(q);
+          
+          if (querySnapshot.empty) {
+            setError(`No user found with email ${email}`);
+            setIsSubmitting(false);
+            return;
+          }
+          
+          const userData = querySnapshot.docs[0].data();
+          profileData = {
             email: userData.email || email,
             displayName: userData.displayName,
             photoURL: userData.photoURL || userData.avatarUri
-          }
-        }));
+          };
+        }
+        
+        // Add to our local profiles cache so it shows up immediately
+        if (profileData) {
+          setUserProfiles(prev => ({
+            ...prev,
+            [email]: profileData!
+          }));
+        }
       }
 
       if (onShareWorkflow) {
@@ -158,6 +225,8 @@ export const ShareWorkflowModal: FC<ShareWorkflowModalProps> = ({
           : null
       );
       setShareEmail('');
+      setSuggestions([]);
+      setShowSuggestions(false);
       setSuccessMsg(`Workflow shared with ${email}`);
     } catch (err: any) {
       console.error('Error sharing workflow:', err);
@@ -230,34 +299,117 @@ export const ShareWorkflowModal: FC<ShareWorkflowModalProps> = ({
         
         <form 
           onSubmit={(e) => { e.preventDefault(); addShare(); }}
-          style={{ display: 'flex', gap: 8, marginBottom: 16 }}
+          style={{ display: 'flex', gap: 8, marginBottom: 16, position: 'relative' }}
         >
-          <input
-            ref={inputRef}
-            type="email"
-            value={shareEmail}
-            onChange={(e) => {
-              setShareEmail(e.target.value);
-              if (error) setError(null);
-              if (successMsg) setSuccessMsg(null);
-            }}
-            placeholder="Enter email address..."
-            disabled={isSubmitting}
-            style={{
-              flex: 1,
-              padding: '10px 12px',
-              fontSize: 14,
-              backgroundColor: 'var(--color-surface, #222)',
-              border: `1px solid ${error ? '#ef4444' : 'var(--color-border, #333)'}`,
-              borderRadius: 6,
-              color: 'inherit',
-              outline: 'none',
-              transition: 'border-color 0.2s',
-              opacity: isSubmitting ? 0.7 : 1,
-            }}
-            aria-invalid={error ? 'true' : 'false'}
-            aria-describedby={error ? "share-error" : undefined}
-          />
+          <div style={{ flex: 1, position: 'relative' }}>
+            <input
+              ref={inputRef}
+              type="text"
+              value={shareEmail}
+              onChange={(e) => {
+                setShareEmail(e.target.value);
+                setShowSuggestions(true);
+                if (error) setError(null);
+                if (successMsg) setSuccessMsg(null);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => {
+                // Delay hiding suggestions to allow clicks to register
+                setTimeout(() => setShowSuggestions(false), 200);
+              }}
+              placeholder="Search or enter email address..."
+              disabled={isSubmitting}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: 14,
+                backgroundColor: 'var(--color-surface, #222)',
+                border: `1px solid ${error ? '#ef4444' : 'var(--color-border, #333)'}`,
+                borderRadius: 6,
+                color: 'inherit',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                opacity: isSubmitting ? 0.7 : 1,
+              }}
+              aria-invalid={error ? 'true' : 'false'}
+              aria-describedby={error ? "share-error" : undefined}
+              autoComplete="off"
+            />
+            
+            {showSuggestions && (shareEmail.length >= 2) && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                marginTop: 4,
+                backgroundColor: 'var(--color-bg, #1a1a1a)',
+                border: '1px solid var(--color-border, #333)',
+                borderRadius: 6,
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
+                zIndex: 10,
+                maxHeight: 200,
+                overflowY: 'auto'
+              }}>
+                {isSearching ? (
+                  <div style={{ padding: '8px 12px', fontSize: 13, color: '#888' }}>Searching...</div>
+                ) : suggestions.length > 0 ? (
+                  suggestions.map(user => (
+                    <div
+                      key={user.email}
+                      onClick={() => handleSelectUser(user)}
+                      style={{
+                        padding: '8px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        cursor: 'pointer',
+                        borderBottom: '1px solid var(--color-border, #333)',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface, rgba(255,255,255,0.05))'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      {user.photoURL ? (
+                        <img 
+                          src={user.photoURL} 
+                          alt={user.displayName || user.email} 
+                          style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div style={{ 
+                          width: 24, height: 24, borderRadius: '50%', 
+                          backgroundColor: 'var(--color-border, #444)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, fontWeight: 'bold', color: '#fff'
+                        }}>
+                          {(user.displayName || user.email).charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                        {user.displayName && (
+                          <span style={{ fontSize: 13, color: 'var(--color-text, #fff)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {user.displayName}
+                          </span>
+                        )}
+                        <span style={{
+                            fontSize: user.displayName ? 11 : 13,
+                            color: user.displayName ? 'var(--color-text-muted, #888)' : 'var(--color-text, #ccc)',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {user.email}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ padding: '8px 12px', fontSize: 13, color: '#888' }}>
+                    No users found matching "{shareEmail}". Enter full email to invite.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           <button
             type="submit"
             disabled={isSubmitting || !shareEmail.trim()}

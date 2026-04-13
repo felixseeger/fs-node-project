@@ -2,7 +2,7 @@ import React, { type SVGProps } from 'react';
 
 export type IconName =
   // Basic Actions
-  | 'plus' | 'close' | 'check' | 'trash' | 'edit' | 'copy' | 'search' | 'settings' | 'menu'
+  | 'plus' | 'minus' | 'close' | 'check' | 'trash' | 'edit' | 'copy' | 'search' | 'settings' | 'menu'
   // Navigation
   | 'arrow-up' | 'arrow-down' | 'arrow-left' | 'arrow-right' | 'chevron-up' | 'chevron-down' | 'chevron-left' | 'chevron-right'
   // Media / Content
@@ -31,6 +31,7 @@ export interface IconProps extends SVGProps<SVGSVGElement> {
 const paths: Record<IconName, React.ReactNode> = {
   // Basic Actions
   'plus': <><path d="M12 5v14M5 12h14" /></>,
+  'minus': <><path d="M5 12h14" /></>,
   'close': <><path d="M18 6L6 18M6 6l12 12" /></>,
   'check': <><path d="M20 6L9 17l-5-5" /></>,
   'trash': <><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" /></>,

@@ -14,6 +14,7 @@ import {
   type Connection,
   type ReactFlowInstance,
   type OnConnect,
+  type NodeChange,
   SelectionMode,
   type NodeTypes,
 } from '@xyflow/react';
@@ -406,7 +407,32 @@ export default function App() {
 
   const activeWorkflowName = workflows.find((w) => w.id === activeWorkflowId)?.name || 'Untitled';
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(DEFAULT_NODES);
+  const [nodes, setNodesInternal, onNodesChangeInternal] = useNodesState(DEFAULT_NODES);
+
+  const setNodes = useCallback((update: Node[] | ((nds: Node[]) => Node[])) => {
+    setNodesInternal((nds) => {
+      const nextNodes = typeof update === 'function' ? update(nds) : update;
+      return nextNodes.map((n: Node) => {
+        if (isNaN(n.position.x) || isNaN(n.position.y)) {
+          console.warn(`[App] Guarded against NaN position for node ${n.id}, resetting to 0,0`);
+          return { ...n, position: { x: isNaN(n.position.x) ? 0 : n.position.x, y: isNaN(n.position.y) ? 0 : n.position.y } };
+        }
+        return n;
+      });
+    });
+  }, [setNodesInternal]);
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    const sanitizedChanges = changes.map(change => {
+      if (change.type === 'position' && change.position) {
+        if (isNaN(change.position.x) || isNaN(change.position.y)) {
+          return { ...change, position: { x: isNaN(change.position.x) ? 0 : change.position.x, y: isNaN(change.position.y) ? 0 : change.position.y } };
+        }
+      }
+      return change;
+    });
+    onNodesChangeInternal(sanitizedChanges);
+  }, [onNodesChangeInternal]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | undefined>(undefined);
   
@@ -2734,6 +2760,7 @@ const handleConnectEnd = useCallback(
             isOpen={isCollaborationHubOpen}
             onClose={() => setIsCollaborationHubOpen(false)}
             showToast={showToast}
+            onShare={handleShareWorkflow}
           />
 
           <CollaborationPresence />

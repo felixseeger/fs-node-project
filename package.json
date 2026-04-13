@@ -15,6 +15,9 @@
     "@anthropic-ai/sdk": "^0.87.0",
     "@google/generative-ai": "^0.24.1",
     "@reduxjs/toolkit": "^2.11.2",
+    "@remotion/bundler": "^4.0.448",
+    "@remotion/cli": "^4.0.448",
+    "@remotion/renderer": "^4.0.448",
     "cloudinary": "^2.9.0",
     "connect-timeout": "^1.9.1",
     "cors": "^2.8.6",
@@ -32,6 +35,8 @@
     "multer": "^2.1.1",
     "p-queue": "^9.1.2",
     "react-redux": "^9.2.0",
+    "remotion": "^4.0.448",
+    "sharp": "^0.34.5",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
