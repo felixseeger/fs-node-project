@@ -12,6 +12,7 @@ import {
   sp,
   font,
 } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 // @ts-ignore
 import useNodeProgress from '../hooks/useNodeProgress';
 // @ts-ignore
@@ -186,6 +187,7 @@ const AudioUniversalGeneratorNode: FC<NodeProps> = ({ id, data, selected }) => {
       onRun={handleGenerate}
       isRunning={isActive}
       width={280}
+      capabilities={[NodeCapabilities.AUDIO_GENERATE, NodeCapabilities.OUTPUT_AUDIO]}
       onDownload={data.outputAudio ? () => {
         const a = document.createElement('a');
         a.href = data.outputAudio as string;

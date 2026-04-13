@@ -15,11 +15,13 @@ interface UniversalSimplifiedNodeChromeProps {
   width?: number;
   showRunButton?: boolean;
   onDownload?: () => void;
+  capabilities?: string[];
 }
 
 export default function UniversalSimplifiedNodeChrome({
   title, selected, children, onRun, runDisabled = false, isRunning = false,
   comment = '', onCommentChange, width = 320, showRunButton = true, onDownload,
+  capabilities = [],
 }: UniversalSimplifiedNodeChromeProps) {
   const [hovered, setHovered] = useState(false);
   const [chromeHovered, setChromeHovered] = useState(false);
@@ -68,7 +70,7 @@ export default function UniversalSimplifiedNodeChrome({
   return (
     <>
       {modal}
-      <div style={{ position: 'relative', width }} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <div style={{ position: 'relative', width }} data-capabilities={capabilities.join(',')} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
         {showActions && (
           <div style={{ position: 'absolute', top: -44, right: 0, display: 'flex', alignItems: 'center', gap: sp[2], opacity: showActions ? 1 : 0, pointerEvents: showActions ? 'auto' : 'none', transition: 'opacity 0.12s ease', zIndex: 10 }}>
             <button type="button" title="Add comment" className="nodrag nopan" onClick={() => toggleCommentModal(true)}

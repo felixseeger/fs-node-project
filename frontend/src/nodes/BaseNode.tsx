@@ -19,6 +19,7 @@ export default function BaseNode({
   selected = false,
   status = "idle",
   dotColor,
+  capabilities = [],
   isExecuting,
   hasError,
   minWidth = 240,
@@ -51,6 +52,7 @@ export default function BaseNode({
     <div
       className="base-node-container"
       data-node-id={id}
+      data-capabilities={capabilities.join(',')}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{

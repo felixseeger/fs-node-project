@@ -4,6 +4,7 @@ import { Position, Handle, type NodeProps } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
+import { NodeCapabilities } from './nodeCapabilities';
 // @ts-ignore
 import { uploadImages } from '../utils/api';
 import AnnotationModal from '../components/AnnotationModal';
@@ -128,6 +129,7 @@ const ImageNode: FC<NodeProps> = ({ id, data, selected }) => {
       selected={selected}
       onDisconnect={disconnectNode}
       downloadUrl={images.length > 0 ? getImageSrc(images[0]) || undefined : undefined}
+      capabilities={[NodeCapabilities.INPUT_MEDIA, NodeCapabilities.OUTPUT_IMAGE]}
     >
       <div 
         style={{ display: 'flex', alignItems: 'stretch' }}

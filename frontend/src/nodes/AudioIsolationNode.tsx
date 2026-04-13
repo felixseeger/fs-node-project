@@ -14,6 +14,7 @@ import {
   useNodeConnections,
   getHandleColor,
 } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 import { audioIsolationGenerate, pollAudioIsolationStatus } from '../utils/api';
 import ImprovePromptButton from './ImprovePromptButton';
 import NodeProgress from './NodeProgress';
@@ -124,7 +125,7 @@ export default function AudioIsolationNode({ id, data, selected }: NodeProps<Nod
   const ACCENT = '#a855f7'; // Purple for audio
 
   return (
-    <NodeShell data={nodeData} label={nodeData.label || 'SAM Audio Isolation'} dotColor={ACCENT} selected={selected} onDisconnect={disconnectNode} onGenerate={handleGenerate} isGenerating={progress.isActive} downloadUrl={nodeData.outputAudio || undefined} downloadType="audio">
+    <NodeShell data={nodeData} label={nodeData.label || 'SAM Audio Isolation'} dotColor={ACCENT} selected={selected} onDisconnect={disconnectNode} onGenerate={handleGenerate} isGenerating={progress.isActive} downloadUrl={nodeData.outputAudio || undefined} downloadType="audio" capabilities={[NodeCapabilities.AUDIO_ISOLATION, NodeCapabilities.OUTPUT_AUDIO]}>
       <OutputHandle id="output" label="audio" type="audio" color={getHandleColor('audio-out')} />
 
       {/* ── Input Type Selection ── */}

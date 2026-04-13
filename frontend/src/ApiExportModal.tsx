@@ -29,20 +29,30 @@ export default function ApiExportModal({ isOpen, onClose, nodes = [], edges = []
   const getDynamicCode = useCallback((tab: TabKey): string => {
     const nodeCount = nodes.length;
     const edgeCount = edges.length;
-    const nodeTypes = Array.from(new Set(nodes.map(n => n.type))).join(', ');
+    const nodeTypes = Array.from(new Set(nodes.map(n => n.type))).filter(Boolean).join(', ');
     
+    // Build topology map
+    const edgeDescriptions = edges.map(edge => {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+      return `  // ${sourceNode?.data?.label || sourceNode?.type} -> ${targetNode?.data?.label || targetNode?.type}`;
+    }).join('\n');
+
     // Find input nodes to extract fields
-    const inputNode = nodes.find(n => n.type === 'inputNode' || n.type === 'input');
-    const inputFields = inputNode?.data?.fieldValues || {};
-    const fieldKeys = Object.keys(inputFields);
+    const inputNodes = nodes.filter(n => n.type === 'inputNode' || n.type === 'input');
+    const allInputFields = inputNodes.reduce((acc, node) => ({ ...acc, ...node.data?.fieldValues }), {});
+    const fieldKeys = Object.keys(allInputFields);
     
     const inputPlaceholder = fieldKeys.length > 0 
-      ? fieldKeys.map(k => `    ${k}: ${JSON.stringify(inputFields[k])}`).join(',\n')
+      ? fieldKeys.map(k => `    ${k}: ${JSON.stringify(allInputFields[k])}`).join(',\n')
       : '    prompt: "A beautiful sunset over the ocean"';
 
     if (tab === 'Javascript') {
-      return `// Workflow: ${workflowId} (${nodeCount} nodes, ${edgeCount} edges)
-// Nodes: ${nodeTypes}
+      return `/**
+ * Workflow: ${workflowId}
+ * Topology: ${nodeCount} nodes, ${edgeCount} edges
+ * Node Types: ${nodeTypes}
+ */
 
 import { Kora } from '@kora/sdk';
 
@@ -50,7 +60,10 @@ const client = new Kora({
   apiKey: process.env.KORA_API_KEY,
 });
 
-// Run the workflow with dynamic inputs
+// Connectivity Logic:
+${edgeDescriptions}
+
+// Run the workflow
 const result = await client.runWorkflow('${workflowId}', {
   input: {
 ${inputPlaceholder}
@@ -61,8 +74,11 @@ console.log('Workflow result:', result);`;
     }
 
     if (tab === 'Python') {
-      return `# Workflow: ${workflowId} (${nodeCount} nodes, ${edgeCount} edges)
-# Nodes: ${nodeTypes}
+      return `\"\"\"
+Workflow: ${workflowId}
+Topology: ${nodeCount} nodes, ${edgeCount} edges
+Node Types: ${nodeTypes}
+\"\"\"
 
 from kora import Kora
 import os
@@ -71,7 +87,10 @@ client = Kora(
     api_key=os.environ.get("KORA_API_KEY")
 )
 
-# Run the workflow with dynamic inputs
+# Connectivity Logic:
+${edgeDescriptions.replace(/\/\//g, '#')}
+
+# Run the workflow
 result = client.run_workflow(
     "${workflowId}",
     input={
@@ -82,7 +101,7 @@ ${inputPlaceholder}
 print(f"Workflow result: {result}")`;
     }
 
-    return `npx kora run ${workflowId} ${fieldKeys.map(k => `--${k} ${JSON.stringify(inputFields[k])}`).join(' ')}`;
+    return `npx kora run ${workflowId} ${fieldKeys.map(k => `--${k} ${JSON.stringify(allInputFields[k])}`).join(' ')}`;
   }, [nodes, edges, workflowId]);
 
   const getCode = useCallback((): string => {
@@ -90,16 +109,26 @@ print(f"Workflow result: {result}")`;
   }, [activeTab, getDynamicCode]);
 
   const handleCopyCode = useCallback((): void => {
-    navigator.clipboard.writeText(getCode());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    navigator.clipboard.writeText(getCode())
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(err => {
+        console.error('Failed to copy code:', err);
+      });
   }, [getCode]);
 
   const handleCopyLink = useCallback((): void => {
-    navigator.clipboard.writeText(API_URL);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
-  }, []);
+    navigator.clipboard.writeText(API_URL)
+      .then(() => {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+      })
+      .catch(err => {
+        console.error('Failed to copy link:', err);
+      });
+  }, [API_URL]);
 
   if (!isOpen) return null;
 

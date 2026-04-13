@@ -3,6 +3,7 @@ import { Position, Handle, type NodeProps } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
+import { NodeCapabilities } from './nodeCapabilities';
 // @ts-ignore
 import { analyzeImage, uploadImages } from '../utils/api';
 // @ts-ignore
@@ -163,6 +164,7 @@ const ImageAnalyzerNode: FC<NodeProps> = ({ id, data, selected }) => {
       dotColor="#f97316"
       selected={selected}
       onDisconnect={disconnectNode}
+      capabilities={[NodeCapabilities.IMAGE_ANALYSIS]}
     >
 
       {/* ── Image Output ── */}
