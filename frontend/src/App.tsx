@@ -1428,7 +1428,8 @@ const handleConnectEnd = useCallback(
         if (selectedNodes.length === 1) {
           const node = selectedNodes[0];
           const hasImageOutput = (node.data as any).outputImage || (node.data as any).outputImages?.length || (node.data as any).imageUrl || (node.data as any).images?.length;
-          if (hasImageOutput) {
+          const hasVideoOutput = (node.data as any).outputVideo || (node.data as any).videoUrl;
+          if (hasImageOutput || hasVideoOutput) {
             menuItems.push({ label: 'Add to Layer', action: 'add_to_layer' });
           }
         }
@@ -1680,7 +1681,7 @@ const handleConnectEnd = useCallback(
         if (selectedNodes?.length === 1) {
           const sourceNode = selectedNodes[0];
           let layerNode = nodesRef.current.find(n => n.type === 'layerEditor');
-          
+
           if (!layerNode) {
             // Create a new layer editor node if none exists
             const id = nextId();
@@ -1696,18 +1697,27 @@ const handleConnectEnd = useCallback(
           // Find the correct source handle
           const sd = sourceNode.data as any;
           let sourceHandle = 'output';
-          if (sourceNode.type === 'sourceMediaNode' || sourceNode.type === 'imageElement') sourceHandle = 'image-out';
-          else if (sourceNode.type === 'imageToPrompt' || sourceNode.type === 'improvePrompt') sourceHandle = 'prompt-out';
-          else if (sourceNode.type === 'imageNode' || sourceNode.type === 'assetNode') sourceHandle = 'output';
-          else if (sourceNode.type === 'imageAnalyzer' || sourceNode.type === 'facialEditing' || sourceNode.type === 'layerEditor') sourceHandle = 'image-out';
+          let targetHandle = 'image-in';
+
+          if (sd.outputVideo || sd.videoUrl || sourceNode.type?.includes('Video')) {
+            targetHandle = 'video-in';
+            if (sourceNode.type === 'sourceMediaNode') sourceHandle = 'video-out';
+            else if (sourceNode.type === 'vfx' || sourceNode.type === 'creativeVideoUpscale' || sourceNode.type === 'precisionVideoUpscale') sourceHandle = 'output-video';
+            else if (sourceNode.type === 'layerEditor') sourceHandle = 'video-out';
+            else sourceHandle = 'output-video';
+          } else {
+            if (sourceNode.type === 'sourceMediaNode' || sourceNode.type === 'imageElement') sourceHandle = 'image-out';
+            else if (sourceNode.type === 'imageToPrompt' || sourceNode.type === 'improvePrompt') sourceHandle = 'prompt-out';
+            else if (sourceNode.type === 'imageNode' || sourceNode.type === 'assetNode') sourceHandle = 'output';
+            else if (sourceNode.type === 'imageAnalyzer' || sourceNode.type === 'facialEditing' || sourceNode.type === 'layerEditor') sourceHandle = 'image-out';
+          }
 
           const newEdge: Edge = {
             id: nextId(),
             source: sourceNode.id,
             target: layerNode.id,
             sourceHandle,
-            targetHandle: 'image-in',
-            style: { strokeWidth: 2 }
+            targetHandle,            style: { strokeWidth: 2 }
           };
           
           setEdges(eds => {

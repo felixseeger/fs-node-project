@@ -36,6 +36,7 @@ const VIDEO_TARGET_OPTIONS: NodeOption[] = [
   { type: 'creativeVideoUpscale', label: 'Creative Video Upscale' },
   { type: 'precisionVideoUpscale', label: 'Precision Video Upscale' },
   { type: 'response', label: 'Response' },
+  { type: 'layerEditor', label: 'Layer Editor' },
 ];
 
 const AUDIO_TARGET_OPTIONS: NodeOption[] = [
@@ -65,6 +66,7 @@ const VIDEO_SOURCE_OPTIONS: NodeOption[] = [
   { type: 'vfx', label: 'Video FX' },
   { type: 'creativeVideoUpscale', label: 'Creative Video Upscale' },
   { type: 'precisionVideoUpscale', label: 'Precision Video Upscale' },
+  { type: 'layerEditor', label: 'Layer Editor' },
   { type: 'routerNode', label: 'Router' },
 ];
 
