@@ -77,6 +77,7 @@ function LayerItem({
       {/* Visibility Toggle */}
       <button
         onClick={() => onChange(layer.id, { visible: !layer.visible })}
+        aria-label={layer.visible ? "Hide layer" : "Show layer"}
         style={{
           background: "none",
           border: "none",
@@ -93,6 +94,7 @@ function LayerItem({
       {/* Lock Toggle */}
       <button
         onClick={() => onChange(layer.id, { locked: !layer.locked })}
+        aria-label={layer.locked ? "Unlock layer" : "Lock layer"}
         style={{
           background: "none",
           border: "none",
@@ -130,6 +132,8 @@ function LayerItem({
           value={layer.opacity}
           onChange={(e) => onChange(layer.id, { opacity: Number(e.target.value) })}
           disabled={layer.locked}
+          aria-label={`Opacity for ${layer.name}`}
+          title={`Opacity for ${layer.name}`}
           style={{
             width: "100%",
             cursor: layer.locked ? "not-allowed" : "ew-resize",

@@ -53,6 +53,22 @@ export function Timeline({
     onChange(newValue);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      onChange(Math.max(min, value - 1));
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      onChange(Math.min(max, value + 1));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      onChange(min);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      onChange(max);
+    }
+  };
+
   const percentage = max === min ? 0 : ((value - min) / (max - min)) * 100;
 
   return (
@@ -85,6 +101,13 @@ export function Timeline({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onKeyDown={handleKeyDown}
+        role="slider"
+        tabIndex={0}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={value}
+        aria-label="Timeline Scrubber"
         style={{
           position: "relative",
           height: "24px",

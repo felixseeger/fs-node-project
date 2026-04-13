@@ -1,60 +1,38 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import useNodeConnections from './useNodeConnections';
+import { useNodeConnections, NodeShell, PillGroup, Slider, NodeCapabilities } from './shared';
 import { getHandleColor } from '../utils/handleTypes';
-import { NodeCapabilities } from './nodeCapabilities';
-import NodeShell from './NodeShell';
-import * as NodeControls from './NodeControls';
-import { vfxCorridorKeyExtract, pollVfxJobStatus } from '../utils/api';
+import { useAsyncPolling } from '../hooks/useAsyncPolling';
+import { VideoPreview } from '../components/VideoPreview';
 
-export default function CorridorKeyNode({ id, data, selected }) {
+export default function CorridorKeyNode({ id, data, selected }: any) {
   const { resolve, update } = useNodeConnections(id, data);
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const { status, progress, resultUrl, error, execute } = useAsyncPolling(
+    '/api/vfx/corridorkey/extract',
+    '/api/vfx/job/:id/status'
+  );
 
-  const incomingImages = resolve.image('image-in') || [];
-  const sourceImage = incomingImages[0];
+  const incomingVideo = resolve.video('video_in');
+  const sourceVideo = Array.isArray(incomingVideo) ? incomingVideo[0] : incomingVideo;
 
   const handleGenerate = async () => {
-    if (!sourceImage) return;
-
-    setIsExecuting(true);
-    setHasError(false);
-    setProgress(0);
-
-    try {
-      console.log('[CorridorKey] Extracting matte from:', sourceImage);
-      
-      const payload = {
-        videoUrl: sourceImage, // Although it's 'image-in' the capability might be video or image sequence
-        sensitivity: data.sensitivity || 50,
-        refinement: data.refinement || false
-      };
-
-      const res = await vfxCorridorKeyExtract(payload);
-      
-      if (res.error) {
-        throw new Error(res.error.message || res.error);
-      }
-
-      console.log('[CorridorKey] Job submitted, polling status for jobId:', res.jobId);
-      const finalStatus = await pollVfxJobStatus(res.jobId, 120, 3000, (p) => setProgress(p));
-
-      if (finalStatus.status === 'failed') {
-        throw new Error(finalStatus.error || 'Extraction failed.');
-      }
-
-      update({ outputImage: finalStatus.resultUrl });
-      setIsExecuting(false);
-    } catch (err) {
-      console.error('[CorridorKey] Failed:', err);
-      setHasError(true);
-      setIsExecuting(false);
-    }
+    if (!sourceVideo) return;
+    
+    await execute({
+      videoUrl: sourceVideo,
+      profile: data.profile || 'optimized',
+      despill: data.despill !== undefined ? data.despill : 5
+    });
   };
 
-  const capabilities = [NodeCapabilities.IMAGE_REMOVE_BACKGROUND, NodeCapabilities.IMAGE_EDIT];
+  // Update output when resultUrl changes
+  useEffect(() => {
+    if (resultUrl) {
+      update({ outputVideo: resultUrl });
+    }
+  }, [resultUrl, update]);
+
+  const capabilities = [NodeCapabilities.VIDEO_EDIT];
 
   return (
     <NodeShell
@@ -63,47 +41,62 @@ export default function CorridorKeyNode({ id, data, selected }) {
       selected={selected}
       capabilities={capabilities}
       dotColor="#10b981"
-      isExecuting={isExecuting}
-      hasError={hasError}
+      isGenerating={status === 'loading'}
+      hasError={status === 'failed'}
       onGenerate={handleGenerate}
     >
       <div style={{ padding: '8px 0' }}>
-        <div style={{
-          width: '100%',
-          aspectRatio: '16/9',
-          backgroundColor: '#111',
-          borderRadius: 4,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          marginBottom: 12,
-          border: '1px solid #222'
-        }}>
-          {sourceImage ? (
-            <img src={sourceImage} alt="Input" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : (
-            <span style={{ fontSize: 10, color: '#444' }}>Waiting for input image...</span>
-          )}
-        </div>
+        <PillGroup
+          label="Optimization Profile"
+          options={[
+            { value: 'optimized', label: 'Optimized' },
+            { value: 'performance', label: 'Performance' }
+          ]}
+          value={data.profile || 'optimized'}
+          onChange={(val) => update({ profile: val })}
+          accentColor="#10b981"
+        />
 
-        <NodeControls.Slider 
-          label="Sensitivity"
-          value={data.sensitivity || 50}
+        <Slider 
+          label="Despill"
+          value={data.despill !== undefined ? data.despill : 5}
           min={0}
-          max={100}
-          onChange={(val) => update({ sensitivity: val })}
+          max={10}
+          step={1}
+          onChange={(val) => update({ despill: val })}
+          accentColor="#10b981"
         />
         
-        <NodeControls.Toggle 
-          label="Edge Refinement"
-          active={data.refinement}
-          onClick={() => update({ refinement: !data.refinement })}
-        />
+        <button
+          onClick={handleGenerate}
+          disabled={status === 'loading' || !sourceVideo}
+          className="nodrag nopan"
+          style={{
+            width: '100%', padding: '8px 16px', background: '#10b981',
+            color: '#fff', border: 'none', borderRadius: 6, 
+            cursor: (status === 'loading' || !sourceVideo) ? 'not-allowed' : 'pointer',
+            fontWeight: 600, fontSize: 12, marginBottom: 16, marginTop: 8,
+            opacity: (!sourceVideo && status !== 'loading') ? 0.5 : 1
+          }}
+        >
+          {status === 'loading' ? 'Processing...' : 'Remove Background'}
+        </button>
+
+        <div style={{ marginTop: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: 8, display: 'block' }}>
+            Output Preview
+          </span>
+          <VideoPreview 
+            status={status}
+            progress={progress}
+            resultUrl={resultUrl}
+            error={error}
+          />
+        </div>
       </div>
 
-      <Handle type="target" position={Position.Left} id="image-in" style={{ background: getHandleColor('image') }} />
-      <Handle type="source" position={Position.Right} id="image-out" style={{ background: getHandleColor('image') }} />
+      <Handle type="target" position={Position.Left} id="video_in" style={{ background: getHandleColor('video') }} />
+      <Handle type="source" position={Position.Right} id="video_out" style={{ background: getHandleColor('video') }} />
     </NodeShell>
   );
 }

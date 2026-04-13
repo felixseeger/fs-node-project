@@ -149,7 +149,7 @@ export const NODE_MENU: NodeMenuSection[] = [
       {
         type: 'corridorKey',
         label: 'CorridorKey AI',
-        defaults: { label: 'CorridorKey AI', sensitivity: 50, refinement: false, outputImage: null },
+        defaults: { label: 'CorridorKey AI', profile: 'optimized', despill: 5, outputVideo: null },
       },
       {
         type: 'vfx',

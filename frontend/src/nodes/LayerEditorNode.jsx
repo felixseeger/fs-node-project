@@ -11,6 +11,16 @@ import { vfxLtxGenerate, vfxCorridorKeyExtract, pollVfxJobStatus } from '../util
 
 import { Timeline, LayerStack } from 'blue-ether';
 
+function arraysEqual(a, b) {
+  if (a === b) return true;
+  if (a == null || b == null) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; ++i) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 export default function LayerEditorNode({ id, data, selected }) {
   const { resolve, update } = useNodeConnections(id, data);
   const capabilities = [NodeCapabilities.VIDEO_EDIT, NodeCapabilities.OUTPUT_VIDEO];
@@ -33,12 +43,18 @@ export default function LayerEditorNode({ id, data, selected }) {
 
   const rawIncomingImages = resolve.image('image-in') || [];
   const rawIncomingVideos = resolve.video('video-in') || [];
-  
-  const incomingImagesStr = JSON.stringify(rawIncomingImages);
-  const incomingVideosStr = JSON.stringify(rawIncomingVideos);
 
-  const incomingImages = useMemo(() => JSON.parse(incomingImagesStr), [incomingImagesStr]);
-  const incomingVideos = useMemo(() => JSON.parse(incomingVideosStr), [incomingVideosStr]);
+  const incomingImagesRef = useRef(rawIncomingImages);
+  if (!arraysEqual(incomingImagesRef.current, rawIncomingImages)) {
+    incomingImagesRef.current = rawIncomingImages;
+  }
+  const incomingImages = incomingImagesRef.current;
+
+  const incomingVideosRef = useRef(rawIncomingVideos);
+  if (!arraysEqual(incomingVideosRef.current, rawIncomingVideos)) {
+    incomingVideosRef.current = rawIncomingVideos;
+  }
+  const incomingVideos = incomingVideosRef.current;
 
   const handleRecordComplete = useCallback(async (blob) => {
     try {
