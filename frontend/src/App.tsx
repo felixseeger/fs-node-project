@@ -99,6 +99,8 @@ import { WorkflowLineageTracker } from './components/WorkflowLineageTracker';
 import { SmartConnectorUI } from './components/SmartConnectorUI';
 import { SmartConnectorEngine } from './engine/SmartConnectorEngine';
 import { CollaboratorPresence, CollaborationHub, CollaborationPresence, NodeLocks } from './components/CollaborationHub';
+import { ShareWorkflowModal } from './projectsDashboard/components/ShareWorkflowModal';
+import type { ShareModalState } from './projectsDashboard/types';
 
 import CyberEdge from './components/CyberEdge';
 
@@ -223,6 +225,8 @@ export default function App() {
   }, []);
 
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [shareModal, setShareModal] = useState<ShareModalState | null>(null);
+  const [shareEmail, setShareEmail] = useState('');
   const [showPromptRecipes, setShowPromptRecipes] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [isCollaborationHubOpen, setIsCollaborationHubOpen] = useState(false);
@@ -287,33 +291,13 @@ export default function App() {
       return;
     }
     
-    const shareLink = `${window.location.origin}/share/${activeWorkflowId}`;
+    const currentWorkflow = workflows.find(w => w.id === activeWorkflowId);
     
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(shareLink);
-        showToast('Workflow link copied to clipboard!', 'success');
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = shareLink;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        textArea.style.top = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-          document.execCommand('copy');
-          showToast('Workflow link copied to clipboard!', 'success');
-        } catch (err) {
-          showToast('Failed to copy link', 'error');
-        }
-        document.body.removeChild(textArea);
-      }
-    } catch (err) {
-      showToast('Failed to copy workflow link', 'error');
-    }
-  }, [activeWorkflowId]);
+    setShareModal({
+      projectId: activeWorkflowId,
+      sharedWith: currentWorkflow?.sharedWith || [],
+    });
+  }, [activeWorkflowId, workflows, showToast]);
 
   const SLP_KEY = 'slp_shown';
 
@@ -2468,12 +2452,22 @@ const handleConnectEnd = useCallback(
           </div>
         </div>
       )}
-      <WorkflowBuilderDrawer 
-        isOpen={isWorkflowBuilderOpen} 
-        onClose={() => setIsWorkflowBuilderOpen(false)} 
+      <WorkflowBuilderDrawer
+        isOpen={isWorkflowBuilderOpen}
+        onClose={() => setIsWorkflowBuilderOpen(false)}
         nodes={nodes}
         edges={edges}
       />
+      {shareModal && (
+        <ShareWorkflowModal
+          shareModal={shareModal}
+          shareEmail={shareEmail}
+          setShareEmail={setShareEmail}
+          setShareModal={setShareModal}
+          onShareWorkflow={shareFirebaseWorkflow}
+          onUnshareWorkflow={unshareFirebaseWorkflow}
+        />
+      )}
       <EditorTopBar
         currentUserId={currentUserId}
         nodes={nodes}
