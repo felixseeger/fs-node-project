@@ -202,7 +202,8 @@ export default function NodeShell({
           ? `0 0 0 1px ${border.active}40, 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 20px ${border.active}30` 
           : '0 8px 32px rgba(0, 0, 0, 0.2)',
         borderRadius: radius.lg, minWidth: 240, maxWidth: 400, fontFamily: 'var(--font-body)',
-        transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)', zIndex: selected ? 10 : 1, overflow: 'hidden', opacity: muted ? 0.4 : 1,
+        transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)', zIndex: selected ? 10 : 1, overflow: 'visible', opacity: muted ? 0.4 : 1,
+        position: 'relative'
       }}
       onMouseEnter={(e) => {
         setIsHovered(true);
@@ -217,11 +218,32 @@ export default function NodeShell({
         e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.2)';
       }}
     >
+      <AnimatePresence>
+        {onGenerate && (isHovered || isGenerating) && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 12, zIndex: 100 }}
+          >
+            <div style={{
+              background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', border: `1.5px solid ${border.active}80`, borderRadius: radius.md,
+              padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 12px 32px rgba(0,0,0,0.6)', whiteSpace: 'nowrap'
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.05em' }}>RUN NODE</span>
+              <NodeGenerateButton onGenerate={onGenerate} isGenerating={isGenerating} size="sm" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {muted && (
         <div style={{
           background: 'rgba(239, 68, 68, 0.12)', padding: '3px 0', textAlign: 'center',
           fontSize: 9, fontWeight: 700, color: 'var(--color-danger)', letterSpacing: '0.1em',
           textTransform: 'uppercase', borderBottom: '1px solid rgba(239, 68, 68, 0.18)',
+          borderTopLeftRadius: 'inherit', borderTopRightRadius: 'inherit',
         }}>
           Muted – Bypassed
         </div>
@@ -234,6 +256,7 @@ export default function NodeShell({
           background: hasError
             ? `linear-gradient(135deg, ${ui.errorBg}, transparent), linear-gradient(135deg, ${accentAlpha}, transparent)`
             : `linear-gradient(135deg, ${accentAlpha}, transparent)`,
+          borderTopLeftRadius: muted ? 0 : 'inherit', borderTopRightRadius: muted ? 0 : 'inherit',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: sp[3] }}>
@@ -251,26 +274,7 @@ export default function NodeShell({
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center', position: 'relative' }}>
-          <AnimatePresence>
-            {onGenerate && (isHovered || isGenerating) && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
-                style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 10, zIndex: 100 }}
-              >
-                <div style={{
-                  background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', border: `1.5px solid ${border.active}80`, borderRadius: radius.md,
-                  padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 12px 32px rgba(0,0,0,0.6)', whiteSpace: 'nowrap'
-                }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>RUN NODE</span>
-                  <NodeGenerateButton onGenerate={onGenerate} isGenerating={isGenerating} size="sm" />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {downloadUrl && <NodeDownloadButton url={downloadUrl} type={downloadType} size="sm" />}
           {onEdit && (
             <button onClick={(e) => { e.stopPropagation(); onEdit(); }} title="Edit Element" aria-label="Edit node"

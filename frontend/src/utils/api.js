@@ -4,8 +4,26 @@ const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
 async function safeJson(res) {
   const text = await res.text();
   try {
-    return JSON.parse(text);
-  } catch {
+    const data = JSON.parse(text);
+    if (!res.ok) {
+      if (res.status === 402) {
+        const err = new Error(data.error || 'Insufficient credits');
+        err.status = 402;
+        err.required = data.required;
+        err.current = data.current;
+        
+        // Dispatch a global event so the UI can show the paywall
+        window.dispatchEvent(new CustomEvent('insufficient_credits', { 
+          detail: { required: data.required, current: data.current } 
+        }));
+        
+        throw err;
+      }
+      return { error: data.error || { message: `HTTP ${res.status}: ${text.substring(0, 100)}...` } };
+    }
+    return data;
+  } catch (e) {
+    if (e.status === 402) throw e; // Re-throw our custom 402 error
     console.error("Invalid JSON response:", text.substring(0, 200));
     if (!res.ok) {
       return { error: { message: `HTTP ${res.status}: ${text.substring(0, 100)}...` } };
@@ -40,6 +58,10 @@ export async function postToApi(endpoint, params) {
     headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(params),
   });
+  if (res.status === 402) {
+    // Rely on safeJson to throw the detailed 402 error
+    return safeJson(res);
+  }
   return safeJson(res);
 }
 
@@ -832,4 +854,13 @@ export async function pollVfxJobStatus(jobId, maxAttempts = 120, intervalMs = 30
     await new Promise((r) => setTimeout(r, intervalMs));
   }
   throw new Error('VFX Job polling timed out');
+}
+
+/**
+ * Moderates content for toxicity using the backend.
+ * @param {string} text - The text to moderate.
+ * @returns {Promise<{safe: boolean, reason: string}>}
+ */
+export async function moderateContent(text) {
+  return postToApi('/api/moderate', { text });
 }

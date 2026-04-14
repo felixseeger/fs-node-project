@@ -70,9 +70,26 @@ export default function UniversalSimplifiedNodeChrome({
   return (
     <>
       {modal}
-      <div style={{ position: 'relative', width }} data-capabilities={capabilities.join(',')} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <div style={{ position: 'relative', width, overflow: 'visible' }} data-capabilities={capabilities.join(',')} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+        <AnimatePresence>
+          {showRunButton && (hovered || isRunning || chromeHovered) ? (
+            <motion.div ref={runWrapRef} initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.9 }} transition={{ duration: 0.15, ease: "easeOut" }}
+              style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 12, zIndex: 100 }} onMouseEnter={() => setRunHovered(true)} onMouseLeave={() => setRunHovered(false)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 12px', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', border: `1.5px solid ${border.active}80`, borderRadius: radius.md, boxShadow: '0 12px 32px rgba(0,0,0,0.6)', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.05em' }}>RUN NODE</span>
+                <button type="button" disabled={runDisabled || isRunning} className="nodrag nopan" onClick={onRun}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 24, minWidth: 24, borderRadius: '50%', border: `1px solid ${border.default}`, background: surface.base, color: text.primary, cursor: runDisabled || isRunning ? 'not-allowed' : 'pointer', opacity: runDisabled && !isRunning ? 0.5 : 1, overflow: 'hidden' }}
+                >
+                  {isRunning ? <span className="node-spinner" style={{ width: 12, height: 12, border: `2px solid ${border.subtle}`, borderTop: `2px solid ${border.active}`, borderRadius: '50%', animation: 'node-spin 1s linear infinite', flexShrink: 0 }} /> : <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}><polygon points="5 3 19 12 5 21 5 3" /></svg>}
+                </button>
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
         {showActions && (
-          <div style={{ position: 'absolute', top: -44, right: 0, display: 'flex', alignItems: 'center', gap: sp[2], opacity: showActions ? 1 : 0, pointerEvents: showActions ? 'auto' : 'none', transition: 'opacity 0.12s ease', zIndex: 10 }}>
+          <div style={{ position: 'absolute', top: -44, left: 0, display: 'flex', alignItems: 'center', gap: sp[2], opacity: showActions ? 1 : 0, pointerEvents: showActions ? 'auto' : 'none', transition: 'opacity 0.12s ease', zIndex: 10 }}>
             <button type="button" title="Add comment" className="nodrag nopan" onClick={() => toggleCommentModal(true)}
               style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, border: `1px solid ${border.default}`, background: surface.base, color: text.secondary, cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
             >
@@ -86,28 +103,11 @@ export default function UniversalSimplifiedNodeChrome({
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
               </button>
             )}
-
-            <AnimatePresence>
-              {showRunButton && (hovered || isRunning || chromeHovered) ? (
-                <motion.div ref={runWrapRef} initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.9 }} transition={{ duration: 0.15, ease: "easeOut" }}
-                  style={{ position: 'relative' }} onMouseEnter={() => setRunHovered(true)} onMouseLeave={() => setRunHovered(false)}
-                >
-                  <div style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 10, zIndex: 100, display: 'flex', alignItems: 'center', gap: 10, padding: '5px 10px', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', border: `1.5px solid ${border.active}80`, borderRadius: radius.md, boxShadow: '0 12px 32px rgba(0,0,0,0.6)', whiteSpace: 'nowrap' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>RUN NODE</span>
-                    <button type="button" disabled={runDisabled || isRunning} className="nodrag nopan" onClick={onRun}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 24, minWidth: 24, borderRadius: '50%', border: `1px solid ${border.default}`, background: surface.base, color: text.primary, cursor: runDisabled || isRunning ? 'not-allowed' : 'pointer', opacity: runDisabled && !isRunning ? 0.5 : 1, overflow: 'hidden' }}
-                    >
-                      {isRunning ? <span className="node-spinner" style={{ width: 12, height: 12, border: `2px solid ${border.subtle}`, borderTop: `2px solid ${border.active}`, borderRadius: '50%', animation: 'node-spin 1s linear infinite', flexShrink: 0 }} /> : <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}><polygon points="5 3 19 12 5 21 5 3" /></svg>}
-                    </button>
-                  </div>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
           </div>
         )}
 
         <div style={{ background: surface.base, border: `1px solid ${selected ? border.active : border.subtle}`, borderRadius: radius.lg, fontFamily: 'Inter, system-ui, sans-serif', transition: 'border-color 0.15s ease, box-shadow 0.15s ease', boxShadow: selected ? `0 0 0 1px ${border.active}, 0 8px 24px rgba(0,0,0,0.35)` : '0 4px 12px rgba(0,0,0,0.2)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `${sp[3]}px ${sp[4]}px`, borderBottom: `1px solid ${border.subtle}`, minHeight: 40 }} onMouseEnter={() => setChromeHovered(true)} onMouseLeave={() => setChromeHovered(false)}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `${sp[3]}px ${sp[4]}px`, borderBottom: `1px solid ${border.subtle}`, minHeight: 40, borderTopLeftRadius: 'inherit', borderTopRightRadius: 'inherit', overflow: 'hidden' }} onMouseEnter={() => setChromeHovered(true)} onMouseLeave={() => setChromeHovered(false)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: sp[2], minWidth: 0 }}>
               <span style={{ color: text.muted, flexShrink: 0 }} aria-hidden><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.09 3.26L16 6l-2.91 1.74L12 11l-1.09-3.26L8 6l2.91-1.74L12 2zm0 13l1.09 3.26L16 17l-2.91 1.74L12 22l-1.09-3.26L8 17l2.91-1.74L12 15z" /></svg></span>
               <span style={{ ...font.sm, fontWeight: 700, color: text.primary, letterSpacing: '0.04em', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>

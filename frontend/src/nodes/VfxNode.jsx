@@ -1,12 +1,10 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNodeConnections, border, radius, surface, text, font, sp, CATEGORY_COLORS, OutputHandle, OutputPreview } from './shared';
+import { useNodeConnections, border, radius, surface, text, CATEGORY_COLORS, OutputHandle, OutputPreview } from './shared';
 import NodeShell from './NodeShell';
 import useNodeProgress from '../hooks/useNodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
 import { vfxGenerate } from '../utils/api';
-import NodeGenerateButton from './NodeGenerateButton';
 
 const FILTERS = [
   { value: 1, label: 'Film Grain' }, { value: 2, label: 'Motion Blur' },
@@ -17,13 +15,12 @@ const FILTERS = [
 
 export default function VfxNode({ id, data, selected }) {
   const { update, disconnectNode } = useNodeConnections(id, data);
-  const { progress, status, message, start, setProgress, complete, fail, isActive } = useNodeProgress({
+  const { start, complete, fail, isActive } = useNodeProgress({
     onProgress: (state) => {
       update({ executionProgress: state.progress, executionStatus: state.status, executionMessage: state.message });
     },
   });
 
-  const [isHovered, setIsHovered] = useState(false);
   const localFilterType = data.localFilterType || 1;
 
   const handleGenerate = useCallback(async () => {
@@ -55,7 +52,7 @@ export default function VfxNode({ id, data, selected }) {
   }, [data.triggerGenerate, handleGenerate]);
 
   return (
-    <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+    <div>
       <NodeShell data={data} label={data.label || 'Video FX'} dotColor="#14b8a6" selected={selected} onGenerate={handleGenerate} isGenerating={isActive} downloadUrl={data.outputVideo || undefined} downloadType="video" onDisconnect={disconnectNode}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Handles Area */}
@@ -71,19 +68,6 @@ export default function VfxNode({ id, data, selected }) {
           </div>
 
           <div style={{ background: surface.deep, border: `1px solid ${border.default}`, borderRadius: radius.md, padding: 12, position: 'relative' }}>
-            <AnimatePresence>
-              {(isHovered || isActive) && (
-                <motion.div initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.9 }} transition={{ duration: 0.15 }}
-                  style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 10, zIndex: 100 }}
-                >
-                  <div style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', border: `1.5px solid ${border.active}80`, borderRadius: radius.md, padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 12px 32px rgba(0,0,0,0.6)', whiteSpace: 'nowrap' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>RUN NODE</span>
-                    <NodeGenerateButton onGenerate={handleGenerate} isGenerating={isActive} size="sm" />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
             <input type="text" className="nodrag nopan" value={data.localVideo || ''} onChange={(e) => update({ localVideo: e.target.value })} placeholder="Video URL..." style={{ width: '100%', background: 'transparent', border: 'none', color: text.primary, fontSize: 11, outline: 'none' }} />
           </div>
 

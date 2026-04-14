@@ -1,24 +1,21 @@
 import React, { useCallback, useState, useEffect, useRef, type FC } from 'react';
 import { Position, Handle, type Node, type NodeProps } from '@xyflow/react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  NodeShell, SectionHeader, ConnectedOrLocal, PromptInput, Pill, Slider, OutputHandle, OutputPreview, useNodeConnections, CATEGORY_COLORS, getHandleColor, sp, font, text, surface, border, radius,
+  NodeShell, SectionHeader, ConnectedOrLocal, PromptInput, OutputHandle, OutputPreview, useNodeConnections, CATEGORY_COLORS, getHandleColor, text, radius,
 } from './shared';
-import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
 import NodeProgress from './NodeProgress';
 import useNodeProgress from '../hooks/useNodeProgress';
-import { generateImage, generateKora, pollStatus } from '../utils/api';
+import { generateImage, generateKora } from '../utils/api';
 import type { GeneratorNodeData } from '../types';
-import NodeGenerateButton from './NodeGenerateButton';
+import { NodeCapabilities } from './nodeCapabilities';
 
 const GeneratorNode: FC<NodeProps<Node<GeneratorNodeData>>> = ({ id, data, selected }) => {
   const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
-  const { progress, status, message, start, setProgress, complete, fail, isActive } = useNodeProgress({
+  const { progress, status, message, start, complete, fail, isActive } = useNodeProgress({
     onProgress: (state: any) => { update({ executionProgress: state.progress, executionStatus: state.status, executionMessage: state.message }); },
   });
 
-  const [isHovered, setIsHovered] = useState(false);
   const isKora = data.generatorType === 'kora';
 
   const handleGenerate = useCallback(async () => {
@@ -50,7 +47,7 @@ const GeneratorNode: FC<NodeProps<Node<GeneratorNodeData>>> = ({ id, data, selec
   const ACCENT = isKora ? CATEGORY_COLORS.vision : CATEGORY_COLORS.imageGeneration;
 
   return (
-    <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+    <div>
       <NodeShell data={data} label={(data.label as string) || (isKora ? 'Kora Reality' : 'Nano Banana 2 Edit')} dotColor={ACCENT} selected={selected} onDisconnect={disconnectNode} onGenerate={handleGenerate} isGenerating={isActive} hasError={!!data.outputError && !isActive} downloadUrl={data.outputImage || undefined} capabilities={[NodeCapabilities.IMAGE_GENERATE, NodeCapabilities.OUTPUT_IMAGE]}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Handles Area */}
@@ -70,18 +67,6 @@ const GeneratorNode: FC<NodeProps<Node<GeneratorNodeData>>> = ({ id, data, selec
           />
           
           <div style={{ position: 'relative' }}>
-            <AnimatePresence>
-              {(isHovered || isActive) && (
-                <motion.div initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.9 }} transition={{ duration: 0.15 }}
-                  style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 10, zIndex: 100 }}
-                >
-                  <div style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', border: `1.5px solid ${border.active}80`, borderRadius: radius.md, padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 12px 32px rgba(0,0,0,0.6)', whiteSpace: 'nowrap' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>RUN NODE</span>
-                    <NodeGenerateButton onGenerate={handleGenerate} isGenerating={isActive} size="sm" />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
             <ConnectedOrLocal connected={conn('prompt-in').connected} connInfo={conn('prompt-in').info}>
               <PromptInput value={(data.inputPrompt as string) || ''} onChange={(v) => update({ inputPrompt: v })} placeholder="Enter prompt..." rows={2} />
             </ConnectedOrLocal>

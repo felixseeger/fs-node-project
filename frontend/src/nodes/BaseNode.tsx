@@ -69,12 +69,44 @@ export default function BaseNode({
         fontFamily: 'var(--font-body)',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         zIndex: selected ? 10 : 1,
-        overflow: 'hidden',
+        overflow: 'visible',
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
       }}
     >
+      <AnimatePresence>
+        {onGenerate && (isHovered || isExecuting) && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 12, zIndex: 100 }}
+          >
+            <div style={{
+              background: 'rgba(0,0,0,0.85)',
+              backdropFilter: 'blur(10px)',
+              border: `1.5px solid ${border.active}80`,
+              borderRadius: radius.md,
+              padding: '5px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
+              whiteSpace: 'nowrap'
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.05em' }}>RUN NODE</span>
+              <NodeGenerateButton 
+                onGenerate={onGenerate} 
+                isGenerating={isExecuting} 
+                size="sm"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Execution Progress Bar (Top Edge) */}
       {effectiveStatus === "loading" && (
         <div style={{
@@ -101,6 +133,8 @@ export default function BaseNode({
             ? `linear-gradient(135deg, ${ui.errorBg}, transparent), linear-gradient(135deg, ${accentAlpha}, transparent)`
             : `linear-gradient(135deg, ${accentAlpha}, transparent)`,
           cursor: 'grab',
+          borderTopLeftRadius: 'inherit',
+          borderTopRightRadius: 'inherit',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: sp[3] }}>
@@ -139,38 +173,7 @@ export default function BaseNode({
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center', position: 'relative' }}>
-          <AnimatePresence>
-            {onGenerate && (isHovered || isExecuting) && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
-                style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 10, zIndex: 100 }}
-              >
-                <div style={{
-                  background: 'rgba(0,0,0,0.85)',
-                  backdropFilter: 'blur(10px)',
-                  border: `1.5px solid ${border.active}80`,
-                  borderRadius: radius.md,
-                  padding: '5px 10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
-                  whiteSpace: 'nowrap'
-                }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>RUN NODE</span>
-                  <NodeGenerateButton 
-                    onGenerate={onGenerate} 
-                    isGenerating={isExecuting} 
-                    size="sm"
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {downloadUrl && (
             <NodeDownloadButton
               url={downloadUrl}

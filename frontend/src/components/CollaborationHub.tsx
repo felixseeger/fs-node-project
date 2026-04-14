@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUser } from '../hooks/useUser';
 import { useViewport, useNodes } from '@xyflow/react';
 import type { Collaborator, ActionEvent, ChatMessage, NodeLock } from '../services/collaborationService';
+import { sanitizeHTML, sanitizeChatMessage } from '../utils/sanitization';
 
 interface CollaborationHubProps {
   isOpen: boolean;
@@ -206,13 +207,29 @@ export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose, s
   const [activeTab, setActiveTab] = useState('team');
 
   /**
-   * Send a message
+   * Send a message with sanitization, rate limiting, and moderation
    */
-  const handleSendMessage = useCallback(() => {
+  const handleSendMessage = useCallback(async () => {
     if (!newMessage.trim()) return;
-    sendMessage(newMessage);
-    setNewMessage('');
-  }, [newMessage, sendMessage]);
+    
+    // Sanitize and validate message
+    const result = sanitizeChatMessage(newMessage, 2000);
+    
+    if (!result.valid) {
+      if (showToast) showToast(result.error || 'Invalid message', 'error');
+      return;
+    }
+    
+    // Send message (returns false if rate limited or blocked)
+    const sent = await sendMessage(result.message);
+    
+    if (sent) {
+      setNewMessage('');
+    } else {
+      // Toast for toxicity blocking is triggered by event, but we handle rate-limiting here
+      // if (showToast) showToast('Please wait before sending another message', 'error');
+    }
+  }, [newMessage, sendMessage, showToast]);
 
   /**
    * Copy link to current workflow
@@ -409,7 +426,8 @@ export const CollaborationHub: FC<CollaborationHubProps> = ({ isOpen, onClose, s
                         <div className="text-[10px] font-bold opacity-70 mb-1">{message.senderName}</div>
                       )}
                       {message.type === 'system' && '🤖 '}
-                      {message.text}
+                      {/* Sanitized message content - prevents XSS */}
+                      {sanitizeHTML(message.text)}
                       <div className="text-[9px] opacity-70 mt-1">
                         {message.timestamp?.toDate ? new Date(message.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                       </div>

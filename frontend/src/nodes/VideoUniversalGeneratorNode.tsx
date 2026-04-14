@@ -1,17 +1,16 @@
 import { useState, useRef, useEffect, useCallback, type FC } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { getHandleColor } from '../utils/handleTypes';
 import {
-  CATEGORY_COLORS, sp, font, text, surface, border, radius,
+  CATEGORY_COLORS, text, surface, border, radius,
   useNodeConnections, OutputPreview, OutputHandle,
-  NodeGenerateButton, NodeDownloadButton, NodeShell
+  NodeShell
 } from './shared';
 import { NodeCapabilities } from './nodeCapabilities';
 import {
-  kling3Generate, pollKling3Status,
-  pixVerseV5Generate, pollPixVerseV5Status,
-  ltxVideoDirectGenerate, pollLtxDirectStatus,
+  kling3Generate,
+  pixVerseV5Generate,
+  ltxVideoDirectGenerate,
   postToApi, pollGenericStatus
 } from '../utils/api';
 import { VIDEO_UNIVERSAL_MODEL_DEFS } from './videoUniversalGeneratorModels';
@@ -35,11 +34,9 @@ const extractLumaId = (input: any): string | null => {
 const VideoUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selected }) => {
   const { update, disconnectNode, connections } = useNodeConnections(id, data);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isNodeHovered, setIsNodeHovered] = useState(false);
   const lastTrigger = useRef<number | null>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
-  const locked = data.locked || false;
   const aspectRatio = data.aspectRatio || '16:9';
   const models = data.models || ['kling3'];
 
@@ -153,7 +150,7 @@ const VideoUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
   }, [data.triggerGenerate, handleGenerate]);
 
   return (
-    <div onMouseEnter={() => setIsNodeHovered(true)} onMouseLeave={() => setIsNodeHovered(false)}>
+    <div>
       <NodeShell
         label={data.label || 'Video Universal Generator'}
         dotColor={CATEGORY_COLORS.videoGeneration}
@@ -194,19 +191,6 @@ const VideoUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
 
           {/* Prompt Section */}
           <div style={{ background: surface.deep, border: `1px solid ${border.default}`, borderRadius: radius.md, padding: 12, position: 'relative' }}>
-            <AnimatePresence>
-              {(isNodeHovered || isGenerating) && (
-                <motion.div initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.9 }} transition={{ duration: 0.15 }}
-                  style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 10, zIndex: 100 }}
-                >
-                  <div style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', border: `1.5px solid ${border.active}80`, borderRadius: radius.md, padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 12px 32px rgba(0,0,0,0.6)', whiteSpace: 'nowrap' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>RUN NODE</span>
-                    <NodeGenerateButton onGenerate={handleGenerate} isGenerating={isGenerating} size="sm" />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             <Handle type="target" position={Position.Left} id="prompt-in" style={{ position: 'absolute', left: -22, top: '50%', background: getHandleColor('prompt-in') }} />
             <textarea
               ref={promptRef}

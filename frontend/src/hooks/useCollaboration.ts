@@ -44,7 +44,11 @@ export function useCollaboration({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [locks, setLocks] = useState<NodeLock[]>([]);
   const lastUpdateRef = useRef<number>(0);
+  const lastMessageTimeRef = useRef<number>(0);
   const isAvailable = isFirebaseConfigured() && enabled;
+  
+  // Rate limiting config: max 1 message per 500ms
+  const MESSAGE_RATE_LIMIT_MS = 500;
 
   // 1. Handle user presence and lifecycle
   useEffect(() => {
@@ -163,11 +167,39 @@ export function useCollaboration({
   }, [isAvailable, userId, workflowId, userName, userColor]);
 
   /**
-   * Send a chat message
+   * Send a chat message with rate limiting and content moderation
+   * Returns false if rate limited or blocked by moderation
    */
-  const sendMessage = useCallback((text: string) => {
-    if (!isAvailable || !userId || !workflowId || !text.trim()) return;
+  const sendMessage = useCallback(async (text: string): Promise<boolean> => {
+    if (!isAvailable || !userId || !workflowId || !text.trim()) return false;
+    
+    // Check rate limit
+    const now = Date.now();
+    const timeSinceLastMessage = now - lastMessageTimeRef.current;
+    
+    if (timeSinceLastMessage < MESSAGE_RATE_LIMIT_MS) {
+      console.warn('[Collaboration] Message rate limited. Please wait before sending another message.');
+      return false;
+    }
+    
+    lastMessageTimeRef.current = now;
 
+    // Toxicity Check
+    try {
+      const { moderateContent } = await import('../utils/api');
+      const moderationResult = await moderateContent(text);
+      if (!moderationResult.safe) {
+        console.warn(`[Collaboration] Message blocked by moderation: ${moderationResult.reason}`);
+        // Notify the user via a global event or another toast mechanism if needed
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: `Message blocked: ${moderationResult.reason}`, type: 'error' }
+        }));
+        return false;
+      }
+    } catch (err) {
+      console.error('[Collaboration] Moderation check failed, allowing message:', err);
+    }
+    
     sendChatMessage(workflowId, {
       senderId: userId,
       senderName: userName,
@@ -175,6 +207,8 @@ export function useCollaboration({
       text,
       type: 'message',
     });
+    
+    return true;
   }, [isAvailable, userId, workflowId, userName, userAvatar]);
 
   return {
