@@ -18,9 +18,9 @@
   - [x] Test 3: AssetNode - Verify creation and property updates.
   - [x] Clean up all the old scattered `.js` and `.mjs` test scripts from the root and `frontend/` folders.
 
-- [ ] **Phase 4: Run and Fix Node Issues**
-  - [ ] Run the tests.
-  - [ ] If any nodes fail to render or interact properly, fix them.
+- [x] **Phase 4: Run and Fix Node Issues**
+  - [x] Run the tests.
+  - [x] If any nodes fail to render or interact properly, fix them.
 
 ## Decisions
 | Decision | Rationale | Date |
