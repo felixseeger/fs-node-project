@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, type FC, type ChangeEvent, type ReactNode } from 'react';
+import React, { useState, useMemo, useRef, useEffect, type FC, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
   InfoIcon,
@@ -1304,9 +1304,10 @@ const EditorContent: FC<EditorContentProps> = ({
                 <div style={{ marginBottom: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <span style={styles.labelText}>Duration</span>
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>{node.data.localDuration || (currentModels[0] === 'musicGeneration' ? 30 : 5)}s</span>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>{Number(node.data.localDuration) || (currentModels[0] === 'musicGeneration' ? 30 : 5)}s</span>
                   </div>
                   <Slider
+                    label="Duration"
                     value={Number(node.data.localDuration) || (currentModels[0] === 'musicGeneration' ? 30 : 5)}
                     onChange={(v) => onUpdate(node.id, { localDuration: v })}
                     min={1} max={30} step={1}
