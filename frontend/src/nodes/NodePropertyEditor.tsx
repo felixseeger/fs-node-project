@@ -1441,10 +1441,6 @@ const EditorContent: FC<EditorContentProps> = ({
             </div>
           )}
 
-          {node.type === 'layerEditor' && (
-            <div id="layer-editor-portal-target" style={{ width: '100%' }}></div>
-          )}
-
           {/* Connected Inputs Section */}
           <div>
             <div
