@@ -144,6 +144,7 @@ export default function LayerNode({ id, data, selected }: any) {
             controls
             autoPlay={false}
             loop
+            acknowledgeRemotionLicense={true}
           />
         </div>
 

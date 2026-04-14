@@ -92,6 +92,7 @@ const MaskLine: FC<MaskLineProps> = ({ innerRef, children }) => {
 };
 
 interface SystemLoadingProcessProps {
+  progress?: number;
   isProcessing?: boolean;
   onComplete?: () => void;
   autoStart?: boolean;
@@ -106,6 +107,7 @@ interface SystemLoadingProcessProps {
  */
 const SystemLoadingProcess: FC<SystemLoadingProcessProps> = ({
   isProcessing = false,
+  progress,
   onComplete,
   autoStart = true,
   requireInteraction = false,

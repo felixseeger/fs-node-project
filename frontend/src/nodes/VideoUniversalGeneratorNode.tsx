@@ -12,6 +12,7 @@ import {
   kling3Generate, pollKling3Status,
   pixVerseV5Generate, pollPixVerseV5Status,
   ltxVideoDirectGenerate, pollLtxDirectStatus,
+  postToApi, pollGenericStatus
 } from '../utils/api';
 import { VIDEO_UNIVERSAL_MODEL_DEFS } from './videoUniversalGeneratorModels';
 import { uploadAssetToStorage } from '../services/storageService';
@@ -19,8 +20,20 @@ import { uploadAssetToStorage } from '../services/storageService';
 const ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'];
 const MODEL_DEFS = VIDEO_UNIVERSAL_MODEL_DEFS;
 
+/**
+ * Extract Luma Generation ID from URL or data
+ */
+const extractLumaId = (input: any): string | null => {
+  if (typeof input === 'string') {
+    // Attempt to extract UUID from storage URL or similar
+    const match = input.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+    return match ? match[0] : null;
+  }
+  return input?.id || null;
+};
+
 const VideoUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selected }) => {
-  const { update, disconnectNode } = useNodeConnections(id, data);
+  const { update, disconnectNode, connections } = useNodeConnections(id, data);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isNodeHovered, setIsNodeHovered] = useState(false);
   const lastTrigger = useRef<number | null>(null);
@@ -33,8 +46,11 @@ const VideoUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
   const handleGenerate = useCallback(async () => {
     const prompt = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt || '';
     let startFrameUrl = data.resolveInput?.(id, 'start-frame-in') || data.startFrameUrl;
+    const endFrameUrl = data.resolveInput?.(id, 'end-frame-in') || data.endFrameUrl;
 
-    if (!prompt || isGenerating) return;
+    if (!prompt && !startFrameUrl && !isGenerating) return;
+    if (isGenerating) return;
+
     setIsGenerating(true);
     update({ outputVideo: null, outputVideos: [], outputError: null });
 
@@ -43,6 +59,7 @@ const VideoUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
       
       const activeModel = models[0] === 'Auto' ? 'kling3' : models[0];
       let result;
+      let statusUrl;
       
       if (activeModel === 'kling3') {
         result = await kling3Generate('pro', { prompt, aspect_ratio: aspectRatio, image: startFrameUrl });
@@ -54,27 +71,79 @@ const VideoUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
           aspectRatio: aspectRatio, 
           imagePath: startFrameUrl 
         });
-      } else if (activeModel === 'luma-ray-2') {
-        // Interfacing with the internal video_generate tool capabilities
-        // Note: In a real production app, this would route to a /api/luma endpoint
-        result = await postToApi('/api/luma/generate', { 
-          prompt, 
-          image: startFrameUrl,
-          model: 'luma/ray-2' 
-        });
+      } else if (activeModel === 'luma-ray-2' || activeModel === 'luma-ray-flash-2') {
+        const modelDef = (MODEL_DEFS as any)[activeModel];
+        
+        // Build Luma-specific payload
+        const payload: any = {
+          prompt,
+          model: activeModel.replace('luma-', ''), // ray-2 or ray-flash-2
+          aspect_ratio: aspectRatio,
+          resolution: data.resolution || '720p',
+          loop: data.loop || false
+        };
+
+        // Handle Image to Video / Interpolation
+        if (startFrameUrl) {
+          payload.keyframes = {
+            frame0: { type: 'image', url: startFrameUrl }
+          };
+          if (endFrameUrl) {
+            payload.keyframes.frame1 = { type: 'image', url: endFrameUrl };
+          }
+        }
+
+        // Handle Video Input (Extension / Restyle)
+        const videoInput = connections.resolve.video('video-in');
+        if (videoInput) {
+          if (modelDef?.supportsModifyVideo && data.lumaMode) {
+            // Modify Video (Restyle)
+            payload.media = { url: videoInput };
+            if (startFrameUrl) payload.first_frame = { url: startFrameUrl };
+            payload.mode = data.lumaMode;
+          } else {
+            // Video Extension
+            const lumaId = extractLumaId(videoInput);
+            if (lumaId) {
+              payload.keyframes = {
+                frame0: { type: 'generation', id: lumaId }
+              };
+            }
+          }
+        }
+
+        result = await postToApi('/api/luma/generate', payload);
+        statusUrl = `/api/luma/status/${result.task_id}`;
       } else {
         throw new Error(`Model ${activeModel} logic not fully implemented in universal node wrapper`);
       }
 
-      const url = result.data?.generated?.[0] || result.data?.[0]?.url;
-      if (url) update({ outputVideo: url });
-      else throw new Error('No video generated');
+      // Poll for status if not already completed
+      let finalData = result.data;
+      if (statusUrl) {
+        finalData = await pollGenericStatus(statusUrl, '', {
+          successValue: 'COMPLETED',
+          failureValue: 'FAILED',
+          statusKey: 'status'
+        });
+      }
+
+      const url = finalData?.generated?.[0] || finalData?.assets?.video || result.data?.[0]?.url;
+      if (url) {
+        update({ 
+          outputVideo: url,
+          lastGenerationId: finalData?.task_id || finalData?.id
+        });
+      } else {
+        throw new Error('No video generated');
+      }
     } catch (err: any) {
+      console.error('[VideoNode] Generation failed:', err);
       update({ outputError: err.message });
     } finally {
       setIsGenerating(false);
     }
-  }, [id, data, update, aspectRatio, isGenerating, models]);
+  }, [id, data, update, aspectRatio, isGenerating, models, connections]);
 
   useEffect(() => {
     if (data.triggerGenerate && data.triggerGenerate !== lastTrigger.current) {
@@ -99,14 +168,27 @@ const VideoUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Handles Area */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <Handle type="target" position={Position.Left} id="start-frame-in" style={{ position: 'relative', left: -22, top: 0, background: getHandleColor('image-in') }} />
-              <span style={{ fontSize: 10, color: text.muted, marginLeft: -12 }}>frame-in</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <Handle type="target" position={Position.Left} id="start-frame-in" style={{ position: 'relative', left: -22, top: 0, background: getHandleColor('image-in') }} />
+                <span style={{ fontSize: 10, color: text.muted, marginLeft: -12 }}>start-frame</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ fontSize: 10, color: text.muted, marginRight: -12 }}>output</span>
+                <OutputHandle label="" id="output" style={{ position: 'relative', right: -22, top: 0 }} />
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ fontSize: 10, color: text.muted, marginRight: -12 }}>output</span>
-              <OutputHandle label="" id="output" style={{ position: 'relative', right: -22, top: 0 }} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <Handle type="target" position={Position.Left} id="end-frame-in" style={{ position: 'relative', left: -22, top: 0, background: getHandleColor('image-in') }} />
+                <span style={{ fontSize: 10, color: text.muted, marginLeft: -12 }}>end-frame</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <Handle type="target" position={Position.Left} id="video-in" style={{ position: 'relative', left: -22, top: 0, background: getHandleColor('video-in') }} />
+                <span style={{ fontSize: 10, color: text.muted, marginLeft: -12 }}>video-in</span>
+              </div>
             </div>
           </div>
 

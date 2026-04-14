@@ -105,16 +105,23 @@ export default function useNodeConnections(id: string, data: NodeConnectionHandl
     image: (handleId: string, localFallback?: string) => {
       let images = resolveInput(handleId);
       if (!images?.length && localFallback) images = [localFallback];
-      return images;
+      if (images && !Array.isArray(images)) images = [images];
+      return images || [];
     },
     text: (handleId: string, localFallback?: string) => {
       return resolveInput(handleId) || localFallback || '';
     },
     audio: (handleId: string, localFallback?: string) => {
-      return resolveInput(handleId) || localFallback;
+      let audio = resolveInput(handleId);
+      if (!audio && localFallback) audio = [localFallback];
+      if (audio && !Array.isArray(audio)) audio = [audio];
+      return audio || [];
     },
     video: (handleId: string, localFallback?: string) => {
-      return resolveInput(handleId) || localFallback;
+      let video = resolveInput(handleId);
+      if (!video && localFallback) video = [localFallback];
+      if (video && !Array.isArray(video)) video = [video];
+      return video || [];
     },
     raw: (handleId: string) => resolveInput(handleId),
   }), [resolveInput]);

@@ -34,7 +34,7 @@ async function getAuthHeaders(extraHeaders = {}) {
 /**
  * Generic POST helper
  */
-async function postToApi(endpoint, params) {
+export async function postToApi(endpoint, params) {
   const res = await fetch(`${API_BASE}${endpoint}`, {
     method: 'POST',
     headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),

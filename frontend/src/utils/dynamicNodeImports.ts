@@ -18,15 +18,14 @@ import ImageNode from '../nodes/ImageNode';
 import ResponseNode from '../nodes/ResponseNode';
 import GeneratorNode from '../nodes/GeneratorNode';
 
+import DynamicNodeLoader from '../components/DynamicNodeLoader';
+
 /**
  * Wrapper for dynamic node imports with loading and error states
  * @param {any} NodeComponent - The component (lazy or regular)
  * @returns {ComponentType<NodeProps>} - Wrapper component ready for React Flow registration
  */
 export function createDynamicNodeWrapper(NodeComponent: any): ComponentType<NodeProps> {
-  // Import the DynamicNodeLoader component that contains the JSX
-  const DynamicNodeLoader = lazy(() => import('../components/DynamicNodeLoader'));
-
   return function DynamicNodeWrapper(props: NodeProps) {
     return createElement(DynamicNodeLoader, {
       // If it's a lazy component, pass it as LazyComponent. 

@@ -1,0 +1,1000 @@
+import React, { useCallback, useRef, useMemo, useState, useEffect } from 'react';
+import {
+  ReactFlow,
+  addEdge,
+  useNodesState,
+  useEdgesState,
+  Background,
+  BackgroundVariant,
+  useReactFlow,
+  type Node,
+  type Edge,
+  type OnNodesChange,
+  type OnEdgesChange,
+  type Connection,
+  type ReactFlowInstance,
+  type OnConnect,
+  type NodeChange,
+  SelectionMode,
+  type NodeTypes,
+} from '@xyflow/react';
+
+import { generateAIWorkflow, sendChat, uploadWorkflowThumbnail, uploadTemplateThumbnail } from './utils/api';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { getFirebaseAuth } from './config/firebase';
+import { useFirebaseWorkflows } from './hooks/useFirebaseWorkflows';
+import { AnimatePresence } from 'framer-motion';
+import PageTransition from './components/PageTransition';
+import { useFirebaseTemplates } from './hooks/useFirebaseTemplates';
+import { useFirebaseAssets } from './hooks/useFirebaseAssets';
+import { useFirebaseChat } from './hooks/useFirebaseChat';
+import { useUser } from './hooks/useUser';
+import { saveTemplate as saveLocalTemplate } from './templates/templateStore';
+import { staggerNodes } from './helpers/staggerNodes';
+
+// @ts-ignore
+import DynamicNodeLoader from './components/DynamicNodeLoader';
+
+import { MODELS as IMAGE_MODELS } from './nodes/imageUniversalGeneratorModels';
+import { MODELS as VIDEO_MODELS } from './nodes/videoUniversalGeneratorModels';
+import LandingPage from './LandingPage';
+import ProjectsDashboard from './ProjectsDashboard';
+import WorkspacesPage from './WorkspacesPage';
+import ProfileModal from './ProfileModal';
+import WorkflowSettingsPage from './WorkflowSettingsPage';
+import DrawflowLab from './DrawflowLab';
+import NodeBananaLab from './NodeBananaLab';
+import AuthPage from './AuthPage';
+import { GlobalAssetVault } from './components/GlobalAssetVault';
+// @ts-ignore
+import SystemLoadingProcess from './components/SystemLoadingProcess';
+import GlobalProgressBar from './GlobalProgressBar';
+// @ts-ignore
+import ReferenceSelection from './components/ReferenceSelection';
+// @ts-ignore
+import ChatUI from './components/ChatUI';
+// @ts-ignore
+import ChatButton from './components/ChatButton';
+import TopBar from './TopBar';
+import EditorTopBar from './EditorTopBar';
+import TemplateBuilderModal from './TemplateBuilderModal';
+import BottomBar from './BottomBar';
+import GooeyNodesMenu from './GooeyNodesMenu';
+import Queue from './Queue';
+import WorkflowInterface from './WorkflowInterface';
+import LayoutHelper from './components/LayoutHelper';
+// @ts-ignore
+import CanvasRunToolbar from './components/CanvasRunToolbar';
+// @ts-ignore
+import MegaMenuModelSearch from './components/MegaMenuModelSearch';
+import { NODE_TYPE_CAPABILITIES } from './config/nodeCapabilities';
+import { CanvasProvider } from './context/CanvasContext';
+import { isValidConnection, getHandleColor, getHandleDataType } from './utils/handleTypes';
+import { isPanningRef, isDraggingNodeRef, isConnectingRef, beginInteraction, endInteraction } from './interactionRefs';
+import { NODE_MENU, DEFAULT_NODES, DEFAULT_EDGES } from './config/nodeMenu';
+import { buildCanvasAllNodesSections, resolveCanvasNodeData } from './config/canvasAllNodesMenu';
+import { isHandleConnected, getConnectionInfo as getConnectionInfoBase } from './helpers/nodeData.js';
+import { captureCanvasViewportPngDataUrl, exportCanvasViewportToPng } from './utils/canvasUtils';
+import InspectorPanel from './InspectorPanel';
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
+import { nextId } from './app/nextId';
+import { GridIcon, CollageIcon, WorkflowIcon, DisconnectIcon } from './app/contextMenuIcons';
+import { CanvasNavigation } from './app/CanvasNavigation';
+import {
+  findCompatibleHandle,
+} from './app/connectionHandleMaps';
+import { CanvasSearch } from './components/CanvasSearch';
+import { CommandPalette } from './components/CommandPalette';
+import OnboardingTour from './components/OnboardingTour';
+import { useCanvasHistory } from './hooks/useCanvasHistory';
+import { useCollaboration } from './hooks/useCollaboration';
+import { useStore } from './store';
+import type { PageType, EditorMode } from './types';
+import { isWorkflowImportData, validateWorkflowData } from './types';
+import { AppThemeSchema, CanvasZoomModeSchema } from './schemas';
+import PromptRecipeGallery from './components/PromptRecipeGallery';
+import WorkflowBuilderDrawer from './WorkflowBuilderDrawer';
+import { WorkflowLineageTracker } from './components/WorkflowLineageTracker';
+import { SmartConnectorUI } from './components/SmartConnectorUI';
+import { SmartConnectorEngine } from './engine/SmartConnectorEngine';
+import { CollaboratorPresence, CollaborationHub, CollaborationPresence, NodeLocks } from './components/CollaborationHub';
+import { ShareWorkflowModal } from './projectsDashboard/components/ShareWorkflowModal';
+import type { ShareModalState } from './projectsDashboard/types';
+
+import CyberEdge from './components/CyberEdge';
+import { initialNodeTypes, initialEdgeTypes } from './config/flowTypes';
+
+export default function App() {
+  const nodeTypes = useMemo(() => initialNodeTypes, []);
+  const edgeTypes = useMemo(() => initialEdgeTypes, []);
+  
+  const [currentPage, setCurrentPage] = useState<PageType>('editor');
+  const [workflows, setWorkflows] = useState<any[]>([]);
+  const [activeWorkflowId, setActiveWorkflowId] = useState<string | undefined>(undefined);
+  const [editorMode, setEditorMode] = useState<EditorMode>('node-editor');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>("testuser@nodeproject.dev");
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | undefined>(undefined);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | undefined>(undefined);
+  const [showSystemLoading, setShowSystemLoading] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('app_theme');
+      return AppThemeSchema.parse(saved || undefined);
+    } catch {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('app_theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const handleOpenCommandPalette = () => setIsCommandPaletteOpen(prev => !prev);
+    window.addEventListener('open-command-palette', handleOpenCommandPalette);
+    return () => window.removeEventListener('open-command-palette', handleOpenCommandPalette);
+  }, []);
+
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [shareModal, setShareModal] = useState<ShareModalState | null>(null);
+  const [shareEmail, setShareEmail] = useState('');
+  const [showPromptRecipes, setShowPromptRecipes] = useState(false);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [isCollaborationHubOpen, setIsCollaborationHubOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success'; id: string } | undefined>(undefined);
+
+  const { setWorkflow } = useStore();
+
+  const firebaseTemplates = useFirebaseTemplates(currentUserId);
+  const firebaseAssets = useFirebaseAssets(currentUserId);
+
+  const {
+    conversations: chatConversations,
+    activeConversationId,
+    messages: chatMessages,
+    sendMessage: persistChatMessage,
+    startNewConversation,
+  } = useFirebaseChat({ 
+    userId: currentUserId,
+    workflowId: activeWorkflowId
+  });
+
+  const activeChat = useMemo(() => 
+    chatConversations.find(c => c.id === activeConversationId),
+    [chatConversations, activeConversationId]
+  );
+  const { profile, initialize: initializeProfile } = useUser(currentUserId);
+  const { updateCursor, trackAction, lockNode, unlockNode, locks } = useCollaboration({
+    workflowId: activeWorkflowId || null,
+    userId: currentUserId || null,
+    userName: profile?.displayName || currentUserEmail?.split('@')[0] || 'Anonymous',
+    userAvatar: profile?.photoURL || profile?.avatarUri || '👤',
+    userColor: profile?.themeColor || '#3b82f6'
+  });
+
+  useEffect(() => {
+    return () => {
+      if (lastLockedNodeIdRef.current) {
+        unlockNode(lastLockedNodeIdRef.current);
+      }
+    };
+  }, [unlockNode]);
+
+  const handleNavigate = useCallback((page: any) => {
+    setCurrentPage(page as PageType);
+  }, []);
+
+  // Toast helper
+  const showToast = useCallback((message: string, type: 'error' | 'success' = 'error') => {
+    const id = Date.now().toString();
+    setToast({ message, type, id });
+    setTimeout(() => setToast(undefined), 4000);
+  }, []);
+
+  const handleShareWorkflow = useCallback(async () => {
+    if (!activeWorkflowId) {
+      showToast('No active workflow to share', 'error');
+      return;
+    }
+    
+    const currentWorkflow = workflows.find(w => w.id === activeWorkflowId);
+    
+    setShareModal({
+      projectId: activeWorkflowId,
+      sharedWith: currentWorkflow?.sharedWith || [],
+    });
+  }, [activeWorkflowId, workflows, showToast]);
+
+  const SLP_KEY = 'slp_shown';
+
+  useEffect(() => {
+    try {
+      const auth = getFirebaseAuth();
+      const unsubscribeAuth = () => {};
+      setAuthLoading(false);
+      setIsAuthenticated(true);
+      setCurrentUserId("testuser@nodeproject.dev");
+      setCurrentUserEmail("testuser@nodeproject.dev");
+      initializeProfile("testuser@nodeproject.dev", "testuser@nodeproject.dev", "Test User");
+      if (!sessionStorage.getItem(SLP_KEY)) {
+        setShowSystemLoading(true);
+      }
+
+      return () => unsubscribeAuth();
+    } catch (err: any) {
+      setAuthError(err.message);
+      setAuthLoading(false);
+    }
+  }, [initializeProfile]);
+
+  useEffect(() => {
+    if (!showSystemLoading) return undefined;
+    const timeoutId = setTimeout(() => {
+      sessionStorage.setItem(SLP_KEY, '1');
+      setShowSystemLoading(false);
+    }, 10000);
+    return () => clearTimeout(timeoutId);
+  }, [showSystemLoading]);
+
+  const {
+    workflows: firebaseWorkflows,
+    currentWorkflow: fbWf,
+    communityWorkflows,
+    sharedWorkflows,
+    create: createFirebaseWorkflow,
+    load: loadFirebaseWorkflow,
+    save: saveFirebaseWorkflow,
+    togglePublic: toggleWorkflowPublic,
+    remove: deleteFirebaseWorkflow,
+    share: shareFirebaseWorkflow,
+    unshare: unshareFirebaseWorkflow,
+    subscribe,
+    unsubscribe,
+    isLoading: workflowsLoading,
+  } = useFirebaseWorkflows({
+    userId: currentUserId,
+    userEmail: currentUserEmail,
+    enableRealtime: true,
+  });
+
+  useEffect(() => {
+    const current = workflows.find(w => w.id === activeWorkflowId) 
+                 || fbWf
+                 || null;
+    setWorkflow(current);
+  }, [activeWorkflowId, workflows, fbWf, setWorkflow]);
+
+  const { templates: fbTemplates, isLoading: templatesLoading } = firebaseTemplates;
+  const { assets: fbAssets, isLoading: assetsLoading } = firebaseAssets;
+
+  const isDataLoading = workflowsLoading || templatesLoading || assetsLoading;
+  const loadingProgress = (authLoading ? 0 : 40) + (!workflowsLoading ? 20 : 0) + (!templatesLoading ? 20 : 0) + (!assetsLoading ? 20 : 0);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      const auth = getFirebaseAuth();
+      await signOut(auth);
+      setCurrentPage('landing');
+    } catch (err) {
+      console.error('[Auth] Logout error:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (firebaseWorkflows.length > 0) {
+      setWorkflows((prev) => {
+        // More efficient comparison or just update if different
+        if (prev === firebaseWorkflows) return prev;
+        return firebaseWorkflows;
+      });
+    }
+  }, [firebaseWorkflows]);
+
+  useEffect(() => {
+    if (!workflows || workflows.length === 0) return;
+
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    
+    // Check if we actually have anything to remove before updating state
+    const hasExpired = workflows.some(w => w.deleted && w.deletedAt && (now - w.deletedAt > THIRTY_DAYS_MS));
+    if (!hasExpired) return;
+
+    const expiredIds = workflows
+      .filter(w => w.deleted && w.deletedAt && (now - w.deletedAt > THIRTY_DAYS_MS))
+      .map(w => w.id);
+
+    if (expiredIds.length > 0) {
+      setWorkflows((prev) => prev.filter((w) => !expiredIds.includes(w.id)));
+      expiredIds.forEach(id => deleteFirebaseWorkflow(id).catch(console.error));
+    }
+  }, [workflows, deleteFirebaseWorkflow]);
+
+  const activeWorkflowName = workflows.find((w) => w.id === activeWorkflowId)?.name || 'Untitled';
+
+  const [nodes, setNodesInternal, onNodesChangeInternal] = useNodesState(DEFAULT_NODES);
+
+  const setNodes = useCallback((update: Node[] | ((nds: Node[]) => Node[])) => {
+    setNodesInternal((nds) => {
+      const nextNodes = typeof update === 'function' ? update(nds) : update;
+      return nextNodes.map((n: Node) => {
+        if (isNaN(n.position.x) || isNaN(n.position.y)) {
+          console.warn(`[App] Guarded against NaN position for node ${n.id}, resetting to 0,0`);
+          return { ...n, position: { x: isNaN(n.position.x) ? 0 : n.position.x, y: isNaN(n.position.y) ? 0 : n.position.y } };
+        }
+        return n;
+      });
+    });
+  }, [setNodesInternal]);
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    const sanitizedChanges = changes.map(change => {
+      if (change.type === 'position' && change.position) {
+        if (isNaN(change.position.x) || isNaN(change.position.y)) {
+          return { ...change, position: { x: isNaN(change.position.x) ? 0 : change.position.x, y: isNaN(change.position.y) ? 0 : change.position.y } };
+        }
+      }
+      return change;
+    });
+    onNodesChangeInternal(sanitizedChanges);
+  }, [onNodesChangeInternal]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | undefined>(undefined);
+  
+  const { 
+    saveHistory: originalSaveHistory, 
+    undo: handleUndoInternal, 
+    redo: handleRedoInternal, 
+    isHistoryAction, 
+  } = useCanvasHistory();
+
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
+
+  const saveHistory = useCallback(() => {
+    originalSaveHistory(nodesRef.current, edgesRef.current);
+  }, [originalSaveHistory]);
+
+  const isDirtyRef = useRef(false);
+
+  const updateNodeData = useCallback(
+    (nodeId: string, patch: any) => {
+      // Check if node is locked by someone else
+      const isLockedByOther = locks.some(l => l.id === nodeId && l.userId !== currentUserId);
+      if (isLockedByOther) {
+        showToast('This node is being edited by someone else', 'error');
+        return;
+      }
+
+      saveHistory();
+      isDirtyRef.current = true;
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n
+        )
+      );
+    },
+    [setNodes, saveHistory, locks, currentUserId]
+  );
+
+  const [isWorkflowBuilderOpen, setIsWorkflowBuilderOpen] = useState(false);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [activeTool, setActiveTool] = useState<'select' | 'hand' | 'slice'>('select');
+  const [sliceStart, setSliceStart] = useState<{ x: number, y: number } | null>(null);
+  const [sliceCurrent, setSliceCurrent] = useState<{ x: number, y: number } | null>(null);
+  const [viewMode, setViewMode] = useState<'editor' | 'interface'>('editor');
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(true);
+  const [chatSuggestions, setChatSuggestions] = useState<string[]>([]);
+  const [browseModelsOpen, setBrowseModelsOpen] = useState(false);
+  const [lastGeneratedWorkflow, setLastGeneratedWorkflow] = useState<any>(undefined);
+  const [newWorkflowName, setNewWorkflowName] = useState('');
+  const [menu, setMenu] = useState<any>(undefined);
+  const [clipboardNodes, setClipboardNodes] = useState<any>(undefined);
+  const clipboardRef = useRef<any>(undefined);
+  const pastePositionRef = useRef<any>(undefined);
+  const chatUIRef = useRef<any>(undefined);
+  const [referenceImages, setReferenceImages] = useState<string[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isChatting, setIsChatting] = useState(false);
+  const [_connectionDrop, setConnectionDrop] = useState<any>(undefined);
+  const [canvasSearch, setCanvasSearch] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+  const lastLockedNodeIdRef = useRef<string | null>(null);
+
+  const handleSelectionChange = useCallback(({ nodes: selectedNodes }: { nodes: any[] }) => {
+    if (selectedNodes.length === 1) {
+      const nodeId = selectedNodes[0].id;
+      if (lastLockedNodeIdRef.current && lastLockedNodeIdRef.current !== nodeId) {
+        unlockNode(lastLockedNodeIdRef.current);
+      }
+      lockNode(nodeId);
+      lastLockedNodeIdRef.current = nodeId;
+    } else {
+      if (lastLockedNodeIdRef.current) {
+        unlockNode(lastLockedNodeIdRef.current);
+        lastLockedNodeIdRef.current = null;
+      }
+    }
+  }, [lockNode, unlockNode]);
+
+  useEffect(() => {
+    const handleSendToChat = (e: any) => {
+      const { images } = e.detail;
+      if (images && images.length > 0) {
+        setReferenceImages(prev => [...new Set([...prev, ...images])]);
+        setIsChatOpen(true);
+      }
+    };
+    window.addEventListener('send-to-chat', handleSendToChat);
+    return () => window.removeEventListener('send-to-chat', handleSendToChat);
+  }, []);
+
+  const createMediaNodeFromFile = useCallback(async (file: File, position: { x: number, y: number }) => {
+    // Basic validation
+    const MAX_SIZE = 100 * 1024 * 1024; // 100MB for media
+
+    if (file.size > MAX_SIZE) {
+      showToast(`File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB (max 100MB)`, 'error');
+      return null;
+    }
+
+    return new Promise<Node | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const resultUrl = e.target?.result as string;
+        if (!resultUrl) {
+          resolve(null);
+          return;
+        }
+
+        const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|ogg|mov)$/i.test(file.name);
+        const isAudio = file.type.startsWith('audio/') || /\.(mp3|wav|ogg|flac|m4a)$/i.test(file.name);
+
+        if (isVideo || isAudio) {
+           const mediaType = isVideo ? 'video' : 'audio';
+           const newNode: Node = {
+             id: nextId(),
+             type: 'sourceMediaNode',
+             position,
+             data: {
+               label: file.name || `Local ${mediaType}`,
+               mediaFiles: [{
+                 url: resultUrl,
+                 type: mediaType,
+                 name: file.name || `Local ${mediaType}`
+               }],
+               onUpdate: updateNodeData
+             }
+           };
+           resolve(newNode);
+           return;
+        }
+
+        let finalImageUrl = resultUrl;
+        
+        // Some Mac screenshots or clipboard pastes drop as octet-stream or lack image/ signature
+        if (resultUrl.startsWith('data:application/octet-stream;') || resultUrl.startsWith('data:;') || !resultUrl.startsWith('data:image/')) {
+          // Force it to be a PNG data URL just in case, browsers can usually recover if it's a valid image
+          finalImageUrl = resultUrl.replace(/^data:[^;]*;/, 'data:image/png;');
+        }
+
+        const newNode: Node = { 
+          id: nextId(), 
+          type: 'imageElement', 
+          position, 
+          data: { 
+            label: file.name || 'Pasted Image',
+            imageUrl: finalImageUrl,
+            onUpdate: updateNodeData
+          } 
+        };
+        resolve(newNode);
+      };
+      reader.onerror = () => {
+        // Silently fail instead of showing a toast, which might confuse users for background clipboard items
+        console.error(`Failed to read file: ${file.name}`);
+        resolve(null);
+      };
+      reader.readAsDataURL(file);
+    });
+  }, [updateNodeData, showToast]);
+
+  const handleImagePaste = useCallback(async (event: ClipboardEvent) => {
+    if (!event.clipboardData || !rfInstance) return;
+
+    const newNodes: Node[] = [];
+    const basePosition = rfInstance.screenToFlowPosition({
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2
+    });
+
+    const files = Array.from(event.clipboardData.files);
+    
+    if (files.length > 0) {
+      // Handle file paste (e.g. copying from Finder/Explorer or screenshot)
+      // Mac screenshots might put both PNG and TIFF in the clipboard, we want to deduplicate 
+      // if they seem to be the same image (same size & timestamp) or just take the first one if it's a generic screenshot.
+      // But if user copies multiple distinct files, we want to paste all of them.
+      const processedFiles = new Set<string>();
+
+      for (const file of files) {
+        const hasImageExtension = /\.(jpeg|jpg|png|gif|webp|svg|tiff|bmp)$/i.test(file.name);
+        const isExplicitlyNotImage = file.type !== '' && !file.type.startsWith('image/');
+        
+        if (!isExplicitlyNotImage || hasImageExtension) {
+          // simple deduplication based on size and generic "image" name
+          const fileKey = `${file.name}-${file.size}`;
+          if (processedFiles.has(fileKey)) continue;
+          processedFiles.add(fileKey);
+
+          const node = await createMediaNodeFromFile(file, { x: 0, y: 0 });
+          if (node) newNodes.push(node);
+        }
+      }
+    } else {
+      // Fallback to items if files is empty (some older browsers/contexts)
+      const items = event.clipboardData.items;
+      let imagePasted = false;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1 && !imagePasted) {
+          const file = items[i].getAsFile();
+          if (!file) continue;
+
+          const node = await createMediaNodeFromFile(file, { x: 0, y: 0 });
+          if (node) {
+            newNodes.push(node);
+            imagePasted = true;
+          }
+        }
+      }
+    }
+
+    if (newNodes.length > 0) {
+      const staggeredNodes = staggerNodes(newNodes, basePosition);
+      setNodes((nds) => nds.concat(staggeredNodes));
+      saveHistory();
+    }
+  }, [rfInstance, setNodes, saveHistory, createMediaNodeFromFile]);
+
+  useEffect(() => {
+    window.addEventListener('paste', handleImagePaste);
+    return () => window.removeEventListener('paste', handleImagePaste);
+  }, [handleImagePaste]);
+
+  const [activeConnection, setActiveConnection] = useState<{ nodeId: string, handleId: string, handleType: string } | null>(null);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const lastMousePos = useRef({ x: 0, y: 0 });
+
+  const handleConnectStart = useCallback((_: any, { nodeId, handleId, handleType }: any) => {
+    isConnectingRef.current = true;
+    beginInteraction();
+    
+    if (nodeId && handleId) {
+      const type = getHandleDataType(handleId);
+      setActiveConnection({ nodeId, handleId, handleType });
+      
+      const container = reactFlowWrapper.current?.querySelector('.react-flow__container');
+      if (container) {
+        container.classList.add('connecting');
+        
+        const allHandles = document.querySelectorAll('.react-flow__handle');
+        allHandles.forEach(h => {
+          const el = h as HTMLElement;
+          const hId = el.getAttribute('data-handleid') || el.getAttribute('id');
+          const hNodeId = el.getAttribute('data-nodeid');
+          const hType = el.classList.contains('source') || el.classList.contains('react-flow__handle-right') ? 'source' : 'target';
+          
+          if (hId && hNodeId !== nodeId && hType !== handleType) {
+            const dataType = getHandleDataType(hId);
+            if (dataType === 'any' || type === 'any' || dataType === type) {
+              el.classList.add('connectable');
+              el.closest('.react-flow__node')?.classList.add('has-connectable-handle');
+            }
+          }
+        });
+      }
+    }
+  }, []);
+  const analyzeResolvers = useRef<Record<string, () => void>>({});
+  const autosaveTimerRef = useRef<any>(null);
+  const autosaveInFlightRef = useRef(false);
+  const lastSavedGraphSignatureRef = useRef('');
+  const lastThumbnailUploadAtRef = useRef(0);
+  const lastThumbnailGraphSignatureRef = useRef('');
+
+  const buildGraphSignature = useCallback((workflowNodes: Node[], workflowEdges: Edge[]) => {
+    const nodeSignature = (workflowNodes || [])
+      .map((node) => `${node.id}:${Math.round(node.position?.x || 0)}:${Math.round(node.position?.y || 0)}`)
+      .sort()
+      .join('|');
+    const edgeSignature = (workflowEdges || [])
+      .map((edge) => `${edge.id}:${edge.source}:${edge.sourceHandle || ''}->${edge.target}:${edge.targetHandle || ''}`)
+      .sort()
+      .join('|');
+    return `${nodeSignature}__${edgeSignature}`;
+  }, []);
+
+  const [zoomMode] = useState<'scroll' | 'altScroll' | 'ctrlScroll'>(() => {
+    try {
+      const saved = localStorage.getItem('canvas_zoom_mode');
+      return CanvasZoomModeSchema.parse(saved || undefined);
+    } catch {
+      return 'ctrlScroll';
+    }
+  });
+
+  const isMacOS = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+  const { getViewport, setViewport, screenToFlowPosition } = useReactFlow();
+
+  useEffect(() => {
+    const wrapper = reactFlowWrapper.current;
+    if (!wrapper) return;
+
+    const isMouseWheel = (event: WheelEvent) => {
+      if (event.deltaMode === 1) return true;
+      const threshold = 50;
+      return Math.abs(event.deltaY) >= threshold && Math.abs(event.deltaY) % 40 === 0;
+    };
+
+    const findScrollableAncestor = (target: EventTarget | null, _dx: number, _dy: number) => {
+      let el = target as HTMLElement | null;
+      while (el && el !== wrapper && el !== document.body) {
+        const isTextarea = el.tagName === 'TEXTAREA';
+        const isNowheel = el.classList && el.classList.contains('nowheel');
+        const hasScrollableOverflow = (() => {
+          const style = window.getComputedStyle(el);
+          const ov = style.overflow + style.overflowY + style.overflowX;
+          return /auto|scroll/.test(ov);
+        })();
+        if ((isTextarea || isNowheel) || (hasScrollableOverflow && el.scrollHeight > el.clientHeight)) {
+          return el;
+        }
+        el = el.parentElement;
+      }
+      return null;
+    };
+
+    const handleWheel = (event: WheelEvent) => {
+      if (isLocked) return;
+      const target = event.target;
+      const scrollableAncestor = findScrollableAncestor(target, event.deltaX, event.deltaY);
+      if (scrollableAncestor) return;
+
+      const isPinch = event.ctrlKey || event.metaKey;
+      let shouldZoom = false;
+      if (isPinch) {
+        shouldZoom = true;
+      } else if (isMouseWheel(event)) {
+        shouldZoom =
+          zoomMode === 'scroll' ||
+          (zoomMode === 'altScroll' && event.altKey) ||
+          (zoomMode === 'ctrlScroll' && (event.ctrlKey || event.metaKey));
+      }
+
+      if (shouldZoom) {
+        event.preventDefault();
+        event.stopPropagation();
+        const viewport = getViewport();
+        const zoomSensitivity = 0.005;
+        const delta = -event.deltaY * zoomSensitivity;
+        const newZoom = Math.min(4, Math.max(0.1, viewport.zoom * (1 + delta)));
+        const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+        setViewport({
+          x: event.clientX - flowPos.x * newZoom,
+          y: event.clientY - flowPos.y * newZoom,
+          zoom: newZoom,
+        });
+      } else if (isMacOS && !isMouseWheel(event) && !isPinch) {
+        event.preventDefault();
+        event.stopPropagation();
+        const viewport = getViewport();
+        setViewport({
+          x: viewport.x - event.deltaX,
+          y: viewport.y - event.deltaY,
+          zoom: viewport.zoom,
+        });
+      }
+    };
+
+    wrapper.addEventListener('wheel', handleWheel, { passive: false });
+    return () => wrapper.removeEventListener('wheel', handleWheel);
+  }, [isLocked, zoomMode, getViewport, setViewport, screenToFlowPosition, isMacOS]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('canvas_zoom_mode', zoomMode);
+    } catch { /* ignore */ }
+  }, [zoomMode]);
+
+  const selectedCanvasNodeIds = useMemo(
+    () => nodes.filter((n) => n.selected).map((n) => n.id),
+    [nodes]
+  );
+
+  const onUnlink = useCallback((targetNodeId: string, targetHandle: string) => {
+    setEdges((eds) => eds.filter((e) => !(e.target === targetNodeId && e.targetHandle === targetHandle)));
+    isDirtyRef.current = true;
+  }, [setEdges]);
+
+  const onDisconnectNode = useCallback((id: string) => {
+    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+    isDirtyRef.current = true;
+  }, [setEdges]);
+
+  const onCreateNode = useCallback((type: string, dataPatch: any, sourceHandle: string, targetHandle: string, sourceId: string) => {
+    const newId = nextId();
+    const sourceNode = nodesRef.current.find(nd => nd.id === sourceId);
+    const position = sourceNode ? { x: sourceNode.position.x + 450, y: sourceNode.position.y } : { x: 400, y: 400 };
+    const newNode: Node = { id: newId, type, position, data: { ...dataPatch } };
+    setNodes((nds) => [...nds, newNode]);
+    isDirtyRef.current = true;
+    
+    if (sourceHandle && targetHandle) {
+      const edgeColor = getHandleColor(sourceHandle);
+      const newEdge: Edge = {
+        id: `e-${sourceId}-${sourceHandle}-${newId}-${targetHandle}`,
+        source: sourceId,
+        sourceHandle,
+        target: newId,
+        targetHandle,
+        style: { stroke: edgeColor, strokeWidth: 2 },
+      };
+      setTimeout(() => setEdges((eds) => addEdge(newEdge, eds)), 150);
+    }
+    setTimeout(() => {
+      const el = document.querySelector(`[data-id="${newId}"]`) as HTMLElement;
+      if (el) {
+        el.focus();
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 100);
+  }, [setNodes, setEdges]);
+
+  const onAnalyzeComplete = useCallback((id: string) => {
+    if (analyzeResolvers.current[id]) {
+      analyzeResolvers.current[id]();
+      delete analyzeResolvers.current[id];
+    }
+  }, []);
+
+  const onConnect: OnConnect = useCallback(
+    (params) => {
+      const { source, sourceHandle, target, targetHandle } = params;
+      if (!source || !sourceHandle || !target || !targetHandle) return;
+
+      const edgeColor = getHandleColor(sourceHandle);
+      const newEdge: Edge = {
+        id: `e-${source}-${sourceHandle}-${target}-${targetHandle}`,
+        source,
+        sourceHandle,
+        target,
+        targetHandle,
+        style: { stroke: edgeColor, strokeWidth: 2 },
+        type: 'default',
+      };
+      setEdges((eds) => addEdge(newEdge, eds));
+      isDirtyRef.current = true;
+
+      if (target) {
+        const targetNode = nodesRef.current.find((n) => n.id === target);
+        if (targetNode?.type === 'response') {
+          const sourceNode = nodesRef.current.find((n) => n.id === source);
+          const existingFields = targetNode.data.responseFields || [];
+          const newField = {
+            id: `${source}-${sourceHandle}`,
+            label: sourceHandle,
+            source: {
+              nodeLabel: sourceNode?.data.label || source,
+              handle: sourceHandle,
+            },
+            color: edgeColor,
+          };
+          if (!existingFields.find((f: any) => f.id === newField.id)) {
+            updateNodeData(target, {
+              responseFields: [...existingFields, newField],
+            });
+          }
+        }
+      }
+    },
+    [setEdges, updateNodeData]
+  );
+
+  const handleAutoConnect = useCallback((targetNodeId: string, targetHandleId: string) => {
+    if (activeConnection) {
+      saveHistory();
+      onConnect({
+        source: activeConnection.nodeId,
+        sourceHandle: activeConnection.handleId,
+        target: targetNodeId,
+        targetHandle: targetHandleId
+      });
+    }
+  }, [activeConnection, onConnect, saveHistory]);
+
+const handleConnectEnd = useCallback(
+    (event: any, connectionState: any) => {
+      isConnectingRef.current = false;
+      endInteraction();
+      setActiveConnection(null);
+      
+      const container = reactFlowWrapper.current?.querySelector('.react-flow__container');
+      if (container) {
+        container.classList.remove('connecting');
+      }
+      document.querySelectorAll('.connectable').forEach(el => el.classList.remove('connectable'));
+      document.querySelectorAll('.has-connectable-handle').forEach(el => el.classList.remove('has-connectable-handle'));
+
+      if (connectionState.isValid || !connectionState.fromNode) return;
+      const { clientX, clientY } = event;
+      const fromHandleId = connectionState.fromHandle?.id || null;
+      const fromHandleType = getHandleDataType(fromHandleId);
+      const isFromSource = connectionState.fromHandle?.type === 'source';
+      if (!fromHandleType || fromHandleType === 'any') return;
+
+      const elementsUnderCursor = document.elementsFromPoint(clientX, clientY);
+      const nodeElement = elementsUnderCursor.find((el) => el.closest('.react-flow__node'));
+      if (nodeElement) {
+        const nodeWrapper = nodeElement.closest('.react-flow__node') as HTMLElement;
+        const targetNodeId = nodeWrapper?.dataset?.id;
+        if (targetNodeId && targetNodeId !== connectionState.fromNode.id) {
+          const targetNode = nodesRef.current.find((n) => n.id === targetNodeId);
+          if (targetNode) {
+            const compatibleHandle = findCompatibleHandle(targetNode, fromHandleType, isFromSource);
+            if (compatibleHandle) {
+              const connection: Connection = isFromSource
+                ? { source: connectionState.fromNode.id, sourceHandle: fromHandleId, target: targetNodeId, targetHandle: compatibleHandle }
+                : { source: targetNodeId, sourceHandle: compatibleHandle, target: connectionState.fromNode.id, targetHandle: fromHandleId };
+              if (isValidConnection(connection)) {
+                saveHistory();
+                onConnect(connection);
+                return;
+              }
+            }
+          }
+        }
+      }
+
+      if (!rfInstance) return;
+      const flowPos = rfInstance.screenToFlowPosition({ x: clientX, y: clientY });
+      setConnectionDrop({
+        position: { x: clientX, y: clientY },
+        flowPosition: flowPos,
+        handleType: fromHandleType,
+        connectionType: isFromSource ? 'source' : 'target',
+        sourceNodeId: connectionState.fromNode.id,
+        sourceHandleId: fromHandleId,
+      });
+    },
+    [saveHistory, onConnect, rfInstance]
+  );
+
+  const onEdgesDelete = useCallback(
+    (deletedEdges: Edge[]) => {
+      for (const edge of deletedEdges) {
+        const targetNode = nodesRef.current.find((n) => n.id === edge.target);
+        if (targetNode?.type === 'response') {
+          const fieldId = `${edge.source}-${edge.sourceHandle}`;
+          const fields = targetNode.data.responseFields || [];
+          updateNodeData(edge.target, {
+            responseFields: fields.filter((f: any) => f.id !== fieldId),
+          });
+        }
+      }
+    },
+    [updateNodeData]
+  );
+
+  const handleAutoLayout = useCallback(() => {
+    saveHistory();
+    const currentNodes = rfInstance?.getNodes() || [];
+    if (currentNodes.length === 0) return;
+    
+    // If nodes are selected, only layout those. Otherwise layout all.
+    const selectedNodes = currentNodes.filter(n => n.selected);
+    const targetNodes = selectedNodes.length > 0 ? selectedNodes : currentNodes;
+    
+    const startX = selectedNodes.length > 0 ? selectedNodes[0].position.x : 100;
+    const startY = selectedNodes.length > 0 ? selectedNodes[0].position.y : 100;
+    const cols = Math.ceil(Math.sqrt(targetNodes.length));
+    
+    const nodeIds = new Set(targetNodes.map(n => n.id));
+    
+    let idx = 0;
+    setNodes(nds => nds.map((n) => {
+      if (!nodeIds.has(n.id)) return n;
+      
+      const r = Math.floor(idx / cols);
+      const c = idx % cols;
+      idx++;
+      return { ...n, position: { x: startX + c * 400, y: startY + r * 500 } };
+    }));
+    
+    if (selectedNodes.length === 0) {
+      setTimeout(() => rfInstance?.fitView({ padding: 0.1, duration: 800 }), 100);
+    }
+  }, [rfInstance, setNodes, saveHistory]);
+
+  const addNode = useCallback(
+    (type: string, defaults: any) => {
+      const id = nextId();
+      const newNode: Node = {
+        id,
+        type,
+        position: { x: 350 + Math.random() * 200, y: 100 + Math.random() * 300 },
+        data: { ...defaults },
+      };
+      setNodes((nds) => [...nds, newNode]);
+      setTimeout(() => {
+        const el = document.querySelector(`[data-id="${id}"]`) as HTMLElement;
+        if (el) {
+          el.focus();
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
+    },
+    [setNodes]
+  );
+
+  const addNodeAtViewportCenter = useCallback(
+    (type: string, dataPatch?: any) => {
+      saveHistory();
+      let x = 350;
+      let y = 200;
+      if (rfInstance) {
+        const center = rfInstance.screenToFlowPosition({
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+        });
+        x = center.x;
+        y = center.y;
+      }
+      const defaults = resolveCanvasNodeData(type, dataPatch);
+      const newNodeId = nextId();
+      setNodes((nds) => [
+        ...nds,
+        {
+          id: newNodeId,
+          type,
+          position: { x, y },
+          data: { ...defaults },
+        },
+      ]);
+      setTimeout(() => {
+        const el = document.querySelector(`[data-id="${newNodeId}"]`) as HTMLElement;
+        if (el) {
+          el.focus();
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
+    },
+    [rfInstance, saveHistory, setNodes]
+  );
+
+  const handleSelectAllNodes = useCallback(() => {
+    setNodes((nds) => nds.map((n) => ({ ...n, selected: true })));
+  }, [setNodes]);
+
+  const handleDeselectAllCanvas = useCallback(() => {
+    setNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
+    setEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
+  }, [setNodes, setEdges]);
+
+  const handleCanvasFitView = useCallback(() => {
+    rfInstance?.fitView();
+  }, [rfInstance]);
+
+  const handleAddNodeFromMegaMenu = useCallback(
+    (kind: string, modelName: string) => {
+      const type = kind === 'image' ? 'universalGeneratorImage' : 'universalGeneratorVideo';
+      addNodeAtViewportCenter(type, {
+        models: [modelName],
+        autoSelect: false,

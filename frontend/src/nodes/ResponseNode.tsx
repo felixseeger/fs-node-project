@@ -27,10 +27,10 @@ const ResponseNode: FC<NodeProps<Node<ResponseNodeData>>> = ({ id, data, selecte
         <Handle
           type="target"
           position={Position.Left}
-          id="images-in"
+          id="image-in"
           style={{
             width: 10, height: 10, borderRadius: '50%',
-            background: getHandleColor('images-in'), border: 'none',
+            background: getHandleColor('image-in'), border: 'none',
             position: 'relative', left: -12, transform: 'none',
           }}
         />

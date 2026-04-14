@@ -16,14 +16,18 @@ import {
   generateImage, pollStatus,
   improvePromptGenerate, pollImprovePromptStatus,
   imageToPromptGenerate, pollImageToPromptStatus,
+  postToApi, pollGenericStatus
 } from '../utils/api';
 import { compressImageBase64 } from '../utils/imageUtils';
 import { normalizeImageSizeTier } from './universalImageSizes';
+import { IMAGE_UNIVERSAL_MODEL_DEFS } from './imageUniversalGeneratorModels';
 import EditableNodeTitle from './EditableNodeTitle';
 import AnnotationModal from '../components/AnnotationModal';
 
+const MODEL_DEFS = IMAGE_UNIVERSAL_MODEL_DEFS;
+
 const ImageUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selected }) => {
-  const { update, disconnectNode } = useNodeConnections(id, data);
+  const { update, disconnectNode, connections } = useNodeConnections(id, data);
   const { start, complete, fail } = useNodeProgress({
     onProgress: (state: any) => {
       update({ executionProgress: state.progress, executionStatus: state.status, executionMessage: state.message });
@@ -35,6 +39,7 @@ const ImageUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
   const [isImageToPrompting, setIsImageToPrompting] = useState(false);
   const [annotationOpen, setAnnotationOpen] = useState(false);
   const [isNodeHovered, setIsNodeHovered] = useState(false);
+  const lastTrigger = useRef<number | null>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
   const locked = data.locked || false;
@@ -51,22 +56,73 @@ const ImageUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
     setIsGenerating(true);
     start('Generating...');
     update({ outputImage: null, outputError: null });
+    
     try {
-      const result = await generateImage({ prompt: promptValue, model: models[0], n: numOutputs, aspect_ratio: aspectRatio });
-      const url = result.data?.generated?.[0] || result.data?.[0]?.url;
+      const activeModel = models[0] === 'Auto' ? 'Nano Banana 2' : models[0];
+      let result;
+      let statusUrl;
+
+      if (activeModel === 'luma-photon-1' || activeModel === 'luma-photon-flash-1') {
+        const modelDef = (MODEL_DEFS as any)[activeModel];
+        
+        // Build Luma Photon payload
+        const payload: any = {
+          prompt: promptValue,
+          model: activeModel.replace('luma-', ''), // photon-1 or photon-flash-1
+          aspect_ratio: aspectRatio
+        };
+
+        // Handle References
+        if (image1) {
+          if (data.lumaRefType === 'character' && modelDef?.supportsCharacterRef) {
+            payload.character_ref = {
+              identity0: { images: [image1] }
+            };
+          } else if (data.lumaRefType === 'style' && modelDef?.supportsStyleRef) {
+            payload.style_ref = [{ url: image1, weight: data.lumaRefWeight || 1.0 }];
+          } else if (data.lumaRefType === 'modify') {
+            payload.modify_image_ref = { url: image1, weight: data.lumaRefWeight || 1.0 };
+          } else {
+            // Default to image_ref
+            payload.image_ref = [{ url: image1, weight: data.lumaRefWeight || 1.0 }];
+          }
+        }
+
+        result = await postToApi('/api/luma/generate', payload);
+        statusUrl = `/api/luma/status/${result.task_id}`;
+      } else {
+        // Generic handling for other models
+        result = await generateImage({ prompt: promptValue, model: activeModel, n: numOutputs, aspect_ratio: aspectRatio });
+      }
+
+      // Poll for status if needed
+      let finalData = result.data;
+      if (statusUrl) {
+        finalData = await pollGenericStatus(statusUrl, '', {
+          successValue: 'COMPLETED',
+          failureValue: 'FAILED',
+          statusKey: 'status'
+        });
+      }
+
+      const url = finalData?.generated?.[0] || finalData?.assets?.image || result.data?.[0]?.url;
       if (url) {
-        update({ outputImage: url });
+        update({ 
+          outputImage: url,
+          lastGenerationId: finalData?.task_id || finalData?.id 
+        });
         complete('Done');
       } else {
         throw new Error('No image generated');
       }
     } catch (err: any) {
+      console.error('[ImageNode] Generation failed:', err);
       update({ outputError: err.message });
       fail(err);
     } finally {
       setIsGenerating(false);
     }
-  }, [id, data, update, promptValue, models, numOutputs, aspectRatio, start, complete, fail, isGenerating]);
+  }, [id, data, update, promptValue, models, numOutputs, aspectRatio, start, complete, fail, isGenerating, image1]);
 
   useEffect(() => {
     if (data.triggerGenerate && data.triggerGenerate !== lastTrigger.current) {
@@ -74,8 +130,6 @@ const ImageUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
       handleGenerate();
     }
   }, [data.triggerGenerate, handleGenerate]);
-
-  const lastTrigger = useRef<number | null>(null);
 
   return (
     <div onMouseEnter={() => setIsNodeHovered(true)} onMouseLeave={() => setIsNodeHovered(false)}>

@@ -6,8 +6,8 @@
 
 # Test info
 
-- Name: nodes.spec.js >> AssetNode - can create and has properties
-- Location: tests/e2e/nodes.spec.js:73:1
+- Name: test_debug.spec.js >> debug editor page navigation
+- Location: tests/e2e/test_debug.spec.js:3:1
 
 # Error details
 
@@ -36,7 +36,7 @@ Call log:
         - generic [ref=e18]:
           - textbox "Your password" [ref=e19]: TestPass123!
           - button "Show" [ref=e20] [cursor=pointer]
-      - generic [ref=e21]: Error (auth/too-many-requests).
+      - generic [ref=e21]: Error (auth/invalid-credential).
       - button "Forgot password?" [ref=e23] [cursor=pointer]
       - button "Sign In" [ref=e24] [cursor=pointer]
     - generic [ref=e27]: or continue with

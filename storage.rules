@@ -42,6 +42,14 @@ service firebase.storage {
                    && isUnderSizeLimit(20);
     }
     
+    
+
+    // Workflows thumbnails and media:
+    match /workflows/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
     // Default deny for everything else
     match /{allPaths=**} {
       allow read, write: if false;

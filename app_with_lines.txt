@@ -1,0 +1,2937 @@
+   1 │ import React, { useCallback, useRef, useMemo, useState, useEffect } from 'react';
+   2 │ import {
+   3 │   ReactFlow,
+   4 │   addEdge,
+   5 │   useNodesState,
+   6 │   useEdgesState,
+   7 │   Background,
+   8 │   BackgroundVariant,
+   9 │   useReactFlow,
+  10 │   type Node,
+  11 │   type Edge,
+  12 │   type OnNodesChange,
+  13 │   type OnEdgesChange,
+  14 │   type Connection,
+  15 │   type ReactFlowInstance,
+  16 │   type OnConnect,
+  17 │   type NodeChange,
+  18 │   SelectionMode,
+  19 │   type NodeTypes,
+  20 │ } from '@xyflow/react';
+  21 │ 
+  22 │ import { generateAIWorkflow, sendChat, uploadWorkflowThumbnail, uploadTemplateThumbnail } from './utils/api';
+  23 │ import { onAuthStateChanged, signOut } from 'firebase/auth';
+  24 │ import { getFirebaseAuth } from './config/firebase';
+  25 │ import { useFirebaseWorkflows } from './hooks/useFirebaseWorkflows';
+  26 │ import { AnimatePresence } from 'framer-motion';
+  27 │ import PageTransition from './components/PageTransition';
+  28 │ import { useFirebaseTemplates } from './hooks/useFirebaseTemplates';
+  29 │ import { useFirebaseAssets } from './hooks/useFirebaseAssets';
+  30 │ import { useFirebaseChat } from './hooks/useFirebaseChat';
+  31 │ import { useUser } from './hooks/useUser';
+  32 │ import { saveTemplate as saveLocalTemplate } from './templates/templateStore';
+  33 │ import { staggerNodes } from './helpers/staggerNodes';
+  34 │ 
+  35 │ // @ts-ignore
+  36 │ import DynamicNodeLoader from './components/DynamicNodeLoader';
+  37 │ 
+  38 │ import { MODELS as IMAGE_MODELS } from './nodes/imageUniversalGeneratorModels';
+  39 │ import { MODELS as VIDEO_MODELS } from './nodes/videoUniversalGeneratorModels';
+  40 │ import LandingPage from './LandingPage';
+  41 │ import ProjectsDashboard from './ProjectsDashboard';
+  42 │ import WorkspacesPage from './WorkspacesPage';
+  43 │ import ProfileModal from './ProfileModal';
+  44 │ import WorkflowSettingsPage from './WorkflowSettingsPage';
+  45 │ import DrawflowLab from './DrawflowLab';
+  46 │ import NodeBananaLab from './NodeBananaLab';
+  47 │ import AuthPage from './AuthPage';
+  48 │ import { GlobalAssetVault } from './components/GlobalAssetVault';
+  49 │ // @ts-ignore
+  50 │ import SystemLoadingProcess from './components/SystemLoadingProcess';
+  51 │ import GlobalProgressBar from './GlobalProgressBar';
+  52 │ // @ts-ignore
+  53 │ import ReferenceSelection from './components/ReferenceSelection';
+  54 │ // @ts-ignore
+  55 │ import ChatUI from './components/ChatUI';
+  56 │ // @ts-ignore
+  57 │ import ChatButton from './components/ChatButton';
+  58 │ import TopBar from './TopBar';
+  59 │ import EditorTopBar from './EditorTopBar';
+  60 │ import TemplateBuilderModal from './TemplateBuilderModal';
+  61 │ import BottomBar from './BottomBar';
+  62 │ import GooeyNodesMenu from './GooeyNodesMenu';
+  63 │ import Queue from './Queue';
+  64 │ import WorkflowInterface from './WorkflowInterface';
+  65 │ import LayoutHelper from './components/LayoutHelper';
+  66 │ // @ts-ignore
+  67 │ import CanvasRunToolbar from './components/CanvasRunToolbar';
+  68 │ // @ts-ignore
+  69 │ import MegaMenuModelSearch from './components/MegaMenuModelSearch';
+  70 │ import { NODE_TYPE_CAPABILITIES } from './config/nodeCapabilities';
+  71 │ import { CanvasProvider } from './context/CanvasContext';
+  72 │ import { isValidConnection, getHandleColor, getHandleDataType } from './utils/handleTypes';
+  73 │ import { isPanningRef, isDraggingNodeRef, isConnectingRef, beginInteraction, endInteraction } from './interactionRefs';
+  74 │ import { NODE_MENU, DEFAULT_NODES, DEFAULT_EDGES } from './config/nodeMenu';
+  75 │ import { buildCanvasAllNodesSections, resolveCanvasNodeData } from './config/canvasAllNodesMenu';
+  76 │ import { isHandleConnected, getConnectionInfo as getConnectionInfoBase } from './helpers/nodeData.js';
+  77 │ import { captureCanvasViewportPngDataUrl, exportCanvasViewportToPng } from './utils/canvasUtils';
+  78 │ import InspectorPanel from './InspectorPanel';
+  79 │ import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
+  80 │ import { nextId } from './app/nextId';
+  81 │ import { GridIcon, CollageIcon, WorkflowIcon, DisconnectIcon } from './app/contextMenuIcons';
+  82 │ import { CanvasNavigation } from './app/CanvasNavigation';
+  83 │ import {
+  84 │   findCompatibleHandle,
+  85 │ } from './app/connectionHandleMaps';
+  86 │ import { CanvasSearch } from './components/CanvasSearch';
+  87 │ import { CommandPalette } from './components/CommandPalette';
+  88 │ import OnboardingTour from './components/OnboardingTour';
+  89 │ import { useCanvasHistory } from './hooks/useCanvasHistory';
+  90 │ import { useCollaboration } from './hooks/useCollaboration';
+  91 │ import { useStore } from './store';
+  92 │ import type { PageType, EditorMode } from './types';
+  93 │ import { isWorkflowImportData, validateWorkflowData } from './types';
+  94 │ import { AppThemeSchema, CanvasZoomModeSchema } from './schemas';
+  95 │ import PromptRecipeGallery from './components/PromptRecipeGallery';
+  96 │ import WorkflowBuilderDrawer from './WorkflowBuilderDrawer';
+  97 │ import { WorkflowLineageTracker } from './components/WorkflowLineageTracker';
+  98 │ import { SmartConnectorUI } from './components/SmartConnectorUI';
+  99 │ import { SmartConnectorEngine } from './engine/SmartConnectorEngine';
+ 100 │ import { CollaboratorPresence, CollaborationHub, CollaborationPresence, NodeLocks } from './components/CollaborationHub';
+ 101 │ import { ShareWorkflowModal } from './projectsDashboard/components/ShareWorkflowModal';
+ 102 │ import type { ShareModalState } from './projectsDashboard/types';
+ 103 │ 
+ 104 │ import CyberEdge from './components/CyberEdge';
+ 105 │ import { initialNodeTypes, initialEdgeTypes } from './config/flowTypes';
+ 106 │ 
+ 107 │ export default function App() {
+ 108 │   const nodeTypes = useMemo(() => initialNodeTypes, []);
+ 109 │   const edgeTypes = useMemo(() => initialEdgeTypes, []);
+ 110 │   
+ 111 │   const [currentPage, setCurrentPage] = useState<PageType>('editor');
+ 112 │   const [workflows, setWorkflows] = useState<any[]>([]);
+ 113 │   const [activeWorkflowId, setActiveWorkflowId] = useState<string | undefined>(undefined);
+ 114 │   const [editorMode, setEditorMode] = useState<EditorMode>('node-editor');
+ 115 │   const [isAuthenticated, setIsAuthenticated] = useState(false);
+ 116 │   const [currentUserId, setCurrentUserId] = useState<string | undefined>("testuser@nodeproject.dev");
+ 117 │   const [currentUserEmail, setCurrentUserEmail] = useState<string | undefined>(undefined);
+ 118 │   const [authLoading, setAuthLoading] = useState(true);
+ 119 │   const [authError, setAuthError] = useState<string | undefined>(undefined);
+ 120 │   const [showSystemLoading, setShowSystemLoading] = useState(false);
+ 121 │   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+ 122 │     try {
+ 123 │       const saved = localStorage.getItem('app_theme');
+ 124 │       return AppThemeSchema.parse(saved || undefined);
+ 125 │     } catch {
+ 126 │       return 'dark';
+ 127 │     }
+ 128 │   });
+ 129 │ 
+ 130 │   useEffect(() => {
+ 131 │     localStorage.setItem('app_theme', theme);
+ 132 │     document.documentElement.setAttribute('data-theme', theme);
+ 133 │   }, [theme]);
+ 134 │ 
+ 135 │   useEffect(() => {
+ 136 │     const handleOpenCommandPalette = () => setIsCommandPaletteOpen(prev => !prev);
+ 137 │     window.addEventListener('open-command-palette', handleOpenCommandPalette);
+ 138 │     return () => window.removeEventListener('open-command-palette', handleOpenCommandPalette);
+ 139 │   }, []);
+ 140 │ 
+ 141 │   const [showTemplateModal, setShowTemplateModal] = useState(false);
+ 142 │   const [shareModal, setShareModal] = useState<ShareModalState | null>(null);
+ 143 │   const [shareEmail, setShareEmail] = useState('');
+ 144 │   const [showPromptRecipes, setShowPromptRecipes] = useState(false);
+ 145 │   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+ 146 │   const [isCollaborationHubOpen, setIsCollaborationHubOpen] = useState(false);
+ 147 │   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+ 148 │   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success'; id: string } | undefined>(undefined);
+ 149 │ 
+ 150 │   const { setWorkflow } = useStore();
+ 151 │ 
+ 152 │   const firebaseTemplates = useFirebaseTemplates(currentUserId);
+ 153 │   const firebaseAssets = useFirebaseAssets(currentUserId);
+ 154 │ 
+ 155 │   const {
+ 156 │     conversations: chatConversations,
+ 157 │     activeConversationId,
+ 158 │     messages: chatMessages,
+ 159 │     sendMessage: persistChatMessage,
+ 160 │     startNewConversation,
+ 161 │   } = useFirebaseChat({ 
+ 162 │     userId: currentUserId,
+ 163 │     workflowId: activeWorkflowId
+ 164 │   });
+ 165 │ 
+ 166 │   const activeChat = useMemo(() => 
+ 167 │     chatConversations.find(c => c.id === activeConversationId),
+ 168 │     [chatConversations, activeConversationId]
+ 169 │   );
+ 170 │   const { profile, initialize: initializeProfile } = useUser(currentUserId);
+ 171 │   const { updateCursor, trackAction, lockNode, unlockNode, locks } = useCollaboration({
+ 172 │     workflowId: activeWorkflowId || null,
+ 173 │     userId: currentUserId || null,
+ 174 │     userName: profile?.displayName || currentUserEmail?.split('@')[0] || 'Anonymous',
+ 175 │     userAvatar: profile?.photoURL || profile?.avatarUri || '👤',
+ 176 │     userColor: profile?.themeColor || '#3b82f6'
+ 177 │   });
+ 178 │ 
+ 179 │   useEffect(() => {
+ 180 │     return () => {
+ 181 │       if (lastLockedNodeIdRef.current) {
+ 182 │         unlockNode(lastLockedNodeIdRef.current);
+ 183 │       }
+ 184 │     };
+ 185 │   }, [unlockNode]);
+ 186 │ 
+ 187 │   const handleNavigate = useCallback((page: any) => {
+ 188 │     setCurrentPage(page as PageType);
+ 189 │   }, []);
+ 190 │ 
+ 191 │   // Toast helper
+ 192 │   const showToast = useCallback((message: string, type: 'error' | 'success' = 'error') => {
+ 193 │     const id = Date.now().toString();
+ 194 │     setToast({ message, type, id });
+ 195 │     setTimeout(() => setToast(undefined), 4000);
+ 196 │   }, []);
+ 197 │ 
+ 198 │   const handleShareWorkflow = useCallback(async () => {
+ 199 │     if (!activeWorkflowId) {
+ 200 │       showToast('No active workflow to share', 'error');
+ 201 │       return;
+ 202 │     }
+ 203 │     
+ 204 │     const currentWorkflow = workflows.find(w => w.id === activeWorkflowId);
+ 205 │     
+ 206 │     setShareModal({
+ 207 │       projectId: activeWorkflowId,
+ 208 │       sharedWith: currentWorkflow?.sharedWith || [],
+ 209 │     });
+ 210 │   }, [activeWorkflowId, workflows, showToast]);
+ 211 │ 
+ 212 │   const SLP_KEY = 'slp_shown';
+ 213 │ 
+ 214 │   useEffect(() => {
+ 215 │     try {
+ 216 │       const auth = getFirebaseAuth();
+ 217 │       const unsubscribeAuth = () => {};
+ 218 │       setAuthLoading(false);
+ 219 │       setIsAuthenticated(true);
+ 220 │       setCurrentUserId("testuser@nodeproject.dev");
+ 221 │       setCurrentUserEmail("testuser@nodeproject.dev");
+ 222 │       initializeProfile("testuser@nodeproject.dev", "testuser@nodeproject.dev", "Test User");
+ 223 │       if (!sessionStorage.getItem(SLP_KEY)) {
+ 224 │         setShowSystemLoading(true);
+ 225 │       }
+ 226 │ 
+ 227 │       return () => unsubscribeAuth();
+ 228 │     } catch (err: any) {
+ 229 │       setAuthError(err.message);
+ 230 │       setAuthLoading(false);
+ 231 │     }
+ 232 │   }, [initializeProfile]);
+ 233 │ 
+ 234 │   useEffect(() => {
+ 235 │     if (!showSystemLoading) return undefined;
+ 236 │     const timeoutId = setTimeout(() => {
+ 237 │       sessionStorage.setItem(SLP_KEY, '1');
+ 238 │       setShowSystemLoading(false);
+ 239 │     }, 10000);
+ 240 │     return () => clearTimeout(timeoutId);
+ 241 │   }, [showSystemLoading]);
+ 242 │ 
+ 243 │   const {
+ 244 │     workflows: firebaseWorkflows,
+ 245 │     currentWorkflow: fbWf,
+ 246 │     communityWorkflows,
+ 247 │     sharedWorkflows,
+ 248 │     create: createFirebaseWorkflow,
+ 249 │     load: loadFirebaseWorkflow,
+ 250 │     save: saveFirebaseWorkflow,
+ 251 │     togglePublic: toggleWorkflowPublic,
+ 252 │     remove: deleteFirebaseWorkflow,
+ 253 │     share: shareFirebaseWorkflow,
+ 254 │     unshare: unshareFirebaseWorkflow,
+ 255 │     subscribe,
+ 256 │     unsubscribe,
+ 257 │     isLoading: workflowsLoading,
+ 258 │   } = useFirebaseWorkflows({
+ 259 │     userId: currentUserId,
+ 260 │     userEmail: currentUserEmail,
+ 261 │     enableRealtime: true,
+ 262 │   });
+ 263 │ 
+ 264 │   useEffect(() => {
+ 265 │     const current = workflows.find(w => w.id === activeWorkflowId) 
+ 266 │                  || fbWf
+ 267 │                  || null;
+ 268 │     setWorkflow(current);
+ 269 │   }, [activeWorkflowId, workflows, fbWf, setWorkflow]);
+ 270 │ 
+ 271 │   const { templates: fbTemplates, isLoading: templatesLoading } = firebaseTemplates;
+ 272 │   const { assets: fbAssets, isLoading: assetsLoading } = firebaseAssets;
+ 273 │ 
+ 274 │   const isDataLoading = workflowsLoading || templatesLoading || assetsLoading;
+ 275 │   const loadingProgress = (authLoading ? 0 : 40) + (!workflowsLoading ? 20 : 0) + (!templatesLoading ? 20 : 0) + (!assetsLoading ? 20 : 0);
+ 276 │ 
+ 277 │   const handleLogout = useCallback(async () => {
+ 278 │     try {
+ 279 │       const auth = getFirebaseAuth();
+ 280 │       await signOut(auth);
+ 281 │       setCurrentPage('landing');
+ 282 │     } catch (err) {
+ 283 │       console.error('[Auth] Logout error:', err);
+ 284 │     }
+ 285 │   }, []);
+ 286 │ 
+ 287 │   useEffect(() => {
+ 288 │     if (firebaseWorkflows.length > 0) {
+ 289 │       setWorkflows((prev) => {
+ 290 │         // More efficient comparison or just update if different
+ 291 │         if (prev === firebaseWorkflows) return prev;
+ 292 │         return firebaseWorkflows;
+ 293 │       });
+ 294 │     }
+ 295 │   }, [firebaseWorkflows]);
+ 296 │ 
+ 297 │   useEffect(() => {
+ 298 │     if (!workflows || workflows.length === 0) return;
+ 299 │ 
+ 300 │     const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+ 301 │     const now = Date.now();
+ 302 │     
+ 303 │     // Check if we actually have anything to remove before updating state
+ 304 │     const hasExpired = workflows.some(w => w.deleted && w.deletedAt && (now - w.deletedAt > THIRTY_DAYS_MS));
+ 305 │     if (!hasExpired) return;
+ 306 │ 
+ 307 │     const expiredIds = workflows
+ 308 │       .filter(w => w.deleted && w.deletedAt && (now - w.deletedAt > THIRTY_DAYS_MS))
+ 309 │       .map(w => w.id);
+ 310 │ 
+ 311 │     if (expiredIds.length > 0) {
+ 312 │       setWorkflows((prev) => prev.filter((w) => !expiredIds.includes(w.id)));
+ 313 │       expiredIds.forEach(id => deleteFirebaseWorkflow(id).catch(console.error));
+ 314 │     }
+ 315 │   }, [workflows, deleteFirebaseWorkflow]);
+ 316 │ 
+ 317 │   const activeWorkflowName = workflows.find((w) => w.id === activeWorkflowId)?.name || 'Untitled';
+ 318 │ 
+ 319 │   const [nodes, setNodesInternal, onNodesChangeInternal] = useNodesState(DEFAULT_NODES);
+ 320 │ 
+ 321 │   const setNodes = useCallback((update: Node[] | ((nds: Node[]) => Node[])) => {
+ 322 │     setNodesInternal((nds) => {
+ 323 │       const nextNodes = typeof update === 'function' ? update(nds) : update;
+ 324 │       return nextNodes.map((n: Node) => {
+ 325 │         if (isNaN(n.position.x) || isNaN(n.position.y)) {
+ 326 │           console.warn(`[App] Guarded against NaN position for node ${n.id}, resetting to 0,0`);
+ 327 │           return { ...n, position: { x: isNaN(n.position.x) ? 0 : n.position.x, y: isNaN(n.position.y) ? 0 : n.position.y } };
+ 328 │         }
+ 329 │         return n;
+ 330 │       });
+ 331 │     });
+ 332 │   }, [setNodesInternal]);
+ 333 │ 
+ 334 │   const onNodesChange = useCallback((changes: NodeChange[]) => {
+ 335 │     const sanitizedChanges = changes.map(change => {
+ 336 │       if (change.type === 'position' && change.position) {
+ 337 │         if (isNaN(change.position.x) || isNaN(change.position.y)) {
+ 338 │           return { ...change, position: { x: isNaN(change.position.x) ? 0 : change.position.x, y: isNaN(change.position.y) ? 0 : change.position.y } };
+ 339 │         }
+ 340 │       }
+ 341 │       return change;
+ 342 │     });
+ 343 │     onNodesChangeInternal(sanitizedChanges);
+ 344 │   }, [onNodesChangeInternal]);
+ 345 │   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+ 346 │   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | undefined>(undefined);
+ 347 │   
+ 348 │   const { 
+ 349 │     saveHistory: originalSaveHistory, 
+ 350 │     undo: handleUndoInternal, 
+ 351 │     redo: handleRedoInternal, 
+ 352 │     isHistoryAction, 
+ 353 │   } = useCanvasHistory();
+ 354 │ 
+ 355 │   const nodesRef = useRef(nodes);
+ 356 │   nodesRef.current = nodes;
+ 357 │   const edgesRef = useRef(edges);
+ 358 │   edgesRef.current = edges;
+ 359 │ 
+ 360 │   const saveHistory = useCallback(() => {
+ 361 │     originalSaveHistory(nodesRef.current, edgesRef.current);
+ 362 │   }, [originalSaveHistory]);
+ 363 │ 
+ 364 │   const isDirtyRef = useRef(false);
+ 365 │ 
+ 366 │   const updateNodeData = useCallback(
+ 367 │     (nodeId: string, patch: any) => {
+ 368 │       // Check if node is locked by someone else
+ 369 │       const isLockedByOther = locks.some(l => l.id === nodeId && l.userId !== currentUserId);
+ 370 │       if (isLockedByOther) {
+ 371 │         showToast('This node is being edited by someone else', 'error');
+ 372 │         return;
+ 373 │       }
+ 374 │ 
+ 375 │       saveHistory();
+ 376 │       isDirtyRef.current = true;
+ 377 │       setNodes((nds) =>
+ 378 │         nds.map((n) =>
+ 379 │           n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n
+ 380 │         )
+ 381 │       );
+ 382 │     },
+ 383 │     [setNodes, saveHistory, locks, currentUserId]
+ 384 │   );
+ 385 │ 
+ 386 │   const [isWorkflowBuilderOpen, setIsWorkflowBuilderOpen] = useState(false);
+ 387 │   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+ 388 │   const [isLocked, setIsLocked] = useState(false);
+ 389 │   const [activeTool, setActiveTool] = useState<'select' | 'hand' | 'slice'>('select');
+ 390 │   const [sliceStart, setSliceStart] = useState<{ x: number, y: number } | null>(null);
+ 391 │   const [sliceCurrent, setSliceCurrent] = useState<{ x: number, y: number } | null>(null);
+ 392 │   const [viewMode, setViewMode] = useState<'editor' | 'interface'>('editor');
+ 393 │   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+ 394 │   const [isChatOpen, setIsChatOpen] = useState(true);
+ 395 │   const [chatSuggestions, setChatSuggestions] = useState<string[]>([]);
+ 396 │   const [browseModelsOpen, setBrowseModelsOpen] = useState(false);
+ 397 │   const [lastGeneratedWorkflow, setLastGeneratedWorkflow] = useState<any>(undefined);
+ 398 │   const [newWorkflowName, setNewWorkflowName] = useState('');
+ 399 │   const [menu, setMenu] = useState<any>(undefined);
+ 400 │   const [clipboardNodes, setClipboardNodes] = useState<any>(undefined);
+ 401 │   const clipboardRef = useRef<any>(undefined);
+ 402 │   const pastePositionRef = useRef<any>(undefined);
+ 403 │   const chatUIRef = useRef<any>(undefined);
+ 404 │   const [referenceImages, setReferenceImages] = useState<string[]>([]);
+ 405 │   const [isRunning, setIsRunning] = useState(false);
+ 406 │   const [isChatting, setIsChatting] = useState(false);
+ 407 │   const [_connectionDrop, setConnectionDrop] = useState<any>(undefined);
+ 408 │   const [canvasSearch, setCanvasSearch] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+ 409 │   const lastLockedNodeIdRef = useRef<string | null>(null);
+ 410 │ 
+ 411 │   const handleSelectionChange = useCallback(({ nodes: selectedNodes }: { nodes: any[] }) => {
+ 412 │     if (selectedNodes.length === 1) {
+ 413 │       const nodeId = selectedNodes[0].id;
+ 414 │       if (lastLockedNodeIdRef.current && lastLockedNodeIdRef.current !== nodeId) {
+ 415 │         unlockNode(lastLockedNodeIdRef.current);
+ 416 │       }
+ 417 │       lockNode(nodeId);
+ 418 │       lastLockedNodeIdRef.current = nodeId;
+ 419 │     } else {
+ 420 │       if (lastLockedNodeIdRef.current) {
+ 421 │         unlockNode(lastLockedNodeIdRef.current);
+ 422 │         lastLockedNodeIdRef.current = null;
+ 423 │       }
+ 424 │     }
+ 425 │   }, [lockNode, unlockNode]);
+ 426 │ 
+ 427 │   useEffect(() => {
+ 428 │     const handleSendToChat = (e: any) => {
+ 429 │       const { images } = e.detail;
+ 430 │       if (images && images.length > 0) {
+ 431 │         setReferenceImages(prev => [...new Set([...prev, ...images])]);
+ 432 │         setIsChatOpen(true);
+ 433 │       }
+ 434 │     };
+ 435 │     window.addEventListener('send-to-chat', handleSendToChat);
+ 436 │     return () => window.removeEventListener('send-to-chat', handleSendToChat);
+ 437 │   }, []);
+ 438 │ 
+ 439 │   const createMediaNodeFromFile = useCallback(async (file: File, position: { x: number, y: number }) => {
+ 440 │     // Basic validation
+ 441 │     const MAX_SIZE = 100 * 1024 * 1024; // 100MB for media
+ 442 │ 
+ 443 │     if (file.size > MAX_SIZE) {
+ 444 │       showToast(`File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB (max 100MB)`, 'error');
+ 445 │       return null;
+ 446 │     }
+ 447 │ 
+ 448 │     return new Promise<Node | null>((resolve) => {
+ 449 │       const reader = new FileReader();
+ 450 │       reader.onload = (e) => {
+ 451 │         const resultUrl = e.target?.result as string;
+ 452 │         if (!resultUrl) {
+ 453 │           resolve(null);
+ 454 │           return;
+ 455 │         }
+ 456 │ 
+ 457 │         const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|ogg|mov)$/i.test(file.name);
+ 458 │         const isAudio = file.type.startsWith('audio/') || /\.(mp3|wav|ogg|flac|m4a)$/i.test(file.name);
+ 459 │ 
+ 460 │         if (isVideo || isAudio) {
+ 461 │            const mediaType = isVideo ? 'video' : 'audio';
+ 462 │            const newNode: Node = {
+ 463 │              id: nextId(),
+ 464 │              type: 'sourceMediaNode',
+ 465 │              position,
+ 466 │              data: {
+ 467 │                label: file.name || `Local ${mediaType}`,
+ 468 │                mediaFiles: [{
+ 469 │                  url: resultUrl,
+ 470 │                  type: mediaType,
+ 471 │                  name: file.name || `Local ${mediaType}`
+ 472 │                }],
+ 473 │                onUpdate: updateNodeData
+ 474 │              }
+ 475 │            };
+ 476 │            resolve(newNode);
+ 477 │            return;
+ 478 │         }
+ 479 │ 
+ 480 │         let finalImageUrl = resultUrl;
+ 481 │         
+ 482 │         // Some Mac screenshots or clipboard pastes drop as octet-stream or lack image/ signature
+ 483 │         if (resultUrl.startsWith('data:application/octet-stream;') || resultUrl.startsWith('data:;') || !resultUrl.startsWith('data:image/')) {
+ 484 │           // Force it to be a PNG data URL just in case, browsers can usually recover if it's a valid image
+ 485 │           finalImageUrl = resultUrl.replace(/^data:[^;]*;/, 'data:image/png;');
+ 486 │         }
+ 487 │ 
+ 488 │         const newNode: Node = { 
+ 489 │           id: nextId(), 
+ 490 │           type: 'imageElement', 
+ 491 │           position, 
+ 492 │           data: { 
+ 493 │             label: file.name || 'Pasted Image',
+ 494 │             imageUrl: finalImageUrl,
+ 495 │             onUpdate: updateNodeData
+ 496 │           } 
+ 497 │         };
+ 498 │         resolve(newNode);
+ 499 │       };
+ 500 │       reader.onerror = () => {
+ 501 │         // Silently fail instead of showing a toast, which might confuse users for background clipboard items
+ 502 │         console.error(`Failed to read file: ${file.name}`);
+ 503 │         resolve(null);
+ 504 │       };
+ 505 │       reader.readAsDataURL(file);
+ 506 │     });
+ 507 │   }, [updateNodeData, showToast]);
+ 508 │ 
+ 509 │   const handleImagePaste = useCallback(async (event: ClipboardEvent) => {
+ 510 │     if (!event.clipboardData || !rfInstance) return;
+ 511 │ 
+ 512 │     const newNodes: Node[] = [];
+ 513 │     const basePosition = rfInstance.screenToFlowPosition({
+ 514 │       x: window.innerWidth / 2,
+ 515 │       y: window.innerHeight / 2
+ 516 │     });
+ 517 │ 
+ 518 │     const files = Array.from(event.clipboardData.files);
+ 519 │     
+ 520 │     if (files.length > 0) {
+ 521 │       // Handle file paste (e.g. copying from Finder/Explorer or screenshot)
+ 522 │       // Mac screenshots might put both PNG and TIFF in the clipboard, we want to deduplicate 
+ 523 │       // if they seem to be the same image (same size & timestamp) or just take the first one if it's a generic screenshot.
+ 524 │       // But if user copies multiple distinct files, we want to paste all of them.
+ 525 │       const processedFiles = new Set<string>();
+ 526 │ 
+ 527 │       for (const file of files) {
+ 528 │         const hasImageExtension = /\.(jpeg|jpg|png|gif|webp|svg|tiff|bmp)$/i.test(file.name);
+ 529 │         const isExplicitlyNotImage = file.type !== '' && !file.type.startsWith('image/');
+ 530 │         
+ 531 │         if (!isExplicitlyNotImage || hasImageExtension) {
+ 532 │           // simple deduplication based on size and generic "image" name
+ 533 │           const fileKey = `${file.name}-${file.size}`;
+ 534 │           if (processedFiles.has(fileKey)) continue;
+ 535 │           processedFiles.add(fileKey);
+ 536 │ 
+ 537 │           const node = await createMediaNodeFromFile(file, { x: 0, y: 0 });
+ 538 │           if (node) newNodes.push(node);
+ 539 │         }
+ 540 │       }
+ 541 │     } else {
+ 542 │       // Fallback to items if files is empty (some older browsers/contexts)
+ 543 │       const items = event.clipboardData.items;
+ 544 │       let imagePasted = false;
+ 545 │ 
+ 546 │       for (let i = 0; i < items.length; i++) {
+ 547 │         if (items[i].type.indexOf('image') !== -1 && !imagePasted) {
+ 548 │           const file = items[i].getAsFile();
+ 549 │           if (!file) continue;
+ 550 │ 
+ 551 │           const node = await createMediaNodeFromFile(file, { x: 0, y: 0 });
+ 552 │           if (node) {
+ 553 │             newNodes.push(node);
+ 554 │             imagePasted = true;
+ 555 │           }
+ 556 │         }
+ 557 │       }
+ 558 │     }
+ 559 │ 
+ 560 │     if (newNodes.length > 0) {
+ 561 │       const staggeredNodes = staggerNodes(newNodes, basePosition);
+ 562 │       setNodes((nds) => nds.concat(staggeredNodes));
+ 563 │       saveHistory();
+ 564 │     }
+ 565 │   }, [rfInstance, setNodes, saveHistory, createMediaNodeFromFile]);
+ 566 │ 
+ 567 │   useEffect(() => {
+ 568 │     window.addEventListener('paste', handleImagePaste);
+ 569 │     return () => window.removeEventListener('paste', handleImagePaste);
+ 570 │   }, [handleImagePaste]);
+ 571 │ 
+ 572 │   const [activeConnection, setActiveConnection] = useState<{ nodeId: string, handleId: string, handleType: string } | null>(null);
+ 573 │   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+ 574 │   const lastMousePos = useRef({ x: 0, y: 0 });
+ 575 │ 
+ 576 │   const handleConnectStart = useCallback((_: any, { nodeId, handleId, handleType }: any) => {
+ 577 │     isConnectingRef.current = true;
+ 578 │     beginInteraction();
+ 579 │     
+ 580 │     if (nodeId && handleId) {
+ 581 │       const type = getHandleDataType(handleId);
+ 582 │       setActiveConnection({ nodeId, handleId, handleType });
+ 583 │       
+ 584 │       const container = reactFlowWrapper.current?.querySelector('.react-flow__container');
+ 585 │       if (container) {
+ 586 │         container.classList.add('connecting');
+ 587 │         
+ 588 │         const allHandles = document.querySelectorAll('.react-flow__handle');
+ 589 │         allHandles.forEach(h => {
+ 590 │           const el = h as HTMLElement;
+ 591 │           const hId = el.getAttribute('data-handleid') || el.getAttribute('id');
+ 592 │           const hNodeId = el.getAttribute('data-nodeid');
+ 593 │           const hType = el.classList.contains('source') || el.classList.contains('react-flow__handle-right') ? 'source' : 'target';
+ 594 │           
+ 595 │           if (hId && hNodeId !== nodeId && hType !== handleType) {
+ 596 │             const dataType = getHandleDataType(hId);
+ 597 │             if (dataType === 'any' || type === 'any' || dataType === type) {
+ 598 │               el.classList.add('connectable');
+ 599 │               el.closest('.react-flow__node')?.classList.add('has-connectable-handle');
+ 600 │             }
+ 601 │           }
+ 602 │         });
+ 603 │       }
+ 604 │     }
+ 605 │   }, []);
+ 606 │   const analyzeResolvers = useRef<Record<string, () => void>>({});
+ 607 │   const autosaveTimerRef = useRef<any>(null);
+ 608 │   const autosaveInFlightRef = useRef(false);
+ 609 │   const lastSavedGraphSignatureRef = useRef('');
+ 610 │   const lastThumbnailUploadAtRef = useRef(0);
+ 611 │   const lastThumbnailGraphSignatureRef = useRef('');
+ 612 │ 
+ 613 │   const buildGraphSignature = useCallback((workflowNodes: Node[], workflowEdges: Edge[]) => {
+ 614 │     const nodeSignature = (workflowNodes || [])
+ 615 │       .map((node) => `${node.id}:${Math.round(node.position?.x || 0)}:${Math.round(node.position?.y || 0)}`)
+ 616 │       .sort()
+ 617 │       .join('|');
+ 618 │     const edgeSignature = (workflowEdges || [])
+ 619 │       .map((edge) => `${edge.id}:${edge.source}:${edge.sourceHandle || ''}->${edge.target}:${edge.targetHandle || ''}`)
+ 620 │       .sort()
+ 621 │       .join('|');
+ 622 │     return `${nodeSignature}__${edgeSignature}`;
+ 623 │   }, []);
+ 624 │ 
+ 625 │   const [zoomMode] = useState<'scroll' | 'altScroll' | 'ctrlScroll'>(() => {
+ 626 │     try {
+ 627 │       const saved = localStorage.getItem('canvas_zoom_mode');
+ 628 │       return CanvasZoomModeSchema.parse(saved || undefined);
+ 629 │     } catch {
+ 630 │       return 'ctrlScroll';
+ 631 │     }
+ 632 │   });
+ 633 │ 
+ 634 │   const isMacOS = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+ 635 │   const { getViewport, setViewport, screenToFlowPosition } = useReactFlow();
+ 636 │ 
+ 637 │   useEffect(() => {
+ 638 │     const wrapper = reactFlowWrapper.current;
+ 639 │     if (!wrapper) return;
+ 640 │ 
+ 641 │     const isMouseWheel = (event: WheelEvent) => {
+ 642 │       if (event.deltaMode === 1) return true;
+ 643 │       const threshold = 50;
+ 644 │       return Math.abs(event.deltaY) >= threshold && Math.abs(event.deltaY) % 40 === 0;
+ 645 │     };
+ 646 │ 
+ 647 │     const findScrollableAncestor = (target: EventTarget | null, _dx: number, _dy: number) => {
+ 648 │       let el = target as HTMLElement | null;
+ 649 │       while (el && el !== wrapper && el !== document.body) {
+ 650 │         const isTextarea = el.tagName === 'TEXTAREA';
+ 651 │         const isNowheel = el.classList && el.classList.contains('nowheel');
+ 652 │         const hasScrollableOverflow = (() => {
+ 653 │           const style = window.getComputedStyle(el);
+ 654 │           const ov = style.overflow + style.overflowY + style.overflowX;
+ 655 │           return /auto|scroll/.test(ov);
+ 656 │         })();
+ 657 │         if ((isTextarea || isNowheel) || (hasScrollableOverflow && el.scrollHeight > el.clientHeight)) {
+ 658 │           return el;
+ 659 │         }
+ 660 │         el = el.parentElement;
+ 661 │       }
+ 662 │       return null;
+ 663 │     };
+ 664 │ 
+ 665 │     const handleWheel = (event: WheelEvent) => {
+ 666 │       if (isLocked) return;
+ 667 │       const target = event.target;
+ 668 │       const scrollableAncestor = findScrollableAncestor(target, event.deltaX, event.deltaY);
+ 669 │       if (scrollableAncestor) return;
+ 670 │ 
+ 671 │       const isPinch = event.ctrlKey || event.metaKey;
+ 672 │       let shouldZoom = false;
+ 673 │       if (isPinch) {
+ 674 │         shouldZoom = true;
+ 675 │       } else if (isMouseWheel(event)) {
+ 676 │         shouldZoom =
+ 677 │           zoomMode === 'scroll' ||
+ 678 │           (zoomMode === 'altScroll' && event.altKey) ||
+ 679 │           (zoomMode === 'ctrlScroll' && (event.ctrlKey || event.metaKey));
+ 680 │       }
+ 681 │ 
+ 682 │       if (shouldZoom) {
+ 683 │         event.preventDefault();
+ 684 │         event.stopPropagation();
+ 685 │         const viewport = getViewport();
+ 686 │         const zoomSensitivity = 0.005;
+ 687 │         const delta = -event.deltaY * zoomSensitivity;
+ 688 │         const newZoom = Math.min(4, Math.max(0.1, viewport.zoom * (1 + delta)));
+ 689 │         const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+ 690 │         setViewport({
+ 691 │           x: event.clientX - flowPos.x * newZoom,
+ 692 │           y: event.clientY - flowPos.y * newZoom,
+ 693 │           zoom: newZoom,
+ 694 │         });
+ 695 │       } else if (isMacOS && !isMouseWheel(event) && !isPinch) {
+ 696 │         event.preventDefault();
+ 697 │         event.stopPropagation();
+ 698 │         const viewport = getViewport();
+ 699 │         setViewport({
+ 700 │           x: viewport.x - event.deltaX,
+ 701 │           y: viewport.y - event.deltaY,
+ 702 │           zoom: viewport.zoom,
+ 703 │         });
+ 704 │       }
+ 705 │     };
+ 706 │ 
+ 707 │     wrapper.addEventListener('wheel', handleWheel, { passive: false });
+ 708 │     return () => wrapper.removeEventListener('wheel', handleWheel);
+ 709 │   }, [isLocked, zoomMode, getViewport, setViewport, screenToFlowPosition, isMacOS]);
+ 710 │ 
+ 711 │   useEffect(() => {
+ 712 │     try {
+ 713 │       localStorage.setItem('canvas_zoom_mode', zoomMode);
+ 714 │     } catch { /* ignore */ }
+ 715 │   }, [zoomMode]);
+ 716 │ 
+ 717 │   const selectedCanvasNodeIds = useMemo(
+ 718 │     () => nodes.filter((n) => n.selected).map((n) => n.id),
+ 719 │     [nodes]
+ 720 │   );
+ 721 │ 
+ 722 │   const onUnlink = useCallback((targetNodeId: string, targetHandle: string) => {
+ 723 │     setEdges((eds) => eds.filter((e) => !(e.target === targetNodeId && e.targetHandle === targetHandle)));
+ 724 │     isDirtyRef.current = true;
+ 725 │   }, [setEdges]);
+ 726 │ 
+ 727 │   const onDisconnectNode = useCallback((id: string) => {
+ 728 │     setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+ 729 │     isDirtyRef.current = true;
+ 730 │   }, [setEdges]);
+ 731 │ 
+ 732 │   const onCreateNode = useCallback((type: string, dataPatch: any, sourceHandle: string, targetHandle: string, sourceId: string) => {
+ 733 │     const newId = nextId();
+ 734 │     const sourceNode = nodesRef.current.find(nd => nd.id === sourceId);
+ 735 │     const position = sourceNode ? { x: sourceNode.position.x + 450, y: sourceNode.position.y } : { x: 400, y: 400 };
+ 736 │     const newNode: Node = { id: newId, type, position, data: { ...dataPatch } };
+ 737 │     setNodes((nds) => [...nds, newNode]);
+ 738 │     isDirtyRef.current = true;
+ 739 │     
+ 740 │     if (sourceHandle && targetHandle) {
+ 741 │       const edgeColor = getHandleColor(sourceHandle);
+ 742 │       const newEdge: Edge = {
+ 743 │         id: `e-${sourceId}-${sourceHandle}-${newId}-${targetHandle}`,
+ 744 │         source: sourceId,
+ 745 │         sourceHandle,
+ 746 │         target: newId,
+ 747 │         targetHandle,
+ 748 │         style: { stroke: edgeColor, strokeWidth: 2 },
+ 749 │       };
+ 750 │       setTimeout(() => setEdges((eds) => addEdge(newEdge, eds)), 150);
+ 751 │     }
+ 752 │     setTimeout(() => {
+ 753 │       const el = document.querySelector(`[data-id="${newId}"]`) as HTMLElement;
+ 754 │       if (el) {
+ 755 │         el.focus();
+ 756 │         el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+ 757 │       }
+ 758 │     }, 100);
+ 759 │   }, [setNodes, setEdges]);
+ 760 │ 
+ 761 │   const onAnalyzeComplete = useCallback((id: string) => {
+ 762 │     if (analyzeResolvers.current[id]) {
+ 763 │       analyzeResolvers.current[id]();
+ 764 │       delete analyzeResolvers.current[id];
+ 765 │     }
+ 766 │   }, []);
+ 767 │ 
+ 768 │   const onConnect: OnConnect = useCallback(
+ 769 │     (params) => {
+ 770 │       const { source, sourceHandle, target, targetHandle } = params;
+ 771 │       if (!source || !sourceHandle || !target || !targetHandle) return;
+ 772 │ 
+ 773 │       const edgeColor = getHandleColor(sourceHandle);
+ 774 │       const newEdge: Edge = {
+ 775 │         id: `e-${source}-${sourceHandle}-${target}-${targetHandle}`,
+ 776 │         source,
+ 777 │         sourceHandle,
+ 778 │         target,
+ 779 │         targetHandle,
+ 780 │         style: { stroke: edgeColor, strokeWidth: 2 },
+ 781 │         type: 'default',
+ 782 │       };
+ 783 │       setEdges((eds) => addEdge(newEdge, eds));
+ 784 │       isDirtyRef.current = true;
+ 785 │ 
+ 786 │       if (target) {
+ 787 │         const targetNode = nodesRef.current.find((n) => n.id === target);
+ 788 │         if (targetNode?.type === 'response') {
+ 789 │           const sourceNode = nodesRef.current.find((n) => n.id === source);
+ 790 │           const existingFields = targetNode.data.responseFields || [];
+ 791 │           const newField = {
+ 792 │             id: `${source}-${sourceHandle}`,
+ 793 │             label: sourceHandle,
+ 794 │             source: {
+ 795 │               nodeLabel: sourceNode?.data.label || source,
+ 796 │               handle: sourceHandle,
+ 797 │             },
+ 798 │             color: edgeColor,
+ 799 │           };
+ 800 │           if (!existingFields.find((f: any) => f.id === newField.id)) {
+ 801 │             updateNodeData(target, {
+ 802 │               responseFields: [...existingFields, newField],
+ 803 │             });
+ 804 │           }
+ 805 │         }
+ 806 │       }
+ 807 │     },
+ 808 │     [setEdges, updateNodeData]
+ 809 │   );
+ 810 │ 
+ 811 │   const handleAutoConnect = useCallback((targetNodeId: string, targetHandleId: string) => {
+ 812 │     if (activeConnection) {
+ 813 │       saveHistory();
+ 814 │       onConnect({
+ 815 │         source: activeConnection.nodeId,
+ 816 │         sourceHandle: activeConnection.handleId,
+ 817 │         target: targetNodeId,
+ 818 │         targetHandle: targetHandleId
+ 819 │       });
+ 820 │     }
+ 821 │   }, [activeConnection, onConnect, saveHistory]);
+ 822 │ 
+ 823 │ const handleConnectEnd = useCallback(
+ 824 │     (event: any, connectionState: any) => {
+ 825 │       isConnectingRef.current = false;
+ 826 │       endInteraction();
+ 827 │       setActiveConnection(null);
+ 828 │       
+ 829 │       const container = reactFlowWrapper.current?.querySelector('.react-flow__container');
+ 830 │       if (container) {
+ 831 │         container.classList.remove('connecting');
+ 832 │       }
+ 833 │       document.querySelectorAll('.connectable').forEach(el => el.classList.remove('connectable'));
+ 834 │       document.querySelectorAll('.has-connectable-handle').forEach(el => el.classList.remove('has-connectable-handle'));
+ 835 │ 
+ 836 │       if (connectionState.isValid || !connectionState.fromNode) return;
+ 837 │       const { clientX, clientY } = event;
+ 838 │       const fromHandleId = connectionState.fromHandle?.id || null;
+ 839 │       const fromHandleType = getHandleDataType(fromHandleId);
+ 840 │       const isFromSource = connectionState.fromHandle?.type === 'source';
+ 841 │       if (!fromHandleType || fromHandleType === 'any') return;
+ 842 │ 
+ 843 │       const elementsUnderCursor = document.elementsFromPoint(clientX, clientY);
+ 844 │       const nodeElement = elementsUnderCursor.find((el) => el.closest('.react-flow__node'));
+ 845 │       if (nodeElement) {
+ 846 │         const nodeWrapper = nodeElement.closest('.react-flow__node') as HTMLElement;
+ 847 │         const targetNodeId = nodeWrapper?.dataset?.id;
+ 848 │         if (targetNodeId && targetNodeId !== connectionState.fromNode.id) {
+ 849 │           const targetNode = nodesRef.current.find((n) => n.id === targetNodeId);
+ 850 │           if (targetNode) {
+ 851 │             const compatibleHandle = findCompatibleHandle(targetNode, fromHandleType, isFromSource);
+ 852 │             if (compatibleHandle) {
+ 853 │               const connection: Connection = isFromSource
+ 854 │                 ? { source: connectionState.fromNode.id, sourceHandle: fromHandleId, target: targetNodeId, targetHandle: compatibleHandle }
+ 855 │                 : { source: targetNodeId, sourceHandle: compatibleHandle, target: connectionState.fromNode.id, targetHandle: fromHandleId };
+ 856 │               if (isValidConnection(connection)) {
+ 857 │                 saveHistory();
+ 858 │                 onConnect(connection);
+ 859 │                 return;
+ 860 │               }
+ 861 │             }
+ 862 │           }
+ 863 │         }
+ 864 │       }
+ 865 │ 
+ 866 │       if (!rfInstance) return;
+ 867 │       const flowPos = rfInstance.screenToFlowPosition({ x: clientX, y: clientY });
+ 868 │       setConnectionDrop({
+ 869 │         position: { x: clientX, y: clientY },
+ 870 │         flowPosition: flowPos,
+ 871 │         handleType: fromHandleType,
+ 872 │         connectionType: isFromSource ? 'source' : 'target',
+ 873 │         sourceNodeId: connectionState.fromNode.id,
+ 874 │         sourceHandleId: fromHandleId,
+ 875 │       });
+ 876 │     },
+ 877 │     [saveHistory, onConnect, rfInstance]
+ 878 │   );
+ 879 │ 
+ 880 │   const onEdgesDelete = useCallback(
+ 881 │     (deletedEdges: Edge[]) => {
+ 882 │       for (const edge of deletedEdges) {
+ 883 │         const targetNode = nodesRef.current.find((n) => n.id === edge.target);
+ 884 │         if (targetNode?.type === 'response') {
+ 885 │           const fieldId = `${edge.source}-${edge.sourceHandle}`;
+ 886 │           const fields = targetNode.data.responseFields || [];
+ 887 │           updateNodeData(edge.target, {
+ 888 │             responseFields: fields.filter((f: any) => f.id !== fieldId),
+ 889 │           });
+ 890 │         }
+ 891 │       }
+ 892 │     },
+ 893 │     [updateNodeData]
+ 894 │   );
+ 895 │ 
+ 896 │   const handleAutoLayout = useCallback(() => {
+ 897 │     saveHistory();
+ 898 │     const currentNodes = rfInstance?.getNodes() || [];
+ 899 │     if (currentNodes.length === 0) return;
+ 900 │     
+ 901 │     // If nodes are selected, only layout those. Otherwise layout all.
+ 902 │     const selectedNodes = currentNodes.filter(n => n.selected);
+ 903 │     const targetNodes = selectedNodes.length > 0 ? selectedNodes : currentNodes;
+ 904 │     
+ 905 │     const startX = selectedNodes.length > 0 ? selectedNodes[0].position.x : 100;
+ 906 │     const startY = selectedNodes.length > 0 ? selectedNodes[0].position.y : 100;
+ 907 │     const cols = Math.ceil(Math.sqrt(targetNodes.length));
+ 908 │     
+ 909 │     const nodeIds = new Set(targetNodes.map(n => n.id));
+ 910 │     
+ 911 │     let idx = 0;
+ 912 │     setNodes(nds => nds.map((n) => {
+ 913 │       if (!nodeIds.has(n.id)) return n;
+ 914 │       
+ 915 │       const r = Math.floor(idx / cols);
+ 916 │       const c = idx % cols;
+ 917 │       idx++;
+ 918 │       return { ...n, position: { x: startX + c * 400, y: startY + r * 500 } };
+ 919 │     }));
+ 920 │     
+ 921 │     if (selectedNodes.length === 0) {
+ 922 │       setTimeout(() => rfInstance?.fitView({ padding: 0.1, duration: 800 }), 100);
+ 923 │     }
+ 924 │   }, [rfInstance, setNodes, saveHistory]);
+ 925 │ 
+ 926 │   const addNode = useCallback(
+ 927 │     (type: string, defaults: any) => {
+ 928 │       const id = nextId();
+ 929 │       const newNode: Node = {
+ 930 │         id,
+ 931 │         type,
+ 932 │         position: { x: 350 + Math.random() * 200, y: 100 + Math.random() * 300 },
+ 933 │         data: { ...defaults },
+ 934 │       };
+ 935 │       setNodes((nds) => [...nds, newNode]);
+ 936 │       setTimeout(() => {
+ 937 │         const el = document.querySelector(`[data-id="${id}"]`) as HTMLElement;
+ 938 │         if (el) {
+ 939 │           el.focus();
+ 940 │           el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+ 941 │         }
+ 942 │       }, 100);
+ 943 │     },
+ 944 │     [setNodes]
+ 945 │   );
+ 946 │ 
+ 947 │   const addNodeAtViewportCenter = useCallback(
+ 948 │     (type: string, dataPatch?: any) => {
+ 949 │       saveHistory();
+ 950 │       let x = 350;
+ 951 │       let y = 200;
+ 952 │       if (rfInstance) {
+ 953 │         const center = rfInstance.screenToFlowPosition({
+ 954 │           x: window.innerWidth / 2,
+ 955 │           y: window.innerHeight / 2,
+ 956 │         });
+ 957 │         x = center.x;
+ 958 │         y = center.y;
+ 959 │       }
+ 960 │       const defaults = resolveCanvasNodeData(type, dataPatch);
+ 961 │       const newNodeId = nextId();
+ 962 │       setNodes((nds) => [
+ 963 │         ...nds,
+ 964 │         {
+ 965 │           id: newNodeId,
+ 966 │           type,
+ 967 │           position: { x, y },
+ 968 │           data: { ...defaults },
+ 969 │         },
+ 970 │       ]);
+ 971 │       setTimeout(() => {
+ 972 │         const el = document.querySelector(`[data-id="${newNodeId}"]`) as HTMLElement;
+ 973 │         if (el) {
+ 974 │           el.focus();
+ 975 │           el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+ 976 │         }
+ 977 │       }, 100);
+ 978 │     },
+ 979 │     [rfInstance, saveHistory, setNodes]
+ 980 │   );
+ 981 │ 
+ 982 │   const handleSelectAllNodes = useCallback(() => {
+ 983 │     setNodes((nds) => nds.map((n) => ({ ...n, selected: true })));
+ 984 │   }, [setNodes]);
+ 985 │ 
+ 986 │   const handleDeselectAllCanvas = useCallback(() => {
+ 987 │     setNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
+ 988 │     setEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
+ 989 │   }, [setNodes, setEdges]);
+ 990 │ 
+ 991 │   const handleCanvasFitView = useCallback(() => {
+ 992 │     rfInstance?.fitView();
+ 993 │   }, [rfInstance]);
+ 994 │ 
+ 995 │   const handleAddNodeFromMegaMenu = useCallback(
+ 996 │     (kind: string, modelName: string) => {
+ 997 │       const type = kind === 'image' ? 'universalGeneratorImage' : 'universalGeneratorVideo';
+ 998 │       addNodeAtViewportCenter(type, {
+ 999 │         models: [modelName],
+1000 │         autoSelect: false,
+1001 │         useMultiple: false,
+1002 │       });
+1003 │     },
+1004 │     [addNodeAtViewportCenter]
+1005 │   );
+1006 │ 
+1007 │   const handleUndo = useCallback(() => {
+1008 │     handleUndoInternal(nodesRef.current, edgesRef.current, setNodes, setEdges);
+1009 │   }, [handleUndoInternal, setNodes, setEdges]);
+1010 │ 
+1011 │   const handleRedo = useCallback(() => {
+1012 │     handleRedoInternal(nodesRef.current, edgesRef.current, setNodes, setEdges);
+1013 │   }, [handleRedoInternal, setNodes, setEdges]);
+1014 │ 
+1015 │   const customOnNodesChange: OnNodesChange = useCallback((changes) => {
+1016 │     // Filter out changes to nodes locked by other users
+1017 │     const filteredChanges = changes.filter(change => {
+1018 │       const nodeId = (change as any).id;
+1019 │       if (nodeId) {
+1020 │         const isLockedByOther = locks.some(l => l.id === nodeId && l.userId !== currentUserId);
+1021 │         if (isLockedByOther) return false;
+1022 │       }
+1023 │       return true;
+1024 │     });
+1025 │ 
+1026 │     if (filteredChanges.length === 0) return;
+1027 │ 
+1028 │     const isSignificantChange = filteredChanges.some(c => (c.type === 'position' && !c.dragging) || c.type === 'remove' || c.type === 'add');
+1029 │     if (isSignificantChange && !isHistoryAction.current) {
+1030 │       saveHistory();
+1031 │       isDirtyRef.current = true;
+1032 │ 
+1033 │       // Track collaboration action
+1034 │       const primaryChange = filteredChanges.find(c => c.type === 'remove' || c.type === 'add' || (c.type === 'position' && !c.dragging));
+1035 │       if (primaryChange) {
+1036 │         if (primaryChange.type === 'remove') trackAction('removed', 'nodes');
+1037 │         else if (primaryChange.type === 'add') trackAction('added', 'node');
+1038 │         else if (primaryChange.type === 'position') trackAction('moved', 'node');
+1039 │       }
+1040 │     }
+1041 │     if (filteredChanges.every(c => c.type !== 'position' || !c.dragging)) {
+1042 │       isHistoryAction.current = false;
+1043 │     }
+1044 │     onNodesChange(filteredChanges);
+1045 │   }, [onNodesChange, saveHistory, trackAction, locks, currentUserId]);
+1046 │ 
+1047 │   const customOnEdgesChange: OnEdgesChange = useCallback((changes) => {
+1048 │     const isSignificantChange = changes.some(c => c.type === 'remove' || c.type === 'add');
+1049 │     if (isSignificantChange && !isHistoryAction.current) {
+1050 │       saveHistory();
+1051 │       isDirtyRef.current = true;
+1052 │ 
+1053 │       const primaryChange = changes.find(c => c.type === 'remove' || c.type === 'add');
+1054 │       if (primaryChange) {
+1055 │         trackAction(primaryChange.type === 'add' ? 'added' : 'removed', 'connection');
+1056 │       }
+1057 │     }
+1058 │     isHistoryAction.current = false;
+1059 │     onEdgesChange(changes);
+1060 │   }, [onEdgesChange, saveHistory, trackAction]);
+1061 │ 
+1062 │   const canvasAllNodesSections = useMemo(
+1063 │     () => buildCanvasAllNodesSections(Object.keys(nodeTypes)),
+1064 │     [nodeTypes]
+1065 │   );
+1066 │ 
+1067 │   const resolveInput = useCallback((nodeId: string, handleId: string, originalHandleId = handleId) => {
+1068 │     if (handleId === 'global-canvas-images') {
+1069 │       return nodesRef.current
+1070 │         .filter(n => n.type === 'imageElement')
+1071 │         .map(n => ({ id: n.id, url: n.data.imageUrl as string, label: n.data.label as string }));
+1072 │     }
+1073 │     const currentEdges = edgesRef.current;
+1074 │     const currentNodes = nodesRef.current;
+1075 │     const incoming = currentEdges.filter((e) => e.target === nodeId && e.targetHandle === handleId);
+1076 │     if (incoming.length === 0) return null;
+1077 │     const results: any[] = [];
+1078 │     for (const edge of incoming) {
+1079 │       const sourceNode = currentNodes.find((n) => n.id === edge.source);
+1080 │       if (!sourceNode) continue;
+1081 │       if (sourceNode.data?.muted) {
+1082 │         const sourceInputEdges = currentEdges.filter(e => e.target === sourceNode.id);
+1083 │         for (const srcEdge of sourceInputEdges) {
+1084 │           const bypassed = resolveInput(sourceNode.id, srcEdge.targetHandle!, originalHandleId);
+1085 │           if (bypassed !== null && bypassed !== undefined) {
+1086 │             if (Array.isArray(bypassed)) results.push(...bypassed);
+1087 │             else results.push(bypassed);
+1088 │           }
+1089 │         }
+1090 │         continue;
+1091 │       }
+1092 │       const sd = sourceNode.data as any;
+1093 │       const sh = edge.sourceHandle;
+1094 │       if ((sourceNode.type === 'textNode' || sourceNode.type === 'prompt' || sourceNode.type === 'text') && (sh === 'text-out' || sh === 'prompt-out' || !sh) && (sd.text || sd.prompt)) results.push(sd.text || sd.prompt);
+1095 │       else if (sourceNode.type === 'textLLM' && sh === 'text-out' && sd.resultText) results.push(sd.resultText);
+1096 │       else if (sourceNode.type === 'imageToPrompt' && sh === 'prompt-out' && sd.outputPrompt) results.push(sd.outputPrompt);
+1097 │       else if (sourceNode.type === 'improvePrompt' && sh === 'prompt-out' && sd.outputPrompt) results.push(sd.outputPrompt);
+1098 │       else if (sourceNode.type === 'imageNode' && sd.images?.length) {
+1099 │         results.push(...sd.images.map((img: any) => (typeof img === 'string' ? img : (img?.url || img?.src || img?.image || img?.outputImage || null))).filter(Boolean));
+1100 │       } else if (sourceNode.type === 'imageElement' && sd.imageUrl) {
+1101 │         results.push(sd.imageUrl);
+1102 │       } else if (sourceNode.type === 'routerNode') {
+1103 │         const routedInput = resolveInput(sourceNode.id, 'in', originalHandleId);
+1104 │         if (routedInput !== null && routedInput !== undefined) {
+1105 │           if (Array.isArray(routedInput)) results.push(...routedInput);
+1106 │           else results.push(routedInput);
+1107 │         }
+1108 │       } else if (sourceNode.type === 'layerEditor') {
+1109 │         if (sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
+1110 │         if (sh === 'video-out' && sd.outputVideo) results.push(sd.outputVideo);
+1111 │       } else if (sourceNode.type === 'facialEditing' && sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
+1112 │       else if (sourceNode.type === 'groupEditing') {
+1113 │         if (sh === 'images-out' && sd.outputImages) results.push(...sd.outputImages);
+1114 │         if (sh === 'video-out' && sd.outputVideo) results.push(sd.outputVideo);
+1115 │       } else if (sourceNode.type === 'videoImprove' && sh === 'video-out' && sd.outputVideo) results.push(sd.outputVideo);
+1116 │       else if (sourceNode.type === 'imageAnalyzer') {
+1117 │         if (sh === 'analysis-out' && sd.analysisResult) results.push(sd.analysisResult);
+1118 │         if (sh === 'image-out' && sd.localImages?.length) results.push(...sd.localImages);
+1119 │       } else if (sourceNode.type === 'generator') {
+1120 │         if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1121 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1122 │       } else if (sourceNode.type === 'creativeUpscale') {
+1123 │         if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1124 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1125 │       } else if (sourceNode.type === 'precisionUpscale' && sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1126 │       else if (sourceNode.type === 'relight') {
+1127 │         if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1128 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1129 │       } else if (sourceNode.type === 'styleTransfer') {
+1130 │         if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1131 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1132 │       } else if (sourceNode.type === 'removeBackground' && sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1133 │       else if (sourceNode.type === 'fluxReimagine') {
+1134 │         if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1135 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1136 │       } else if (sourceNode.type === 'textToIcon') {
+1137 │         if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1138 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1139 │       } else if (sourceNode.type === 'imageToPrompt' && sh === 'prompt-out' && sd.outputPrompt) results.push(sd.outputPrompt);
+1140 │       else if (sourceNode.type === 'improvePrompt' && sh === 'prompt-out' && sd.outputPrompt) results.push(sd.outputPrompt);
+1141 │       else if (sourceNode.type === 'aiImageClassifier' && sh === 'text-out' && sd.outputText) results.push(sd.outputText);
+1142 │       else if (sourceNode.type === 'musicGeneration') {
+1143 │         if (sh === 'output-audio' && sd.outputAudio) results.push(sd.outputAudio);
+1144 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1145 │       } else if (sourceNode.type === 'soundEffects') {
+1146 │         if (sh === 'output-audio' && sd.outputAudio) results.push(sd.outputAudio);
+1147 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1148 │       } else if (sourceNode.type === 'audioIsolation') {
+1149 │         if (sh === 'output-audio' && sd.outputAudio) results.push(sd.outputAudio);
+1150 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1151 │       } else if (sourceNode.type === 'voiceover' && sh === 'output-audio' && sd.outputAudio) results.push(sd.outputAudio);
+1152 │       else if (sourceNode.type === 'fluxImageExpand') {
+1153 │         if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1154 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1155 │       } else if (sourceNode.type === 'seedreamExpand') {
+1156 │         if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1157 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1158 │       } else if (sourceNode.type === 'ideogramExpand') {
+1159 │         if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1160 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1161 │       } else if (sourceNode.type === 'skinEnhancer' && sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1162 │       else if (sourceNode.type === 'ideogramInpaint') {
+1163 │         if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1164 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1165 │       } else if (sourceNode.type === 'changeCamera' && sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+1166 │       else if (sourceNode.type === 'kling3') {
+1167 │         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1168 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1169 │       } else if (sourceNode.type === 'kling3Omni') {
+1170 │         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1171 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1172 │       } else if (sourceNode.type === 'kling3Motion') {
+1173 │         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1174 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1175 │       } else if (sourceNode.type === 'klingElementsPro') {
+1176 │         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1177 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1178 │       } else if (sourceNode.type === 'klingO1') {
+1179 │         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1180 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1181 │       } else if (sourceNode.type === 'minimaxLive') {
+1182 │         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1183 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1184 │       } else if (sourceNode.type === 'wan26') {
+1185 │         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1186 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1187 │       } else if (sourceNode.type === 'seedance') {
+1188 │         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1189 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1190 │       } else if (sourceNode.type === 'ltxVideo2Pro') {
+1191 │         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1192 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1193 │       } else if (sourceNode.type === 'runwayGen45') {
+1194 │         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1195 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1196 │       } else if (sourceNode.type === 'runwayGen4Turbo') {
+1197 │         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1198 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1199 │       } else if (sourceNode.type === 'runwayActTwo' && sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1200 │       else if (sourceNode.type === 'omniHuman') {
+1201 │         if (sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1202 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1203 │       } else if (sourceNode.type === 'vfx' && sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1204 │       else if (sourceNode.type === 'creativeVideoUpscale' && sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1205 │       else if (sourceNode.type === 'precisionVideoUpscale' && sh === 'output' && sd.outputVideo) results.push(sd.outputVideo);
+1206 │       else if (sourceNode.type === 'quiverTextToVector' && sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
+1207 │       else if (sourceNode.type === 'quiverImageToVector' && sh === 'image-out' && sd.outputImage) results.push(sd.outputImage);
+1208 │       else if (sourceNode.type === 'tripo3d' && sh === 'model-out' && sd.outputModelUrl) results.push(sd.outputModelUrl);
+1209 │       else if (sourceNode.type === 'adaptedPrompt' && sh === 'prompt-out' && sd.adaptedPrompt) results.push(sd.adaptedPrompt);
+1210 │       else if (sourceNode.type === 'universalGeneratorImage') {
+1211 │         if (sh === 'output') {
+1212 │           if (sd.outputImages?.length) results.push(...sd.outputImages);
+1213 │           else if (sd.outputImage) results.push(sd.outputImage);
+1214 │         }
+1215 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1216 │       } else if (sourceNode.type === 'universalGeneratorVideo') {
+1217 │         if (sh === 'output-video' && sd.outputVideo) results.push(sd.outputVideo);
+1218 │         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
+1219 │       } else if (sourceNode.type === 'sourceMediaNode') {
+1220 │         if (sh === 'image-out' && sd.mediaFiles?.length) results.push(...sd.mediaFiles.filter((m: any) => m.type === 'image').map((m: any) => m.url));
+1221 │         if (sh === 'video-out' && sd.mediaFiles?.length) results.push(...sd.mediaFiles.filter((m: any) => m.type === 'video').map((m: any) => m.url));
+1222 │         if (sh === 'audio-out' && sd.mediaFiles?.length) results.push(...sd.mediaFiles.filter((m: any) => m.type === 'audio').map((m: any) => m.url));
+1223 │         if (sh === 'output' && sd.mediaFiles?.length) results.push(...sd.mediaFiles.map((m: any) => m.url));
+1224 │       }
+1225 │     }
+1226 │     const dataType = getHandleDataType(originalHandleId);
+1227 │     if (dataType === 'image' || dataType === 'video' || dataType === 'audio') return results;
+1228 │     if (results.length === 1) return results[0];
+1229 │     return results.length > 0 ? results.join('\n') : null;
+1230 │   }, []);
+1231 │ 
+1232 │   const hasConnection = useCallback((nodeId: string, handleId: string) => {
+1233 │     return isHandleConnected(nodeId, handleId, edgesRef.current);
+1234 │   }, []);
+1235 │ 
+1236 │   const getConnectionInfo = useCallback((nodeId: string, handleId: string) => {
+1237 │     return getConnectionInfoBase(nodeId, handleId, edgesRef.current, nodesRef.current);
+1238 │   }, []);
+1239 │ 
+1240 │   const canvasContextValue = useMemo(() => ({
+1241 │     updateNodeData,
+1242 │     resolveInput,
+1243 │     hasConnection,
+1244 │     getConnectionInfo,
+1245 │     onAnalyzeComplete,
+1246 │     onUnlink,
+1247 │     onDisconnectNode,
+1248 │     onCreateNode,
+1249 │   }), [updateNodeData, resolveInput, hasConnection, getConnectionInfo, onAnalyzeComplete, onUnlink, onDisconnectNode, onCreateNode]);
+1250 │ 
+1251 │   const onDragOver = useCallback((event: React.DragEvent) => {
+1252 │     event.preventDefault();
+1253 │     const hasFiles = event.dataTransfer.types.includes('Files');
+1254 │     const hasUrl = event.dataTransfer.types.includes('text/uri-list');
+1255 │     
+1256 │     if (hasFiles || hasUrl) {
+1257 │       event.dataTransfer.dropEffect = 'copy';
+1258 │     } else {
+1259 │       event.dataTransfer.dropEffect = 'move';
+1260 │     }
+1261 │   }, []);
+1262 │ 
+1263 │   const onDrop = useCallback(
+1264 │     async (event: React.DragEvent) => {
+1265 │       event.preventDefault();
+1266 │       
+1267 │       const type = event.dataTransfer.getData('application/reactflow');
+1268 │       
+1269 │       if (!rfInstance) return;
+1270 │       const position = rfInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+1271 │ 
+1272 │       // Handle external files (dragged from local machine)
+1273 │       if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+1274 │         const newNodes: Node[] = [];
+1275 │         const files = Array.from(event.dataTransfer.files);
+1276 │         
+1277 │         for (let i = 0; i < files.length; i++) {
+1278 │           const file = files[i];
+1279 │           const hasImageExtension = /\.(jpeg|jpg|png|gif|webp|svg|tiff|bmp)$/i.test(file.name);
+1280 │           const hasVideoExtension = /\.(mp4|webm|ogg|mov)$/i.test(file.name);
+1281 │           const hasAudioExtension = /\.(mp3|wav|ogg|flac|m4a)$/i.test(file.name);
+1282 │ 
+1283 │           const isExplicitlyNotMedia = file.type !== '' && !file.type.startsWith('image/') && !file.type.startsWith('video/') && !file.type.startsWith('audio/');
+1284 │           
+1285 │           if (!isExplicitlyNotMedia || hasImageExtension || hasVideoExtension || hasAudioExtension) {
+1286 │             const node = await createMediaNodeFromFile(file, { x: 0, y: 0 });
+1287 │             if (node) newNodes.push(node);
+1288 │           }
+1289 │         }
+1290 │         
+1291 │         if (newNodes.length > 0) {
+1292 │           const staggeredNodes = staggerNodes(newNodes, position);
+1293 │           setNodes((nds) => nds.concat(staggeredNodes));
+1294 │           saveHistory();
+1295 │         }
+1296 │         // Always return if files were dragged, to prevent falling through to the URL logic
+1297 │         // which might incorrectly process the file's local path (file://) as a remote URL.
+1298 │         return;
+1299 │       }
+1300 │ 
+1301 │       // Handle dragged image URLs (e.g. from another tab)
+1302 │       const imageUrl = event.dataTransfer.getData('text/uri-list') || 
+1303 │                       event.dataTransfer.getData('URL') ||
+1304 │                       event.dataTransfer.getData('text/plain');
+1305 │       
+1306 │       // Check if it's a data URL for an image, or a URL that looks like an image
+1307 │       const isDataUrl = imageUrl && imageUrl.startsWith('data:image/');
+1308 │       const isImageUrl = imageUrl && (imageUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) || imageUrl.includes('images.unsplash.com') || imageUrl.includes('image'));
+1309 │       
+1310 │       // NEVER allow file:// URLs to be treated as remote images, it causes security errors
+1311 │       const isLocalFileUrl = imageUrl && imageUrl.startsWith('file://');
+1312 │ 
+1313 │       if ((isDataUrl || isImageUrl) && !isLocalFileUrl) {
+1314 │         // Strip out any trailing newlines or extra URLs (text/uri-list can have multiple, we'll take the first)
+1315 │         const cleanUrl = imageUrl.split('\n')[0].trim();
+1316 │         
+1317 │         const newNode: Node = { 
+1318 │           id: nextId(), 
+1319 │           type: 'imageElement', 
+1320 │           position, 
+1321 │           data: { 
+1322 │             label: 'Remote Image',
+1323 │             imageUrl: cleanUrl,
+1324 │             onUpdate: updateNodeData
+1325 │           } 
+1326 │         };
+1327 │         setNodes((nds) => nds.concat(newNode));
+1328 │         saveHistory();
+1329 │         return;
+1330 │       }
+1331 │ 
+1332 │       if (!type) return;
+1333 │       
+1334 │       let defaults: any = { label: type };
+1335 │       const draggedDefaults = event.dataTransfer.getData('application/reactflow-defaults');
+1336 │       if (draggedDefaults) {
+1337 │         try {
+1338 │           defaults = JSON.parse(draggedDefaults);
+1339 │         } catch (e) {
+1340 │           console.error("Failed to parse dragged defaults", e);
+1341 │         }
+1342 │       } else {
+1343 │         for (const section of NODE_MENU) {
+1344 │           const item = section.items.find(i => i.type === type);
+1345 │           if (item && item.defaults) {
+1346 │             defaults = item.defaults;
+1347 │             break;
+1348 │           }
+1349 │         }
+1350 │       }
+1351 │       const newNode: Node = { id: nextId(), type, position, data: { ...defaults } };
+1352 │       setNodes((nds) => nds.concat(newNode));
+1353 │       saveHistory();
+1354 │     },
+1355 │     [rfInstance, saveHistory, setNodes]
+1356 │   );
+1357 │ 
+1358 │   const showContextMenu = useCallback(
+1359 │     (event: any, selectedNodes: Node[]) => {
+1360 │       event.preventDefault();
+1361 │       const pane = reactFlowWrapper.current?.getBoundingClientRect();
+1362 │       if (!pane) return;
+1363 │       const hasClipboard = clipboardRef.current || (clipboardNodes && clipboardNodes.length > 0);
+1364 │       let menuItems: any[] = [];
+1365 │       if (selectedNodes && selectedNodes.length > 0) {
+1366 │         menuItems.push({ label: 'Cut', action: 'cut', shortcut: '⌘X' });
+1367 │         menuItems.push({ label: 'Copy', action: 'copy', shortcut: '⌘C' });
+1368 │         menuItems.push({ label: 'Duplicate', action: 'duplicate', shortcut: '⌘D' });
+1369 │         menuItems.push({ label: 'Clear node contents', action: 'clear_contents', shortcut: '⌘⇧X' });
+1370 │         menuItems.push({ label: 'Disconnect Nodes', action: 'disconnect_nodes', shortcut: '⌘⇧D', icon: <DisconnectIcon /> });
+1371 │         menuItems.push({ type: 'divider' });
+1372 │         if (selectedNodes.length > 1) {
+1373 │           menuItems.push({ label: 'Grid Nodes', action: 'grid_nodes', icon: <GridIcon /> });
+1374 │           menuItems.push({ label: 'Stack Nodes', action: 'stack_nodes' });
+1375 │           menuItems.push({ label: 'Align Left', action: 'align_left' });
+1376 │           menuItems.push({ label: 'Align Center', action: 'align_center' });
+1377 │           menuItems.push({ label: 'Align Right', action: 'align_right' });
+1378 │           menuItems.push({ label: 'Compose collage', action: 'compose_collage', icon: <CollageIcon /> });
+1379 │           menuItems.push({ label: 'Create Workflow', action: 'create_workflow', icon: <WorkflowIcon /> });
+1380 │           menuItems.push({ label: 'Save as Template', action: 'save_as_template' });
+1381 │           menuItems.push({ type: 'divider' });
+1382 │         }
+1383 │         menuItems.push({ label: 'Save as Asset', action: 'create_element' });
+1384 │         if (selectedNodes.length === 1) {
+1385 │           const node = selectedNodes[0];
+1386 │           const hasImageOutput = (node.data as any).outputImage || (node.data as any).outputImages?.length || (node.data as any).imageUrl || (node.data as any).images?.length;
+1387 │           const hasVideoOutput = (node.data as any).outputVideo || (node.data as any).videoUrl;
+1388 │           if (hasImageOutput || hasVideoOutput) {
+1389 │             menuItems.push({ label: 'Add to Layer', action: 'add_to_layer' });
+1390 │           }
+1391 │         }
+1392 │       }
+1393 │       if (hasClipboard) {
+1394 │         const pasteItem = { label: 'Paste', action: 'paste', shortcut: '⌘V' };
+1395 │         const dupIndex = menuItems.findIndex(i => i.action === 'duplicate');
+1396 │         if (dupIndex !== -1) menuItems.splice(dupIndex + 1, 0, pasteItem);
+1397 │         else menuItems.unshift(pasteItem);
+1398 │       }
+1399 │       setMenu({
+1400 │         x: event.clientX - pane.left,
+1401 │         y: event.clientY - pane.top,
+1402 │         items: [...menuItems, ...(menuItems.length > 0 ? [{ type: 'divider' }] : []), { label: 'Take Screenshot', action: 'screenshot', shortcut: '⌘⇧S' }],
+1403 │         selectedNodes,
+1404 │       });
+1405 │     },
+1406 │     [clipboardNodes, setMenu]
+1407 │   );
+1408 │ 
+1409 │   const onPaneContextMenu = useCallback(
+1410 │     (event: any) => {
+1411 │       const selNodes = nodes.filter(n => n.selected);
+1412 │       showContextMenu(event, selNodes);
+1413 │     },
+1414 │     [nodes, showContextMenu]
+1415 │   );
+1416 │ 
+1417 │   const onNodeContextMenu = useCallback(
+1418 │     (event: any, node: Node) => {
+1419 │       const selNodes = nodes.filter(n => n.selected);
+1420 │       const nodesToShow = selNodes.some(n => n.id === node.id) ? selNodes : [node];
+1421 │       showContextMenu(event, nodesToShow);
+1422 │     },
+1423 │     [nodes, showContextMenu]
+1424 │   );
+1425 │ 
+1426 │   const onSelectionContextMenu = useCallback(
+1427 │     (event: any, selection: Node[]) => {
+1428 │       showContextMenu(event, selection);
+1429 │     },
+1430 │     [showContextMenu]
+1431 │   );
+1432 │ 
+1433 │   const handleExportScreenshot = useCallback(async () => {
+1434 │     try {
+1435 │       await exportCanvasViewportToPng({
+1436 │         reactFlowWrapper: reactFlowWrapper,
+1437 │         fileName: `\${activeWorkflowName || 'workflow'}-screenshot.png`,
+1438 │       });
+1439 │     } catch (error) {
+1440 │       console.error('Failed to export canvas screenshot:', error);
+1441 │     }
+1442 │   }, [activeWorkflowName]);
+1443 │ 
+1444 │   const handleMenuAction = (action: string, data: any) => {
+1445 │     if (action !== 'screenshot') saveHistory();
+1446 │     const { selectedNodes } = data;
+1447 │     switch (action) {
+1448 │       case 'create_element':
+1449 │         if (selectedNodes?.length > 0) {
+1450 │           const last = selectedNodes[selectedNodes.length - 1];
+1451 │           const newAsset: Node = {
+1452 │             id: nextId(),
+1453 │             type: 'assetNode',
+1454 │             position: { x: last.position.x + 300, y: last.position.y },
+1455 │             data: {
+1456 │               label: 'New Asset',
+1457 │               images: selectedNodes.reduce((acc: any[], node: Node) => {
+1458 │                 if ((node.data as any).outputImage) return [...acc, (node.data as any).outputImage];
+1459 │                 if ((node.data as any).outputVideo) return [...acc, (node.data as any).outputVideo];
+1460 │                 return acc;
+1461 │               }, []),
+1462 │             },
+1463 │           };
+1464 │           setNodes((nds) => [...nds, newAsset]);
+1465 │           if (firebaseAssets.create) {
+1466 │             const assetPayload: import('./types/asset').CreateAssetPayload = {
+1467 │               name: (newAsset.data.label as string) || 'New Asset',
+1468 │               images: Array.isArray(newAsset.data.images) ? newAsset.data.images : [],
+1469 │             };
+1470 │             firebaseAssets.create(assetPayload).catch(console.error);
+1471 │           }
+1472 │         }
+1473 │         break;
+1474 │       case 'duplicate':
+1475 │         if (selectedNodes?.length > 0) {
+1476 │           const newNodes = selectedNodes.map((node: Node) => ({
+1477 │             ...node,
+1478 │             id: nextId(),
+1479 │             selected: true,
+1480 │             position: { x: node.position.x + 50, y: node.position.y + 50 }
+1481 │           }));
+1482 │           setNodes(nds => [...nds.map(n => ({ ...n, selected: false })), ...newNodes]);
+1483 │         }
+1484 │         break;
+1485 │       case 'compose_collage':
+1486 │         if (selectedNodes?.length > 0) {
+1487 │           const last = selectedNodes[selectedNodes.length - 1];
+1488 │           const newAsset: Node = {
+1489 │             id: nextId(),
+1490 │             type: 'assetNode',
+1491 │             position: { x: last.position.x + 300, y: last.position.y },
+1492 │             data: {
+1493 │               label: 'Collage',
+1494 │               images: selectedNodes.reduce((acc: any[], node: Node) => {
+1495 │                 if ((node.data as any).outputImage) return [...acc, (node.data as any).outputImage];
+1496 │                 if ((node.data as any).outputVideo) return [...acc, (node.data as any).outputVideo];
+1497 │                 return acc;
+1498 │               }, []),
+1499 │             },
+1500 │           };
+1501 │           setNodes((nds) => [...nds, newAsset]);
+1502 │         }
+1503 │         break;
+1504 │       case 'clear_contents':
+1505 │         if (selectedNodes?.length > 0) {
+1506 │           setNodes(nds => nds.map(n => {
+1507 │             if (!n.selected) return n;
+1508 │             const newData = { ...n.data as any };
+1509 │             if (newData.text !== undefined) newData.text = '';
+1510 │             if (newData.images) newData.images = [];
+1511 │             if (newData.inputPrompt) newData.inputPrompt = '';
+1512 │             if (newData.outputImage) newData.outputImage = null;
+1513 │             if (newData.outputVideo) newData.outputVideo = null;
+1514 │             return { ...n, data: newData };
+1515 │           }));
+1516 │         }
+1517 │         break;
+1518 │       case 'disconnect_nodes':
+1519 │         if (selectedNodes?.length > 0) {
+1520 │           const ids = new Set(selectedNodes.map((n: Node) => n.id));
+1521 │           setEdges(eds => eds.filter(e => !ids.has(e.source) && !ids.has(e.target)));
+1522 │         }
+1523 │         break;
+1524 │       case 'align_left':
+1525 │         if (selectedNodes?.length > 1) {
+1526 │           const minX = Math.min(...selectedNodes.map((n: Node) => n.position.x));
+1527 │           setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, x: minX } } : n));
+1528 │         }
+1529 │         break;
+1530 │       case 'align_right':
+1531 │         if (selectedNodes?.length > 1) {
+1532 │           const maxX = Math.max(...selectedNodes.map((n: Node) => n.position.x + (n.measured?.width || 200)));
+1533 │           setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, x: maxX - (n.measured?.width || 200) } } : n));
+1534 │         }
+1535 │         break;
+1536 │       case 'align_center':
+1537 │       case 'align_center_h':
+1538 │         if (selectedNodes?.length > 1) {
+1539 │           const avgX = selectedNodes.reduce((sum: number, n: Node) => sum + n.position.x + (n.measured?.width || 200) / 2, 0) / selectedNodes.length;
+1540 │           setNodes(nds => nds.map(n => n.selected ? { ...n, position: { ...n.position, x: avgX - (n.measured?.width || 200) / 2 } } : n));
+1541 │         }
+1542 │         break;
+1543 │       case 'save_as_template':
+1544 │         if (selectedNodes?.length > 0) setShowTemplateModal(true);
+1545 │         break;
+1546 │       case 'create_workflow':
+1547 │         if (selectedNodes?.length > 0) {
+1548 │           const name = `Workflow ${workflows.length + 1}`;
+1549 │           const ids = new Set(selectedNodes.map((n: Node) => n.id));
+1550 │           const newWf = {
+1551 │             id: nextId(),
+1552 │             name,
+1553 │             nodes: selectedNodes.map((node: Node) => ({
+1554 │               ...node,
+1555 │               selected: false,
+1556 │               position: { x: node.position.x - selectedNodes[0].position.x, y: node.position.y - selectedNodes[0].position.y }
+1557 │             })),
+1558 │             edges: edges.filter(e => ids.has(e.source) && ids.has(e.target)),
+1559 │             createdAt: new Date().toISOString(),
+1560 │             updatedAt: new Date().toISOString()
+1561 │           };
+1562 │           setWorkflows([...workflows, newWf]);
+1563 │           setLastGeneratedWorkflow(newWf);
+1564 │         }
+1565 │         break;
+1566 │       case 'grid_nodes':
+1567 │         if (selectedNodes?.length > 1) {
+1568 │           const startX = selectedNodes[0].position.x;
+1569 │           const startY = selectedNodes[0].position.y;
+1570 │           const cols = Math.ceil(Math.sqrt(selectedNodes.length));
+1571 │           let idx = 0;
+1572 │           setNodes(nds => nds.map(n => {
+1573 │             if (!n.selected) return n;
+1574 │             const r = Math.floor(idx / cols);
+1575 │             const c = idx % cols;
+1576 │             idx++;
+1577 │             return { ...n, position: { x: startX + c * 350, y: startY + r * 400 } };
+1578 │           }));
+1579 │         }
+1580 │         break;
+1581 │       case 'copy':
+1582 │       case 'cut':
+1583 │         if (selectedNodes?.length > 0) {
+1584 │           const nodesToCopy = selectedNodes.map((node: Node) => ({ ...node, selected: false }));
+1585 │           setClipboardNodes(nodesToCopy);
+1586 │           clipboardRef.current = nodesToCopy;
+1587 │           try {
+1588 │             navigator.clipboard.writeText(JSON.stringify({ type: 'nodespace-nodes', nodes: nodesToCopy, copiedAt: new Date().toISOString() }));
+1589 │           } catch (e) { /* ignore */ }
+1590 │           if (action === 'cut') setNodes(nds => nds.filter(n => !selectedNodes.find((sn: Node) => sn.id === n.id)));
+1591 │         }
+1592 │         break;
+1593 │       case 'paste':
+1594 │         const pasteFromClipboard = async () => {
+1595 │           let nodesToPaste = clipboardRef.current || clipboardNodes;
+1596 │           try {
+1597 │             const text = await navigator.clipboard.readText();
+1598 │             if (text) {
+1599 │               const parsed = JSON.parse(text);
+1600 │               if (parsed.type === 'nodespace-nodes' && parsed.nodes) nodesToPaste = parsed.nodes;
+1601 │             }
+1602 │           } catch (e) { /* ignore */ }
+1603 │           if (nodesToPaste?.length > 0) {
+1604 │             const count = (pastePositionRef.current?.count || 0) + 1;
+1605 │             pastePositionRef.current = { count };
+1606 │             const offsetX = 50 * (count % 10);
+1607 │             const offsetY = 50 * (count % 10);
+1608 │             let baseX, baseY;
+1609 │             if (data.x !== undefined && rfInstance) {
+1610 │               const flowPos = rfInstance.screenToFlowPosition({ x: data.x, y: data.y });
+1611 │               baseX = flowPos.x; baseY = flowPos.y;
+1612 │             } else if (rfInstance) {
+1613 │               const center = rfInstance.screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+1614 │               baseX = center.x; baseY = center.y;
+1615 │             } else {
+1616 │               baseX = nodesToPaste[0].position.x + offsetX; baseY = nodesToPaste[0].position.y + offsetY;
+1617 │             }
+1618 │             const minX = Math.min(...nodesToPaste.map((n: Node) => n.position.x));
+1619 │             const minY = Math.min(...nodesToPaste.map((n: Node) => n.position.y));
+1620 │             const newNodes = nodesToPaste.map((node: Node) => ({
+1621 │               ...node,
+1622 │               id: nextId(),
+1623 │               selected: true,
+1624 │               position: { x: baseX + (node.position.x - minX), y: baseY + (node.position.y - minY) },
+1625 │               data: { ...node.data }
+1626 │             }));
+1627 │             setNodes(nds => [...nds.map(n => ({ ...n, selected: false })), ...newNodes]);
+1628 │             saveHistory();
+1629 │           }
+1630 │         };
+1631 │         pasteFromClipboard();
+1632 │         break;
+1633 │       case 'screenshot':
+1634 │         handleExportScreenshot();
+1635 │         break;
+1636 │       case 'add_to_layer':
+1637 │         if (selectedNodes?.length === 1) {
+1638 │           const sourceNode = selectedNodes[0];
+1639 │           let layerNode = nodesRef.current.find(n => n.type === 'layerEditor');
+1640 │ 
+1641 │           if (!layerNode) {
+1642 │             // Create a new layer editor node if none exists
+1643 │             const id = nextId();
+1644 │             layerNode = {
+1645 │               id,
+1646 │               type: 'layerEditor',
+1647 │               position: { x: sourceNode.position.x + 400, y: sourceNode.position.y },
+1648 │               data: { label: 'Layer Editor', outputImage: null }
+1649 │             };
+1650 │             setNodes(nds => [...nds, layerNode!]);
+1651 │           }
+1652 │ 
+1653 │           // Find the correct source handle
+1654 │           const sd = sourceNode.data as any;
+1655 │           let sourceHandle = 'output';
+1656 │           let targetHandle = 'image-in';
+1657 │ 
+1658 │           if (sd.outputVideo || sd.videoUrl || sourceNode.type?.includes('Video')) {
+1659 │             targetHandle = 'video-in';
+1660 │             if (sourceNode.type === 'sourceMediaNode') sourceHandle = 'video-out';
+1661 │             else if (sourceNode.type === 'vfx' || sourceNode.type === 'creativeVideoUpscale' || sourceNode.type === 'precisionVideoUpscale') sourceHandle = 'output-video';
+1662 │             else if (sourceNode.type === 'layerEditor') sourceHandle = 'video-out';
+1663 │             else sourceHandle = 'output-video';
+1664 │           } else {
+1665 │             if (sourceNode.type === 'sourceMediaNode' || sourceNode.type === 'imageElement') sourceHandle = 'image-out';
+1666 │             else if (sourceNode.type === 'imageToPrompt' || sourceNode.type === 'improvePrompt') sourceHandle = 'prompt-out';
+1667 │             else if (sourceNode.type === 'imageNode' || sourceNode.type === 'assetNode') sourceHandle = 'output';
+1668 │             else if (sourceNode.type === 'imageAnalyzer' || sourceNode.type === 'facialEditing' || sourceNode.type === 'layerEditor') sourceHandle = 'image-out';
+1669 │           }
+1670 │ 
+1671 │           const newEdge: Edge = {
+1672 │             id: nextId(),
+1673 │             source: sourceNode.id,
+1674 │             target: layerNode.id,
+1675 │             sourceHandle,
+1676 │             targetHandle,            style: { strokeWidth: 2 }
+1677 │           };
+1678 │           
+1679 │           setEdges(eds => {
+1680 │             // Avoid duplicate edges
+1681 │             if (eds.some(e => e.source === newEdge.source && e.target === newEdge.target && e.sourceHandle === newEdge.sourceHandle && e.targetHandle === newEdge.targetHandle)) {
+1682 │               return eds;
+1683 │             }
+1684 │             return [...eds, newEdge];
+1685 │           });
+1686 │         }
+1687 │         break;
+1688 │     }
+1689 │     setMenu(null);
+1690 │   };
+1691 │ 
+1692 │   useEffect(() => {
+1693 │     const handleKeyDown = (e: KeyboardEvent) => {
+1694 │       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName) || (e.target as HTMLElement).isContentEditable) return;
+1695 │       const cmdOrCtrl = isMacOS ? e.metaKey : e.ctrlKey;
+1696 │       if (cmdOrCtrl && e.key.toLowerCase() === 'k') {
+1697 │         e.preventDefault();
+1698 │         window.dispatchEvent(new CustomEvent('open-command-palette'));
+1699 │         return;
+1700 │       }
+1701 │       if (cmdOrCtrl && e.key.toLowerCase() === 'z') {
+1702 │         e.preventDefault();
+1703 │         if (e.shiftKey) handleRedo(); else handleUndo();
+1704 │       } else if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 's') {
+1705 │         e.preventDefault(); handleExportScreenshot();
+1706 │       } else if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'd') {
+1707 │         e.preventDefault(); handleMenuAction('disconnect_nodes', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
+1708 │       } else if (cmdOrCtrl && e.key.toLowerCase() === 'd') {
+1709 │         e.preventDefault(); handleMenuAction('duplicate', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
+1710 │       } else if (cmdOrCtrl && e.key.toLowerCase() === 'c') {
+1711 │         e.preventDefault(); handleMenuAction('copy', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
+1712 │       } else if (cmdOrCtrl && e.key.toLowerCase() === 'x') {
+1713 │         e.preventDefault(); handleMenuAction('cut', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
+1714 │       } else if (cmdOrCtrl && e.key.toLowerCase() === 'v') {
+1715 │         e.preventDefault(); handleMenuAction('paste', { x: window.innerWidth / 2, y: window.innerHeight / 2 });
+1716 │       } else if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'x') {
+1717 │         e.preventDefault(); handleMenuAction('clear_contents', { selectedNodes: rfInstance?.getNodes().filter(n => n.selected) });
+1718 │       } else if (cmdOrCtrl && e.key === '.') {
+1719 │         e.preventDefault(); setShowKeyboardShortcuts(true);
+1720 │       } else if (cmdOrCtrl && e.key.toLowerCase() === 'a') {
+1721 │         e.preventDefault(); setNodes(nds => nds.map(n => ({ ...n, selected: true })));
+1722 │       } else if (e.key === 'Escape') {
+1723 │         setNodes(nds => nds.map(n => ({ ...n, selected: false })));
+1724 │         setEdges(eds => eds.map(e => ({ ...e, selected: false })));
+1725 │       } else if (cmdOrCtrl && e.key === '1') {
+1726 │         e.preventDefault(); rfInstance?.fitView();
+1727 │       } else if (cmdOrCtrl && e.key === '2') {
+1728 │         const sel = rfInstance?.getNodes().filter(n => n.selected);
+1729 │         if (sel?.length && rfInstance) {
+1730 │           e.preventDefault();
+1731 │           rfInstance.fitView({ padding: 0.2, duration: 800, nodes: [{ id: sel[0].id }] });
+1732 │         }
+1733 │       } else if (e.key === ' ') {
+1734 │         if (!canvasSearch.open) {
+1735 │           e.preventDefault();
+1736 │           // Use current mouse position if available, or center
+1737 │           const x = lastMousePos.current.x;
+1738 │           const y = lastMousePos.current.y;
+1739 │           setCanvasSearch({ open: true, x, y });
+1740 │         }
+1741 │       } else if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key) {
+1742 │         const key = e.key.toLowerCase();
+1743 │         let typeToAdd = null;
+1744 │         switch (key) {
+1745 │           case 't': typeToAdd = 'textNode'; break;
+1746 │           case 'c': typeToAdd = 'comment'; break;
+1747 │           case 'l': typeToAdd = 'layerEditor'; break;
+1748 │           case 'a': typeToAdd = 'assetNode'; break;
+1749 │           case 'b': typeToAdd = 'groupEditing'; break;
+1750 │           case 'r': typeToAdd = 'routerNode'; break;
+1751 │           case 'f': {
+1752 │             const sel = rfInstance?.getNodes().filter(n => n.selected);
+1753 │             if (sel?.length) {
+1754 │               e.preventDefault();
+1755 │               setNodes(nds => nds.map(n => n.selected ? { ...n, data: { ...n.data as any, folded: !(n.data as any).folded } } : n));
+1756 │             }
+1757 │             return;
+1758 │           }
+1759 │           case 'v': setActiveTool('select'); return;
+1760 │           case 's': setActiveTool('slice'); return;
+1761 │           case 'm': {
+1762 │             const sel = rfInstance?.getNodes().filter(n => n.selected);
+1763 │             if (sel?.length) {
+1764 │               e.preventDefault();
+1765 │               setNodes(nds => nds.map(n => n.selected ? { ...n, data: { ...n.data as any, muted: !(n.data as any).muted } } : n));
+1766 │             }
+1767 │             return;
+1768 │           }
+1769 │           case 'i': setViewMode(prev => prev === 'editor' ? 'interface' : 'editor'); return;
+1770 │           case 'u': typeToAdd = 'sourceMediaNode'; break;
+1771 │           case 'h': window.dispatchEvent(new CustomEvent('open-search-history')); return;
+1772 │         }
+1773 │         if (typeToAdd) {
+1774 │           e.preventDefault();
+1775 │           saveHistory();
+1776 │           let x = 300, y = 300;
+1777 │           if (rfInstance) {
+1778 │             const center = rfInstance.screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+1779 │             x = center.x; y = center.y;
+1780 │           }
+1781 │           let defaults: any = { label: typeToAdd };
+1782 │           for (const section of NODE_MENU) {
+1783 │             const item = section.items.find((i: any) => i.type === typeToAdd);
+1784 │             if (item?.defaults) { defaults = item.defaults; break; }
+1785 │           }
+1786 │           const newNode: Node = { id: nextId(), type: typeToAdd, position: { x, y }, data: { ...defaults } };
+1787 │           setNodes(nds => [...nds, newNode]);
+1788 │           setTimeout(() => {
+1789 │             const el = document.querySelector(`[data-id="${newNode.id}"]`) as HTMLElement;
+1790 │             if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+1791 │           }, 100);
+1792 │         }
+1793 │       }
+1794 │     };
+1795 │     window.addEventListener('keydown', handleKeyDown);
+1796 │     return () => window.removeEventListener('keydown', handleKeyDown);
+1797 │   }, [handleUndo, handleRedo, rfInstance, setNodes, saveHistory, handleExportScreenshot, isMacOS]);
+1798 │ 
+1799 │   // Handle-level disconnect (Alt + Click on a handle)
+1800 │   useEffect(() => {
+1801 │     const handleGlobalClick = (e: MouseEvent) => {
+1802 │       if (e.altKey) {
+1803 │         const target = e.target as HTMLElement;
+1804 │         const handleEl = target.closest('.react-flow__handle');
+1805 │         if (handleEl) {
+1806 │           e.preventDefault();
+1807 │           e.stopPropagation();
+1808 │           const nodeId = handleEl.getAttribute('data-nodeid');
+1809 │           const handleId = handleEl.getAttribute('data-handleid');
+1810 │ 
+1811 │           if (nodeId && handleId) {
+1812 │             saveHistory();
+1813 │             setEdges(eds => eds.filter(edge => {
+1814 │               const isMatch = (edge.source === nodeId && edge.sourceHandle === handleId) ||
+1815 │                               (edge.target === nodeId && edge.targetHandle === handleId);
+1816 │               return !isMatch;
+1817 │             }));
+1818 │           }
+1819 │         }
+1820 │       }
+1821 │     };
+1822 │     
+1823 │     // Use capture phase to intercept before React Flow handles the click
+1824 │     window.addEventListener('click', handleGlobalClick, { capture: true });
+1825 │     return () => window.removeEventListener('click', handleGlobalClick, { capture: true });
+1826 │   }, [setEdges, saveHistory]);
+1827 │ 
+1828 │   const handleSliceStart = useCallback((e: React.PointerEvent) => {
+1829 │     if (activeTool === 'slice') {
+1830 │       e.stopPropagation();
+1831 │       setSliceStart({ x: e.clientX, y: e.clientY });
+1832 │       setSliceCurrent({ x: e.clientX, y: e.clientY });
+1833 │     }
+1834 │   }, [activeTool]);
+1835 │ 
+1836 │   const handleSliceMove = useCallback((e: React.PointerEvent) => {
+1837 │     if (activeTool === 'slice' && sliceStart) {
+1838 │       e.stopPropagation();
+1839 │       setSliceCurrent({ x: e.clientX, y: e.clientY });
+1840 │     }
+1841 │   }, [activeTool, sliceStart]);
+1842 │ 
+1843 │   const handleSliceEnd = useCallback((e: React.PointerEvent) => {
+1844 │     if (activeTool === 'slice' && sliceStart && sliceCurrent) {
+1845 │       e.stopPropagation();
+1846 │       const end = { x: e.clientX, y: e.clientY };
+1847 │       const dx = end.x - sliceStart.x;
+1848 │       const dy = end.y - sliceStart.y;
+1849 │       const distance = Math.sqrt(dx * dx + dy * dy);
+1850 │       const steps = Math.max(10, Math.floor(distance / 2));
+1851 │ 
+1852 │       const edgeIdsToRemove = new Set<string>();
+1853 │ 
+1854 │       for (let i = 0; i <= steps; i++) {
+1855 │         const x = sliceStart.x + (dx * i) / steps;
+1856 │         const y = sliceStart.y + (dy * i) / steps;
+1857 │         const elements = document.elementsFromPoint(x, y);
+1858 │         for (const el of elements) {
+1859 │           if (el.classList.contains('react-flow__edge-path') || el.classList.contains('react-flow__edge-interaction')) {
+1860 │             const edgeWrapper = el.closest('.react-flow__edge');
+1861 │             if (edgeWrapper) {
+1862 │               const id = edgeWrapper.getAttribute('data-id');
+1863 │               if (id) edgeIdsToRemove.add(id);
+1864 │             }
+1865 │           }
+1866 │         }
+1867 │       }
+1868 │ 
+1869 │       if (edgeIdsToRemove.size > 0) {
+1870 │         saveHistory();
+1871 │         setEdges((eds) => eds.filter(edge => !edgeIdsToRemove.has(edge.id)));
+1872 │       }
+1873 │ 
+1874 │       setSliceStart(null);
+1875 │       setSliceCurrent(null);
+1876 │     } else if (activeTool === 'slice') {
+1877 │       setSliceStart(null);
+1878 │       setSliceCurrent(null);
+1879 │     }
+1880 │   }, [activeTool, sliceStart, sliceCurrent, saveHistory, setEdges]);
+1881 │ 
+1882 │   const handleRenameSubmit = () => {
+1883 │     if (newWorkflowName.trim() && activeWorkflowId) {
+1884 │       setWorkflows(prev => prev.map(wf => wf.id === activeWorkflowId ? { ...wf, name: newWorkflowName.trim() } : wf));
+1885 │     }
+1886 │     setIsRenameModalOpen(false);
+1887 │   };
+1888 │ 
+1889 │   const handleDuplicateWorkspace = useCallback(() => {
+1890 │     if (activeWorkflowId) {
+1891 │       const wf = workflows.find(w => w.id === activeWorkflowId);
+1892 │       if (wf) {
+1893 │         const newId = Date.now().toString();
+1894 │         const newWf = { ...wf, id: newId, name: wf.name + ' (Copy)' };
+1895 │         setWorkflows(prev => [...prev, newWf]);
+1896 │         setActiveWorkflowId(newId);
+1897 │         setNodes(wf.nodes || []);
+1898 │         setEdges(wf.edges || []);
+1899 │       }
+1900 │     }
+1901 │   }, [activeWorkflowId, workflows, setNodes, setEdges]);
+1902 │ 
+1903 │   const workflowRunRef = useRef(false);
+1904 │   const handleRunWorkflow = useCallback(async (nodeIdFilterSet?: Set<string>) => {
+1905 │     if (workflowRunRef.current) return;
+1906 │     const hasScope = nodeIdFilterSet instanceof Set && nodeIdFilterSet.size > 0;
+1907 │     const inScope = (n: Node) => !hasScope || nodeIdFilterSet!.has(n.id);
+1908 │     workflowRunRef.current = true;
+1909 │     setIsRunning(true);
+1910 │     if (!nodesRef.current?.length) { setIsRunning(false); workflowRunRef.current = false; return; }
+1911 │     try {
+1912 │       const analyzers = nodesRef.current.filter(n => inScope(n) && (n.type === 'imageAnalyzer' || n.type === 'aiImageClassifier'));
+1913 │       if (analyzers.length > 0) {
+1914 │         const promises = analyzers.map(a => new Promise<void>(resolve => {
+1915 │           analyzeResolvers.current[a.id] = resolve;
+1916 │           updateNodeData(a.id, { triggerAnalyze: Date.now() });
+1917 │         }));
+1918 │         await Promise.race([Promise.all(promises), new Promise(r => setTimeout(r, 60000))]);
+1919 │       }
+1920 │       const textNodes = nodesRef.current.filter(n => inScope(n) && (n.type === 'imageToPrompt' || n.type === 'improvePrompt' || n.type === 'textLLM' || n.type === 'aiImageClassifier' || n.type === 'imageAnalyzer'));
+1921 │       for (const t of textNodes) updateNodeData(t.id, { triggerGenerate: Date.now() });
+1922 │       if (textNodes.length > 0) await new Promise(r => setTimeout(r, 4000));
+1923 │       const types = [
+1924 │         'generator', 'creativeUpscale', 'precisionUpscale', 'relight', 'styleTransfer',
+1925 │         'removeBackground', 'fluxReimagine', 'textToIcon', 'fluxImageExpand',
+1926 │         'seedreamExpand', 'ideogramExpand', 'skinEnhancer', 'ideogramInpaint',
+1927 │         'facialEditing', 'groupEditing', 'changeCamera', 'kling3', 'kling3Omni',
+1928 │         'kling3Motion', 'klingElementsPro', 'klingO1', 'minimaxLive', 'wan26',
+1929 │         'seedance', 'ltxVideo2Pro', 'runwayGen45', 'runwayGen4Turbo', 'runwayActTwo',
+1930 │         'pixVerseV5Transition', 'omniHuman', 'vfx', 'creativeVideoUpscale',
+1931 │         'precisionVideoUpscale', 'strudelNode', 'musicGeneration', 'soundEffects', 'audioIsolation',
+1932 │         'voiceover', 'videoImprove',
+1933 │         'universalGeneratorImage', 'universalGeneratorVideo', 'universalGeneratorAudio', 'tripo3d',
+1934 │         'quiverImageToVector', 'quiverTextToVector',
+1935 │       ];
+1936 │       for (const t of types) {
+1937 │         nodesRef.current.filter(n => inScope(n) && n.type === t).forEach(n => updateNodeData(n.id, { triggerGenerate: Date.now() }));
+1938 │       }
+1939 │       setTimeout(() => { workflowRunRef.current = false; setIsRunning(false); }, 2000);
+1940 │     } catch (e) { console.error(e); workflowRunRef.current = false; setIsRunning(false); }
+1941 │   }, [updateNodeData]);
+1942 │ 
+1943 │   const getNextBoardName = useCallback(() => {
+1944 │     const boards = workflows.filter((w: any) => (w.name || w.title || '').startsWith('Board '));
+1945 │     let maxNum = 0;
+1946 │     boards.forEach((b: any) => {
+1947 │       const nm = b.name || b.title || '';
+1948 │       const match = nm.match(/Board (\d+)/);
+1949 │       if (match) {
+1950 │         const num = parseInt(match[1], 10);
+1951 │         if (num > maxNum) maxNum = num;
+1952 │       }
+1953 │     });
+1954 │     return `Board ${(maxNum + 1).toString().padStart(2, '0')}`;
+1955 │   }, [workflows]);
+1956 │ 
+1957 │   const handleCreateWorkflow = useCallback(async (name: string, existingId?: string | null | undefined, aiOptions: any = undefined) => {
+1958 │     const id = existingId || undefined;
+1959 │     if (id && !['system-test', 'ai', 'scratch', 'import'].includes(aiOptions?.type)) {
+1960 │       setActiveWorkflowId(id);
+1961 │       const fbWf = await loadFirebaseWorkflow(id);
+1962 │       if (fbWf) { setNodes(fbWf.nodes); setEdges((fbWf.edges || []) as Edge[]); subscribe(id); }
+1963 │       else { const local = workflows.find(w => w.id === id); if (local) { setNodes(local.nodes); setEdges((local.edges || []) as Edge[]); } }
+1964 │       setCurrentPage('editor');
+1965 │     } else if (aiOptions?.type === 'system-test') {
+1966 │       const all: any[] = []; let x = 50, y = 50;
+1967 │       NODE_MENU.forEach((s: any) => {
+1968 │         let col = 0; s.items.forEach((i: any) => {
+1969 │           all.push({ id: `test_${i.type}_${Math.random().toString(36).substr(2, 9)}`, type: i.type, position: { x, y }, data: i.defaults ? JSON.parse(JSON.stringify(i.defaults)) : { label: i.label } });
+1970 │           x += 320; col++; if (col >= 4) { col = 0; x = 50; y += 250; }
+1971 │         });
+1972 │         x = 50; y += 400;
+1973 │       });
+1974 │       const newWf = await createFirebaseWorkflow(name || 'System Test Workflow', all, []);
+1975 │       if (newWf) { setActiveWorkflowId(newWf.id); setNodes(all); setEdges([]); subscribe(newWf.id); }
+1976 │       setCurrentPage('editor');
+1977 │     } else if (aiOptions?.type === 'ai' && aiOptions.aiPrompt) {
+1978 │       try {
+1979 │         const res: any = await generateAIWorkflow(aiOptions.aiPrompt, aiOptions.aiMode || 'standard');
+1980 │         if (res.success && res.workflow) {
+1981 │           const newWf = await createFirebaseWorkflow(res.workflow.name || name, res.workflow.nodes, res.workflow.edges);
+1982 │           if (newWf) { setActiveWorkflowId(newWf.id); setNodes(res.workflow.nodes); setEdges(res.workflow.edges as Edge[]); subscribe(newWf.id); }
+1983 │           else {
+1984 │             const id = `wf_\${Date.now()}`;
+1985 │             const local = { id, name: res.workflow.name || name, nodes: res.workflow.nodes, edges: res.workflow.edges };
+1986 │             setWorkflows(p => [...p, local]); setActiveWorkflowId(id); setNodes(res.workflow.nodes); setEdges(res.workflow.edges as Edge[]);
+1987 │           }
+1988 │         }
+1989 │       } catch (e) {
+1990 │         const id = `wf_${Date.now()}`;
+1991 │         const newWf = { id, name, nodes: DEFAULT_NODES, edges: [] };
+1992 │         setWorkflows(p => [...p, newWf]); setActiveWorkflowId(id); setNodes(DEFAULT_NODES); setEdges([]);
+1993 │       }
+1994 │       setCurrentPage('editor');
+1995 │     } else if (aiOptions?.type === 'import' && Array.isArray(aiOptions.importedNodes)) {
+1996 │       const ns = aiOptions.importedNodes, es = aiOptions.importedEdges || [], wn = aiOptions.importName || name || getNextBoardName();
+1997 │       const newWf = await createFirebaseWorkflow(wn, ns, es);
+1998 │       if (newWf) { setActiveWorkflowId(newWf.id); setNodes(ns); setEdges(es); subscribe(newWf.id); }
+1999 │       else { const id = `wf_${Date.now()}`; setWorkflows(p => [...p, { id, name: wn, nodes: ns, edges: es }]); setActiveWorkflowId(id); setNodes(ns); setEdges(es); }
+2000 │       setCurrentPage('editor');
+2001 │     } else if (aiOptions?.type === 'scratch') {
+2002 │       const newWf = await createFirebaseWorkflow(name, [], []);
+2003 │       if (newWf) { setActiveWorkflowId(newWf.id); setNodes([]); setEdges([]); subscribe(newWf.id); }
+2004 │       setCurrentPage('editor');
+2005 │     } else {
+2006 │       const newWf = await createFirebaseWorkflow(name, DEFAULT_NODES, DEFAULT_EDGES);
+2007 │       if (newWf) { setActiveWorkflowId(newWf.id); setNodes(DEFAULT_NODES); setEdges(DEFAULT_EDGES); subscribe(newWf.id); }
+2008 │       setCurrentPage('editor');
+2009 │     }
+2010 │   }, [workflows, setNodes, setEdges, createFirebaseWorkflow, loadFirebaseWorkflow, subscribe, getNextBoardName]);
+2011 │ 
+2012 │   const handleImportWorkflowFile = useCallback(async (file: File) => {
+2013 │     try {
+2014 │       const text = await file.text(); 
+2015 │       const parsed: any = JSON.parse(text);
+2016 │       let ns: any[] = [], es: any[] = [], wn = parsed.name || file.name.replace(/\.json$/i, '') || getNextBoardName();
+2017 │       if (Array.isArray(parsed.nodes)) { ns = parsed.nodes; es = parsed.edges || []; }
+2018 │       else if (parsed.workflow?.nodes) { ns = parsed.workflow.nodes; es = parsed.workflow.edges || []; wn = parsed.workflow.name || wn; }
+2019 │       else return alert('Invalid JSON format');
+2020 │       await handleCreateWorkflow(wn, undefined, { type: 'import', importedNodes: ns, importedEdges: es, importName: wn });
+2021 │     } catch (e) { alert('Failed to read file'); }
+2022 │   }, [handleCreateWorkflow, getNextBoardName]);
+2023 │ 
+2024 │   const handleImportGeneratedWorkflow = useCallback(async (wf: { name?: string, nodes: any[], edges: any[] }) => {
+2025 │     await handleCreateWorkflow(wf.name || getNextBoardName(), undefined, {
+2026 │       type: 'import',
+2027 │       importedNodes: wf.nodes,
+2028 │       importedEdges: wf.edges,
+2029 │       importName: wf.name || getNextBoardName()
+2030 │     });
+2031 │   }, [handleCreateWorkflow, getNextBoardName]);
+2032 │ 
+2033 │   const handleMergeGeneratedWorkflow = useCallback((wf: { name?: string, nodes: any[], edges: any[] }) => {
+2034 │     saveHistory();
+2035 │     // Offset nodes so they don't overlap exactly with current ones
+2036 │     const offset = { x: 100, y: 100 };
+2037 │     const maxId = nodesRef.current.length > 0 
+2038 │       ? Math.max(...nodesRef.current.map(n => parseInt(n.id.replace(/\D/g, '') || '0'))) 
+2039 │       : 0;
+2040 │ 
+2041 │     const idMap: Record<string, string> = {};
+2042 │ 
+2043 │     // Process nodes
+2044 │     const newNodes = wf.nodes.map((node, index) => {
+2045 │       const newId = `node_${Date.now()}_${index}`;
+2046 │       idMap[node.id] = newId;
+2047 │       return {
+2048 │         ...node,
+2049 │         id: newId,
+2050 │         position: {
+2051 │           x: (node.position?.x || 0) + offset.x,
+2052 │           y: (node.position?.y || 0) + offset.y
+2053 │         }
+2054 │       };
+2055 │     });
+2056 │ 
+2057 │     // Process edges
+2058 │     const newEdges = wf.edges.map(edge => ({
+2059 │       ...edge,
+2060 │       id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+2061 │       source: idMap[edge.source] || edge.source,
+2062 │       target: idMap[edge.target] || edge.target
+2063 │     }));
+2064 │ 
+2065 │     setNodes(nds => [...nds, ...newNodes]);
+2066 │     setEdges(eds => [...eds, ...newEdges]);
+2067 │     showToast(`Merged ${newNodes.length} nodes into the canvas`, 'success');
+2068 │   }, [setNodes, setEdges, saveHistory, showToast]);
+2069 │ 
+2070 │   const handlePromptWorkflow = useCallback(async (promptText: string) => {
+2071 │ 
+2072 │     const t = promptText?.trim(); if (!t) return;
+2073 │     await handleCreateWorkflow(getNextBoardName(), undefined, { type: 'ai', aiPrompt: t, aiMode: 'standard' });
+2074 │   }, [handleCreateWorkflow, getNextBoardName]);
+2075 │ 
+2076 │   const persistWorkflowState = useCallback(async ({ workflowId, workflowNodes, workflowEdges, includeThumbnail = false, forceThumbnail = false, extraUpdates = {} }: any) => {
+2077 │     if (!workflowId) return;
+2078 │     const updates = { nodes: workflowNodes, edges: workflowEdges, ...extraUpdates };
+2079 │     if (includeThumbnail) {
+2080 │       const sig = buildGraphSignature(workflowNodes, workflowEdges);
+2081 │       const now = Date.now();
+2082 │       if (forceThumbnail || (sig !== lastThumbnailGraphSignatureRef.current && (now - lastThumbnailUploadAtRef.current > 60000))) {
+2083 │         try {
+2084 │           const dataUrl = await captureCanvasViewportPngDataUrl({ reactFlowWrapper: reactFlowWrapper, maxWidth: 1600, maxHeight: 900 });
+2085 │           const res = await uploadWorkflowThumbnail(dataUrl, workflowId);
+2086 │           if (res?.url) { updates.thumbnail = res.url; lastThumbnailUploadAtRef.current = now; lastThumbnailGraphSignatureRef.current = sig; }
+2087 │         } catch (e) { console.warn(e); }
+2088 │       }
+2089 │     }
+2090 │     await saveFirebaseWorkflow(workflowId, updates);
+2091 │     lastSavedGraphSignatureRef.current = buildGraphSignature(workflowNodes, workflowEdges);
+2092 │   }, [buildGraphSignature, saveFirebaseWorkflow]);
+2093 │ 
+2094 │   useEffect(() => {
+2095 │     (window as any).runSystemTest = () => handleCreateWorkflow('System Test Workflow', undefined, { type: 'system-test' });
+2096 │   }, [handleCreateWorkflow]);
+2097 │ 
+2098 │   useEffect(() => {
+2099 │     const handleDirty = () => { isDirtyRef.current = true; };
+2100 │     window.addEventListener('canvas-dirty', handleDirty);
+2101 │     
+2102 │     if (currentPage !== 'editor' || !activeWorkflowId) {
+2103 │       return () => window.removeEventListener('canvas-dirty', handleDirty);
+2104 │     }
+2105 │     
+2106 │     if (!isDirtyRef.current) {
+2107 │       return () => window.removeEventListener('canvas-dirty', handleDirty);
+2108 │     }
+2109 │     
+2110 │     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+2111 │     autosaveTimerRef.current = setTimeout(async () => {
+2112 │       if (autosaveInFlightRef.current) return;
+2113 │       const sig = buildGraphSignature(nodes, edges);
+2114 │       if (sig === lastSavedGraphSignatureRef.current) {
+2115 │         isDirtyRef.current = false;
+2116 │         return;
+2117 │       }
+2118 │       autosaveInFlightRef.current = true;
+2119 │       try {
+2120 │         await persistWorkflowState({
+2121 │           workflowId: activeWorkflowId,
+2122 │           workflowNodes: nodes,
+2123 │           workflowEdges: edges,
+2124 │           includeThumbnail: true
+2125 │         });
+2126 │         isDirtyRef.current = false;
+2127 │       } finally {
+2128 │         autosaveInFlightRef.current = false;
+2129 │       }
+2130 │     }, 5000);
+2131 │     return () => {
+2132 │       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+2133 │       window.removeEventListener('canvas-dirty', handleDirty);
+2134 │     };
+2135 │   }, [activeWorkflowId, buildGraphSignature, currentPage, edges, nodes, persistWorkflowState]);
+2136 │ 
+2137 │   const handleBackToHome = useCallback(async () => {
+2138 │     if (activeWorkflowId) {
+2139 │       await persistWorkflowState({ workflowId: activeWorkflowId, workflowNodes: nodesRef.current, workflowEdges: edgesRef.current, includeThumbnail: true, forceThumbnail: true });
+2140 │       unsubscribe();
+2141 │     }
+2142 │     setCurrentPage('home');
+2143 │   }, [activeWorkflowId, persistWorkflowState, unsubscribe]);
+2144 │ 
+2145 │   const connectionValidator = useCallback((conn: any) => isValidConnection(conn), []);
+2146 │   const defaultEdgeOptions = useMemo(() => ({ type: 'cyber', style: { strokeWidth: 2 } }), []);
+2147 │ 
+2148 │   const handleDeleteWorkflows = async (ids: string[]) => {
+2149 │     setWorkflows(p => p.filter(w => !ids.includes(w.id)));
+2150 │     for (const id of ids) deleteFirebaseWorkflow(id).catch(console.error);
+2151 │   };
+2152 │ 
+2153 │   const handleRenameBoard = useCallback(async (id: string, name: string) => {
+2154 │     if (!name) return;
+2155 │     setWorkflows(p => p.map(w => w.id === id ? { ...w, name } : w));
+2156 │     await saveFirebaseWorkflow(id, { name });
+2157 │   }, [saveFirebaseWorkflow]);
+2158 │ 
+2159 │   const handleDeleteBoard = useCallback(async (id: string) => {
+2160 │     if (id === activeWorkflowId) {
+2161 │       const rem = workflows.filter(w => w.id !== id);
+2162 │       if (rem.length) handleCreateWorkflow(rem[0].name, rem[0].id);
+2163 │       else { setCurrentPage('home'); setActiveWorkflowId(undefined); }
+2164 │     }
+2165 │     handleDeleteWorkflows([id]);
+2166 │   }, [activeWorkflowId, workflows, handleCreateWorkflow]);
+2167 │ 
+2168 │   const handleExportJSON = useCallback(() => {
+2169 │     const b = new Blob([JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }, null, 2)], { type: 'application/json' });
+2170 │     const a = document.createElement('a');
+2171 │     a.href = URL.createObjectURL(b);
+2172 │     a.download = `${activeWorkflowName || 'workflow'}.json`;
+2173 │     a.click();
+2174 │   }, [activeWorkflowName]);
+2175 │ 
+2176 │   const clearCanvas = useCallback(() => {
+2177 │     saveHistory();
+2178 │     setNodes([]);
+2179 │     setEdges([]);
+2180 │   }, [saveHistory, setNodes, setEdges]);
+2181 │ 
+2182 │   const handleApplyActions = useCallback((actions: any[]) => {
+2183 │     if (!actions || !Array.isArray(actions)) return;
+2184 │ 
+2185 │     saveHistory();
+2186 │     const affectedNodeIds: string[] = [];
+2187 │ 
+2188 │     setNodes((nds) => {
+2189 │       let nextNodes = [...nds];
+2190 │       for (const action of actions) {
+2191 │         if (action.action === 'UPDATE_NODE' && action.id) {
+2192 │           affectedNodeIds.push(action.id);
+2193 │           nextNodes = nextNodes.map(n => n.id === action.id ? { ...n, data: { ...n.data, ...action.data, highlighted: true } } : n);
+2194 │         } else if (action.action === 'ADD_NODE' && action.type) {
+2195 │           const id = action.id || `node-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+2196 │           affectedNodeIds.push(id);
+2197 │           nextNodes.push({
+2198 │             id,
+2199 │             type: action.type,
+2200 │             position: action.position || { x: 400, y: 400 },
+2201 │             data: { ...(action.data || {}), label: action.data?.label || action.type, highlighted: true }
+2202 │           });
+2203 │         } else if (action.action === 'DELETE_NODE' && action.id) {
+2204 │           nextNodes = nextNodes.filter(n => n.id !== action.id);
+2205 │         }
+2206 │       }
+2207 │       return nextNodes;
+2208 │     });
+2209 │ 
+2210 │     setEdges((eds) => {
+2211 │       let nextEdges = [...eds];
+2212 │       for (const action of actions) {
+2213 │         if (action.action === 'ADD_EDGE' && action.source && action.target) {
+2214 │           const edgeId = action.id || `e-${action.source}-${action.sourceHandle}-${action.target}-${action.targetHandle}`;
+2215 │           const color = action.sourceHandle ? getHandleColor(action.sourceHandle) : '#fff';
+2216 │           nextEdges.push({
+2217 │             id: edgeId,
+2218 │             source: action.source,
+2219 │             target: action.target,
+2220 │             sourceHandle: action.sourceHandle,
+2221 │             targetHandle: action.targetHandle,
+2222 │             style: { stroke: color, strokeWidth: 2 },
+2223 │           });
+2224 │         } else if (action.action === 'DELETE_EDGE' && action.id) {
+2225 │           nextEdges = nextEdges.filter(e => e.id !== action.id);
+2226 │         } else if (action.action === 'DELETE_NODE' && action.id) {
+2227 │           nextEdges = nextEdges.filter(e => e.source !== action.id && e.target !== action.id);
+2228 │         }
+2229 │       }
+2230 │       return nextEdges;
+2231 │     });
+2232 │ 
+2233 │     if (affectedNodeIds.length > 0) {
+2234 │       showToast(`AI applied ${affectedNodeIds.length} changes to canvas`, 'success');
+2235 │       setTimeout(() => {
+2236 │         setNodes((nds) => nds.map(n => 
+2237 │           affectedNodeIds.includes(n.id) ? { ...n, data: { ...n.data, highlighted: false } } : n
+2238 │         ));
+2239 │       }, 5000);
+2240 │     }
+2241 │ 
+2242 │     isDirtyRef.current = true;
+2243 │   }, [setNodes, setEdges, saveHistory, showToast]);
+2244 │ 
+2245 │   if (authLoading) {
+2246 │ 
+2247 │     return (
+2248 │       <div style={{ width: '100vw', height: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+2249 │         <div style={{ textAlign: 'center' }}>
+2250 │           <div style={{ fontSize: 48, marginBottom: 16, animation: 'spin 1s linear infinite' }}>⟳</div>
+2251 │           <p style={{ color: '#888', fontSize: 14 }}>Initializing authentication...</p>
+2252 │           <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+2253 │         </div>
+2254 │       </div>
+2255 │     );
+2256 │   }
+2257 │ 
+2258 │   if (authError) {
+2259 │     const isApiError = authError.includes('api-key') || authError.includes('API key');
+2260 │     return (
+2261 │       <div style={{ width: '100vw', height: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e0e0e0', padding: 24 }}>
+2262 │         <div style={{ maxWidth: 600, textAlign: 'center' }}>
+2263 │           <div style={{ fontSize: 48, marginBottom: 24 }}>&#9888;</div>
+2264 │           <h2 style={{ fontSize: 24, fontWeight: 600, marginBottom: 16 }}>{isApiError ? 'Firebase API Key Error' : 'Authentication Error'}</h2>
+2265 │           <p style={{ fontSize: 14, color: '#888', marginBottom: 24 }}>{isApiError ? 'The Firebase API key is not valid for this domain.' : authError}</p>
+2266 │           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+2267 │             <button onClick={() => window.location.reload()} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '12px 24px', fontSize: 14, borderRadius: 8, cursor: 'pointer' }}>Retry</button>
+2268 │             <button onClick={() => setAuthError(undefined)} style={{ background: 'transparent', color: '#888', border: '1px solid #444', padding: '12px 24px', fontSize: 14, borderRadius: 8, cursor: 'pointer' }}>Dismiss</button>
+2269 │           </div>
+2270 │         </div>
+2271 │       </div>
+2272 │     );
+2273 │   }
+2274 │ 
+2275 │ 
+2276 │   const renderCurrentPage = () => {
+2277 │   if (!isAuthenticated && currentPage !== 'landing' && !currentPage.startsWith('auth-')) setCurrentPage('landing');
+2278 │   if (!isAuthenticated && currentPage.startsWith('auth-')) {
+2279 │     const initial = currentPage.replace('auth-', '');
+2280 │     return <PageTransition key="auth" className="h-screen w-screen"><AuthPage initialScreen={initial === 'login' || initial === 'signup' ? initial : 'login'} onNavigate={handleNavigate} /></PageTransition>;
+2281 │   }
+2282 │ 
+2283 │   if (showSystemLoading) {
+2284 │     const total = IMAGE_MODELS.length + VIDEO_MODELS.length;
+2285 │     return <PageTransition key="loading" className="h-screen w-screen"><SystemLoadingProcess progress={loadingProgress} isProcessing={isDataLoading} config={{ phases: [{ label: 'Phase 01', value: `Loading ${Object.keys(nodeTypes).length} nodes` }, { label: 'Signal Scan', value: `Loading ${total} models` }], code: `Felix Seeger | ${new Date().toISOString().split('T')[0]}` }} onComplete={() => { sessionStorage.setItem(SLP_KEY, '1'); setShowSystemLoading(false); }} /></PageTransition>;
+2286 │   }
+2287 │ 
+2288 │   if (!isAuthenticated || currentPage === 'landing') {
+2289 │     return (
+2290 │       <PageTransition key="landing" className="h-screen w-screen overflow-hidden">
+2291 │         <div className="app-container">
+2292 │           <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+2293 │           <div className="app-content">
+2294 │             <LandingPage theme={theme} setTheme={setTheme} onCreateWorkflow={handleCreateWorkflow} onDeleteWorkflows={handleDeleteWorkflows} workflows={workflows} onNavigate={handleNavigate} />
+2295 │           </div>
+2296 │         </div>
+2297 │       </PageTransition>
+2298 │     );
+2299 │   }
+2300 │ 
+2301 │   if (currentPage === 'home') {
+2302 │     return (
+2303 │       <PageTransition key="home" className="h-screen w-screen overflow-hidden">
+2304 │         <ProjectsDashboard
+2305 │           projects={workflows}
+2306 │           communityWorkflows={communityWorkflows}
+2307 │           sharedWorkflows={sharedWorkflows}
+2308 │           onShareWorkflow={shareFirebaseWorkflow}
+2309 │           onUnshareWorkflow={unshareFirebaseWorkflow}
+2310 │           onCreateProject={(n) => handleCreateWorkflow(n || getNextBoardName())}
+2311 │           onImportWorkflowFile={handleImportWorkflowFile}
+2312 │           onPromptWorkflow={handlePromptWorkflow}
+2313 │           onOpenProject={(p: any) => handleCreateWorkflow(p.name || p.title || '', p.id)}
+2314 │           onUpdateProject={async (id, up: any) => { setWorkflows(prev => prev.map(w => w.id === id ? { ...w, ...up } : w)); if (saveFirebaseWorkflow) await saveFirebaseWorkflow(id, up); }}
+2315 │           onTogglePublic={async (id, pub) => { const name = (getFirebaseAuth().currentUser?.displayName || getFirebaseAuth().currentUser?.email?.split('@')[0]) || 'User'; await toggleWorkflowPublic(id, pub, name); }}
+2316 │           onDeleteProject={id => handleDeleteWorkflows([id])}
+2317 │           onDuplicateProject={async (p: any) => { if (createFirebaseWorkflow) await createFirebaseWorkflow(`${p.name || p.title} (Copy)`, p.nodes || [], p.edges || []); }}
+2318 │           onCloneProject={async (p: any) => { if (createFirebaseWorkflow) { const res = await createFirebaseWorkflow(`${p.name || p.title} (Cloned)`, p.nodes || [], p.edges || []); if (res) alert('Cloned successfully'); } }}
+2319 │           onLogout={handleLogout}
+2320 │           onOpenProfile={() => setIsProfileModalOpen(true)}
+2321 │           theme={theme}
+2322 │           setTheme={setTheme}
+2323 │         />
+2324 │         <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+2325 │       </PageTransition>
+2326 │     );
+2327 │   }
+2328 │ 
+2329 │   if (currentPage === 'assets') {
+2330 │     return (
+2331 │       <PageTransition key="assets" className="h-screen w-screen overflow-hidden">
+2332 │         <div className="app-container">
+2333 │           <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+2334 │           <div className="app-content" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}><GlobalAssetVault assetsAPI={firebaseAssets} /></div>
+2335 │           <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+2336 │         </div>
+2337 │       </PageTransition>
+2338 │     );
+2339 │   }
+2340 │ 
+2341 │   if (currentPage === 'workspaces') {
+2342 │     return (
+2343 │       <PageTransition key="workspaces" className="h-screen w-screen overflow-hidden">
+2344 │         <div className="app-container">
+2345 │           <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+2346 │           <div className="app-content"><WorkspacesPage onCreateWorkspace={() => setCurrentPage('home')} workspaces={[]} /></div>
+2347 │           <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+2348 │         </div>
+2349 │       </PageTransition>
+2350 │     );
+2351 │   }
+2352 │ 
+2353 │   if (currentPage === 'workflow-settings') {
+2354 │     return (
+2355 │       <PageTransition key="workflow-settings" className="h-screen w-screen overflow-hidden">
+2356 │         <div className="app-container">
+2357 │           <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+2358 │           <div className="app-content"><WorkflowSettingsPage /></div>
+2359 │           <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+2360 │         </div>
+2361 │       </PageTransition>
+2362 │     );
+2363 │   }
+2364 │ 
+2365 │   if (currentPage === 'drawflow' || currentPage === 'node-banana') {
+2366 │     return (
+2367 │       <PageTransition key={currentPage} className="h-screen w-screen overflow-hidden">
+2368 │         <div className="app-container">
+2369 │           <TopBar currentPage={currentPage} onNavigate={handleNavigate} workflowName={undefined} onLogout={handleLogout} onOpenProfile={() => setIsProfileModalOpen(true)} isAuthenticated={isAuthenticated} />
+2370 │           <div className="app-content" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+2371 │             {currentPage === 'drawflow' ? <DrawflowLab /> : <NodeBananaLab />}
+2372 │           </div>
+2373 │           <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+2374 │         </div>
+2375 │       </PageTransition>
+2376 │     );
+2377 │   }
+2378 │ 
+2379 │   return (
+2380 │     <PageTransition key="editor" className="h-screen w-screen overflow-hidden">
+2381 │     <CanvasProvider value={canvasContextValue}>
+2382 │       <div className="app-container">
+2383 │       <TopBar
+2384 │         currentPage={currentPage}
+2385 │         onNavigate={() => handleBackToHome()}
+2386 │         workflowName={activeWorkflowName}
+2387 │         editorMode={editorMode}
+2388 │         onEditorModeChange={setEditorMode}
+2389 │         onCreateWorkflow={() => setIsWorkflowBuilderOpen(true)}
+2390 │         nodes={nodes}
+2391 │         onLogout={handleLogout}
+2392 │         onZoomIn={() => rfInstance?.zoomIn()}
+2393 │         onZoomOut={() => rfInstance?.zoomOut()}
+2394 │         onZoomFit={() => rfInstance?.fitView()}
+2395 │         onUndo={handleUndo}
+2396 │         onRedo={handleRedo}
+2397 │         onRename={() => { setNewWorkflowName(activeWorkflowName); setIsRenameModalOpen(true); }}
+2398 │         onDuplicate={handleDuplicateWorkspace}
+2399 │         isLocked={isLocked}
+2400 │         onLockView={() => setIsLocked(p => !p)}
+2401 │         onOpenProfile={() => setIsProfileModalOpen(true)}
+2402 │         isAuthenticated={isAuthenticated}
+2403 │       />
+2404 │       {isRenameModalOpen && (
+2405 │         <div className="modal-overlay">
+2406 │           <div className="modal-surface">
+2407 │             <h3 className="modal-title">Rename Workspace</h3>
+2408 │             <input autoFocus className="modal-input" type="text" value={newWorkflowName} onChange={e => setNewWorkflowName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleRenameSubmit(); if (e.key === 'Escape') setIsRenameModalOpen(false); }} />
+2409 │             <div className="modal-actions">
+2410 │               <button className="modal-btn modal-btn-secondary" onClick={() => setIsRenameModalOpen(false)}>Cancel</button>
+2411 │               <button className="modal-btn modal-btn-primary" onClick={handleRenameSubmit}>Save</button>
+2412 │             </div>
+2413 │           </div>
+2414 │         </div>
+2415 │       )}
+2416 │       <WorkflowBuilderDrawer
+2417 │         isOpen={isWorkflowBuilderOpen}
+2418 │         onClose={() => setIsWorkflowBuilderOpen(false)}
+2419 │         nodes={nodes}
+2420 │         edges={edges}
+2421 │       />
+2422 │       {shareModal && (
+2423 │         <ShareWorkflowModal
+2424 │           shareModal={shareModal}
+2425 │           shareEmail={shareEmail}
+2426 │           setShareEmail={setShareEmail}
+2427 │           setShareModal={setShareModal}
+2428 │           onShareWorkflow={shareFirebaseWorkflow}
+2429 │           onUnshareWorkflow={unshareFirebaseWorkflow}
+2430 │         />
+2431 │       )}
+2432 │       <EditorTopBar
+2433 │         currentUserId={currentUserId}
+2434 │         nodes={nodes}
+2435 │         edges={edges}
+2436 │         workflowId={activeWorkflowId || undefined}
+2437 │         isPublic={workflows.find(w => w.id === activeWorkflowId)?.isPublic || false}
+2438 │         onTogglePublic={async (pub) => { if (activeWorkflowId) { const name = (getFirebaseAuth().currentUser?.displayName || getFirebaseAuth().currentUser?.email?.split('@')[0]) || 'User'; await toggleWorkflowPublic(activeWorkflowId, pub, name); setWorkflows(p => p.map(w => w.id === activeWorkflowId ? { ...w, isPublic: pub } : w)); } }}
+2439 │         onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
+2440 │         onOpenRecipes={() => setShowPromptRecipes(true)}
+2441 │         onToggleCollaboration={() => setIsCollaborationHubOpen(!isCollaborationHubOpen)}
+2442 │         onShare={handleShareWorkflow}
+2443 │         onExportJSON={() => { const b = new Blob([JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${activeWorkflowName}.json`; a.click(); }}
+2444 │         onImportJSON={() => {
+2445 │           const i = document.createElement('input');
+2446 │           i.type = 'file';
+2447 │           i.accept = '.json';
+2448 │           i.onchange = (e: any) => {
+2449 │             const f = e.target.files[0];
+2450 │             if (!f) return;
+2451 │             const r = new FileReader();
+2452 │             r.onload = (ev: any) => {
+2453 │               try {
+2454 │                 const p = JSON.parse(ev.target.result);
+2455 │                 const validation = validateWorkflowData(p);
+2456 │                 
+2457 │                 if (!validation.success) {
+2458 │                   const firstError = validation.error.errors[0];
+2459 │                   throw new Error(`Invalid format: ${firstError.path.join('.')} - ${firstError.message}`);
+2460 │                 }
+2461 │                 
+2462 │                 const data = validation.data;
+2463 │                 if (data.nodes.length === 0 && data.edges.length === 0) {
+2464 │                   throw new Error('Empty workflow: file contains no nodes or edges');
+2465 │                 }
+2466 │                 setNodes(data.nodes);
+2467 │                 setEdges(data.edges);
+2468 │               } catch (err) {
+2469 │                 const msg = err instanceof Error ? err.message : 'Failed to import JSON';
+2470 │                 alert(`Import Error: ${msg}`);
+2471 │ 
+2472 │                 console.error(err);
+2473 │               }
+2474 │             };
+2475 │             r.readAsText(f);
+2476 │           };
+2477 │           i.click();
+2478 │         }}
+2479 │         onSave={() => { if (activeWorkflowId) setWorkflows(p => p.map(w => w.id === activeWorkflowId ? { ...w, nodes: nodesRef.current, edges: edgesRef.current, nodeCount: nodesRef.current.length } : w)); }}
+2480 │         onSaveWithEmbeddedWorkflow={async () => {
+2481 │           if (!activeWorkflowId) return;
+2482 │           try {
+2483 │             const data = { nodes: nodesRef.current, edges: edgesRef.current };
+2484 │             const providers: string[] = [];
+2485 │             nodesRef.current.forEach((n: any) => { if (n.data?.provider) providers.push(n.data.provider); else if (n.type) { const map: any = { 'generator': 'freepik', 'image-analyzer': 'anthropic', 'kling3': 'freepik', 'runway': 'runway', 'music-generation': 'elevenlabs', 'voiceover': 'elevenlabs' }; if (map[n.type]) providers.push(map[n.type]); } });
+2486 │             const outputNodes = nodesRef.current.filter(n => n.type?.includes('Output'));
+2487 │             if (!outputNodes.length) return;
+2488 │             const res = await fetch('/api/embed-workflow', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ output: outputNodes[0].data, workflow: data, providers }) });
+2489 │             const result = await res.json();
+2490 │             if (result.success) setWorkflows(p => p.map(w => w.id === activeWorkflowId ? { ...w, nodes: nodesRef.current, edges: edgesRef.current, nodeCount: nodesRef.current.length, embeddedOutput: result.embeddedOutput, hasEmbeddedWorkflow: true } : w));
+2491 │           } catch (e) { console.error(e); }
+2492 │         }}
+2493 │         
+2494 │         
+2495 │         projectName={activeWorkflowName}
+2496 │         onRenameProject={(n) => { if (activeWorkflowId && n) return handleRenameBoard(activeWorkflowId, n); }}
+2497 │       />
+2498 │       <GlobalProgressBar nodes={nodes} />
+2499 │       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', background: '#1a1a1a' }}>
+2500 │         <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }} onDrop={onDrop} onDragOver={onDragOver}
+2501 │           onMouseMove={(e) => {
+2502 │             lastMousePos.current = { x: e.clientX, y: e.clientY };
+2503 │           }}
+2504 │           onPointerDownCapture={handleSliceStart}
+2505 │           onPointerMoveCapture={handleSliceMove}
+2506 │           onPointerUpCapture={handleSliceEnd}
+2507 │           onPointerCancelCapture={handleSliceEnd}
+2508 │         >
+2509 │           {sliceStart && sliceCurrent && (
+2510 │             <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 9999 }}>
+2511 │               <line 
+2512 │                 x1={sliceStart.x - (reactFlowWrapper.current?.getBoundingClientRect().left || 0)} 
+2513 │                 y1={sliceStart.y - (reactFlowWrapper.current?.getBoundingClientRect().top || 0)} 
+2514 │                 x2={sliceCurrent.x - (reactFlowWrapper.current?.getBoundingClientRect().left || 0)} 
+2515 │                 y2={sliceCurrent.y - (reactFlowWrapper.current?.getBoundingClientRect().top || 0)} 
+2516 │                 stroke="#ef4444" 
+2517 │                 strokeWidth="2" 
+2518 │                 strokeDasharray="4 4" 
+2519 │               />
+2520 │             </svg>
+2521 │           )}
+2522 │           {viewMode === 'interface' && <WorkflowInterface nodes={nodes} edges={edges} onUpdateNodeData={updateNodeData} onRunWorkflow={() => handleRunWorkflow()} onSwitchToEditor={() => setViewMode('editor')} isRunning={isRunning} />}
+2523 │           <GooeyNodesMenu 
+2524 │            nodeMenu={NODE_MENU} 
+2525 │            templates={firebaseTemplates.templates} 
+2526 │            assets={firebaseAssets.assets} 
+2527 │            publicAssets={firebaseAssets.publicAssets}
+2528 │            onCreateAsset={(d: any) => firebaseAssets.create?.({
+2529 │              name: d.name,
+2530 │              images: d.images,
+2531 │              isPublic: d.isPublic ?? false
+2532 │            })} 
+2533 │            onAddNode={addNode} 
+2534 │            onOpenProfile={() => setIsProfileModalOpen(true)} 
+2535 │           />          <LayoutHelper selectedNodes={nodes.filter(n => n.selected)} isVisible={nodes.filter(n => n.selected).length >= 2} onAlign={(a, sn) => { saveHistory(); handleMenuAction(a, { selectedNodes: sn }); }} />
+2536 │           <ReferenceSelection selectedImages={referenceImages} onImagesChange={(d: any) => setReferenceImages(d || [])} />
+2537 │           {currentPage === 'editor' && (
+2538 │             <InspectorPanel
+2539 │               nodes={nodes}
+2540 │               edges={edges}
+2541 │               onUpdateNodeData={updateNodeData}
+2542 │               onDeleteNode={(id) => {
+2543 │                 saveHistory();
+2544 │                 setNodes((nds) => nds.filter((n) => n.id !== id));
+2545 │                 setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+2546 │               }}
+2547 │               onRunNode={(id) => handleRunWorkflow(new Set([id]))}
+2548 │               isRunning={isRunning}
+2549 │               locks={locks}
+2550 │               currentUserId={currentUserId}
+2551 │             />
+2552 │ 
+2553 │           )}
+2554 │           {viewMode === 'editor' && (
+2555 │             <div style={{ position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)', zIndex: 2000 }}>
+2556 │               <CanvasRunToolbar
+2557 │                 onRun={handleRunWorkflow} isRunning={isRunning} edges={edges} selectedNodeIds={selectedCanvasNodeIds}
+2558 │                 onAutoLayout={handleAutoLayout}
+2559 │                 onAddImage={() => addNodeAtViewportCenter('universalGeneratorImage')}
+2560 │                 onAddVideo={() => addNodeAtViewportCenter('universalGeneratorVideo')}
+2561 │                 onAddThreeD={() => addNodeAtViewportCenter('tripo3d')}
+2562 │                 onAddSound={() => addNodeAtViewportCenter('musicGeneration')}
+2563 │                 onAddTextLlm={() => addNodeAtViewportCenter('textLLM')}
+2564 │                 onAddPrompt={() => addNodeAtViewportCenter('textNode')}
+2565 │                 onAddOutput={() => addNodeAtViewportCenter('response')}
+2566 │                 allNodesSections={canvasAllNodesSections}
+2567 │                 onAddNodeFromMenu={(t: string, d: any) => addNodeAtViewportCenter(t, d)}
+2568 │                 onSelectAll={handleSelectAllNodes} onDeselectAll={handleDeselectAllCanvas} onFitView={handleCanvasFitView}
+2569 │                 onOpenBrowseModels={() => setBrowseModelsOpen(true)}
+2570 │               />
+2571 │             </div>
+2572 │           )}
+2573 │           <CanvasNavigation 
+2574 │             onCenterOnNode={() => { const sel = nodes.filter(n => n.selected); if (sel.length && rfInstance) rfInstance.fitView({ padding: 0.2, duration: 800, nodes: [{ id: sel[0].id }] }); }}
+2575 │             onScreenshot={handleExportScreenshot}
+2576 │           />
+2577 │           <KeyboardShortcutsModal isOpen={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
+2578 │           <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} onAddNode={addNodeAtViewportCenter} handleClear={clearCanvas} handleExport={handleExportJSON} />
+2579 │           <PromptRecipeGallery isOpen={showPromptRecipes} onClose={() => setShowPromptRecipes(false)} />
+2580 │           <MegaMenuModelSearch open={browseModelsOpen} onClose={() => setBrowseModelsOpen(false)} onSelect={(k: string, m: string) => handleAddNodeFromMegaMenu(k, m)} />
+2581 │           <div style={{ position: 'absolute', bottom: 96, right: 24, zIndex: 10 }}><Queue nodes={nodes} /></div>
+2582 │           
+2583 │           <div style={{ position: 'absolute', top: 60, right: 20, zIndex: 1000, display: 'flex', gap: '8px', background: '#222', padding: '4px', borderRadius: '8px', border: '1px solid #333' }}>
+2584 │             <button 
+2585 │               type="button" 
+2586 │               onClick={handleExportScreenshot} 
+2587 │               title="Take Snapshot (Cmd/Ctrl+Shift+S)" 
+2588 │               style={{
+2589 │                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+2590 │                 width: '28px', height: '28px', background: 'transparent',
+2591 │                 border: 'none', color: '#e0e0e0', cursor: 'pointer',
+2592 │                 borderRadius: '4px', transition: 'background 0.2s',
+2593 │               }}
+2594 │               onMouseEnter={e => e.currentTarget.style.background = '#333'} 
+2595 │               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+2596 │             >
+2597 │               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+2598 │                 <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+2599 │                 <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.2" />
+2600 │                 <path d="M5 3V1.8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+2601 │                 <path d="M11 3V1.8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+2602 │               </svg>
+2603 │             </button>
+2604 │           </div>
+2605 │ 
+2606 │           <SmartConnectorUI activeConnection={activeConnection} onAutoConnect={handleAutoConnect} />
+2607 │           <ReactFlow
+2608 │             nodes={nodes} edges={edges} onInit={setRfInstance}
+2609 │             onNodesChange={customOnNodesChange} onEdgesChange={customOnEdgesChange}
+2610 │             onConnect={(p) => { saveHistory(); onConnect(p); }} onConnectEnd={handleConnectEnd}
+2611 │             onEdgesDelete={(d) => { saveHistory(); onEdgesDelete(d); }}
+2612 │             onMoveStart={() => { isPanningRef.current = true; beginInteraction(); }}
+2613 │             onMoveEnd={() => { isPanningRef.current = false; endInteraction(); }}
+2614 │             onNodeDragStart={(e, node) => { 
+2615 │               isDraggingNodeRef.current = true; 
+2616 │               beginInteraction(); 
+2617 │               lockNode(node.id);
+2618 │             }}
+2619 │             onNodeDragStop={(e, node) => { 
+2620 │               isDraggingNodeRef.current = false; 
+2621 │               endInteraction(); 
+2622 │               unlockNode(node.id);
+2623 │             }}
+2624 │             onSelectionChange={handleSelectionChange}
+2625 │             onConnectStart={handleConnectStart}
+2626 │             onMouseMove={(e) => {
+2627 │               if (rfInstance) {
+2628 │                 const pos = rfInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
+2629 │                 updateCursor(pos.x, pos.y);
+2630 │               }
+2631 │             }}
+2632 │             isValidConnection={connectionValidator} nodeTypes={nodeTypes} edgeTypes={edgeTypes} defaultEdgeOptions={defaultEdgeOptions}
+2633 │             fitView fitViewOptions={{ padding: 0.1, minZoom: 0.1, maxZoom: 2 }} minZoom={0.1} maxZoom={2}
+2634 │             panOnDrag={isLocked ? false : (activeTool === 'hand' ? [0, 1, 2] : (activeTool === 'slice' ? [1, 2] : [1, 2]))} panOnScroll={false}
+2635 │             selectionOnDrag={activeTool === 'select'} selectionMode={SelectionMode.Partial} selectionKeyCode={activeTool === 'select' ? null : 'Shift'}
+2636 │             multiSelectionKeyCode="Meta" nodeDragThreshold={5} elevateNodesOnSelect elevateEdgesOnSelect
+2637 │             zoomOnScroll={false} nodesDraggable={!isLocked} nodesConnectable={!isLocked} elementsSelectable={!isLocked}
+2638 │             autoPanOnConnect autoPanOnNodeDrag connectionRadius={40} deleteKeyCode={['Backspace', 'Delete']}
+2639 │             colorMode={theme === 'light' ? 'light' : 'dark'} style={{ background: 'transparent' }}
+2640 │             onPaneContextMenu={onPaneContextMenu} onNodeContextMenu={onNodeContextMenu} onSelectionContextMenu={onSelectionContextMenu}
+2641 │             onPaneClick={(e) => { 
+2642 │               setMenu(undefined); 
+2643 │               setCanvasSearch({ ...canvasSearch, open: false }); 
+2644 │               setNodes(nds => nds.map(n => n.selected ? { ...n, selected: false } : n)); 
+2645 │               setEdges(eds => eds.map(e => e.selected ? { ...e, selected: false } : e)); 
+2646 │               if (e.detail === 2) {
+2647 │                 setCanvasSearch({ open: true, x: (e as any).clientX, y: (e as any).clientY });
+2648 │               }
+2649 │             }}
+2650 │ 
+2651 │             >
+2652 │             {canvasSearch.open && (
+2653 │               <CanvasSearch 
+2654 │                 isOpen={canvasSearch.open} 
+2655 │                 position={{ x: canvasSearch.x, y: canvasSearch.y }}
+2656 │                 onClose={() => setCanvasSearch({ ...canvasSearch, open: false })}
+2657 │                 onSelect={(type, defaults) => {
+2658 │                   saveHistory();
+2659 │                   const flowPos = rfInstance?.screenToFlowPosition({ x: canvasSearch.x, y: canvasSearch.y }) || { x: 300, y: 300 };
+2660 │                   const newNode: Node = { 
+2661 │                     id: nextId(), 
+2662 │                     type, 
+2663 │                     position: flowPos, 
+2664 │                     data: { ...defaults } 
+2665 │                   };
+2666 │                   setNodes(nds => [...nds, newNode]);
+2667 │                   setTimeout(() => {
+2668 │                     const el = document.querySelector(`[data-id="${newNode.id}"]`) as HTMLElement;
+2669 │                     if (el) { el.focus(); }
+2670 │                   }, 100);
+2671 │                 }}
+2672 │               />
+2673 │             )}
+2674 │             {menu && (
+2675 │ 
+2676 │               <div style={{ position: 'absolute', top: menu.y, left: menu.x, backgroundColor: 'rgba(30, 30, 30, 0.75)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '10px', zIndex: 1000, minWidth: 220, padding: '6px 0' }}>
+2677 │                 {menu.items.map((item: any, idx: number) => item.type === 'divider' ? <div key={idx} style={{ height: 1, background: 'rgba(255, 255, 255, 0.15)', margin: '6px 0' }} /> : (
+2678 │                   <div key={item.action} onClick={e => { e.stopPropagation(); handleMenuAction(item.action, menu); }} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 16px', margin: '0 6px', borderRadius: 6, color: '#fff', fontSize: 14, cursor: 'default' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+2679 │                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{item.icon}<span>{item.label}</span></div>{item.shortcut && <span style={{ opacity: 0.6, fontSize: 12 }}>{item.shortcut}</span>}
+2680 │                   </div>
+2681 │                 ))}
+2682 │               </div>
+2683 │             )}
+2684 │             <Background 
+2685 │               variant={BackgroundVariant.Dots} 
+2686 │               gap={24} 
+2687 │               size={2} 
+2688 │               color={theme === 'light' ? 'rgba(6, 182, 212, 0.4)' : 'rgba(94, 231, 223, 0.4)'} 
+2689 │               style={{ backgroundColor: theme === 'light' ? '#f0fdfa' : 'var(--bg-blueprint)' }}
+2690 │             />
+2691 │           </ReactFlow>
+2692 │           <CollaboratorPresence />
+2693 │           <NodeLocks />
+2694 │           <CollaborationHub
+2695 │             isOpen={isCollaborationHubOpen}
+2696 │             onClose={() => setIsCollaborationHubOpen(false)}
+2697 │             showToast={showToast}
+2698 │             onShare={handleShareWorkflow}
+2699 │           />
+2700 │ 
+2701 │           <CollaborationPresence />
+2702 │           <ChatButton isOpen={isChatOpen} onClick={() => setIsChatOpen(!isChatOpen)} />
+2703 │           <ChatUI
+2704 │             ref={chatUIRef} 
+2705 │             isOpen={isChatOpen} 
+2706 │             onClose={() => setIsChatOpen(false)}
+2707 │             activeChat={activeChat}
+2708 │             externalMessages={chatMessages as any}
+2709 │             onStartNewConversation={() => { 
+2710 │               startNewConversation(); 
+2711 │               setChatSuggestions([]); 
+2712 │               chatUIRef.current?.clearMessages();
+2713 │             }}
+2714 │             isChatting={isChatting}
+2715 │             suggestions={chatSuggestions}
+2716 │             onAddImageToCanvas={(url) => addNodeAtViewportCenter('imageNode', { imageUrl: url })}
+2717 │             currentUserAvatar={profile?.photoURL || profile?.avatarUri}
+2718 │             currentUserDisplayName={profile?.displayName}
+2719 │             onSendMessage={async (_msg: any) => {
+2720 │               setIsChatting(true);
+2721 │               try {
+2722 │                 // Save user message to Firebase
+2723 │                 await persistChatMessage(_msg, 'user');
+2724 │                 
+2725 │                 // Get AI response from backend
+2726 │                 const history = chatMessages.map(m => ({
+2727 │                   role: (m.role ?? (m as any).type) === 'assistant' ? 'assistant' : 'user',
+2728 │                   content: m.content
+2729 │                 }));
+2730 │                 
+2731 │                 // We add the current canvas state as system context invisibly, stripping out large data
+2732 │                 const strippedNodes = nodesRef.current.map(n => {
+2733 │                   const dataCopy = { ...n.data } as any;
+2734 │                   // Strip out heavy fields to save tokens
+2735 │                   delete dataCopy.outputImage;
+2736 │                   delete dataCopy.outputVideo;
+2737 │                   delete dataCopy.localImages;
+2738 │                   delete dataCopy.mediaFiles;
+2739 │                   delete dataCopy.images;
+2740 │                   delete dataCopy.imageUrl;
+2741 │                   delete dataCopy.executionProgress;
+2742 │                   delete dataCopy.isGenerating;
+2743 │                   return { id: n.id, type: n.type, position: n.position, data: dataCopy };
+2744 │                 });
+2745 │                 
+2746 │                 const canvasContext = {
+2747 │                   nodes: strippedNodes,
+2748 │                   edges: edgesRef.current.map(e => ({ 
+2749 │                     id: e.id, 
+2750 │                     source: e.source, 
+2751 │                     target: e.target, 
+2752 │                     sourceHandle: e.sourceHandle, 
+2753 │                     targetHandle: e.targetHandle 
+2754 │                   }))
+2755 │                 };
+2756 │ 
+2757 │                 const systemContext = `
+2758 │ [SYSTEM: CURRENT CANVAS STATE]
+2759 │ Nodes: ${JSON.stringify(canvasContext.nodes)}
+2760 │ Edges: ${JSON.stringify(canvasContext.edges)}
+2761 │ 
+2762 │ You are an expert AI workflow builder. You can modify the existing canvas by outputting a JSON code block with actions:
+2763 │ \`\`\`json
+2764 │ {
+2765 │   "canvas_actions": [
+2766 │     { "action": "UPDATE_NODE", "id": "node-id", "data": { "param": "value" } },
+2767 │     { "action": "ADD_NODE", "id": "unique-id", "type": "nodeType", "position": {"x":x,"y":y}, "data": {} },
+2768 │     { "action": "DELETE_NODE", "id": "node-id" },
+2769 │     { "action": "ADD_EDGE", "source": "src-id", "target": "dst-id", "sourceHandle": "out", "targetHandle": "in" },
+2770 │     { "action": "DELETE_EDGE", "id": "edge-id" }
+2771 │   ],
+2772 │   "suggestions": ["Follow-up question 1", "Action suggestion 2"]
+2773 │ }
+2774 │ \`\`\`
+2775 │ Return actions if modifications are requested. The 'data' for UPDATE_NODE merges with existing node data.
+2776 │ Always provide 2-4 "suggestions" for the user to continue the conversation or workflow.
+2777 │ 
+2778 │ If the user wants to generate a COMPLETELY NEW workflow from scratch (overwriting the canvas), output a full workflow JSON block:
+2779 │ \`\`\`json
+2780 │ {
+2781 │   "nodes": [
+2782 │     { "id": "n1", "type": "input", "position": {"x": 100, "y": 100}, "data": { "label": "Input" } },
+2783 │     ...
+2784 │   ],
+2785 │   "edges": [
+2786 │     { "id": "e1", "source": "n1", "target": "n2", "sourceHandle": "output", "targetHandle": "input" }
+2787 │   ]
+2788 │ }
+2789 │ \`\`\`
+2790 │ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisionUpscale, relight, styleTransfer, removeBackground, fluxReimagine, fluxImageExpand, seedreamExpand, ideogramExpand, skinEnhancer, ideogramInpaint, kling3, kling3Omni, kling3Motion, wan26, seedance, runwayGen45, runwayGen4Turbo, runwayActTwo, pixVerseV5Transition, omniHuman, vfx, creativeVideoUpscale, precisionVideoUpscale, textToIcon, imageToPrompt, improvePrompt, aiImageClassifier, musicGeneration, soundEffects, audioIsolation, voiceover, response, adaptedPrompt, layerEditor, comment, routerNode, groupEditing, facialEditing, universalGeneratorImage, universalGeneratorVideo, videoImprove, tripo3d, textElement, imageOutput, videoOutput, soundOutput.
+2791 │ `;
+2792 │                 const res: any = await sendChat(_msg, history, systemContext, referenceImages);
+2793 │ 
+2794 │                 if (res.success && res.response) {
+2795 │                   // Save assistant response to Firebase
+2796 │                   await persistChatMessage(res.response, 'assistant');
+2797 │                   
+2798 │                   // Also add to UI directly for immediate feedback (handled by deduplication if Firebase syncs)
+2799 │                   chatUIRef.current?.addMessage({ type: 'assistant', content: res.response });
+2800 │ 
+2801 │                   // Auto-apply actions and suggestions if present
+2802 │                   let actions = res.commands;
+2803 │                   let suggestions = res.suggestions || [];
+2804 │                   
+2805 │                   const jsonMatch = res.response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+2806 │                   if (jsonMatch) {
+2807 │                     try {
+2808 │                       const parsed = JSON.parse(jsonMatch[1]);
+2809 │                       if (parsed.canvas_actions) actions = parsed.canvas_actions;
+2810 │                       if (parsed.suggestions) suggestions = parsed.suggestions;
+2811 │                       
+2812 │                       if (parsed.nodes && parsed.edges) {
+2813 │                         setNodes(parsed.nodes);
+2814 │                         setEdges(parsed.edges);
+2815 │                         showToast('Generated new workflow', 'success');
+2816 │                       }
+2817 │                     } catch (e) { /* ignore parse errors */ }
+2818 │                   }
+2819 │ 
+2820 │                   if (actions && Array.isArray(actions)) {
+2821 │                     handleApplyActions(actions);
+2822 │                   }
+2823 │                   
+2824 │                   if (suggestions && Array.isArray(suggestions)) {
+2825 │                     setChatSuggestions(suggestions);
+2826 │                   }
+2827 │                 } else {
+2828 │                   const errorMsg = 'Error: ' + (res.error?.message || res.message || 'Please try again.');
+2829 │                   chatUIRef.current?.addMessage({ type: 'assistant', content: errorMsg });
+2830 │                 }
+2831 │               } catch (e: any) { 
+2832 │                 chatUIRef.current?.addMessage({ type: 'assistant', content: 'Connection error' }); 
+2833 │               } finally {
+2834 │                 setIsChatting(false);
+2835 │               }
+2836 │             }}
+2837 │             onGenerate={async (_msg: string) => {
+2838 │               if (!_msg?.trim()) return;
+2839 │               setIsChatting(true);
+2840 │               try {
+2841 │                 // Save prompt to chat history
+2842 │                 await persistChatMessage(_msg, 'user');
+2843 │                 
+2844 │                 const context = { capabilities: NODE_TYPE_CAPABILITIES };
+2845 │                 const res: any = await generateAIWorkflow(_msg.trim(), 'standard', context, referenceImages);
+2846 │                 if (res.success && res.workflow) {
+2847 │                   setLastGeneratedWorkflow(res.workflow);
+2848 │                   const newWf = await createFirebaseWorkflow(res.workflow.name || 'AI Generated Workflow', res.workflow.nodes, res.workflow.edges);
+2849 │                   if (newWf) {
+2850 │                     setActiveWorkflowId(newWf.id);
+2851 │                     setNodes(res.workflow.nodes);
+2852 │                     setEdges(res.workflow.edges as Edge[]);
+2853 │                     subscribe(newWf.id);
+2854 │                     
+2855 │                     const successMsg = `Successfully generated workflow: ${newWf.name}`;
+2856 │                     await persistChatMessage(successMsg, 'assistant', { workflowId: newWf.id });
+2857 │                     chatUIRef.current?.addMessage({ type: 'assistant', content: successMsg });
+2858 │                   } else {
+2859 │                     const fallbackMsg = "Generated workflow and applied to canvas.";
+2860 │                     chatUIRef.current?.addMessage({ type: 'assistant', content: fallbackMsg });
+2861 │                     setNodes(res.workflow.nodes);
+2862 │                     setEdges(res.workflow.edges as Edge[]);
+2863 │                   }
+2864 │                 } else {
+2865 │                   const errorMsg = 'Failed to generate workflow. ' + (res.error?.message || '');
+2866 │                   await persistChatMessage(errorMsg, 'assistant');
+2867 │                   chatUIRef.current?.addMessage({ type: 'assistant', content: errorMsg });
+2868 │                 }
+2869 │               } catch (e) {
+2870 │                 console.error('[AI Workflow] Generation error:', e);
+2871 │               } finally {
+2872 │                 setIsChatting(false);
+2873 │               }
+2874 │             }}
+2875 │             isGenerating={isChatting} 
+2876 │             disabled={isChatting} 
+2877 │             referenceImages={referenceImages}
+2878 │             setReferenceImages={setReferenceImages}
+2879 │             assets={firebaseAssets.assets}
+2880 │             onCreateAsset={firebaseAssets.create}
+2881 │             selectedNodes={nodes.filter(n => n.selected)}
+2882 │             lastGeneratedWorkflow={lastGeneratedWorkflow} 
+2883 │             onSetNodes={setNodes} 
+2884 │             onSetEdges={setEdges}
+2885 │             onImportWorkflow={handleImportGeneratedWorkflow}
+2886 │             onMergeWorkflow={handleMergeGeneratedWorkflow}
+2887 │             onApplyActions={handleApplyActions}
+2888 │           />
+2889 │         </div>
+2890 │       </div>
+2891 │       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+2892 │       <OnboardingTour />
+2893 │       <TemplateBuilderModal isOpen={showTemplateModal} onClose={() => setShowTemplateModal(false)} selectedNodes={nodes.filter(n => n.selected)} nodes={nodes} edges={edges} onCreated={async ({ template }: any) => {
+2894 │         setShowTemplateModal(false);
+2895 │         try {
+2896 │           const dataUrl = await captureCanvasViewportPngDataUrl({ reactFlowWrapper: reactFlowWrapper, maxWidth: 1600, maxHeight: 900 });
+2897 │           if (dataUrl) {
+2898 │             const uploadRes = await uploadTemplateThumbnail(dataUrl, template.id);
+2899 │             if (uploadRes && uploadRes.success) {
+2900 │               template.coverImage = uploadRes.url;
+2901 │             }
+2902 │           }
+2903 │         } catch (err) {
+2904 │           console.error("Failed to upload template thumbnail:", err);
+2905 │         }
+2906 │         saveLocalTemplate(template);
+2907 │         if (firebaseTemplates.create) {
+2908 │           firebaseTemplates.create(template).catch(err => showToast(`Failed to save template: ${err.message}`));
+2909 │         }
+2910 │       }} />
+2911 │       <BottomBar workflows={workflows} activeWorkflowId={activeWorkflowId} onSwitchWorkflow={handleCreateWorkflow} onRenameBoard={handleRenameBoard} onDeleteBoard={handleDeleteBoard} />
+2912 │ 
+2913 │       {/* Toast Notification */}
+2914 │       {toast && (
+2915 │         <div style={{
+2916 │           position: 'fixed', bottom: 20, right: 20,
+2917 │           background: toast.type === 'error' ? '#dc2626' : '#16a34a',
+2918 │           color: '#fff', padding: '12px 20px', borderRadius: 8,
+2919 │           fontSize: 14, zIndex: 9999, maxWidth: 400,
+2920 │           boxShadow: '0 10px 15px rgba(0,0,0,0.3)',
+2921 │           wordWrap: 'break-word'
+2922 │         }}>
+2923 │           {toast.message}
+2924 │         </div>
+2925 │       )}
+2926 │     </div>
+2927 │     </CanvasProvider>
+2928 │     </PageTransition>
+2929 │   );
+2930 │   };
+2931 │ 
+2932 │   return (
+2933 │     <AnimatePresence mode="wait">
+2934 │       {renderCurrentPage()}
+2935 │     </AnimatePresence>
+2936 │   );
+2937 │ }

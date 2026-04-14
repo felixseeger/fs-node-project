@@ -29,17 +29,37 @@ const NodeLoadingSkeleton: FC<NodeLoadingSkeletonProps> = ({ width = 240, height
       aria-live="polite"
       aria-label="Loading node component"
     >
-      {/* Target Handles (Left) - Multiple handles to match common IDs */}
-      <Handle type="target" position={Position.Left} id="prompt-in" style={{ top: '20%', opacity: 0 }} />
-      <Handle type="target" position={Position.Left} id="image-in" style={{ top: '40%', opacity: 0 }} />
-      <Handle type="target" position={Position.Left} id="video-in" style={{ top: '60%', opacity: 0 }} />
-      <Handle type="target" position={Position.Left} id="text-in" style={{ top: '80%', opacity: 0 }} />
+      {/* Target Handles (Left) - Comprehensive list of IDs used across the app */}
+      <Handle type="target" position={Position.Left} id="prompt-in" style={{ top: '10%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="image-in" style={{ top: '20%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="video-in" style={{ top: '30%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="video_in" style={{ top: '35%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="audio-in" style={{ top: '40%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="text-in" style={{ top: '50%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="mask-in" style={{ top: '60%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="reference-in" style={{ top: '70%', opacity: 0 }} />
       
-      {/* Source Handles (Right) - Multiple handles to match common IDs */}
-      <Handle type="source" position={Position.Right} id="output" style={{ top: '20%', opacity: 0 }} />
-      <Handle type="source" position={Position.Right} id="prompt-out" style={{ top: '40%', opacity: 0 }} />
+      {/* Specialized/Alias Target Handles */}
+      <Handle type="target" position={Position.Left} id="start-image-in" style={{ top: '20%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="end-image-in" style={{ top: '25%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="image-1-in" style={{ top: '20%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="start-frame-in" style={{ top: '30%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="audio-text-in" style={{ top: '40%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="reference-image-in" style={{ top: '70%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="system-in" style={{ top: '80%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="intensity-in" style={{ top: '90%', opacity: 0 }} />
+      
+      {/* Source Handles (Right) - Comprehensive list of IDs used across the app */}
+      <Handle type="source" position={Position.Right} id="output" style={{ top: '10%', opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="image-out" style={{ top: '20%', opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="video-out" style={{ top: '30%', opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="video_out" style={{ top: '35%', opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="audio-out" style={{ top: '40%', opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="output-audio" style={{ top: '45%', opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="prompt-out" style={{ top: '50%', opacity: 0 }} />
       <Handle type="source" position={Position.Right} id="text-out" style={{ top: '60%', opacity: 0 }} />
-      <Handle type="source" position={Position.Right} id="output-video" style={{ top: '80%', opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="output-video" style={{ top: '70%', opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="video-grab-out" style={{ top: '80%', opacity: 0 }} />
 
       {/* Visual handle indicators (non-functional) */}
       <div 

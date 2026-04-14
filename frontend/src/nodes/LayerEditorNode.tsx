@@ -27,10 +27,14 @@ export default function LayerEditorNode({ id, data, selected }: any) {
   const rawIncomingVideos = resolve.video('video-in') || [];
   const rawIncomingAudio = resolve.audio('audio-in') || [];
 
+  const incomingImages = Array.isArray(rawIncomingImages) ? rawIncomingImages : [rawIncomingImages].filter(Boolean);
+  const incomingVideos = Array.isArray(rawIncomingVideos) ? rawIncomingVideos : [rawIncomingVideos].filter(Boolean);
+  const incomingAudio = Array.isArray(rawIncomingAudio) ? rawIncomingAudio : [rawIncomingAudio].filter(Boolean);
+
   const processedUrlsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    rawIncomingImages.forEach((url: string) => {
+    incomingImages.forEach((url: string) => {
       if (!processedUrlsRef.current.has(url)) {
         addLayer({
           src: url,
@@ -46,7 +50,7 @@ export default function LayerEditorNode({ id, data, selected }: any) {
       }
     });
 
-    rawIncomingVideos.forEach((url: string) => {
+    incomingVideos.forEach((url: string) => {
       if (!processedUrlsRef.current.has(url)) {
         addLayer({
           src: url,
@@ -62,7 +66,7 @@ export default function LayerEditorNode({ id, data, selected }: any) {
       }
     });
     
-    rawIncomingAudio.forEach((url: string) => {
+    incomingAudio.forEach((url: string) => {
       if (!processedUrlsRef.current.has(url)) {
         addLayer({
           src: url,
@@ -77,7 +81,7 @@ export default function LayerEditorNode({ id, data, selected }: any) {
         processedUrlsRef.current.add(url);
       }
     });
-  }, [rawIncomingImages, rawIncomingVideos, rawIncomingAudio, addLayer, layers.length]);
+  }, [incomingImages, incomingVideos, incomingAudio, addLayer, layers.length]);
 
   useEffect(() => {
     if (!playerRef.current) return;
@@ -267,6 +271,7 @@ export default function LayerEditorNode({ id, data, selected }: any) {
           controls
           autoPlay
           loop
+          acknowledgeRemotionLicense={true}
         />
       </div>
 
