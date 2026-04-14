@@ -394,6 +394,8 @@ interface CanvasRunToolbarProps {
   isRunning: boolean;
   edges?: Edge[];
   selectedNodeIds?: string[];
+  currentTool?: 'select' | 'brush';
+  onToolChange?: (tool: 'select' | 'brush') => void;
   onAddImage?: () => void;
   onAddVideo?: () => void;
   onAddThreeD?: () => void;
@@ -419,6 +421,8 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
   isRunning,
   edges = [],
   selectedNodeIds = [],
+  currentTool = 'select',
+  onToolChange,
   onAddImage,
   onAddVideo,
   onAddThreeD,
@@ -482,7 +486,7 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
   const renderGenerateIcon = (key: string) => {
     if (key === 'video') {
       return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <rect x="3" y="6" width="14" height="12" rx="2" />
           <path d="M17 10l4-2v8l-4-2z" />
         </svg>
@@ -490,7 +494,7 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
     }
     if (key === '3d') {
       return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M12 2l8 4.5v11L12 22l-8-4.5v-11L12 2z" />
           <path d="M12 2v20M4 6.5l8 4.5 8-4.5" />
         </svg>
@@ -498,7 +502,7 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
     }
     if (key === 'sound') {
       return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M11 5L6 9H3v6h3l5 4V5z" />
           <path d="M16 9.5a4 4 0 010 5" />
           <path d="M18.5 7a8 8 0 010 10" />
@@ -507,7 +511,7 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
     }
     if (key === 'text') {
       return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M4 5h16" />
           <path d="M4 9h10" />
           <path d="M4 13h16" />
@@ -516,7 +520,7 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
       );
     }
     return (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <rect x="3" y="3" width="18" height="18" rx="3" />
         <circle cx="9" cy="9" r="2" />
         <path d="M21 15l-5-5L5 21" />
@@ -526,6 +530,45 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
 
   return (
     <div style={barStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 2, marginRight: 8 }}>
+        <button
+          type="button"
+          style={{
+            ...itemBtn,
+            padding: '6px 12px',
+            background: currentTool === 'select' ? '#444' : 'transparent',
+            color: currentTool === 'select' ? '#fff' : '#aaa'
+          }}
+          title="Selection Tool (V)"
+          onClick={() => onToolChange?.('select')}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+            <path d="M13 13l6 6" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          style={{
+            ...itemBtn,
+            padding: '6px 12px',
+            background: currentTool === 'brush' ? '#444' : 'transparent',
+            color: currentTool === 'brush' ? '#fff' : '#aaa'
+          }}
+          title="Brush Tool (B)"
+          onClick={() => onToolChange?.('brush')}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+            <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2" />
+            <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8" />
+            <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+          </svg>
+        </button>
+      </div>
+
+      <span style={divider} />
+
       <button
         type="button"
         style={itemBtn}
@@ -533,6 +576,11 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
         onMouseLeave={(e) => hover(e, false)}
         onClick={onAddImage}
       >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4 }}>
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
         Image
       </button>
       <button
@@ -542,6 +590,9 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
         onMouseLeave={(e) => hover(e, false)}
         onClick={onAddVideo}
       >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4 }}>
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
         Video
       </button>
       <button
@@ -551,6 +602,9 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
         onMouseLeave={(e) => hover(e, false)}
         onClick={onAddPrompt}
       >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4 }}>
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
         Prompt
       </button>
 
@@ -565,6 +619,11 @@ const CanvasRunToolbar: FC<CanvasRunToolbarProps> = ({
             setOpenNodes(false);
           }}
         >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4 }}>
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
           Generate
           <Chevron up={openGenerate} />
         </button>

@@ -6,37 +6,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Italiana&family=DM+Sans:wght@300;400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Italiana&family=DM+Sans:wght@300;400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" crossorigin="anonymous">
     <script src="https://unpkg.com/@strudel/web@1.3.0/dist/strudel.standalone.js"></script>
 
+    <script>
+      window.addEventListener('error', e => {
+        if (e.message === 'ResizeObserver loop limit exceeded' || e.message === 'ResizeObserver loop completed with undelivered notifications.') {
+          const viteOverlay = document.querySelector('vite-error-overlay');
+          if (viteOverlay) viteOverlay.remove();
+        }
+      });
+    </script>
+
     <title>Nodespace - Visual AI Pipeline Editor</title>
-    <script type="module" crossorigin src="/assets/index-DCLbRDNF.js"></script>
+    <script type="module" crossorigin src="/assets/index-Ivco-IBi.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-COnpUsM8.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-Gzj2D1l9.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-motion-7J_47Mkd.js">
-    <link rel="modulepreload" crossorigin href="/assets/nodeTokens-D66sVNnF.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-firebase-lGwcXt1-.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-react-BSVnixAc.js">
-    <link rel="modulepreload" crossorigin href="/assets/handleTypes-DXwrP_f4.js">
-    <link rel="modulepreload" crossorigin href="/assets/CanvasContext-CKCcMjFT.js">
-    <link rel="modulepreload" crossorigin href="/assets/useNodeConnections-DA-YcAJr.js">
-    <link rel="modulepreload" crossorigin href="/assets/useNodeProgress-k9ijYvwb.js">
-    <link rel="modulepreload" crossorigin href="/assets/NodeShell-BFqAYVH7.js">
-    <link rel="modulepreload" crossorigin href="/assets/BaseNode-DO0C5xkb.js">
-    <link rel="modulepreload" crossorigin href="/assets/api-AonFz1RY.js">
-    <link rel="modulepreload" crossorigin href="/assets/ImprovePromptButton-WFIKVLFu.js">
-    <link rel="modulepreload" crossorigin href="/assets/NodeControls-DfntGkKm.js">
-    <link rel="modulepreload" crossorigin href="/assets/NodeIcons-BLy1dsZz.js">
-    <link rel="modulepreload" crossorigin href="/assets/shared-B-MWekTC.js">
-    <link rel="modulepreload" crossorigin href="/assets/NodeProgress-B_5xNDPm.js">
-    <link rel="modulepreload" crossorigin href="/assets/nodeCapabilities-DTMJQgLd.js">
-    <link rel="modulepreload" crossorigin href="/assets/videoUniversalGeneratorModels-RxZiOPdn.js">
-    <link rel="modulepreload" crossorigin href="/assets/storageService-DzgWIYd4.js">
-    <link rel="modulepreload" crossorigin href="/assets/historyService-C-QgLgsH.js">
-    <link rel="modulepreload" crossorigin href="/assets/templateStore-hldxT2dt.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-hdQzIgI0.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-motion-CjqQ7sbk.js">
+    <link rel="modulepreload" crossorigin href="/assets/nodeTokens-WS8Pn6CT.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-firebase-CnbDq0g7.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-react-B0AOWCdl.js">
+    <link rel="modulepreload" crossorigin href="/assets/firebase-Dt-VNpFZ.js">
+    <link rel="modulepreload" crossorigin href="/assets/api-DszbTESo.js">
+    <link rel="modulepreload" crossorigin href="/assets/NodeControls-WOSQnJjg.js">
+    <link rel="modulepreload" crossorigin href="/assets/nodeData-noSndr1H.js">
+    <link rel="modulepreload" crossorigin href="/assets/interactionRefs-26jmUB6w.js">
+    <link rel="modulepreload" crossorigin href="/assets/NodeIcons-CoQoLm9p.js">
+    <link rel="modulepreload" crossorigin href="/assets/imageUniversalGeneratorModels-BAR6S9ub.js">
+    <link rel="modulepreload" crossorigin href="/assets/nodeCapabilities-CFbgLYgW.js">
+    <link rel="modulepreload" crossorigin href="/assets/videoUniversalGeneratorModels-DwpltSTN.js">
+    <link rel="modulepreload" crossorigin href="/assets/storageService-BkHBguXx.js">
+    <link rel="modulepreload" crossorigin href="/assets/historyService-CfLYSUEw.js">
+    <link rel="modulepreload" crossorigin href="/assets/templateStore-J5R9spGg.js">
     <link rel="stylesheet" crossorigin href="/assets/vendor-8BOgJ3rR.css">
     <link rel="stylesheet" crossorigin href="/assets/nodeTokens-BmtBphZz.css">
-    <link rel="stylesheet" crossorigin href="/assets/index-B_gBmbQV.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-C3aBy3Fl.css">
   </head>
   <body>
     <div id="root"></div>

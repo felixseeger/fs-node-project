@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { RemotionLayer } from '../types/remotion';
 
 export interface UseLayerManagerReturn {
@@ -9,29 +9,48 @@ export interface UseLayerManagerReturn {
   moveLayerZIndex: (id: string, newZIndex: number) => void;
 }
 
-export function useLayerManager(initialLayers: RemotionLayer[] = []): UseLayerManagerReturn {
+export function useLayerManager(
+  initialLayers: RemotionLayer[] = [],
+  onLayersChange?: (newLayers: RemotionLayer[]) => void
+): UseLayerManagerReturn {
   const [layers, setLayers] = useState<RemotionLayer[]>(initialLayers);
+  
+  // Track initial layers separately to avoid unnecessary triggers
+  useEffect(() => {
+    // Only update if they are fundamentally different to avoid loop
+    if (JSON.stringify(initialLayers) !== JSON.stringify(layers) && initialLayers.length > 0 && layers.length === 0) {
+      setLayers(initialLayers);
+    }
+  }, [initialLayers]);
+
+  // Sync changes safely without side-effects in setters
+  useEffect(() => {
+    onLayersChange?.(layers);
+  }, [layers, onLayersChange]);
 
   const addLayer = useCallback((layer: Omit<RemotionLayer, 'id'>) => {
     const id = crypto.randomUUID();
+    let newId = id;
     
     setLayers((prev) => {
-      // Audio layers default to 10 seconds (300 frames @ 30fps) if not specified
       const durationInFrames = layer.durationInFrames || (layer.type === 'audio' ? 300 : 120);
-      
-      // Audio layers default to zIndex 0 (bottom) if not specified
       const zIndex = layer.zIndex !== undefined ? layer.zIndex : (layer.type === 'audio' ? 0 : prev.length);
 
       const newLayer: RemotionLayer = { 
         ...layer, 
         id,
         durationInFrames,
-        zIndex
+        zIndex,
+        x: 0,
+        y: 0,
+        scale: 1,
+        opacity: 1
       };
+      
       return [...prev, newLayer];
     });
     
-    return id;
+    return newId;
   }, []);
 
   const removeLayer = useCallback((id: string) => {
@@ -39,9 +58,7 @@ export function useLayerManager(initialLayers: RemotionLayer[] = []): UseLayerMa
   }, []);
 
   const updateLayer = useCallback((id: string, updates: Partial<RemotionLayer>) => {
-    setLayers((prev) =>
-      prev.map((layer) => (layer.id === id ? { ...layer, ...updates } : layer))
-    );
+    setLayers((prev) => prev.map((layer) => (layer.id === id ? { ...layer, ...updates } : layer)));
   }, []);
 
   const moveLayerZIndex = useCallback((id: string, newZIndex: number) => {
@@ -57,14 +74,11 @@ export function useLayerManager(initialLayers: RemotionLayer[] = []): UseLayerMa
           return { ...layer, zIndex: newZIndex };
         }
         
-        // Adjust other layers' zIndex if they are affected
         if (oldZIndex < newZIndex) {
-          // Moving up: shift layers between old and new down by 1
           if (layer.zIndex > oldZIndex && layer.zIndex <= newZIndex) {
             return { ...layer, zIndex: layer.zIndex - 1 };
           }
         } else {
-          // Moving down: shift layers between new and old up by 1
           if (layer.zIndex >= newZIndex && layer.zIndex < oldZIndex) {
             return { ...layer, zIndex: layer.zIndex + 1 };
           }

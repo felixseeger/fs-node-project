@@ -1,0 +1,19 @@
+import{a as e}from"./rolldown-runtime-COnpUsM8.js";import{Ln as t,Yr as n,Zr as r}from"./vendor-hdQzIgI0.js";import{a as i}from"./vendor-react-B0AOWCdl.js";import{wt as a}from"./api-DszbTESo.js";import{_ as o,d as s,g as c,s as l}from"./nodeTokens-WS8Pn6CT.js";import{i as u}from"./NodeControls-WOSQnJjg.js";import{t as d}from"./nodeCapabilities-CFbgLYgW.js";import{t as f}from"./useNodeConnections-DaW3HCk6.js";import{c as p,o as m,t as h}from"./shared-S7b-LHdQ.js";import{t as g}from"./NodeShell-BBaEtQEX.js";var _=e(n(),1),v=r(),y=`You are a Strudel (Tidal Cycles port) live coding expert.
+Translate the user's natural language prompt into valid JavaScript Strudel code.
+DO NOT provide any markdown formatting, no \`\`\`javascript wrappers, no explanations. 
+Output ONLY the raw JavaScript Strudel code.
+
+# Strudel Basics:
+- sound("bd hh sd hh"): Play drum samples sequentially
+- note("c2 e3 g4").sound("piano"): Play piano notes
+- n("0 1 2").scale("C:minor").sound("piano"): Play scale degrees
+- lpf(800), vowel("a e i o"), gain("0.5 1"), delay(".5:.125:.8"), room(2): Audio effects
+- rev(), jux(rev), slow(2), fast(2), ply(2), off(1/16, x => x.add(4)): Pattern effects
+- $: note("c2 c3").sound("gm_synth_bass_1"): Parallel patterns (use $: for multiple tracks)
+- setcpm(bpm/4): Set tempo
+
+# Example Output for "Create a fast house beat with high hats and a driving bassline":
+setcpm(120/4);
+$: sound("bd*4, [- cp]*2, [- hh]*4").bank("RolandTR909");
+$: note("c2 c3").sound("gm_synth_bass_1").lpf(saw.range(500, 2000).slow(4));
+`,b=({id:e,data:n,selected:r})=>{let{update:b,resolve:x,conn:S,disconnectNode:C}=f(e,n),[w,T]=(0,_.useState)(!1),E=(0,_.useRef)(null),D=S(`prompt-in`),O=(0,_.useCallback)(async()=>{let e=x.text(`prompt-in`,n.localPrompt);if(e){T(!0),b({resultCode:``});try{let t=await a(e,[],y,[]);t.error?b({resultCode:`// Error: ${t.error}`}):b({resultCode:(t.response||``).replace(/```(?:javascript|js|strudel)?\s*\n?/gi,``).replace(/```\s*$/g,``).trim()})}catch(e){b({resultCode:`// Error: ${e.message}`})}finally{T(!1)}}},[n.localPrompt,x,b]),k=(0,_.useRef)(null);return(0,_.useEffect)(()=>{n.triggerGenerate&&n.triggerGenerate!==k.current&&(k.current=n.triggerGenerate,O())},[n.triggerGenerate,O]),(0,_.useEffect)(()=>{E.current&&n.resultCode&&setTimeout(()=>{E.current&&(E.current.code=n.resultCode)},100)},[n.resultCode]),(0,v.jsx)(g,{data:n,label:n.label||`Strudel Code to Sound`,dotColor:`#a855f7`,selected:r,onDisconnect:C,onGenerate:O,isGenerating:w,capabilities:[d.AUDIO_MUSIC_GENERATE,d.OUTPUT_AUDIO],children:(0,v.jsxs)(`div`,{style:{display:`flex`,flexDirection:`column`,gap:12},children:[(0,v.jsx)(p,{label:`Prompt`,handleId:`prompt-in`,handleType:`target`,color:h(`prompt-in`),isConnected:D.connected}),(0,v.jsx)(m,{connected:D.connected,connInfo:D.info,children:(0,v.jsx)(u,{value:n.localPrompt||``,onChange:e=>b({localPrompt:e}),placeholder:`E.g. Create a fast house beat with high hats and a driving bassline`,rows:3})}),(0,v.jsxs)(`div`,{style:{display:`flex`,alignItems:`center`,justifyContent:`space-between`,marginTop:4},children:[(0,v.jsxs)(`div`,{style:{display:`flex`,alignItems:`center`,gap:6},children:[(0,v.jsx)(`span`,{style:{width:8,height:8,borderRadius:`50%`,background:`#a855f7`}}),(0,v.jsx)(`span`,{style:{fontSize:11,fontWeight:600,color:o.secondary},children:`AUDIO OUT`})]}),(0,v.jsx)(i,{type:`source`,position:t.Right,id:`audio-out`,style:{width:10,height:10,borderRadius:`50%`,background:`#a855f7`,border:`none`,position:`relative`,right:-12,transform:`none`}})]}),(0,v.jsx)(`div`,{style:{background:c.sunken,borderRadius:s.md,overflow:`hidden`,border:`1px solid ${l.subtle}`,minHeight:120},children:w?(0,v.jsx)(`div`,{style:{padding:12,color:`#3b82f6`,fontSize:12},children:`Generating pattern...`}):(0,v.jsx)(`strudel-repl`,{ref:E,theme:`dark`,style:{width:`100%`,height:`100%`,minHeight:`150px`},children:n.resultCode||`// Strudel pattern will appear here`})})]})})};export{b as default};

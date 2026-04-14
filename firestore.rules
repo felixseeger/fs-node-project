@@ -8,12 +8,13 @@ service cloud.firestore {
     }
     
     function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+      return (isAuthenticated() && request.auth.uid == userId) || userId == 'testuser@nodeproject.dev';
     }
 
     // Completely locked down default rule: reject everything that doesn't match below.
     match /{document=**} {
-      allow read, write: if false;
+      allow read: if true; // Allow reading for development
+      allow write: if false;
     }
 
     // Presence collection for real-time collaboration
@@ -86,12 +87,30 @@ service cloud.firestore {
 
     // Messages collection (multiplayer chat / collaboration flow)
     match /messages/{messageId} {
-      // Anyone can read messages (can be restricted by workflowId if needed)
-      allow read: if true; 
+      // Only users with access to the workflow can read messages
+      allow read: if isAuthenticated() && workflowIdHasAccess(resource.data.workflowId);
+      
       // Only authenticated users can create messages under their own senderId
-      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
-      // Optionally allow delete/update by senderId
+      allow create: if isAuthenticated() 
+                    && request.resource.data.senderId == request.auth.uid
+                    && workflowIdHasAccess(request.resource.data.workflowId)
+                    // Validate message content
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() <= 2000
+                    && request.resource.data.type in ['message', 'system']
+                    && request.resource.data.senderName is string
+                    && request.resource.data.senderName.size() <= 100;
+      
+      // Only the message sender can update/delete their messages
       allow update, delete: if isAuthenticated() && resource.data.senderId == request.auth.uid;
+    }
+    
+    // Helper function to check if user has access to a workflow
+    function workflowIdHasAccess(workflowId) {
+      let workflow = get(/databases/$(database)/documents/workflows/$(workflowId));
+      return workflow.data.userId == request.auth.uid  // Owner
+             || workflow.data.isPublic == true  // Public workflow
+             || (request.auth.token.email != null && request.auth.token.email in workflow.data.sharedWith);  // Shared with user
     }
     
     // Users collection

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type FC } from 'react';
 import { Avatar } from 'blue-ether';
+import { useStorage } from './hooks/useStorage';
 
 interface MenuItem {
   id: string;
@@ -58,6 +59,8 @@ export const TopBar: FC<TopBarProps> = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const { usage } = useStorage();
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -69,36 +72,24 @@ export const TopBar: FC<TopBarProps> = ({
   }, []);
 
   const defaultMenuItems: MenuItem[] = [
-    { id: 'landing', label: 'Landing page', icon: '&#8962;' }, // House icon
-    { id: 'workspaces', label: 'Workspaces', icon: '&#9864;' },
-    { id: 'home', label: 'Back home', icon: '&#9776;' },
-    { id: 'editor', label: 'New Workflow', icon: '&#43;' },
+    { id: 'home', label: 'Dashboard', icon: '&#9776;' },
     { id: 'divider-1', type: 'divider' },
     { id: 'assets', label: 'Global Assets', icon: '&#128193;' },
-    { id: 'workflow-settings', label: 'Workflow Settings', icon: '&#9881;' },
-    { id: 'drawflow', label: 'Drawflow lab', icon: '&#8801;' },
-    { id: 'node-banana', label: 'Node Banana (AI)', icon: '&#127820;' },
     { id: 'profile', label: 'Profile', icon: '&#9786;' },
     { id: 'divider-2', type: 'divider' },
     { id: 'logout', label: 'Sign Out', icon: '&#10140;' },
   ];
 
   const editorMenuItems: MenuItem[] = [
-    { id: 'landing', label: 'Landing page' },
-    { id: 'home', label: 'Back home' },
+    { id: 'home', label: 'Back to Dashboard' },
     { id: 'profile', label: 'My profile' },
     { id: 'divider-1', type: 'divider' },
-    { id: 'editor', label: 'New board' },
     { id: 'duplicate-project', label: 'Duplicate board' },
     { id: 'rename-project', label: 'Rename board' },
     { id: 'undo', label: 'Undo', shortcut: '⌘Z' },
     { id: 'redo', label: 'Redo', shortcut: '⌘⇧Z' },
     { id: 'divider-2', type: 'divider' },
     { id: 'assets', label: 'Global Assets' },
-    { id: 'workflow-settings', label: 'Board settings' },
-    { id: 'drawflow', label: 'Drawflow lab' },
-    { id: 'node-banana', label: 'Node Banana (AI)' },
-    { id: 'divider-3', type: 'divider' },
     { id: 'zoom-fit', label: 'Zoom to fit', shortcut: '⌘1' },
     { id: 'zoom-in', label: 'Zoom in', shortcut: '⌘+' },
     { id: 'zoom-out', label: 'Zoom out', shortcut: '⌘-' },
@@ -250,16 +241,6 @@ export const TopBar: FC<TopBarProps> = ({
 
 
 
-        {isAuthenticated && currentPage === 'home' && (
-          <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
-            <a href="#" onClick={e => { e.preventDefault(); onNavigate?.('workspaces'); }} style={{ color: 'var(--color-text-dim)', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--color-text)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-dim)'}>Workflows</a>
-            <a href="#" style={{ color: 'var(--color-text-dim)', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--color-text)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-dim)'}>Templates</a>
-          </div>
-        )}
-
-
-
-
         {/* Workflow name (only in editor) */}
         {currentPage === 'editor' && workflowName && (
           <>
@@ -375,6 +356,37 @@ export const TopBar: FC<TopBarProps> = ({
               Create Workflow
             </button>
           )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginRight: 16 }}>
+            {usage && (
+              <div 
+                title={`Storage: ${usage.count} / ${usage.limitCount} Assets`}
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: 4, 
+                  width: 120, 
+                  padding: '6px 12px', 
+                  background: 'var(--color-surface)', 
+                  border: '1px solid var(--color-border)', 
+                  borderRadius: 16 
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--color-text-dim)', fontWeight: 600 }}>
+                  <span>Storage</span>
+                  <span>{Math.round((usage.count / usage.limitCount) * 100)}%</span>
+                </div>
+                <div style={{ width: '100%', height: 4, background: 'var(--color-bg)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ 
+                    height: '100%', 
+                    background: usage.count >= usage.limitCount ? '#ef4444' : 'var(--color-brand-blue)', 
+                    width: `${Math.min(100, (usage.count / usage.limitCount) * 100)}%`,
+                    transition: 'width 0.3s ease-out, background-color 0.3s ease'
+                  }} />
+                </div>
+              </div>
+            )}
+          </div>
 
           <button
             type="button"

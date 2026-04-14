@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useCallback, useEffect, useRef } from 'react';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import ImageUploadBox from './ImageUploadBox';
-import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
 import NodeProgress from './NodeProgress';
 import useNodeProgress from '../hooks/useNodeProgress';
@@ -14,44 +12,27 @@ import {
   ConnectedOrLocal,
   OutputHandle,
   OutputPreview,
-  SecondaryOutputHandle,
-  PillGroup,
-  Slider,
-  Toggle,
   PromptInput,
-  TextInput,
-  SettingsPanel,
   useNodeConnections,
   CATEGORY_COLORS,
   sp,
-  font,
-  border,
-  radius,
-  surface,
 } from './shared';
-import NodeGenerateButton from './NodeGenerateButton';
 
 export function createVideoGeneratorNode(config) {
   const {
     displayName,
     apiGeneratorFn,
-    apiPollerFn,
     imageInputs = [],
-    videoInputs = [],
-    audioInputs = [],
-    supportsNegativePrompt = true,
     settingsControls = [],
     promptOptional = false,
     hidePrompt = false,
-    secondaryOutput = null,
   } = config;
 
   const ACCENT = CATEGORY_COLORS.videoGeneration;
 
   return function VideoGeneratorNode({ id, data, selected }) {
     const { update, conn, resolve, disconnectNode } = useNodeConnections(id, data);
-    const { progress, status, message, start, setProgress, complete, fail, isActive } = useNodeProgress();
-    const [isHovered, setIsHovered] = useState(false);
+    const { start, complete, fail, isActive } = useNodeProgress();
 
     const getSettingValue = (key, defaultValue) => data[`local${key[0].toUpperCase()}${key.slice(1)}`] ?? defaultValue;
 
@@ -83,7 +64,7 @@ export function createVideoGeneratorNode(config) {
     }, [data.triggerGenerate, handleGenerate]);
 
     return (
-      <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+      <div>
         <NodeShell data={data} label={data.label || displayName} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive} downloadUrl={data.outputVideo} downloadType="video" onDisconnect={disconnectNode} capabilities={config.capabilities || [NodeCapabilities.VIDEO_GENERATE, NodeCapabilities.OUTPUT_VIDEO]}>
           <OutputHandle type="video" label="video" />
 
@@ -112,18 +93,6 @@ export function createVideoGeneratorNode(config) {
                 </div>}
               />
               <div style={{ position: 'relative' }}>
-                <AnimatePresence>
-                  {(isHovered || isActive) && (
-                    <motion.div initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.9 }} transition={{ duration: 0.15 }}
-                      style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 10, zIndex: 100 }}
-                    >
-                      <div style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', border: `1.5px solid ${border.active}80`, borderRadius: radius.md, padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 12px 32px rgba(0,0,0,0.6)', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>RUN NODE</span>
-                        <NodeGenerateButton onGenerate={handleGenerate} isGenerating={isActive} size="sm" />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
                 <ConnectedOrLocal connected={conn('prompt-in').connected} connInfo={conn('prompt-in').info}>
                   <PromptInput value={data.inputPrompt} onChange={(v) => update({ inputPrompt: v })} placeholder="Describe the video..." rows={3} />
                 </ConnectedOrLocal>

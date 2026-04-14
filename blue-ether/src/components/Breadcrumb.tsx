@@ -1,5 +1,5 @@
 import React, { type FC, type ReactNode } from 'react';
-import Icon from './Icon';
+
 
 export interface BreadcrumbItem {
   label: string;

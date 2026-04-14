@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { RemotionLayer } from '../types/remotion';
-import { TextInput, Slider, SettingsPanel } from '../nodes/shared';
+import { TextInput, PromptInput, Slider, SettingsPanel } from '../nodes/shared';
 import { surface, border, radius, sp, text } from '../nodes/nodeTokens';
 
 interface LayerItemProps {
@@ -201,18 +201,20 @@ export function LayerItem({ layer, onUpdate, onDelete }: LayerItemProps) {
 
       {layer.type === 'text' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: sp[2], marginTop: sp[1] }}>
-          <TextInput 
+          <PromptInput 
             value={prompt} 
             onChange={handleTextChange} 
             placeholder="Enter text to display..." 
+            rows={2}
           />
         </div>
       ) : isGeneratable && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: sp[2], marginTop: sp[1] }}>
-          <TextInput 
+          <PromptInput 
             value={prompt} 
             onChange={setPrompt} 
             placeholder="Enter prompt..." 
+            rows={2}
           />
           <button
             onClick={handleGenerate}

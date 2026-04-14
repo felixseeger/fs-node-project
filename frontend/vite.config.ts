@@ -24,6 +24,11 @@ export default defineConfig({
   ],
   server: {
     proxy: {
+      // Proxy /api requests to the backend server
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
       // Same-origin embed for shrimbly/node-banana (npm run dev on :3000). See NodeBananaLab.jsx.
       '/node-banana-dev': {
         target: 'http://localhost:3000',

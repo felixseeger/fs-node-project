@@ -18,6 +18,7 @@ import routes from '../lib/api/routes/index.js';
 import { errorHandler, notFoundHandler } from '../lib/api/middleware/errorHandler.js';
 import { globalLimiter } from '../lib/api/middleware/rateLimiter.js';
 import { generateProjectName } from './utils/nameGenerator.js';
+import '../lib/api/services/renderingWorker.js';
 
 const app = express();
 

@@ -1,33 +1,24 @@
-import { useState, useRef, useEffect, useCallback, type FC, type CSSProperties } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { getFirebaseAuth } from '../config/firebase';
+import { useState, useRef, useEffect, useCallback, type FC } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { getHandleColor } from '../utils/handleTypes';
 import {
   CATEGORY_COLORS,
   useNodeConnections, OutputHandle, OutputPreview,
-  surface, border, radius, sp, font, text,
-  NodeGenerateButton, NodeDownloadButton, NodeShell
+  surface, border, radius, text,
+  NodeShell
 } from './shared';
 import { NodeCapabilities } from './nodeCapabilities';
 import useNodeProgress from '../hooks/useNodeProgress';
 import {
-  generateImage, pollStatus,
-  improvePromptGenerate, pollImprovePromptStatus,
-  imageToPromptGenerate, pollImageToPromptStatus,
+  generateImage,
   postToApi, pollGenericStatus
 } from '../utils/api';
-import { compressImageBase64 } from '../utils/imageUtils';
-import { normalizeImageSizeTier } from './universalImageSizes';
 import { IMAGE_UNIVERSAL_MODEL_DEFS } from './imageUniversalGeneratorModels';
-import EditableNodeTitle from './EditableNodeTitle';
-import AnnotationModal from '../components/AnnotationModal';
 
 const MODEL_DEFS = IMAGE_UNIVERSAL_MODEL_DEFS;
 
 const ImageUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selected }) => {
-  const { update, disconnectNode, connections } = useNodeConnections(id, data);
+  const { update, disconnectNode } = useNodeConnections(id, data);
   const { start, complete, fail } = useNodeProgress({
     onProgress: (state: any) => {
       update({ executionProgress: state.progress, executionStatus: state.status, executionMessage: state.message });
@@ -35,14 +26,9 @@ const ImageUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
   });
 
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isImprovingPrompt, setIsImprovingPrompt] = useState(false);
-  const [isImageToPrompting, setIsImageToPrompting] = useState(false);
-  const [annotationOpen, setAnnotationOpen] = useState(false);
-  const [isNodeHovered, setIsNodeHovered] = useState(false);
   const lastTrigger = useRef<number | null>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
-  const locked = data.locked || false;
   const numOutputs = data.numOutputs || 1;
   const aspectRatio = data.aspectRatio || '1:1';
   const models = data.models || ['Nano Banana 2'];
@@ -132,7 +118,7 @@ const ImageUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
   }, [data.triggerGenerate, handleGenerate]);
 
   return (
-    <div onMouseEnter={() => setIsNodeHovered(true)} onMouseLeave={() => setIsNodeHovered(false)}>
+    <div>
       <NodeShell
         label={data.label || 'Image Universal Gen'}
         dotColor={CATEGORY_COLORS.imageGeneration}
@@ -177,19 +163,6 @@ const ImageUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
 
           {/* Prompt Editor with Floating Menu Support */}
           <div style={{ background: surface.deep, border: `1px solid ${border.default}`, borderRadius: radius.md, padding: 12, position: 'relative' }}>
-            <AnimatePresence>
-              {(isNodeHovered || isGenerating) && (
-                <motion.div initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.9 }} transition={{ duration: 0.15 }}
-                  style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 10, zIndex: 100 }}
-                >
-                  <div style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', border: `1.5px solid ${border.active}80`, borderRadius: radius.md, padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 12px 32px rgba(0,0,0,0.6)', whiteSpace: 'nowrap' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>RUN NODE</span>
-                    <NodeGenerateButton onGenerate={handleGenerate} isGenerating={isGenerating} size="sm" />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
             <Handle type="target" position={Position.Left} id="prompt-in" style={{ position: 'absolute', left: -22, top: '50%', background: getHandleColor('prompt-in') }} />
             <textarea
               ref={promptRef}

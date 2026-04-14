@@ -2,20 +2,20 @@
   "cookies": [
     {
       "name": "_ga_TZWFY20XY2",
-      "value": "GS2.1.s1776130824$o1$g0$t1776130824$j60$l0$h0",
+      "value": "GS2.1.s1776135503$o1$g0$t1776135503$j60$l0$h0",
       "domain": "localhost",
       "path": "/",
-      "expires": 1810690824.203372,
+      "expires": 1810695503.466434,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "_ga",
-      "value": "GA1.1.1904344386.1776130824",
+      "value": "GA1.1.1870476337.1776135503",
       "domain": "localhost",
       "path": "/",
-      "expires": 1810690824.203788,
+      "expires": 1810695503.46704,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -26,72 +26,32 @@
       "origin": "http://localhost:5173",
       "localStorage": [
         {
-          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_20",
-          "value": "{\"state\":\"rejected\",\"updateTimeMs\":1776130825660,\"error\":{\"code\":\"permission-denied\",\"message\":\"Missing or insufficient permissions.\"}}"
-        },
-        {
-          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_4",
-          "value": "{\"state\":\"current\",\"updateTimeMs\":1776130825820}"
-        },
-        {
-          "name": "firestore_mutations_firestore/[DEFAULT]/fs-nodes-project/_2",
-          "value": "{\"state\":\"pending\",\"updateTimeMs\":1776130824646}"
+          "name": "firestore_mutations_firestore/[DEFAULT]/fs-nodes-project/_1",
+          "value": "{\"state\":\"pending\",\"updateTimeMs\":1776135504923}"
         },
         {
           "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_10",
-          "value": "{\"state\":\"current\",\"updateTimeMs\":1776130825820}"
+          "value": "{\"state\":\"not-current\",\"updateTimeMs\":1776135505309}"
         },
         {
-          "name": "firestore_mutations_firestore/[DEFAULT]/fs-nodes-project/_1",
-          "value": "{\"state\":\"pending\",\"updateTimeMs\":1776130824429}"
+          "name": "firestore_clients_firestore/[DEFAULT]/fs-nodes-project/_IFbCfpA4YZ8htltHSJ6d",
+          "value": "{\"activeTargetIds\":[2,4,6,8,10,16],\"updateTimeMs\":1776135505162}"
         },
         {
-          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_12",
-          "value": "{\"state\":\"rejected\",\"updateTimeMs\":1776130825263,\"error\":{\"code\":\"permission-denied\",\"message\":\"Missing or insufficient permissions.\"}}"
+          "name": "firestore_mutations_firestore/[DEFAULT]/fs-nodes-project/_2",
+          "value": "{\"state\":\"pending\",\"updateTimeMs\":1776135505308}"
         },
         {
-          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_2",
-          "value": "{\"state\":\"rejected\",\"updateTimeMs\":1776130825215,\"error\":{\"code\":\"permission-denied\",\"message\":\"Missing or insufficient permissions.\"}}"
-        },
-        {
-          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_6",
-          "value": "{\"state\":\"rejected\",\"updateTimeMs\":1776130825425,\"error\":{\"code\":\"permission-denied\",\"message\":\"Missing or insufficient permissions.\"}}"
-        },
-        {
-          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_14",
-          "value": "{\"state\":\"current\",\"updateTimeMs\":1776130825820}"
-        },
-        {
-          "name": "app_theme",
-          "value": "dark"
+          "name": "firestore_sequence_number_firestore/[DEFAULT]/fs-nodes-project/",
+          "value": "42"
         },
         {
           "name": "canvas_zoom_mode",
           "value": "ctrlScroll"
         },
         {
-          "name": "firestore_online_state_firestore/[DEFAULT]/fs-nodes-project/",
-          "value": "{\"clientId\":\"YHQ8m9tVVJWYMjiv5iSz\",\"onlineState\":\"Online\"}"
-        },
-        {
-          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_8",
-          "value": "{\"state\":\"rejected\",\"updateTimeMs\":1776130825351,\"error\":{\"code\":\"permission-denied\",\"message\":\"Missing or insufficient permissions.\"}}"
-        },
-        {
-          "name": "firestore_clients_firestore/[DEFAULT]/fs-nodes-project/_YHQ8m9tVVJWYMjiv5iSz",
-          "value": "{\"activeTargetIds\":[4,10,14],\"updateTimeMs\":1776130825662}"
-        },
-        {
-          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_18",
-          "value": "{\"state\":\"rejected\",\"updateTimeMs\":1776130825178,\"error\":{\"code\":\"permission-denied\",\"message\":\"Missing or insufficient permissions.\"}}"
-        },
-        {
-          "name": "firestore_targets_firestore/[DEFAULT]/fs-nodes-project/_16",
-          "value": "{\"state\":\"rejected\",\"updateTimeMs\":1776130825524,\"error\":{\"code\":\"permission-denied\",\"message\":\"Missing or insufficient permissions.\"}}"
-        },
-        {
-          "name": "firestore_sequence_number_firestore/[DEFAULT]/fs-nodes-project/",
-          "value": "67"
+          "name": "app_theme",
+          "value": "dark"
         }
       ]
     }

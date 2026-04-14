@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback, type FC, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback, useMemo, type FC, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { Avatar } from 'blue-ether';
 import { NODE_TYPE_CAPABILITIES } from '../config/nodeCapabilities';
 import DecodedText from './DecodedText';
@@ -133,11 +133,10 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
   const [inputValue, setInputValue] = useState('');
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   
-  // Merge external and local messages, deduplicating by content if needed (simple approach)
-  const messages = (() => {
+  // Optimized messages computation
+  const messages = useMemo(() => {
     if (!externalMessages || externalMessages.length === 0) return localMessages;
     
-    // Create a set of external message contents to avoid duplication
     const externalContents = new Set(externalMessages.map(m => m.content));
     const uniqueLocal = localMessages.filter(m => !externalContents.has(m.content));
     
@@ -146,16 +145,58 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
       const timeB = b.timestamp instanceof Date ? b.timestamp.getTime() : new Date(b.timestamp).getTime();
       return timeA - timeB;
     });
-  })();
+  }, [externalMessages, localMessages]);
+
+  // Memoized content parser
+  const parseContent = useCallback((content: string) => {
+    const parts: { type: 'text' | 'workflow' | 'canvas_actions' | 'code'; content?: string; data?: any }[] = [];
+    const safeContent = typeof content === 'string' ? content : String(content);
+    const jsonRegex = /```(?:json)?\n([\s\S]*?)\n```/g;
+    let lastIndex = 0, match;
+    
+    try {
+      while ((match = jsonRegex.exec(safeContent)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push({ type: 'text', content: safeContent.substring(lastIndex, match.index) });
+        }
+        try {
+          const parsed = JSON.parse(match[1]);
+          if (parsed.canvas_actions) {
+            parts.push({ type: 'canvas_actions', data: parsed.canvas_actions });
+          } else if (parsed.nodes || (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type)) {
+            parts.push({ type: 'workflow', data: parsed });
+          } else {
+            parts.push({ type: 'code', content: match[0] });
+          }
+        } catch {
+          parts.push({ type: 'code', content: match[0] });
+        }
+        lastIndex = jsonRegex.lastIndex;
+      }
+      if (lastIndex < safeContent.length) {
+        parts.push({ type: 'text', content: safeContent.substring(lastIndex) });
+      }
+    } catch (e) {
+      console.error('[ChatUI] Content rendering error:', e);
+      parts.push({ type: 'text', content: safeContent });
+    }
+
+    if (parts.length === 0) parts.push({ type: 'text', content: safeContent });
+    return parts;
+  }, []);
   
-  const displaySuggestions = (suggestions && suggestions.length > 0) ? suggestions : (
-    messages.length > 1 ? [
-      "How does this workflow work?",
-      "Can you add an upscaler?",
-      "What other nodes are available?",
-      "How do I run this?"
-    ] : []
-  );
+  const displaySuggestions = useMemo(() => {
+    if (suggestions && suggestions.length > 0) return suggestions;
+    if (messages.length > 1) {
+      return [
+        "How does this workflow work?",
+        "Can you add an upscaler?",
+        "What other nodes are available?",
+        "How do I run this?"
+      ];
+    }
+    return [];
+  }, [suggestions, messages.length]);
 
   const [activeTags, setActiveTags] = useState<Set<string>>(() => new Set(tags.map(t => t.label)));
   const [thinkingIndex, setThinkingIndex] = useState(0);
@@ -366,6 +407,10 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
     submitText(inputValue, true);
   }, [inputValue, submitText]);
 
+  const handleSendMessage = useCallback(() => {
+    submitText(inputValue, false);
+  }, [inputValue, submitText]);
+
   useImperativeHandle(ref, () => ({
     submitGeneration: handleGenerate,
     addMessage: (message) => {
@@ -393,7 +438,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
       const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       if (!isTouch) {
         e.preventDefault();
-        handleGenerate();
+        handleSendMessage();
       }
     }
   };
@@ -570,164 +615,6 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
     
     // Reset input so the same file can be selected again if needed
     if (imageInputRef.current) imageInputRef.current.value = '';
-  };
-
-  const renderMessageContent = (content: string, isActive: boolean) => {
-    const parts: { type: 'text' | 'workflow' | 'canvas_actions' | 'code'; content?: string; data?: any }[] = [];
-    // Ensure content is a string
-    const safeContent = typeof content === 'string' ? content : String(content);
-    const jsonRegex = /```(?:json)?\n([\s\S]*?)\n```/g;
-    let lastIndex = 0, match;
-    
-    try {
-      while ((match = jsonRegex.exec(safeContent)) !== null) {
-        if (match.index > lastIndex) {
-          parts.push({ type: 'text', content: safeContent.substring(lastIndex, match.index) });
-        }
-        try {
-          const parsed = JSON.parse(match[1]);
-          if (parsed.canvas_actions) {
-            parts.push({ type: 'canvas_actions', data: parsed.canvas_actions });
-          } else if (parsed.nodes || (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type)) {
-            parts.push({ type: 'workflow', data: parsed });
-          } else {
-            parts.push({ type: 'code', content: match[0] });
-          }
-        } catch {
-          parts.push({ type: 'code', content: match[0] });
-        }
-        lastIndex = jsonRegex.lastIndex;
-      }
-      if (lastIndex < safeContent.length) {
-        parts.push({ type: 'text', content: safeContent.substring(lastIndex) });
-      }
-    } catch (e) {
-      console.error('[ChatUI] Content rendering error:', e);
-      parts.push({ type: 'text', content: safeContent });
-    }
-
-    if (parts.length === 0) parts.push({ type: 'text', content: safeContent });
-
-    return parts.map((part, i) => {
-      if (part.type === 'text')
-        return isActive ? <DecodedText key={i} text={part.content || ''} active /> : <span key={i} style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{part.content}</span>;
-      if (part.type === 'workflow')
-        return (
-          <div key={i} style={{ marginTop: 12, marginBottom: 12, padding: 12, background: '#111', borderRadius: 8, border: '1px solid #333' }}>
-            <div style={{ fontSize: 11, color: '#aaa', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                <line x1="12" y1="22.08" x2="12" y2="12"></line>
-              </svg>
-              AI Generated Workflow
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
-              <button 
-                aria-label="Import generated workflow"
-                className="nodrag nopan"
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => {
-                  try {
-                    const nodes = part.data.nodes || part.data;
-                    const edges = part.data.edges || [];
-                    const name = part.data.name || 'AI Generated Workflow';
-                    if (Array.isArray(nodes)) {
-                      if (onImportWorkflow) {
-                        onImportWorkflow({ name, nodes, edges });
-                      } else {
-                        onSetNodes?.(nodes); 
-                        onSetEdges?.(edges);
-                      }
-                      notifyUser(`Imported ${nodes.length} nodes as new workflow`, 'success');
-                    } else {
-                      notifyUser('Invalid workflow data in message', 'error');
-                    }
-                  } catch (e) {
-                    notifyUser('Failed to import workflow from message', 'error');
-                  }
-                }} 
-                style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
-              >              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Create New Workflow
-              </button>
-              <button 
-                aria-label="Merge into current canvas"
-                className="nodrag nopan"
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => {
-                  try {
-                    const nodes = part.data.nodes || part.data;
-                    const edges = part.data.edges || [];
-                    const name = part.data.name || 'AI Generated Workflow';
-                    if (Array.isArray(nodes)) {
-                      if (onMergeWorkflow) {
-                        onMergeWorkflow({ name, nodes, edges });
-                      }
-                      notifyUser(`Merged ${nodes.length} nodes into canvas`, 'success');
-                    } else {
-                      notifyUser('Invalid workflow data in message', 'error');
-                    }
-                  } catch (e) {
-                    notifyUser('Failed to merge workflow from message', 'error');
-                  }
-                }} 
-                style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
-              >              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-                Add to Current Canvas
-              </button>
-            </div>
-          </div>
-        );
-      if (part.type === 'canvas_actions')
-        return (
-          <div key={i} style={{ marginTop: 12, marginBottom: 12, padding: 12, background: '#1e293b', borderRadius: 8, border: '1px solid #334155' }}>
-            <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-              AI Suggested Canvas Edits ({part.data?.length || 0})
-            </div>
-            
-            <div style={{ maxHeight: 100, overflowY: 'auto', marginBottom: 10, fontSize: 11, color: '#cbd5e1', background: '#0f172a', padding: 8, borderRadius: 4, border: '1px solid #1e293b' }}>
-              {part.data?.map((action: any, idx: number) => (
-                <div key={idx} style={{ marginBottom: 4 }}>
-                  <span style={{ color: '#38bdf8', fontWeight: 600 }}>{action.action}</span>
-                  {action.id ? ` ${action.id}` : ''}
-                  {action.type ? ` (${action.type})` : ''}
-                </div>
-              ))}
-            </div>
-
-            <button 
-              aria-label="Apply actions"
-              className="nodrag nopan"
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => {
-                if (onApplyActions) {
-                  onApplyActions(part.data);
-                  notifyUser(`Applied ${part.data.length} actions to canvas`, 'success');
-                }
-              }} 
-              style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center', transition: 'background 0.2s' }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#1d4ed8'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#2563eb'}
-            >              
-              Apply Canvas Edits
-            </button>
-          </div>
-        );
-      return (
-        <pre key={i} style={{ 
-          background: '#111', padding: 8, borderRadius: 4, 
-          overflowX: 'auto', fontSize: 11, marginTop: 8, marginBottom: 8,
-          border: '1px solid #222'
-        }}>
-          <code>{part.content}</code>
-        </pre>
-      );
-    });
   };
 
   if (!isOpen) return null;
@@ -910,52 +797,21 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
           </div>
         )}
 
-        {messages.map((msg, idx) => {
-          const isUser = (msg.role ?? msg.type) === 'user';
-          return (
-            <div key={msg.id} style={{
-              alignSelf: isUser ? 'flex-end' : 'flex-start',
-              maxWidth: '92%',
-              display: 'flex',
-              flexDirection: isUser ? 'row-reverse' : 'row',
-              gap: 10,
-              alignItems: 'flex-end',
-              marginBottom: 4
-            }}>
-              <div style={{ flexShrink: 0, marginBottom: 2 }}>
-                {isUser ? (
-                  <Avatar 
-                    src={currentUserAvatar} 
-                    name={currentUserDisplayName || 'User'} 
-                    size="sm" 
-                    crt 
-                  />
-                ) : (
-                  <Avatar 
-                    src="/gemini_avatar_improved.png" 
-                    name="AI Assistant" 
-                    size="sm" 
-                    crt 
-                  />
-                )}
-              </div>
-              <div style={{
-                padding: '10px 14px',
-                borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                background: isUser ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#1a1a1a',
-                border: isUser ? 'none' : '1px solid #2a2a2a',
-                color: isUser ? '#fff' : '#d4d4d4', 
-                fontSize: 13, 
-                lineHeight: 1.55,
-                wordBreak: 'break-word',
-                overflowWrap: 'anywhere',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-              }}>
-                {isUser ? msg.content : renderMessageContent(msg.content, idx === messages.length - 1)}
-              </div>
-            </div>
-          );
-        })}
+        {messages.map((msg, idx) => (
+          <ChatMessageItem 
+            key={msg.id}
+            message={msg}
+            isActive={idx === messages.length - 1}
+            currentUserAvatar={currentUserAvatar}
+            currentUserDisplayName={currentUserDisplayName}
+            onImportWorkflow={onImportWorkflow}
+            onMergeWorkflow={onMergeWorkflow}
+            onSetNodes={onSetNodes}
+            onSetEdges={onSetEdges}
+            onApplyActions={onApplyActions}
+            onNotify={onNotify}
+          />
+        ))}
 
         {(isGenerating || isChatting) && (
           <div style={{ alignSelf: 'flex-start', maxWidth: '85%', display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 4 }}>
@@ -1390,6 +1246,270 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
           notifyUser('Image added as context', 'success');
         }} 
       />
+    </div>
+  );
+});
+
+// --- OPTIMIZED SUB-COMPONENTS ---
+
+interface MessageContentProps {
+  content: string;
+  isActive: boolean;
+  onImportWorkflow?: (workflow: any) => void;
+  onMergeWorkflow?: (workflow: any) => void;
+  onSetNodes?: (nodes: any[]) => void;
+  onSetEdges?: (edges: any[]) => void;
+  onApplyActions?: (actions: any[]) => void;
+  onNotify?: (message: string, type: any) => void;
+}
+
+const MessageContent: FC<MessageContentProps> = React.memo(({ 
+  content, 
+  isActive, 
+  onImportWorkflow, 
+  onMergeWorkflow, 
+  onSetNodes, 
+  onSetEdges, 
+  onApplyActions, 
+  onNotify 
+}) => {
+  const parts = useMemo(() => {
+    const res: { type: 'text' | 'workflow' | 'canvas_actions' | 'code'; content?: string; data?: any }[] = [];
+    const safeContent = typeof content === 'string' ? content : String(content);
+    const jsonRegex = /```(?:json)?\n([\s\S]*?)\n```/g;
+    let lastIndex = 0, match;
+    
+    try {
+      while ((match = jsonRegex.exec(safeContent)) !== null) {
+        if (match.index > lastIndex) {
+          res.push({ type: 'text', content: safeContent.substring(lastIndex, match.index) });
+        }
+        try {
+          const parsed = JSON.parse(match[1]);
+          if (parsed.canvas_actions) {
+            res.push({ type: 'canvas_actions', data: parsed.canvas_actions });
+          } else if (parsed.nodes || (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type)) {
+            res.push({ type: 'workflow', data: parsed });
+          } else {
+            res.push({ type: 'code', content: match[0] });
+          }
+        } catch {
+          res.push({ type: 'code', content: match[0] });
+        }
+        lastIndex = jsonRegex.lastIndex;
+      }
+      if (lastIndex < safeContent.length) {
+        res.push({ type: 'text', content: safeContent.substring(lastIndex) });
+      }
+    } catch (e) {
+      console.error('[ChatUI] Content rendering error:', e);
+      res.push({ type: 'text', content: safeContent });
+    }
+    if (res.length === 0) res.push({ type: 'text', content: safeContent });
+    return res;
+  }, [content]);
+
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.type === 'text') {
+          return isActive ? (
+            <DecodedText key={i} text={part.content || ''} active />
+          ) : (
+            <span key={i} style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{part.content}</span>
+          );
+        }
+        
+        if (part.type === 'workflow') {
+          return (
+            <div key={i} style={{ marginTop: 12, marginBottom: 12, padding: 12, background: '#111', borderRadius: 8, border: '1px solid #333' }}>
+              <div style={{ fontSize: 11, color: '#aaa', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+                AI Generated Workflow
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
+                <button 
+                  aria-label="Import generated workflow"
+                  className="nodrag nopan"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => {
+                    try {
+                      const nodes = part.data.nodes || part.data;
+                      const edges = part.data.edges || [];
+                      const name = part.data.name || 'AI Generated Workflow';
+                      if (Array.isArray(nodes)) {
+                        if (onImportWorkflow) {
+                          onImportWorkflow({ name, nodes, edges });
+                        } else {
+                          onSetNodes?.(nodes); 
+                          onSetEdges?.(edges);
+                        }
+                        onNotify?.(`Imported ${nodes.length} nodes as new workflow`, 'success');
+                      } else {
+                        onNotify?.('Invalid workflow data in message', 'error');
+                      }
+                    } catch (e) {
+                      onNotify?.('Failed to import workflow from message', 'error');
+                    }
+                  }} 
+                  style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Create New Workflow
+                </button>
+                <button 
+                  aria-label="Merge into current canvas"
+                  className="nodrag nopan"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => {
+                    try {
+                      const nodes = part.data.nodes || part.data;
+                      const edges = part.data.edges || [];
+                      const name = part.data.name || 'AI Generated Workflow';
+                      if (Array.isArray(nodes)) {
+                        if (onMergeWorkflow) {
+                          onMergeWorkflow({ name, nodes, edges });
+                        }
+                        onNotify?.(`Merged ${nodes.length} nodes into canvas`, 'success');
+                      } else {
+                        onNotify?.('Invalid workflow data in message', 'error');
+                      }
+                    } catch (e) {
+                      onNotify?.('Failed to merge workflow from message', 'error');
+                    }
+                  }} 
+                  style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                  Add to Current Canvas
+                </button>
+              </div>
+            </div>
+          );
+        }
+
+        if (part.type === 'canvas_actions') {
+          return (
+            <div key={i} style={{ marginTop: 12, marginBottom: 12, padding: 12, background: 'rgba(56, 189, 248, 0.05)', borderRadius: 8, border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+              <div style={{ fontSize: 11, color: '#38bdf8', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Auto-applied Canvas Edits ({part.data?.length || 0})
+              </div>
+              
+              <div style={{ maxHeight: 120, overflowY: 'auto', fontSize: 11, color: '#94a3b8', background: 'rgba(0,0,0,0.2)', padding: '8px 10px', borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {part.data?.map((action: any, idx: number) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#38bdf8' }} />
+                    <span style={{ color: '#7dd3fc', fontWeight: 600, fontSize: 10 }}>{action.action}</span>
+                    <span style={{ opacity: 0.8 }}>{action.id || action.type || 'item'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <pre key={i} style={{ 
+            background: '#111', padding: 8, borderRadius: 4, 
+            overflowX: 'auto', fontSize: 11, marginTop: 8, marginBottom: 8,
+            border: '1px solid #222'
+          }}>
+            <code>{part.content}</code>
+          </pre>
+        );
+      })}
+    </>
+  );
+});
+
+interface ChatMessageItemProps {
+  message: Message;
+  isActive: boolean;
+  currentUserAvatar?: string;
+  currentUserDisplayName?: string;
+  onImportWorkflow?: (workflow: any) => void;
+  onMergeWorkflow?: (workflow: any) => void;
+  onSetNodes?: (nodes: any[]) => void;
+  onSetEdges?: (edges: any[]) => void;
+  onApplyActions?: (actions: any[]) => void;
+  onNotify?: (message: string, type: any) => void;
+}
+
+const ChatMessageItem: FC<ChatMessageItemProps> = React.memo(({ 
+  message, 
+  isActive, 
+  currentUserAvatar, 
+  currentUserDisplayName,
+  onImportWorkflow,
+  onMergeWorkflow,
+  onSetNodes,
+  onSetEdges,
+  onApplyActions,
+  onNotify
+}) => {
+  const isUser = (message.role ?? message.type) === 'user';
+  
+  return (
+    <div style={{
+      alignSelf: isUser ? 'flex-end' : 'flex-start',
+      maxWidth: '92%',
+      display: 'flex',
+      flexDirection: isUser ? 'row-reverse' : 'row',
+      gap: 10,
+      alignItems: 'flex-end',
+      marginBottom: 4
+    }}>
+      <div style={{ flexShrink: 0, marginBottom: 2 }}>
+        {isUser ? (
+          <Avatar 
+            src={currentUserAvatar} 
+            name={currentUserDisplayName || 'User'} 
+            size="sm" 
+            crt 
+          />
+        ) : (
+          <Avatar 
+            src="/gemini_avatar_improved.png" 
+            name="AI Assistant" 
+            size="sm" 
+            crt 
+          />
+        )}
+      </div>
+      <div style={{
+        padding: '10px 14px',
+        borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+        background: isUser ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#1a1a1a',
+        border: isUser ? 'none' : '1px solid #2a2a2a',
+        color: isUser ? '#fff' : '#d4d4d4', 
+        fontSize: 13, 
+        lineHeight: 1.55,
+        wordBreak: 'break-word',
+        overflowWrap: 'anywhere',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+      }}>
+        {isUser ? (
+          message.content
+        ) : (
+          <MessageContent 
+            content={message.content} 
+            isActive={isActive}
+            onImportWorkflow={onImportWorkflow}
+            onMergeWorkflow={onMergeWorkflow}
+            onSetNodes={onSetNodes}
+            onSetEdges={onSetEdges}
+            onApplyActions={onApplyActions}
+            onNotify={onNotify}
+          />
+        )}
+      </div>
     </div>
   );
 });

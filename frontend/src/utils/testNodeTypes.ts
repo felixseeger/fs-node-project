@@ -1,2 +1,2 @@
-import { dynamicNodes } from './dynamicNodes';
+import { dynamicNodes } from './dynamicNodeImports';
 console.log(dynamicNodes);

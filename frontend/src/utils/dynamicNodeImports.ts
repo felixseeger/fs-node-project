@@ -10,13 +10,22 @@
 import { createElement, lazy, type ComponentType } from 'react';
 import { type NodeProps } from '@xyflow/react';
 
-// Common nodes are imported directly to prevent React Flow "Couldn't create edge" 
-// race conditions and improve initial canvas rendering performance.
-import InputNode from '../nodes/InputNode';
-import TextNode from '../nodes/TextNode';
-import ImageNode from '../nodes/ImageNode';
-import ResponseNode from '../nodes/ResponseNode';
-import GeneratorNode from '../nodes/GeneratorNode';
+// Common nodes are lazy-loaded to enable consistent code splitting
+const InputNode = lazy(() => import('../nodes/InputNode'));
+const TextNode = lazy(() => import('../nodes/TextNode'));
+const ImageNode = lazy(() => import('../nodes/ImageNode'));
+const ResponseNode = lazy(() => import('../nodes/ResponseNode'));
+const GeneratorNode = lazy(() => import('../nodes/GeneratorNode'));
+const AssetNode = lazy(() => import('../nodes/AssetNode'));
+
+/**
+ * Get a node component by its type name
+ * @param {string} type - The node type name
+ * @returns {any} - The component (lazy or regular)
+ */
+export function getNodeComponent(type: string): any {
+  return (dynamicNodes as any)[type];
+}
 
 import DynamicNodeLoader from '../components/DynamicNodeLoader';
 
@@ -26,13 +35,15 @@ import DynamicNodeLoader from '../components/DynamicNodeLoader';
  * @returns {ComponentType<NodeProps>} - Wrapper component ready for React Flow registration
  */
 export function createDynamicNodeWrapper(NodeComponent: any): ComponentType<NodeProps> {
+  const isLazy = NodeComponent && NodeComponent.$$typeof === Symbol.for('react.lazy');
+
   return function DynamicNodeWrapper(props: NodeProps) {
+    if (!isLazy) {
+      return createElement(NodeComponent, props);
+    }
+    
     return createElement(DynamicNodeLoader, {
-      // If it's a lazy component, pass it as LazyComponent. 
-      // If it's a regular component, we still wrap it for consistency in props injection.
-      LazyComponent: NodeComponent && NodeComponent.$$typeof === Symbol.for('react.lazy') 
-        ? NodeComponent 
-        : lazy(() => Promise.resolve({ default: NodeComponent })),
+      LazyComponent: NodeComponent,
       componentProps: props
     });
   };
@@ -54,10 +65,6 @@ export function prefetchNode(importFunction: () => Promise<any>) {
 // Organized by category for better maintainability
 
 // Input/Output Nodes
-const AssetNode = lazy(() => (import('../nodes/AssetNode') as any).catch((error: any) => {
-  console.error('Failed to load AssetNode:', error);
-  throw error;
-}));
 
 const SourceMediaNode = lazy(() => (import('../nodes/SourceMediaNode') as any).catch((error: any) => {
   console.error('Failed to load SourceMediaNode:', error);

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, type FC, type ChangeEvent } from 'react';
 import { type Node, type Edge } from '@xyflow/react';
 import { getHandleDataType, getHandleColor } from './utils/handleTypes';
+import VoiceRecorder from './components/VoiceRecorder';
 
 const ASPECT_OPTIONS = ['1:1', '16:9', '9:16', '4:3', '3:4', '21:9'];
 const RESOLUTION_OPTIONS = ['512', '768', '1024', '1280', '1536', '2048'];
@@ -35,15 +36,28 @@ const InputField: FC<InputFieldProps> = ({ point, value, onChange }) => {
       onChange(text);
     };
 
+    const handleTranscription = (transcript: string) => {
+      const newValue = value ? `${value} ${transcript}` : transcript;
+      onChange(newValue);
+    };
+
     return (
-      <textarea
-        value={value || ''}
-        onChange={handleTextChange}
-        placeholder={`Enter ${pointKey}...`}
-        rows={3}
-        style={fieldStyles.textarea}
-        maxLength={5000}
-      />
+      <div style={{ position: 'relative' }}>
+        <textarea
+          value={value || ''}
+          onChange={handleTextChange}
+          placeholder={`Enter ${pointKey}...`}
+          rows={3}
+          style={{ ...fieldStyles.textarea, paddingBottom: '44px' }}
+          maxLength={5000}
+        />
+        <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8 }}>
+          <VoiceRecorder 
+            onTranscription={handleTranscription} 
+            placeholder="Speak..." 
+          />
+        </div>
+      </div>
     );
   }
 

@@ -1,6 +1,11 @@
+import { Filter } from 'bad-words';
+
 /**
  * Sanitization utility to strip sensitive information from exports in the frontend.
+ * Also provides XSS protection for user-generated content.
  */
+
+const profanityFilter = new Filter();
 
 const SENSITIVE_KEYS = [
   'api_key',
@@ -70,4 +75,78 @@ export function sanitizeString(text: string, placeholder = '{{REDACTED}}'): stri
   });
 
   return sanitized;
+}
+
+/**
+ * Sanitizes HTML to prevent XSS attacks while preserving safe text content.
+ * Strips all HTML tags and attributes, returning only text content.
+ * For chat messages and user-generated content that should be plain text.
+ * 
+ * @param {string} html - The HTML string to sanitize.
+ * @returns {string} Sanitized text content with HTML tags removed.
+ */
+export function sanitizeHTML(html: string): string {
+  if (typeof window === 'undefined') {
+    // SSR environment - basic regex stripping
+    return html
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/javascript:/gi, '') // Remove javascript: protocol
+      .replace(/on\w+\s*=/gi, ''); // Remove event handlers
+  }
+
+  // Browser environment - use DOMParser for proper sanitization
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  
+  // Get text content only (strips all HTML)
+  return doc.body.textContent || '';
+}
+
+/**
+ * Validates and sanitizes a chat message.
+ * Enforces length limits and removes potentially dangerous content.
+ * 
+ * @param {string} message - The message to validate and sanitize.
+ * @param {number} maxLength - Maximum allowed length (default: 2000).
+ * @returns {{ valid: boolean; message: string; error?: string }} Validation result.
+ */
+export function sanitizeChatMessage(
+  message: string, 
+  maxLength: number = 2000
+): { valid: boolean; message: string; error?: string } {
+  if (!message || typeof message !== 'string') {
+    return { valid: false, message: '', error: 'Message is required' };
+  }
+
+  // Trim whitespace
+  let sanitized = message.trim();
+
+  // Length validation
+  if (sanitized.length > maxLength) {
+    return { 
+      valid: false, 
+      message: '', 
+      error: `Message exceeds ${maxLength} character limit` 
+    };
+  }
+
+  // Strip HTML tags (chat should be plain text only)
+  sanitized = sanitizeHTML(sanitized);
+
+  // Remove null bytes and other control characters
+  sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+  // Remove zero-width characters often used in invisible text attacks
+  sanitized = sanitized.replace(/[\u200B-\u200D\uFEFF]/g, '');
+
+  // Profanity check
+  if (profanityFilter.isProfane(sanitized)) {
+    return {
+      valid: false,
+      message: '',
+      error: 'Message contains inappropriate content (profanity)'
+    };
+  }
+
+  return { valid: true, message: sanitized };
 }

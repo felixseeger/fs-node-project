@@ -61,6 +61,7 @@ import TemplateBuilderModal from './TemplateBuilderModal';
 import BottomBar from './BottomBar';
 import GooeyNodesMenu from './GooeyNodesMenu';
 import Queue from './Queue';
+import RenderingManager from './components/RenderingManager';
 import WorkflowInterface from './WorkflowInterface';
 import LayoutHelper from './components/LayoutHelper';
 // @ts-ignore
@@ -102,9 +103,47 @@ import { ShareWorkflowModal } from './projectsDashboard/components/ShareWorkflow
 import type { ShareModalState } from './projectsDashboard/types';
 
 import CyberEdge from './components/CyberEdge';
+import { prefetchCommonNodes } from './nodes/prefetch';
 import { initialNodeTypes, initialEdgeTypes } from './config/flowTypes';
+import { StorageLimitModal } from './components/StorageLimitModal';
 
 export default function App() {
+  // Limits state
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
+  const [limitModalContent, setLimitModalContent] = useState<{title: string, message: string, details?: string}>({title: '', message: ''});
+
+  useEffect(() => {
+    const handleStorageLimit = ((e: CustomEvent) => {
+      setLimitModalContent({
+        title: 'Storage Limit Reached',
+        message: 'You have reached the maximum allowed storage limit. Please delete some items to continue generating.',
+        details: `Current usage: ${e.detail?.current || 0} / ${e.detail?.limit || 100} assets.`
+      });
+      setLimitModalOpen(true);
+    }) as EventListener;
+
+    const handleDailyLimit = ((e: CustomEvent) => {
+      setLimitModalContent({
+        title: 'Daily Limit Reached',
+        message: e.detail?.message || 'You have reached your daily generation limit. Please try again tomorrow.',
+      });
+      setLimitModalOpen(true);
+    }) as EventListener;
+    
+    window.addEventListener('storage_limit_reached', handleStorageLimit);
+    window.addEventListener('daily_limit_reached', handleDailyLimit);
+    
+    return () => {
+      window.removeEventListener('storage_limit_reached', handleStorageLimit);
+      window.removeEventListener('daily_limit_reached', handleDailyLimit);
+    };
+  }, []);
+
+  // Prefetch common nodes on app load (Phase 7.2.1 Optimization)
+  useEffect(() => {
+    prefetchCommonNodes();
+  }, []);
+
   const nodeTypes = useMemo(() => initialNodeTypes, []);
   const edgeTypes = useMemo(() => initialEdgeTypes, []);
   
@@ -214,15 +253,35 @@ export default function App() {
   useEffect(() => {
     try {
       const auth = getFirebaseAuth();
-      const unsubscribeAuth = () => {};
-      setAuthLoading(false);
-      setIsAuthenticated(true);
-      setCurrentUserId("testuser@nodeproject.dev");
-      setCurrentUserEmail("testuser@nodeproject.dev");
-      initializeProfile("testuser@nodeproject.dev", "testuser@nodeproject.dev", "Test User");
-      if (!sessionStorage.getItem(SLP_KEY)) {
-        setShowSystemLoading(true);
+      if (!auth) {
+        setAuthLoading(false);
+        setIsAuthenticated(false);
+        return;
       }
+      
+      const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          setCurrentUserId(user.uid);
+          setCurrentUserEmail(user.email || 'anonymous@nodeproject.dev');
+          setIsAuthenticated(true);
+          await initializeProfile(user.uid, user.email || 'anonymous@nodeproject.dev', user.displayName || 'Anonymous User');
+          setAuthLoading(false);
+        } else {
+          // If using Firebase, we must sign in anonymously to read/write data
+          import('firebase/auth').then(({ signInAnonymously }) => {
+            signInAnonymously(auth).catch((err) => {
+              console.error("Anonymous auth failed:", err);
+              setAuthError(err.message);
+              setAuthLoading(false);
+            });
+          });
+        }
+      });
+
+      // Temporarily disabled for automated testing and accessibility tools
+      // if (!sessionStorage.getItem(SLP_KEY)) {
+      //   setShowSystemLoading(true);
+      // }
 
       return () => unsubscribeAuth();
     } catch (err: any) {
@@ -386,7 +445,9 @@ export default function App() {
   const [isWorkflowBuilderOpen, setIsWorkflowBuilderOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
-  const [activeTool, setActiveTool] = useState<'select' | 'hand' | 'slice'>('select');
+  const [activeTool, setActiveTool] = useState<'select' | 'hand' | 'slice' | 'brush'>('select');
+  const [drawings, setDrawings] = useState<{ id: string, path: string }[]>([]);
+  const [currentPath, setCurrentPath] = useState<string | null>(null);
   const [sliceStart, setSliceStart] = useState<{ x: number, y: number } | null>(null);
   const [sliceCurrent, setSliceCurrent] = useState<{ x: number, y: number } | null>(null);
   const [viewMode, setViewMode] = useState<'editor' | 'interface'>('editor');
@@ -1825,20 +1886,47 @@ const handleConnectEnd = useCallback(
     return () => window.removeEventListener('click', handleGlobalClick, { capture: true });
   }, [setEdges, saveHistory]);
 
+  const handleBrushStart = useCallback((e: React.PointerEvent) => {
+    if (activeTool === 'brush') {
+      e.stopPropagation();
+      const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      setCurrentPath(`M ${pos.x} ${pos.y}`);
+    }
+  }, [activeTool, screenToFlowPosition]);
+
+  const handleBrushMove = useCallback((e: React.PointerEvent) => {
+    if (activeTool === 'brush' && currentPath) {
+      e.stopPropagation();
+      const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      setCurrentPath(prev => `${prev} L ${pos.x} ${pos.y}`);
+    }
+  }, [activeTool, currentPath, screenToFlowPosition]);
+
+  const handleBrushEnd = useCallback(() => {
+    if (activeTool === 'brush' && currentPath) {
+      setDrawings(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), path: currentPath }]);
+      setCurrentPath(null);
+    }
+  }, [activeTool, currentPath]);
+
   const handleSliceStart = useCallback((e: React.PointerEvent) => {
     if (activeTool === 'slice') {
       e.stopPropagation();
       setSliceStart({ x: e.clientX, y: e.clientY });
       setSliceCurrent({ x: e.clientX, y: e.clientY });
+    } else if (activeTool === 'brush') {
+      handleBrushStart(e);
     }
-  }, [activeTool]);
+  }, [activeTool, handleBrushStart]);
 
   const handleSliceMove = useCallback((e: React.PointerEvent) => {
     if (activeTool === 'slice' && sliceStart) {
       e.stopPropagation();
       setSliceCurrent({ x: e.clientX, y: e.clientY });
+    } else if (activeTool === 'brush') {
+      handleBrushMove(e);
     }
-  }, [activeTool, sliceStart]);
+  }, [activeTool, sliceStart, handleBrushMove]);
 
   const handleSliceEnd = useCallback((e: React.PointerEvent) => {
     if (activeTool === 'slice' && sliceStart && sliceCurrent) {
@@ -1876,8 +1964,10 @@ const handleConnectEnd = useCallback(
     } else if (activeTool === 'slice') {
       setSliceStart(null);
       setSliceCurrent(null);
+    } else if (activeTool === 'brush') {
+      handleBrushEnd();
     }
-  }, [activeTool, sliceStart, sliceCurrent, saveHistory, setEdges]);
+  }, [activeTool, sliceStart, sliceCurrent, saveHistory, setEdges, handleBrushEnd]);
 
   const handleRenameSubmit = () => {
     if (newWorkflowName.trim() && activeWorkflowId) {
@@ -2178,6 +2268,13 @@ const handleConnectEnd = useCallback(
     setNodes([]);
     setEdges([]);
   }, [saveHistory, setNodes, setEdges]);
+
+  // Expose for E2E testing
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).clearCanvas = clearCanvas;
+    }
+  }, [clearCanvas]);
 
   const handleApplyActions = useCallback((actions: any[]) => {
     if (!actions || !Array.isArray(actions)) return;
@@ -2555,6 +2652,8 @@ const handleConnectEnd = useCallback(
             <div style={{ position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)', zIndex: 2000 }}>
               <CanvasRunToolbar
                 onRun={handleRunWorkflow} isRunning={isRunning} edges={edges} selectedNodeIds={selectedCanvasNodeIds}
+                currentTool={activeTool === 'brush' ? 'brush' : 'select'}
+                onToolChange={(t) => setActiveTool(t)}
                 onAutoLayout={handleAutoLayout}
                 onAddImage={() => addNodeAtViewportCenter('universalGeneratorImage')}
                 onAddVideo={() => addNodeAtViewportCenter('universalGeneratorVideo')}
@@ -2578,7 +2677,10 @@ const handleConnectEnd = useCallback(
           <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} onAddNode={addNodeAtViewportCenter} handleClear={clearCanvas} handleExport={handleExportJSON} />
           <PromptRecipeGallery isOpen={showPromptRecipes} onClose={() => setShowPromptRecipes(false)} />
           <MegaMenuModelSearch open={browseModelsOpen} onClose={() => setBrowseModelsOpen(false)} onSelect={(k: string, m: string) => handleAddNodeFromMegaMenu(k, m)} />
-          <div style={{ position: 'absolute', bottom: 96, right: 24, zIndex: 10 }}><Queue nodes={nodes} /></div>
+          <div style={{ position: 'absolute', bottom: 96, right: 24, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-end' }}>
+            <RenderingManager />
+            <Queue nodes={nodes} />
+          </div>
           
           <div style={{ position: 'absolute', top: 60, right: 20, zIndex: 1000, display: 'flex', gap: '8px', background: '#222', padding: '4px', borderRadius: '8px', border: '1px solid #333' }}>
             <button 
@@ -2764,6 +2866,7 @@ You are an expert AI workflow builder. You can modify the existing canvas by out
 {
   "canvas_actions": [
     { "action": "UPDATE_NODE", "id": "node-id", "data": { "param": "value" } },
+    { "action": "UPDATE_NODE", "id": "layer-editor-id", "data": { "tracks": [ { "id": "track-1", "type": "image", "name": "Image Track", "clips": [ { "id": "clip-1", "type": "image", "src": "...", "opacity": 0.5, "scale": 1.2, "x": 50, "y": -20, "from": 0, "durationInFrames": 120, "status": "completed", "progress": 100, "jobType": "none", "zIndex": 0 } ] } ] } },
     { "action": "ADD_NODE", "id": "unique-id", "type": "nodeType", "position": {"x":x,"y":y}, "data": {} },
     { "action": "DELETE_NODE", "id": "node-id" },
     { "action": "ADD_EDGE", "source": "src-id", "target": "dst-id", "sourceHandle": "out", "targetHandle": "in" },
@@ -2932,6 +3035,14 @@ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisio
   return (
     <AnimatePresence mode="wait">
       {renderCurrentPage()}
+      
+      <StorageLimitModal 
+        isOpen={limitModalOpen} 
+        onClose={() => setLimitModalOpen(false)} 
+        title={limitModalContent.title}
+        message={limitModalContent.message}
+        details={limitModalContent.details}
+      />
     </AnimatePresence>
   );
 }

@@ -1,0 +1,4 @@
+{
+  code: string,
+  error: string
+}

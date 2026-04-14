@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import Tabs from './Tabs';
 import Icon from './Icon';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 const meta: Meta<typeof Tabs> = {
   title: 'Components/Navigation/Tabs',

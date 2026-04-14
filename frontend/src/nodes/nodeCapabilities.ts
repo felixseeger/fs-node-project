@@ -64,6 +64,7 @@ export const NodeCapabilities = {
   AUDIO_ISOLATION: 'audio:isolation',
   AUDIO_ISOLATE: 'audio:isolation', // Alias
   AUDIO_VOICEOVER: 'audio:voiceover',
+  VOICE_INPUT: 'audio:voice_input',
 
   // Utility
   SOCIAL_PUBLISH: 'utility:social_publish',

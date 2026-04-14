@@ -1,0 +1,514 @@
+TypeScript: 261 errors in 104 files
+═══════════════════════════════════════
+Top codes: TS6133 (168x), TS2339 (28x), TS2322 (21x), TS2345 (9x), TS7006 (8x)
+
+src/nodes/AudioUniversalGeneratorNode.tsx (21 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L1: TS6133 'useState' is declared but its value is never read.
+  L3: TS6133 'Node' is declared but its value is never read.
+  L5: TS2305 Module '"./shared"' has no exported member 'UniversalSimplifiedNodeChrome'.
+  L7: TS6133 'getHandleColor' is declared but its value is never read.
+  L13: TS6133 'font' is declared but its value is never read.
+  L62: TS6133 'disconnectNode' is declared but its value is never read.
+  L67: TS6133 'progress' is declared but its value is never read.
+  L68: TS6133 'status' is declared but its value is never read.
+  L69: TS6133 'message' is declared but its value is never read.
+  L89: TS2345 Argument of type 'unknown' is not assignable to parameter of type 'string | undefined'.
+  L98: TS2339 Property 'error' does not exist on type '{ success: boolean; response: string; commands?: any[] | undefined; }'.
+  L99: TS2339 Property 'error' does not exist on type '{ success: boolean; response: string; commands?: any[] | undefined; }'.
+  L100: TS2339 Property 'error' does not exist on type '{ success: boolean; response: string; commands?: any[] | undefined; }'.
+  L100: TS2339 Property 'error' does not exist on type '{ success: boolean; response: string; commands?: any[] | undefined; }'.
+  L202: TS2339 Property 'toLowerCase' does not exist on type '{}'.
+  L203: TS2339 Property 'toLowerCase' does not exist on type '{}'.
+  L209: TS2339 Property 'sm' does not exist on type '{ 0: number; 1: number; 2: number; 3: number; 4: number; 5: number; 6: number; ...
+  L229: TS2322 Type 'unknown' is not assignable to type 'ReactNode'.
+  L249: TS2339 Property 'strudel-repl' does not exist on type 'JSX.IntrinsicElements'.
+  L255: TS2339 Property 'strudel-repl' does not exist on type 'JSX.IntrinsicElements'.
+
+src/App.tsx (14 errors)
+  L19: TS6133 'NodeTypes' is declared but its value is never read.
+  L23: TS6133 'onAuthStateChanged' is declared but its value is never read.
+  L94: TS6133 'isWorkflowImportData' is declared but its value is never read.
+  L98: TS6133 'WorkflowLineageTracker' is declared but its value is never read.
+  L100: TS6133 'SmartConnectorEngine' is declared but its value is never read.
+  L105: TS6133 'CyberEdge' is declared but its value is never read.
+  L238: TS6133 'auth' is declared but its value is never read.
+  L294: TS6133 'fbTemplates' is declared but its value is never read.
+  L295: TS6133 'fbAssets' is declared but its value is never read.
+  L2060: TS6133 'maxId' is declared but its value is never read.
+  L2359: TS2367 This comparison appears to be unintentional because the types '"auth-signup" | "workspaces" | "editor" | "workflow-se...
+  L2488: TS2339 Property 'errors' does not exist on type 'ZodError<{ nodes: { [x: string]: unknown; id: string; type: string; positio...
+  L2647: TS6133 'e' is declared but its value is never read.
+  L2652: TS6133 'e' is declared but its value is never read.
+
+src/nodes/SimplifiedGeneratorNode.tsx (10 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L1: TS6133 'useState' is declared but its value is never read.
+  L4: TS2305 Module '"./shared"' has no exported member 'UniversalSimplifiedNodeChrome'.
+  L18: TS6133 'disconnectNode' is declared but its value is never read.
+  L19: TS6133 'progress' is declared but its value is never read.
+  L19: TS6133 'status' is declared but its value is never read.
+  L19: TS6133 'message' is declared but its value is never read.
+  L24: TS2345 Argument of type 'unknown' is not assignable to parameter of type 'string | undefined'.
+  L64: TS2552 Cannot find name 'font'. Did you mean 'fonts'?
+  L65: TS2552 Cannot find name 'font'. Did you mean 'fonts'?
+
+src/nodes/ImageSegmentationNode.tsx (10 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L1: TS6133 'useState' is declared but its value is never read.
+  L5: TS2305 Module '"./shared"' has no exported member 'UniversalSimplifiedNodeChrome'.
+  L12: TS6133 'sp' is declared but its value is never read.
+  L35: TS2559 Type 'SegmentNodeData' has no properties in common with type 'NodeConnectionHandlers'.
+  L37: TS6133 'imageConn' is declared but its value is never read.
+  L41: TS6133 'progress' is declared but its value is never read.
+  L42: TS6133 'status' is declared but its value is never read.
+  L137: TS2345 Argument of type '(img: string, i: number) => void' is not assignable to parameter of type '(value: {}, index: number...
+    Types of parameters 'img' and 'value' are incompatible.
+    Type '{}' is not assignable to type 'string'.
+  L253: TS2345 Argument of type '(img: string, idx: number) => JSX.Element' is not assignable to parameter of type '(value: {}, inde...
+    Types of parameters 'img' and 'value' are incompatible.
+    Type '{}' is not assignable to type 'string'.
+
+src/components/GlobalAssetVault.tsx (7 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L2: TS6133 'AssetMediaType' is declared but its value is never read.
+  L20: TS7006 Parameter 'a' implicitly has an 'any' type.
+  L20: TS7006 Parameter 't' implicitly has an 'any' type.
+  L25: TS7006 Parameter 'a' implicitly has an 'any' type.
+  L138: TS7006 Parameter 'asset' implicitly has an 'any' type.
+  L184: TS7006 Parameter 't' implicitly has an 'any' type.
+
+src/nodes/TextLLMNode.tsx (7 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L2: TS6133 'Node' is declared but its value is never read.
+  L9: TS6133 'CATEGORY_COLORS' is declared but its value is never read.
+  L15: TS6133 'sp' is declared but its value is never read.
+  L16: TS6133 'font' is declared but its value is never read.
+  L32: TS2345 Argument of type 'unknown' is not assignable to parameter of type 'string | undefined'.
+  L33: TS2345 Argument of type 'unknown' is not assignable to parameter of type 'string | undefined'.
+
+src/LandingPage.tsx (7 errors)
+  L432: TS6133 'PlusIcon' is declared but its value is never read.
+  L446: TS6133 'TemplateIcon' is declared but its value is never read.
+  L505: TS6133 'setIsGenerating' is declared but its value is never read.
+  L997: TS2322 Type '"light" | "dark" | undefined' is not assignable to type '"light" | "dark"'.
+    Type 'undefined' is not assignable to type '"light" | "dark"'.
+  L997: TS2322 Type '((theme: "light" | "dark") => void) | undefined' is not assignable to type '(theme: "light" | "dark") => void'.
+    Type 'undefined' is not assignable to type '(theme: "light" | "dark") => void'.
+  L1167: TS2322 Type '"light" | "dark" | undefined' is not assignable to type '"light" | "dark"'.
+    Type 'undefined' is not assignable to type '"light" | "dark"'.
+  L1167: TS2322 Type '((theme: "light" | "dark") => void) | undefined' is not assignable to type '(theme: "light" | "dark") => void'.
+    Type 'undefined' is not assignable to type '(theme: "light" | "dark") => void'.
+
+src/nodes/CreativeUpScaleNode.tsx (6 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L2: TS6133 'Handle' is declared but its value is never read.
+  L2: TS6133 'Position' is declared but its value is never read.
+  L157: TS2304 Cannot find name 'NodeCapabilities'.
+  L157: TS2304 Cannot find name 'NodeCapabilities'.
+  L264: TS2322 Type '{ isActive: boolean; }' is not assignable to type 'IntrinsicAttributes & NodeProgressProps'.
+    Property 'isActive' does not exist on type 'IntrinsicAttributes & NodeProgressProps'.
+
+src/nodes/StrudelNode.tsx (6 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L55: TS2345 Argument of type 'unknown' is not assignable to parameter of type 'string | undefined'.
+  L65: TS2339 Property 'error' does not exist on type '{ success: boolean; response: string; commands?: any[] | undefined; }'.
+  L66: TS2339 Property 'error' does not exist on type '{ success: boolean; response: string; commands?: any[] | undefined; }'.
+  L163: TS2339 Property 'strudel-repl' does not exist on type 'JSX.IntrinsicElements'.
+  L169: TS2339 Property 'strudel-repl' does not exist on type 'JSX.IntrinsicElements'.
+
+src/components/ChatUI.tsx (5 errors)
+  L1: TS6133 'ReactNode' is declared but its value is never read.
+  L3: TS6133 'NODE_TYPE_CAPABILITIES' is declared but its value is never read.
+  L151: TS6133 'parseContent' is declared but its value is never read.
+  L315: TS6133 'handleVoiceInput' is declared but its value is never read.
+  L1273: TS6133 'onApplyActions' is declared but its value is never read.
+
+src/nodes/GeneratorNode.tsx (5 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L1: TS6133 'useState' is declared but its value is never read.
+  L4: TS6133 'radius' is declared but its value is never read.
+  L22: TS2345 Argument of type 'unknown' is not assignable to parameter of type 'string | undefined'.
+  L61: TS2322 Type '{ label: string; id: string; style: { position: string; right: number; top: number; }; }' is not assignable to ...
+    Property 'style' does not exist on type 'IntrinsicAttributes & OutputHandleProps'.
+
+src/components/nodes/AdaptedPromptNode.tsx (5 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L4: TS2307 Cannot find module './useNodeConnections' or its corresponding type declarations.
+  L5: TS2307 Cannot find module '../utils/handleTypes' or its corresponding type declarations.
+  L6: TS2307 Cannot find module '../types' or its corresponding type declarations.
+  L19: TS2322 Type '{ children: Element; id: string; label: string; dotColor: string; selected: boolean; onDisconnect: any; }' is n...
+    Property 'label' does not exist on type 'IntrinsicAttributes & BaseNodeProps<BaseNodeData>'.
+
+src/WorkspacesPage.tsx (4 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L1: TS6133 'ReactNode' is declared but its value is never read.
+  L1: TS6133 'ChangeEvent' is declared but its value is never read.
+  L444: TS6133 'templates' is declared but its value is never read.
+
+src/services/assetService.ts (4 errors)
+  L82: TS2339 Property 'errors' does not exist on type 'ZodError<{ name: string; images: string[]; description?: string | undefined...
+  L82: TS7006 Parameter 'e' implicitly has an 'any' type.
+  L133: TS2339 Property 'errors' does not exist on type 'ZodError<{ name?: string | undefined; description?: string | undefined; ima...
+  L133: TS7006 Parameter 'e' implicitly has an 'any' type.
+
+src/nodes/ChangeCameraNode.tsx (4 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L2: TS6133 'Handle' is declared but its value is never read.
+  L2: TS6133 'Position' is declared but its value is never read.
+  L113: TS7006 Parameter 'img' implicitly has an 'any' type.
+
+src/components/RenderingManager.tsx (4 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L3: TS6133 'RenderingJob' is declared but its value is never read.
+  L6: TS6133 'error' is declared but its value is never read.
+  L11: TS6133 'completedJobs' is declared but its value is never read.
+
+src/nodes/CloudSyncNode.tsx (3 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L9: TS2339 Property 'onDisconnectNode' does not exist on type '{ update: (patch: Record<string, any>) => void; conn: (handleId: ...
+  L9: TS2554 Expected 2 arguments, but got 0.
+
+src/nodes/ConditionNode.tsx (3 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L8: TS2339 Property 'onDisconnectNode' does not exist on type '{ update: (patch: Record<string, any>) => void; conn: (handleId: ...
+  L8: TS2554 Expected 2 arguments, but got 0.
+
+src/nodes/VideoUniversalGeneratorNode.tsx (3 errors)
+  L19: TS6133 'ASPECT_RATIOS' is declared but its value is never read.
+  L35: TS2339 Property 'connections' does not exist on type '{ update: (patch: Record<string, any>) => void; conn: (handleId: strin...
+  L176: TS2322 Type '{ label: string; id: string; style: { position: string; right: number; top: number; }; }' is not assignable to ...
+    Property 'style' does not exist on type 'IntrinsicAttributes & OutputHandleProps'.
+
+src/services/billingService.ts (3 errors)
+  L18: TS6133 'TransactionType' is declared but its value is never read.
+  L37: TS2322 Type 'FieldValue' is not assignable to type 'string | Timestamp'.
+    Type 'FieldValue' is missing the following properties from type 'Timestamp': seconds, nanoseconds, toDate, toMillis, ...
+  L38: TS2322 Type 'FieldValue' is not assignable to type 'string | Timestamp'.
+    Type 'FieldValue' is missing the following properties from type 'Timestamp': seconds, nanoseconds, toDate, toMillis, ...
+
+src/nodes/SocialPublisherNode.tsx (3 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L9: TS2339 Property 'onDisconnectNode' does not exist on type '{ update: (patch: Record<string, any>) => void; conn: (handleId: ...
+  L9: TS2554 Expected 2 arguments, but got 0.
+
+src/WorkflowsPage.tsx (3 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L1: TS6133 'ReactNode' is declared but its value is never read.
+  L5: TS6133 'HeroWorkflowDiagram' is declared but its value is never read.
+
+src/engine/executionEngine.ts (3 errors)
+  L24: TS6133 'deductCredits' is declared but its value is never read.
+  L25: TS6133 'getCostForOperation' is declared but its value is never read.
+  L28: TS2741 Property 'uid' is missing in type '{ maxConcurrency: number; parallel: true; continueOnError: false; nodeTimeout: num...
+
+src/nodes/AIImageClassifierNode.tsx (3 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L2: TS6133 'Position' is declared but its value is never read.
+  L2: TS6133 'Handle' is declared but its value is never read.
+
+src/nodes/AudioIsolationNode.tsx (3 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L2: TS6133 'Handle' is declared but its value is never read.
+  L2: TS6133 'Position' is declared but its value is never read.
+
+src/components/CyberEdge.tsx (3 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L22: TS6133 'labelX' is declared but its value is never read.
+  L22: TS6133 'labelY' is declared but its value is never read.
+
+src/nodes/VariableNode.tsx (3 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L8: TS2339 Property 'onDisconnectNode' does not exist on type '{ update: (patch: Record<string, any>) => void; conn: (handleId: ...
+  L8: TS2554 Expected 2 arguments, but got 0.
+
+src/utils/handleTypes.ts (3 errors)
+  L56: TS6133 'nodes' is declared but its value is never read.
+  L82: TS6133 'type' is declared but its value is never read.
+  L82: TS6133 'isTarget' is declared but its value is never read.
+
+src/nodes/NodePropertyEditor.tsx (3 errors)
+  L1: TS6133 'ReactNode' is declared but its value is never read.
+  L1307: TS2322 Type '{}' is not assignable to type 'ReactNode'.
+  L1309: TS2741 Property 'label' is missing in type '{ value: number; onChange: (v: number) => void; min: number; max: number; step: ...
+
+src/store/index.ts (3 errors)
+  L7: TS6196 'applyNodeChanges' is declared but never used.
+  L7: TS6196 'applyEdgeChanges' is declared but never used.
+  L7: TS6196 'addEdge' is declared but never used.
+
+src/AuthPage.tsx (3 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L13: TS6133 'isFirebaseConfigured' is declared but its value is never read.
+  L660: TS6133 'globalLoading' is declared but its value is never read.
+
+src/nodes/IterationNode.tsx (3 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L8: TS2339 Property 'onDisconnectNode' does not exist on type '{ update: (patch: Record<string, any>) => void; conn: (handleId: ...
+  L8: TS2554 Expected 2 arguments, but got 0.
+
+src/components/SystemLoadingProcess.tsx (2 errors)
+  L482: TS2339 Property 'strudel-repl' does not exist on type 'JSX.IntrinsicElements'.
+  L482: TS2339 Property 'strudel-repl' does not exist on type 'JSX.IntrinsicElements'.
+
+src/components/VibeCodingChat.tsx (2 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L80: TS2322 Type 'Edge[]' is not assignable to type 'WorkflowEdge[]'.
+    Type 'Edge' is not assignable to type 'WorkflowEdge'.
+    Types of property 'markerEnd' are incompatible.
+    Type 'EdgeMarkerType | undefined' is not assignable to type 'string | { type: MarkerType | "arrow" | "arrowclosed"; w...
+    Type 'EdgeMarker' is not assignable to type 'string | { type: MarkerType | "arrow" | "arrowclosed"; width?: number | ...
+    Type 'EdgeMarker' is not assignable to type '{ type: MarkerType | "arrow" | "arrowclosed"; width?: number | undefined...
+    Types of property 'color' are incompatible.
+    Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+    Type 'null' is not assignable to type 'string | undefined'.
+
+src/components/LayerItem.tsx (2 errors)
+  L3: TS6133 'TextInput' is declared but its value is never read.
+  L48: TS6133 'isVideo' is declared but its value is never read.
+
+src/nodes/UniversalSimplifiedNodeChrome.tsx (2 errors)
+  L1: TS6133 'useEffect' is declared but its value is never read.
+  L28: TS6133 'runHovered' is declared but its value is never read.
+
+src/nodes/VoiceInputNode.tsx (2 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L42: TS2322 Type 'unknown' is not assignable to type 'ReactNode'.
+
+src/projectsDashboard/ProjectsDashboard.tsx (2 errors)
+  L8: TS6133 'deleteUser' is declared but its value is never read.
+  L536: TS2322 Type '"light" | "dark" | undefined' is not assignable to type '"light" | "dark"'.
+    Type 'undefined' is not assignable to type '"light" | "dark"'.
+
+src/nodes/NodeIcons.tsx (2 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L28: TS6133 'active' is declared but its value is never read.
+
+src/components/node-utils/NodeErrorBoundary.tsx (2 errors)
+  L2: TS6133 'border' is declared but its value is never read.
+  L48: TS2339 Property 'xl' does not exist on type '{ sm: number; md: number; lg: number; pill: number; full: string; }'.
+
+src/services/workflowService.ts (2 errors)
+  L722: TS2322 Type '{ [x: string]: unknown; id: string; type: string; position: { x: number; y: number; }; data: { [x: string]: unk...
+    Type '{ [x: string]: unknown; id: string; type: string; position: { x: number; y: number; }; data: { [x: string]: unk...
+    Type '{ [x: string]: unknown; id: string; type: string; position: { x: number; y: number; }; data: { [x: string]: unk...
+    Types of property 'data' are incompatible.
+    Type '{ [x: string]: unknown; id: string; label: string; status?: "idle" | "pending" | "running" | "completed" | "fai...
+  L724: TS2322 Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+    Type 'null' is not assignable to type 'string | undefined'.
+
+src/nodes/LayerNode.tsx (2 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L126: TS6133 'e' is declared but its value is never read.
+
+src/components/MobileNavigation.tsx (2 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L1: TS6133 'useState' is declared but its value is never read.
+
+src/app/CanvasNavigation.tsx (2 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L14: TS6198 All destructured elements are unused.
+
+src/nodes/ImageUniversalGeneratorNode.tsx (2 errors)
+  L142: TS2322 Type '{ label: string; id: string; style: { position: string; right: number; top: number; }; }' is not assignable to ...
+    Property 'style' does not exist on type 'IntrinsicAttributes & OutputHandleProps'.
+  L157: TS2339 Property 'divider' does not exist on type '{ subtle: string; default: string; hover: string; active: string; input: s...
+
+src/hooks/useWorkflow.ts (2 errors)
+  L63: TS6198 All destructured elements are unused.
+  L71: TS6133 'getEdges' is declared but its value is never read.
+
+src/components/AIChatbotPanel.tsx (2 errors)
+  L23: TS6133 'inputText' is declared but its value is never read.
+  L23: TS6133 'setInputText' is declared but its value is never read.
+
+src/components/CollaborationHub.tsx (2 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L8: TS6192 All imports in import declaration are unused.
+
+src/EditorTopBar.tsx (2 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L42: TS6133 'currentUserId' is declared but its value is never read.
+
+../blue-ether/src/components/Sidebar.tsx (2 errors)
+  L2: TS6133 'AnimatePresence' is declared but its value is never read.
+  L18: TS6133 'onToggle' is declared but its value is never read.
+
+src/components/node-utils/NodeLoadingSkeleton.tsx (2 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L14: TS2339 Property 'xl' does not exist on type '{ sm: number; md: number; lg: number; pill: number; full: string; }'.
+
+../blue-ether/src/components/Timeline.tsx (2 errors)
+  L1: TS6133 'useEffect' is declared but its value is never read.
+  L3: TS6133 'control' is declared but its value is never read.
+
+src/nodes/AssetNode.tsx (2 errors)
+  L101: TS6133 'selected' is declared but its value is never read.
+  L122: TS6133 'disconnectNode' is declared but its value is never read.
+
+src/components/InfiniteCanvas.tsx (2 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+  L17: TS6133 'setViewport' is declared but its value is never read.
+
+src/nodes/SourceMediaNode.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/components/DotMatrixDisplay.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/InspectorPanel.tsx (1 errors)
+  L118: TS2322 Type '((nodeId: string, patch: any) => void) | undefined' is not assignable to type '(id: string, data: any) => void'.
+    Type 'undefined' is not assignable to type '(id: string, data: any) => void'.
+
+src/ProjectSettingsModal.tsx (1 errors)
+  L45: TS6196 'LLMProvider' is declared but never used.
+
+src/NodeBananaLab.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/projectsDashboard/components/ShareWorkflowModal.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/components/DecodedText.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/components/LayoutHelper.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+../blue-ether/src/components/Icon.tsx (1 errors)
+  L137: TS2322 Type '{ children: string | number | bigint | true | ReactElement<unknown, string | JSXElementConstructor<any>> | Iter...
+    Types of property 'ref' are incompatible.
+    Type 'import("/Users/felixseeger/Projects/Node-Project/blue-ether/node_modules/@types/react/index").Ref<SVGSVGElement...
+    Type '(instance: SVGSVGElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<SVGSVGEl...
+    Type '(instance: SVGSVGElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: S...
+    Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two differe...
+    Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+    Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this...
+    Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist,...
+    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+
+src/components/DrawflowEditor.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/nodes/NodeProgress.tsx (1 errors)
+  L6: TS6133 'React' is declared but its value is never read.
+
+src/components/DynamicNodeLoader.tsx (1 errors)
+  L7: TS6133 'React' is declared but its value is never read.
+
+src/config/flowTypes.ts (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/engine/executors.ts (1 errors)
+  L586: TS2345 Argument of type 'string | null' is not assignable to parameter of type 'string | undefined'.
+    Type 'null' is not assignable to type 'string | undefined'.
+
+src/components/ScrambleText.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/components/ReferenceSelection.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/GooeyNodesMenu.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/hooks/useLayerManager.ts (1 errors)
+  L1: TS6133 'useRef' is declared but its value is never read.
+
+src/components/AnalyticsDashboard.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/components/ColabHubComments.tsx (1 errors)
+  L19: TS6133 'currentUserName' is declared but its value is never read.
+
+src/nodes/CommentNode.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/components/KeyboardShortcutsModal.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/nodes/AdaptedPromptNode.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/nodes/nodeRegistry.ts (1 errors)
+  L16: TS2339 Property 'NodeOutput' does not exist on type 'typeof import("/Users/felixseeger/Projects/Node-Project/frontend/src/no...
+
+src/nodes/ResponseNode.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/nodes/useNodeConnections.ts (1 errors)
+  L2: TS6133 'Edge' is declared but its value is never read.
+
+src/components/ScrambledHeroText.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/components/CyberDropdown.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/nodes/NodeGenerateButton.tsx (1 errors)
+  L24: TS6133 'isHovered' is declared but its value is never read.
+
+src/components/NodeLoadingSkeleton.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/nodes/TextNode.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/SearchHistoryMenu.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/nodes/ImageAnalyzerNode.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/services/chatService.ts (1 errors)
+  L4: TS6133 'getDocs' is declared but its value is never read.
+
+../blue-ether/src/components/Breadcrumb.tsx (1 errors)
+  L2: TS6133 'Icon' is declared but its value is never read.
+
+src/utils/workflowAI.ts (1 errors)
+  L195: TS6133 'constraints' is declared but its value is never read.
+
+src/components/GenerationLineageViewer.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/utils/testNodeTypes.ts (1 errors)
+  L1: TS2307 Cannot find module './dynamicNodes' or its corresponding type declarations.
+
+src/components/MatrixDot.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/components/AssetPickerOverlay.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/components/CanvasRunToolbar.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/hooks/useExecutionEngine.ts (1 errors)
+  L82: TS6133 'engineOptions' is declared but its value is never read.
+
+src/components/Nodes3DScroll.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/components/ChatPanel.tsx (1 errors)
+  L66: TS6133 'currentWorkflow' is declared but its value is never read.
+
+src/nodes/LocalLTXNode.tsx (1 errors)
+  L126: TS2322 Type '{ label: string; id: string; style: { right: number; }; }' is not assignable to type 'IntrinsicAttributes & Out...
+    Property 'style' does not exist on type 'IntrinsicAttributes & OutputHandleProps'.
+
+src/nodes/RouterNode.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/hooks/useFirebaseChat.ts (1 errors)
+  L11: TS6133 'updateConversationTitle' is declared but its value is never read.
+
+src/app/contextMenuIcons.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/components/AnnotationModal.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+
+src/nodes/InputNode.tsx (1 errors)
+  L1: TS6133 'React' is declared but its value is never read.
+[full output: ~/Library/Application Support/rtk/tee/1776140825_tsc.log]

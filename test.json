@@ -1,0 +1,8 @@
+{
+  error:
+  {
+    code: int,
+    message: string[181],
+    status: string
+  }
+}

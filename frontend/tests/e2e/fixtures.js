@@ -2,14 +2,15 @@ import { test as base, expect } from '@playwright/test';
 
 export const test = base.extend({
   page: async ({ page }, use) => {
-    await page.goto('/');
-    
     // Set localStorage / sessionStorage early
-    await page.evaluate(() => {
+    await page.addInitScript(() => {
       window.localStorage.setItem('fs_node_tour_completed', 'true');
       window.sessionStorage.setItem('slp_shown', '1');
+      window.localStorage.setItem('auth_debug_bypassed', '1');
     });
 
+    await page.goto('/');
+    
     // Give Firebase time to initialize
     await page.waitForTimeout(3000);
     
@@ -71,12 +72,11 @@ export const test = base.extend({
     });
 
     // Clear the canvas
-    await page.locator('.react-flow__pane').click({ force: true });
-    await page.keyboard.press('Control+A');
-    await page.keyboard.press('Meta+A');
-    await page.waitForTimeout(100);
-    await page.keyboard.press('Backspace');
-    await page.keyboard.press('Delete');
+    await page.evaluate(() => {
+      if (typeof window.clearCanvas === 'function') {
+        window.clearCanvas();
+      }
+    });
     await page.waitForTimeout(500);
 
     await use(page);

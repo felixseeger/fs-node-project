@@ -5,7 +5,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 async function test() {
   try {
     const res = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 10,
       messages: [{role: 'user', content: 'hi'}]
     });

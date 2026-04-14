@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { surface, border, text, sp, radius, control } from "../tokens";
+import { surface, border, text, sp, radius } from "../tokens";
 
 export interface TimelineProps {
   value: number;

@@ -1,11 +1,40 @@
 import { getFirebaseAuth } from '../config/firebase';
-const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 async function safeJson(res) {
   const text = await res.text();
   try {
-    return JSON.parse(text);
-  } catch {
+    const data = JSON.parse(text);
+    if (!res.ok) {
+      if (res.status === 403 && data.code === 'STORAGE_LIMIT_EXCEEDED') {
+        const err = new Error(data.error || 'Storage limit reached');
+        err.status = 403;
+        err.limit = data.limit;
+        err.current = data.current;
+        
+        // Dispatch a global event so the UI can show the storage limit modal
+        window.dispatchEvent(new CustomEvent('storage_limit_reached', { 
+          detail: { limit: data.limit, current: data.current } 
+        }));
+        
+        throw err;
+      }
+      if (res.status === 429 && data.code === 'DAILY_LIMIT_EXCEEDED') {
+        const err = new Error(data.error || 'Daily generation limit reached');
+        err.status = 429;
+        
+        // Use the same modal or a separate alert
+        window.dispatchEvent(new CustomEvent('daily_limit_reached', { 
+          detail: { message: data.error } 
+        }));
+        
+        throw err;
+      }
+      return { error: data.error || { message: `HTTP ${res.status}: ${text.substring(0, 100)}...` } };
+    }
+    return data;
+  } catch (e) {
+    if (e.status === 403 || e.status === 429) throw e; // Re-throw our custom errors
     console.error("Invalid JSON response:", text.substring(0, 200));
     if (!res.ok) {
       return { error: { message: `HTTP ${res.status}: ${text.substring(0, 100)}...` } };
@@ -40,6 +69,10 @@ export async function postToApi(endpoint, params) {
     headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(params),
   });
+  if (res.status === 402) {
+    // Rely on safeJson to throw the detailed 402 error
+    return safeJson(res);
+  }
   return safeJson(res);
 }
 
@@ -832,4 +865,13 @@ export async function pollVfxJobStatus(jobId, maxAttempts = 120, intervalMs = 30
     await new Promise((r) => setTimeout(r, intervalMs));
   }
   throw new Error('VFX Job polling timed out');
+}
+
+/**
+ * Moderates content for toxicity using the backend.
+ * @param {string} text - The text to moderate.
+ * @returns {Promise<{safe: boolean, reason: string}>}
+ */
+export async function moderateContent(text) {
+  return postToApi('/api/moderate', { text });
 }

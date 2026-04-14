@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "./dev.sh",
     "design-system:sync": "npx --yes degit felixseeger/blue_ether#main blue-ether --force",
     "build": "npm install --prefix blue-ether --legacy-peer-deps && npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix api && rm -rf public && cp -R frontend/dist public",
     "type-check": "cd frontend && tsc --noEmit",
@@ -15,9 +16,7 @@
     "@anthropic-ai/sdk": "^0.87.0",
     "@google/generative-ai": "^0.24.1",
     "@reduxjs/toolkit": "^2.11.2",
-    "@remotion/bundler": "^4.0.448",
-    "@remotion/cli": "^4.0.448",
-    "@remotion/renderer": "^4.0.448",
+    "bullmq": "^5.73.5",
     "cloudinary": "^2.9.0",
     "connect-timeout": "^1.9.1",
     "cors": "^2.8.6",
@@ -32,12 +31,14 @@
     "firebase-admin": "^13.8.0",
     "form-data": "^4.0.5",
     "helmet": "^8.1.0",
+    "ioredis": "^5.10.1",
     "lumaai": "^1.19.1",
     "multer": "^2.1.1",
     "p-queue": "^9.1.2",
     "react-redux": "^9.2.0",
     "remotion": "^4.0.448",
     "sharp": "^0.34.5",
+    "stripe": "^22.0.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
@@ -51,6 +52,7 @@
     "chromatic": "^16.2.0",
     "msw-storybook-addon": "^2.0.7",
     "storybook-dark-mode": "^5.0.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.4"
   }
 }

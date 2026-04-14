@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, type ReactNode } from 'react';
 import { text, surface, border, radius, sp, font, control } from './nodeTokens';
 import { motion, AnimatePresence } from 'framer-motion';
+import VoiceRecorder from '../components/VoiceRecorder';
 
 /**
  * Pill-style toggle button for option selection.
@@ -219,29 +220,49 @@ export function PromptInput({ value, onChange, placeholder, rows = 3 }: PromptIn
     }
   }, [value]);
 
+  const handleTranscription = (transcript: string) => {
+    const newValue = value ? `${value} ${transcript}` : transcript;
+    onChange(newValue);
+  };
+
   return (
-    <textarea
-      ref={textareaRef}
-      className="nodrag nopan"
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-      style={{
-        width: '100%', background: surface.sunken, border: `1px solid ${border.input}`,
-        borderRadius: radius.md, color: text.primary, fontSize: 12, padding: sp[3],
-        resize: 'none', outline: 'none', boxSizing: 'border-box', overflow: 'hidden',
-        transition: 'border-color 0.2s, box-shadow 0.2s',
-      }}
-      onFocus={(e) => {
-        e.currentTarget.style.borderColor = border.active;
-        e.currentTarget.style.boxShadow = `0 0 0 2px ${border.active}33`;
-      }}
-      onBlur={(e) => {
-        e.currentTarget.style.borderColor = border.input;
-        e.currentTarget.style.boxShadow = 'none';
-      }}
-    />
+    <div style={{ position: 'relative', width: '100%' }}>
+      <textarea
+        ref={textareaRef}
+        className="nodrag nopan"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        style={{
+          width: '100%', background: surface.sunken, border: `1px solid ${border.input}`,
+          borderRadius: radius.md, color: text.primary, fontSize: 12, padding: sp[3],
+          paddingBottom: '44px', // Extra space for recorder
+          resize: 'none', outline: 'none', boxSizing: 'border-box', overflow: 'hidden',
+          transition: 'border-color 0.2s, box-shadow 0.2s',
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = border.active;
+          e.currentTarget.style.boxShadow = `0 0 0 2px ${border.active}33`;
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.borderColor = border.input;
+          e.currentTarget.style.boxShadow = 'none';
+        }}
+      />
+      <div style={{ 
+        position: 'absolute', 
+        bottom: 8, 
+        left: 8, 
+        right: 8,
+        zIndex: 10
+      }}>
+        <VoiceRecorder 
+          onTranscription={handleTranscription} 
+          placeholder="Speak to add to prompt..."
+        />
+      </div>
+    </div>
   );
 }
 
