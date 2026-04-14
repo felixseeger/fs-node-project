@@ -1,0 +1,6 @@
+{
+  api_key: string[67],
+  created_at: int,
+  message: string[53],
+  user_id: string
+}
