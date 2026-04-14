@@ -8,24 +8,29 @@ import { getHandleColor } from '../utils/handleTypes';
 import { InfoIcon } from './NodeIcons';
 import { NodeCapabilities } from './nodeCapabilities';
 import NodeShell from './NodeShell';
-import { useLayerManager } from '../hooks/useLayerManager';
+import { TimelineProvider, useTimeline } from '../contexts/TimelineContext';
 import { LayerItem } from '../components/LayerItem';
 import { LayerTimeline } from '../components/LayerTimeline';
 import { VideoComposition } from '../remotion/VideoComposition';
-import { surface, border, radius, font, text, ui, CATEGORY_COLORS, sp } from './nodeTokens';
+import { surface, border, radius, text, ui } from './nodeTokens';
+import { RemotionLayer, Keyframe } from '../types/remotion';
 
-export default function LayerEditorNode({ id, data, selected }: any) {
+function LayerEditorNodeInner({ id, data, selected }: any) {
   const { resolve, update } = useNodeConnections(id, data);
   const capabilities = [NodeCapabilities.VIDEO_EDIT, NodeCapabilities.OUTPUT_VIDEO];
   const [dimensions, setDimensions] = useState({ width: 512, height: 512 });
   const [isExporting, setIsExporting] = useState(false);
   
-  const { layers, addLayer, removeLayer, updateLayer } = useLayerManager([]);
+  const { 
+    tracks, addTrack, addClipToTrack, removeClipFromTrack, updateClipInTrack,
+    currentTime, setCurrentTime 
+  } = useTimeline();
+  const layers = tracks.flatMap(t => t.clips);
+
   const playerRef = useRef<any>(null);
   const movieRef = useRef<any>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const layerRegistryRef = useRef<Map<string, any>>(new Map());
-  const [currentFrame, setCurrentFrame] = useState(0);
 
   const rawIncomingImages = resolve.image('image-in') || [];
   const rawIncomingVideos = resolve.video('video-in') || [];
@@ -36,6 +41,38 @@ export default function LayerEditorNode({ id, data, selected }: any) {
   const incomingAudio = Array.isArray(rawIncomingAudio) ? rawIncomingAudio : [rawIncomingAudio].filter(Boolean);
 
   const processedUrlsRef = useRef<Set<string>>(new Set());
+
+  // Helper for adding layer
+  const addLayer = (layerData: Omit<RemotionLayer, 'id'>) => {
+    let track = tracks.find(t => t.type === layerData.type);
+    let targetTrackId = track?.id;
+    if (!track) {
+      targetTrackId = addTrack({
+        type: layerData.type as 'image' | 'video' | 'audio' | 'text',
+        name: layerData.type.charAt(0).toUpperCase() + layerData.type.slice(1) + ' Track',
+        clips: []
+      });
+    }
+    const newId = crypto.randomUUID();
+    addClipToTrack(targetTrackId!, { ...layerData, id: newId } as RemotionLayer);
+    return newId;
+  };
+
+  const removeLayer = (clipId: string) => {
+    tracks.forEach(t => {
+      if (t.clips.some(c => c.id === clipId)) {
+        removeClipFromTrack(t.id, clipId);
+      }
+    });
+  };
+
+  const updateLayer = (clipId: string, updates: Partial<RemotionLayer>) => {
+    tracks.forEach(t => {
+      if (t.clips.some(c => c.id === clipId)) {
+        updateClipInTrack(t.id, clipId, updates);
+      }
+    });
+  };
 
   // Initialize etro.Movie
   useEffect(() => {
@@ -120,20 +157,40 @@ export default function LayerEditorNode({ id, data, selected }: any) {
         etroLayer.startTime = layerData.from / 30;
         etroLayer.duration = layerData.durationInFrames / 30;
 
-        // Property binding (TASK-022)
-        if (layerData.opacity !== undefined) {
-          etroLayer.opacity = layerData.opacity;
-        }
-        if (layerData.x !== undefined) {
-          etroLayer.x = layerData.x;
-        }
-        if (layerData.y !== undefined) {
-          etroLayer.y = layerData.y;
-        }
-        if (layerData.scale !== undefined) {
-          // Adjust width/height based on scale relative to base dimensions
-          etroLayer.width = dimensions.width * layerData.scale;
-          etroLayer.height = dimensions.height * layerData.scale;
+        // Property binding (TASK-022 & TASK-039)
+        const applyProperty = (propName: string, value: any, keyframes?: Keyframe[]) => {
+          if (keyframes && keyframes.length > 0) {
+            // Apply etro KeyFrame
+            const sortedKf = [...keyframes].sort((a, b) => a.frame - b.frame);
+            
+            // Adjust for scale
+            let multiplier = 1;
+            if (propName === 'width') multiplier = dimensions.width;
+            if (propName === 'height') multiplier = dimensions.height;
+            
+            const etroKfs = sortedKf.map(kf => [kf.frame / 30, kf.value * multiplier]);
+            (etroLayer as any)[propName] = new etro.KeyFrame(...etroKfs);
+          } else if (value !== undefined) {
+            // Apply static value
+            let multiplier = 1;
+            if (propName === 'width') multiplier = dimensions.width;
+            if (propName === 'height') multiplier = dimensions.height;
+            
+            (etroLayer as any)[propName] = value * multiplier;
+          }
+        };
+
+        applyProperty('opacity', layerData.opacity, layerData.keyframes?.opacity);
+        applyProperty('x', layerData.x, layerData.keyframes?.x);
+        applyProperty('y', layerData.y, layerData.keyframes?.y);
+        
+        // Scale affects width and height
+        if (layerData.keyframes?.scale && layerData.keyframes.scale.length > 0) {
+           applyProperty('width', layerData.scale, layerData.keyframes.scale);
+           applyProperty('height', layerData.scale, layerData.keyframes.scale);
+        } else if (layerData.scale !== undefined) {
+           applyProperty('width', layerData.scale);
+           applyProperty('height', layerData.scale);
         }
       }
     });
@@ -150,7 +207,11 @@ export default function LayerEditorNode({ id, data, selected }: any) {
           zIndex: layers.length,
           status: 'completed',
           progress: 100,
-          jobType: 'none'
+          jobType: 'none',
+          x: 0,
+          y: 0,
+          scale: 1,
+          opacity: 1
         });
         processedUrlsRef.current.add(url);
       }
@@ -166,7 +227,11 @@ export default function LayerEditorNode({ id, data, selected }: any) {
           zIndex: layers.length,
           status: 'completed',
           progress: 100,
-          jobType: 'none'
+          jobType: 'none',
+          x: 0,
+          y: 0,
+          scale: 1,
+          opacity: 1
         });
         processedUrlsRef.current.add(url);
       }
@@ -182,19 +247,23 @@ export default function LayerEditorNode({ id, data, selected }: any) {
           zIndex: 0,
           status: 'completed',
           progress: 100,
-          jobType: 'none'
+          jobType: 'none',
+          x: 0,
+          y: 0,
+          scale: 1,
+          opacity: 1
         });
         processedUrlsRef.current.add(url);
       }
     });
-  }, [incomingImages, incomingVideos, incomingAudio, addLayer, layers.length]);
+  }, [incomingImages, incomingVideos, incomingAudio, tracks.length, layers.length]);
 
   useEffect(() => {
     if (!playerRef.current) return;
     
     const interval = setInterval(() => {
       if (playerRef.current) {
-        setCurrentFrame(playerRef.current.getCurrentFrame());
+        setCurrentTime(playerRef.current.getCurrentFrame());
       }
     }, 1000 / 30);
     
@@ -210,7 +279,11 @@ export default function LayerEditorNode({ id, data, selected }: any) {
       zIndex: type === 'audio' ? 0 : layers.length,
       status: 'idle',
       progress: 0,
-      jobType: type
+      jobType: 'none',
+      x: 0,
+      y: 0,
+      scale: 1,
+      opacity: 1
     });
   };
 
@@ -299,16 +372,6 @@ export default function LayerEditorNode({ id, data, selected }: any) {
     if (movieRef.current) movieRef.current.pause();
     if (playerRef.current) playerRef.current.pause();
   };
-
-  const timelineLayers = layers.map(l => ({
-    id: l.id,
-    name: l.type + ' ' + l.id.substring(0, 4),
-    from: l.from,
-    durationInFrames: l.durationInFrames,
-    type: l.type,
-    src: l.src,
-    color: l.type === 'video' ? '#14b8a6' : l.type === 'image' ? '#ec4899' : l.type === 'audio' ? '#a855f7' : '#3b82f6'
-  }));
 
   const nodeStyles = {
     panelContainer: {
@@ -458,11 +521,11 @@ export default function LayerEditorNode({ id, data, selected }: any) {
                 </div>
               </div>
               <LayerTimeline 
-                layers={timelineLayers} 
+                tracks={tracks} 
                 durationInFrames={120} 
-                currentFrame={currentFrame}
+                currentFrame={currentTime}
                 onSeek={(f) => {
-                  setCurrentFrame(f);
+                  setCurrentTime(f);
                   if (playerRef.current) {
                     playerRef.current.seekTo(f);
                   }
@@ -478,25 +541,25 @@ export default function LayerEditorNode({ id, data, selected }: any) {
                 <span style={nodeStyles.titleText}>Layers ({layers.length})</span>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <button 
-                    onClick={() => handleAddLayer('video')}
+                    onClick={() => handleAddLayer({ type: 'video' } as any)}
                     style={{ background: 'transparent', color: '#14b8a6', border: '1px solid #14b8a6', borderRadius: `${radius.sm}px`, padding: '4px 6px', fontSize: '10px', cursor: 'pointer' }}
                   >
                     + Video
                   </button>
                   <button 
-                    onClick={() => handleAddLayer('image')}
+                    onClick={() => handleAddLayer({ type: 'image' } as any)}
                     style={{ background: 'transparent', color: '#ec4899', border: '1px solid #ec4899', borderRadius: `${radius.sm}px`, padding: '4px 6px', fontSize: '10px', cursor: 'pointer' }}
                   >
                     + Image
                   </button>
                   <button 
-                    onClick={() => handleAddLayer('audio')}
+                    onClick={() => handleAddLayer({ type: 'audio' } as any)}
                     style={{ background: 'transparent', color: '#a855f7', border: '1px solid #a855f7', borderRadius: `${radius.sm}px`, padding: '4px 6px', fontSize: '10px', cursor: 'pointer' }}
                   >
                     + Audio
                   </button>
                   <button 
-                    onClick={() => handleAddLayer('text')}
+                    onClick={() => handleAddLayer({ type: 'text' } as any)}
                     style={{ background: 'transparent', color: '#f97316', border: '1px solid #f97316', borderRadius: `${radius.sm}px`, padding: '4px 6px', fontSize: '10px', cursor: 'pointer' }}
                   >
                     + Text
@@ -542,5 +605,13 @@ export default function LayerEditorNode({ id, data, selected }: any) {
         document.body
       )}
     </NodeShell>
+  );
+}
+
+export default function LayerEditorNode(props: any) {
+  return (
+    <TimelineProvider>
+      <LayerEditorNodeInner {...props} />
+    </TimelineProvider>
   );
 }

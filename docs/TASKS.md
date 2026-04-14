@@ -1,4 +1,4 @@
-# AI Pipeline Editor - Completed Tasks - COMPLETED ✅
+# AI Pipeline Editor - Tasks - IN PROGRESS 🏗️
 
 ## API Security
 - [x] TASK-001: Install dependencies (helmet, express-validator, connect-timeout, file-type)
@@ -44,3 +44,11 @@
 - [x] TASK-031: Implement `LtxVideoNode` for generative video backgrounds via async worker.
 - [x] TASK-032: Integrate `sharp` library in the backend for scalable image compositing and filtering.
 
+## Multi-Track Timeline Editing (Phase 8)
+- [x] TASK-033: Refactor `LayerRegistry` for multi-clip per track support.
+- [x] TASK-034: Implement `TimelineProvider` for global temporal state management.
+- [x] TASK-035: Build interactive `Scrubber` and `TimecodeDisplay` components.
+- [x] TASK-036: Implement `TimelineClip` with drag, trim, and split capabilities.
+- [x] TASK-037: Create `KeyframeLane` UI for property automation.
+- [x] TASK-038: Integrate `wavesurfer.js` for audio track visualization.
+- [x] TASK-039: Implement interpolation logic between keyframes in `etro-js`.

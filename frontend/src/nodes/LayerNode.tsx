@@ -7,7 +7,9 @@ import NodeShell from './NodeShell';
 import { NodeCapabilities } from './nodeCapabilities';
 import { VideoComposition } from '../remotion/VideoComposition';
 import { RemotionLayer } from '../types/remotion';
-import { LayerTimeline, TimelineLayer } from '../components/LayerTimeline';
+import { LayerTimeline } from '../components/LayerTimeline';
+
+import { Track } from '../contexts/TimelineContext';
 
 export default function LayerNode({ id, data, selected }: any) {
   const { resolve } = useNodeConnections(id, data);
@@ -38,7 +40,10 @@ export default function LayerNode({ id, data, selected }: any) {
         type: 'video',
         from: 0,
         durationInFrames,
-        zIndex: zIndex++
+        zIndex: zIndex++,
+        status: 'completed',
+        progress: 100,
+        jobType: 'none'
       });
     });
 
@@ -49,7 +54,10 @@ export default function LayerNode({ id, data, selected }: any) {
         type: 'image',
         from: 0,
         durationInFrames,
-        zIndex: zIndex++
+        zIndex: zIndex++,
+        status: 'completed',
+        progress: 100,
+        jobType: 'none'
       });
     });
 
@@ -60,21 +68,25 @@ export default function LayerNode({ id, data, selected }: any) {
         type: 'audio',
         from: 0,
         durationInFrames,
-        zIndex: zIndex++
+        zIndex: zIndex++,
+        status: 'completed',
+        progress: 100,
+        jobType: 'none'
       });
     });
 
     return newLayers;
   }, [incomingImages, incomingVideos, incomingAudio, durationInFrames]);
 
-  const timelineLayers: TimelineLayer[] = useMemo(() => {
-    return layers.map(l => ({
-      id: l.id,
-      name: `${l.type} layer`,
-      from: l.from,
-      durationInFrames: l.durationInFrames,
-      color: l.type === 'video' ? '#14b8a6' : l.type === 'image' ? '#ec4899' : '#a855f7'
-    }));
+  const tracks: Track[] = useMemo(() => {
+    return [
+      {
+        id: 'main-track',
+        name: 'Main Track',
+        type: 'video',
+        clips: layers
+      }
+    ];
   }, [layers]);
 
   const handleSeek = (frame: number) => {
@@ -151,7 +163,7 @@ export default function LayerNode({ id, data, selected }: any) {
         {selected && (
           <div style={{ padding: '8px', borderTop: '1px solid #333', backgroundColor: '#111', flex: 1, overflow: 'hidden' }}>
             <LayerTimeline 
-              layers={timelineLayers}
+              tracks={tracks}
               durationInFrames={durationInFrames}
               currentFrame={currentFrame}
               onSeek={handleSeek}

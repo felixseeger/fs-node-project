@@ -1,14 +1,4 @@
-const isGeneratable = layer.type !== 'text' && (!layer.src || layer.src.length === 0);
-  const handleTextChange = (val: string) => {
-    setPrompt(val);
-    onUpdate(layer.id, { src: val, status: 'completed' });
-  };
-  
-  useEffect(() => {
-    if (layer.type === 'text' && layer.src && prompt !== layer.src) {
-      setPrompt(layer.src);
-    }
-  }, [layer.type, layer.src]);import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { RemotionLayer } from '../types/remotion';
 import { TextInput, Slider, SettingsPanel } from '../nodes/shared';
 import { surface, border, radius, sp, text } from '../nodes/nodeTokens';
@@ -26,6 +16,18 @@ export function LayerItem({ layer, onUpdate, onDelete }: LayerItemProps) {
   const [progress, setProgress] = useState<number>(layer.progress || 0);
   const [error, setError] = useState<string | undefined>(layer.error || undefined);
 
+  const isGeneratable = layer.type !== 'text' && (!layer.src || layer.src.length === 0);
+  const handleTextChange = (val: string) => {
+    setPrompt(val);
+    onUpdate(layer.id, { src: val, status: 'completed' });
+  };
+  
+  useEffect(() => {
+    if (layer.type === 'text' && layer.src && prompt !== layer.src) {
+      setPrompt(layer.src);
+    }
+  }, [layer.type, layer.src, prompt]);
+
   useEffect(() => {
     setStatus(layer.status || 'idle');
     setProgress(layer.progress || 0);
@@ -41,8 +43,8 @@ export function LayerItem({ layer, onUpdate, onDelete }: LayerItemProps) {
     onUpdate(layer.id, { status: 'loading', progress: 0, error: undefined });
 
     try {
-      const isImage = layer.jobType === 'image' || layer.type === 'image' || layer.jobType === 'freepik-image';
-      const isAudio = layer.jobType === 'audio' || layer.type === 'audio' || layer.jobType === 'music';
+      const isImage = (layer.jobType as any) === 'image' || layer.type === 'image' || (layer.jobType as any) === 'freepik-image';
+      const isAudio = (layer.jobType as any) === 'audio' || layer.type === 'audio' || (layer.jobType as any) === 'music';
       const isVideo = !isImage && !isAudio;
 
       let submitUrl = '/api/vfx/ltx/generate';
