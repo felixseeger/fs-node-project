@@ -8,9 +8,9 @@ export type IconName =
   // Media / Content
   | 'image' | 'video' | 'audio' | 'text' | 'file' | 'folder' | 'link' | 'aspect-ratio' | 'resolution'
   // Playback
-  | 'play' | 'pause' | 'stop' | 'rewind' | 'fast-forward' | 'clock'
+  | 'play' | 'pause' | 'stop' | 'rewind' | 'fast-forward' | 'skip-back' | 'skip-forward' | 'repeat' | 'clock'
   // App / Workspace
-  | 'home' | 'grid' | 'list' | 'layout' | 'workflow' | 'collage' | 'nodes' | 'layers'
+  | 'home' | 'grid' | 'list' | 'layout' | 'workflow' | 'collage' | 'nodes' | 'layers' | 'keyframe-active' | 'keyframe-inactive'
   // AI / Generation
   | 'magic' | 'sparkles' | 'generate' | 'brain' | 'robot'
   // Communication
@@ -68,6 +68,9 @@ const paths: Record<IconName, React.ReactNode> = {
   'stop': <><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /></>,
   'rewind': <><polygon points="11 19 2 12 11 5 11 19" /><polygon points="22 19 13 12 22 5 22 19" /></>,
   'fast-forward': <><polygon points="13 19 22 12 13 5 13 19" /><polygon points="2 19 11 12 2 5 2 19" /></>,
+  'skip-back': <><polygon points="19 20 9 12 19 4 19 20" /><line x1="5" y1="19" x2="5" y2="5" /></>,
+  'skip-forward': <><polygon points="5 4 15 12 5 20 5 4" /><line x1="19" y1="5" x2="19" y2="19" /></>,
+  'repeat': <><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></>,
   'clock': <><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>,
 
   // App / Workspace
@@ -79,6 +82,8 @@ const paths: Record<IconName, React.ReactNode> = {
   'collage': <><path d="M18 22H4a2 2 0 0 1-2-2V6" /><path d="M22 18H8a2 2 0 0 0-2 2v-12a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z" /><circle cx="13.5" cy="8.5" r="1.5" /><polyline points="22 13 18 10 11 15" /></>,
   'nodes': <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></>,
   'layers': <><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></>,
+  'keyframe-active': <><polygon points="12 2 22 12 12 22 2 12 12 2" fill="currentColor" /></>,
+  'keyframe-inactive': <><polygon points="12 2 22 12 12 22 2 12 12 2" /></>,
 
   // AI / Generation
   'magic': <><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></>,

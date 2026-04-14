@@ -9,33 +9,80 @@ import React from 'react';
 vi.mock('@remotion/player', () => ({
   Player: vi.fn(({ style, inputProps }: any) => (
     <div data-testid="remotion-player" style={style}>
-      Player Mock - Layers: {inputProps.layers.length}
+      Player Mock - Layers: {inputProps.layers?.length || 0}
     </div>
   ))
 }));
 
-// Mock hooks
-const mockAddLayer = vi.fn();
-const mockRemoveLayer = vi.fn();
-const mockUpdateLayer = vi.fn();
+// Mock blue-ether
+vi.mock('blue-ether', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as any),
+    LayerStack: ({ layers, onSelect }: any) => (
+      <div data-testid="layer-stack">
+        LayerStack Mock: {layers?.length || 0} layers
+        {layers?.map((l: any) => (
+          <button key={l.id} data-testid={`select-${l.id}`} onClick={() => onSelect(l.id)}>Select {l.id}</button>
+        ))}
+      </div>
+    ),
+    Timeline: () => <div data-testid="timeline-mock">Timeline Mock</div>,
+    Button: ({ children, onClick, style }: any) => <button onClick={onClick} style={style}>{children}</button>
+  };
+});
 
-vi.mock('../hooks/useLayerManager', () => ({
-  useLayerManager: vi.fn(() => ({
-    layers: [
-      { id: 'layer-1', type: 'video', src: 'vid1.mp4', from: 0, durationInFrames: 120, zIndex: 0 },
-      { id: 'layer-2', type: 'image', src: 'img1.png', from: 10, durationInFrames: 60, zIndex: 1 }
+// Mock etro
+vi.mock('etro', () => {
+  return {
+    default: {
+      Movie: class {
+        addLayer() {}
+        removeLayer() {}
+        play() {}
+        pause() {}
+        seek() {}
+        record() { return Promise.resolve(new Blob()); }
+      },
+      layer: {
+        Image: class {},
+        Video: class {},
+        Audio: class {}
+      },
+      KeyFrame: class {},
+      Color: class { constructor() {} }
+    }
+  };
+});
+
+// Mock hooks
+const mockAddTrack = vi.fn(() => 'track-1');
+const mockAddClipToTrack = vi.fn();
+const mockRemoveClipFromTrack = vi.fn();
+const mockUpdateClipInTrack = vi.fn();
+const mockSetCurrentTime = vi.fn();
+
+vi.mock('../contexts/TimelineContext', () => ({
+  useTimeline: vi.fn(() => ({
+    tracks: [
+      { id: 'track-1', type: 'video', clips: [{ id: 'layer-1', type: 'video', src: 'vid1.mp4', from: 0, durationInFrames: 120, zIndex: 0 }] },
+      { id: 'track-2', type: 'image', clips: [{ id: 'layer-2', type: 'image', src: 'img1.png', from: 10, durationInFrames: 60, zIndex: 1 }] }
     ],
-    addLayer: mockAddLayer,
-    removeLayer: mockRemoveLayer,
-    updateLayer: mockUpdateLayer
-  }))
+    addTrack: mockAddTrack,
+    addClipToTrack: mockAddClipToTrack,
+    removeClipFromTrack: mockRemoveClipFromTrack,
+    updateClipInTrack: mockUpdateClipInTrack,
+    currentTime: 0,
+    setCurrentTime: mockSetCurrentTime
+  })),
+  TimelineProvider: ({ children }: any) => <>{children}</>
 }));
 
 // Mock components
 vi.mock('../components/LayerTimeline', () => ({
-  LayerTimeline: ({ layers, onSeek }: any) => (
+  LayerTimeline: ({ tracks, onSeek }: any) => (
     <div data-testid="layer-timeline" onClick={() => onSeek(50)}>
-      Timeline Mock - Layers: {layers.length}
+      Timeline Mock - Tracks: {tracks?.length || 0}
     </div>
   )
 }));
@@ -101,38 +148,45 @@ describe('LayerEditorNode', () => {
     expect(titleElements.length).toBeGreaterThan(0);
     expect(screen.getByTestId('layer-timeline')).toBeInTheDocument();
     expect(screen.getByText('Layers (2)')).toBeInTheDocument();
-    expect(screen.getByTestId('layer-item-layer-1')).toBeInTheDocument();
-    expect(screen.getByTestId('layer-item-layer-2')).toBeInTheDocument();
+    expect(screen.getByTestId('layer-stack')).toBeInTheDocument();
   });
 
   it('handles adding a layer', () => {
     renderWithReactFlow(<LayerEditorNode id="layer-editor-1" data={{}} selected={true} />);
     
-    const addBtn = screen.getByText('+ Add Layer');
+    const addBtn = screen.getByText('+ Video');
     fireEvent.click(addBtn);
     
-    expect(mockAddLayer).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mockAddClipToTrack).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
       type: 'video',
-      jobType: 'ltx'
+      jobType: 'none'
     }));
   });
 
   it('handles updating a layer', () => {
     renderWithReactFlow(<LayerEditorNode id="layer-editor-1" data={{}} selected={true} />);
     
+    // Select the layer to make the LayerItem appear
+    const selectBtn = screen.getByTestId('select-layer-1');
+    fireEvent.click(selectBtn);
+    
     const updateBtn = screen.getByTestId('update-layer-1');
     fireEvent.click(updateBtn);
     
-    expect(mockUpdateLayer).toHaveBeenCalledWith('layer-1', { opacity: 0.5 });
+    expect(mockUpdateClipInTrack).toHaveBeenCalledWith(expect.any(String), 'layer-1', { opacity: 0.5 });
   });
 
   it('handles deleting a layer', () => {
     renderWithReactFlow(<LayerEditorNode id="layer-editor-1" data={{}} selected={true} />);
     
+    // Select the layer to make the LayerItem appear
+    const selectBtn = screen.getByTestId('select-layer-1');
+    fireEvent.click(selectBtn);
+    
     const deleteBtn = screen.getByTestId('delete-layer-1');
     fireEvent.click(deleteBtn);
     
-    expect(mockRemoveLayer).toHaveBeenCalledWith('layer-1');
+    expect(mockRemoveClipFromTrack).toHaveBeenCalledWith(expect.any(String), 'layer-1');
   });
 
   it('handles seek on timeline', () => {
@@ -155,7 +209,7 @@ describe('LayerEditorNode', () => {
 
     renderWithReactFlow(<LayerEditorNode id="layer-editor-1" data={{}} selected={true} />);
     
-    const exportBtn = screen.getByText('Export Video');
+    const exportBtn = screen.getByText('Render on Server');
     fireEvent.click(exportBtn);
     
     expect(mockFetch).toHaveBeenCalledWith('/api/vfx/render', expect.objectContaining({
@@ -163,7 +217,7 @@ describe('LayerEditorNode', () => {
     }));
     
     await waitFor(() => {
-      expect(screen.getByText('Exporting...')).toBeInTheDocument();
+      expect(screen.getByText('Processing...')).toBeInTheDocument();
     });
   });
 });

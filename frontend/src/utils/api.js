@@ -6,15 +6,26 @@ async function safeJson(res) {
   try {
     const data = JSON.parse(text);
     if (!res.ok) {
-      if (res.status === 402) {
-        const err = new Error(data.error || 'Insufficient credits');
-        err.status = 402;
-        err.required = data.required;
+      if (res.status === 403 && data.code === 'STORAGE_LIMIT_EXCEEDED') {
+        const err = new Error(data.error || 'Storage limit reached');
+        err.status = 403;
+        err.limit = data.limit;
         err.current = data.current;
         
-        // Dispatch a global event so the UI can show the paywall
-        window.dispatchEvent(new CustomEvent('insufficient_credits', { 
-          detail: { required: data.required, current: data.current } 
+        // Dispatch a global event so the UI can show the storage limit modal
+        window.dispatchEvent(new CustomEvent('storage_limit_reached', { 
+          detail: { limit: data.limit, current: data.current } 
+        }));
+        
+        throw err;
+      }
+      if (res.status === 429 && data.code === 'DAILY_LIMIT_EXCEEDED') {
+        const err = new Error(data.error || 'Daily generation limit reached');
+        err.status = 429;
+        
+        // Use the same modal or a separate alert
+        window.dispatchEvent(new CustomEvent('daily_limit_reached', { 
+          detail: { message: data.error } 
         }));
         
         throw err;
@@ -23,7 +34,7 @@ async function safeJson(res) {
     }
     return data;
   } catch (e) {
-    if (e.status === 402) throw e; // Re-throw our custom 402 error
+    if (e.status === 403 || e.status === 429) throw e; // Re-throw our custom errors
     console.error("Invalid JSON response:", text.substring(0, 200));
     if (!res.ok) {
       return { error: { message: `HTTP ${res.status}: ${text.substring(0, 100)}...` } };

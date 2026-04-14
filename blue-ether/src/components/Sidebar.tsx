@@ -1,5 +1,5 @@
 import React, { type FC, type ReactNode } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Icon, { type IconName } from './Icon';
 
 export interface SidebarProps {
@@ -15,7 +15,7 @@ export interface SidebarProps {
 
 export const Sidebar: FC<SidebarProps> = ({
   isOpen,
-  onToggle,
+  /* onToggle, */
   header,
   children,
   footer,

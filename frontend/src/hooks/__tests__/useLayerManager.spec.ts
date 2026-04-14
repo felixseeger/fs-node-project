@@ -44,6 +44,10 @@ describe('useLayerManager', () => {
       status: 'idle',
       progress: 0,
       jobType: 'none',
+      opacity: 1,
+      scale: 1,
+      x: 0,
+      y: 0,
     };
 
     act(() => {

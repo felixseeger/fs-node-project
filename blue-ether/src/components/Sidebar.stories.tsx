@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Sidebar, SidebarItem } from './Sidebar';
 import Avatar from './Avatar';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 const meta: Meta<typeof Sidebar> = {
   title: 'Components/Navigation/Sidebar',

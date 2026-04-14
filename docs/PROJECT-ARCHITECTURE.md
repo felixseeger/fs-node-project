@@ -180,14 +180,26 @@ Handles use colored circles indicating data type:
 - `AudioIsolationNode` - SAM Audio Isolation
 - `VoiceoverNode` - ElevenLabs Voiceover
 
-**Utilities:**
+### Utilities:
 - `ResponseNode` - Output/display node
 - `AdaptedPromptNode` - Prompt adaptation
-- `LayerEditorNode` - Layer management
+- `LayerEditorNode` - Layer management & Timeline Editor
 - `RouterNode` - Flow routing
 - `CommentNode` - Annotation
 
+## Timeline System (Phase 8)
+
+The project includes a robust Multi-Track Timeline Editor integrated into the `LayerEditorNode`, transforming the node-based workflow into a full Non-Linear Editor (NLE).
+
+- **Core Library:** `etro-js` for high-performance, canvas-based video compositing.
+- **Multi-Track Architecture:** Supports parallel horizontal tracks for video, audio, and image assets with independent Z-index control.
+- **Temporal Manipulation:** Frame-accurate scrubbing, interactive clip trimming, and drag-and-drop temporal positioning.
+- **Keyframe Animation:** Bezier-based interpolation of properties (opacity, scale, position) over time, visualized as keyframe lanes.
+- **Audio Integration:** Waveform visualization using `wavesurfer.js` with dedicated volume automation tracks.
+- **Web Worker Rendering:** Video composition and export (MP4/WebM) are offloaded to a Web Worker using `OffscreenCanvas` to ensure smooth UI performance.
+
 ## Design System
+
 
 ### Visual Style
 - **Canvas background:** `#1a1a1a`

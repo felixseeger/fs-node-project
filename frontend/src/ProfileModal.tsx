@@ -3,8 +3,7 @@ import './ProfileModal.css';
 import { getFirebaseAuth } from './config/firebase';
 import { updateEmail, updatePassword, deleteUser, updateProfile as updateAuthProfile, type User } from 'firebase/auth';
 import { useUser } from './hooks/useUser';
-import { useBilling } from './hooks/useBilling';
-import { PRICING_CATALOG } from './config/pricing';
+import { useStorage } from './hooks/useStorage';
 import { type UpdateProfilePayload } from './types/user';
 import AvatarCropper from './components/AvatarCropper';
 
@@ -66,7 +65,7 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
   const [defaultModels, setDefaultModels] = useState<any>({});
 
   const [isLoading, setIsLoading] = useState(false);
-  const { balance, transactions, loading: billingLoading } = useBilling(user?.uid || null);
+  const { usage, loading: storageLoading } = useStorage();
   const [message, setMessage] = useState<MessageState | null>(null);
   const [activeTab, setActiveTab] = useState('Profile');
 
@@ -249,13 +248,10 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
               <span className="pm-icon">{Icons.Settings}</span> Settings
             </button>
             <button className={`pm-nav-btn ${activeTab === 'People' ? 'active' : ''}`} onClick={() => setActiveTab('People')}>
-              <span className="pm-icon">{Icons.People}</span> People &amp; Credits
+              <span className="pm-icon">{Icons.People}</span> People
             </button>
             <button className={`pm-nav-btn ${activeTab === 'Usage' ? 'active' : ''}`} onClick={() => setActiveTab('Usage')}>
               <span className="pm-icon">{Icons.Usage}</span> Usage
-            </button>
-            <button className={`pm-nav-btn ${activeTab === 'Plans' ? 'active' : ''}`} onClick={() => setActiveTab('Plans')}>
-              <span className="pm-icon">{Icons.Plans}</span> Plans &amp; Pricing
             </button>
           </div>
         </div>
@@ -773,73 +769,29 @@ export const ProfileModal: FC<ProfileModalProps> = ({ isOpen, onClose }) => {
           )}
 
           
-          {activeTab === 'Plans' && (
-            <div className="pm-profile-body">
-              <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '20px', margin: '0 0 8px 0', color: '#fff' }}>Current Balance</h3>
-                <div style={{ fontSize: '36px', fontWeight: '700', color: '#00FF7F' }}>
-                  {billingLoading ? '...' : balance.toLocaleString()} <span style={{fontSize: '16px', color: '#999', fontWeight: '400'}}>Credits</span>
-                </div>
-                <p style={{ color: '#999', fontSize: '14px', marginTop: '8px' }}>
-                  Credits are used to run AI nodes. You are currently on the Free tier.
-                </p>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                  <button className="pm-save-btn" style={{ flex: 'none', width: 'auto' }}>Upgrade Plan</button>
-                  <button className="pm-edit-btn" style={{ flex: 'none', width: 'auto' }}>Buy Credits</button>
-                </div>
-              </div>
-
-              <div className="pm-divider"></div>
-
-              <h3 style={{ fontSize: '16px', margin: '0 0 16px 0', color: '#fff' }}>Pricing Catalog</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
-                {Object.values(PRICING_CATALOG).map(item => (
-                  <div key={item.id} style={{ background: '#111', border: '1px solid #333', borderRadius: '8px', padding: '12px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff' }}>{item.name}</div>
-                    <div style={{ fontSize: '12px', color: '#999', margin: '4px 0 8px 0' }}>{item.category.toUpperCase()}</div>
-                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#00FF7F' }}>{item.baseCost} cr</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {activeTab === 'Usage' && (
             <div className="pm-profile-body">
-              <h3 style={{ fontSize: '16px', margin: '0 0 16px 0', color: '#fff' }}>Recent Transactions</h3>
-              {transactions.length === 0 ? (
-                <p style={{ color: '#999', fontSize: '14px' }}>No recent transactions.</p>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid #333', textAlign: 'left', color: '#999' }}>
-                      <th style={{ padding: '8px' }}>Date</th>
-                      <th style={{ padding: '8px' }}>Description</th>
-                      <th style={{ padding: '8px' }}>Type</th>
-                      <th style={{ padding: '8px', textAlign: 'right' }}>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {transactions.map(tx => {
-                       const date = typeof tx.createdAt === 'string' ? new Date(tx.createdAt) : tx.createdAt?.toDate?.() || new Date();
-                       return (
-                      <tr key={tx.id} style={{ borderBottom: '1px solid #222' }}>
-                        <td style={{ padding: '12px 8px', color: '#ccc' }}>{date.toLocaleDateString()}</td>
-                        <td style={{ padding: '12px 8px', color: '#fff' }}>{tx.description}</td>
-                        <td style={{ padding: '12px 8px', color: '#999' }}>{tx.type}</td>
-                        <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: tx.amount > 0 ? '#00FF7F' : '#E0E0E0' }}>
-                          {tx.amount > 0 ? '+' : ''}{tx.amount}
-                        </td>
-                      </tr>
-                    )})}
-                  </tbody>
-                </table>
-              )}
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '20px', margin: '0 0 8px 0', color: '#fff' }}>Storage Usage</h3>
+                <div style={{ fontSize: '36px', fontWeight: '700', color: '#00FF7F' }}>
+                  {storageLoading ? '...' : usage?.count || 0} <span style={{fontSize: '16px', color: '#999', fontWeight: '400'}}>/ {usage?.limitCount || 100} Assets</span>
+                </div>
+                <p style={{ color: '#999', fontSize: '14px', marginTop: '8px' }}>
+                  You have used {Math.round(((usage?.count || 0) / (usage?.limitCount || 100)) * 100)}% of your available storage.
+                </p>
+                <div style={{ width: '100%', height: 8, background: '#222', borderRadius: 4, overflow: 'hidden', marginTop: 16 }}>
+                  <div style={{ 
+                    height: '100%', 
+                    background: (usage?.count || 0) >= (usage?.limitCount || 100) ? '#ef4444' : '#00FF7F', 
+                    width: `${Math.min(100, ((usage?.count || 0) / (usage?.limitCount || 100)) * 100)}%`,
+                    transition: 'width 0.3s ease-out, background-color 0.3s ease'
+                  }} />
+                </div>
+              </div>
             </div>
           )}
 
-
-          {activeTab !== 'Profile' && activeTab !== 'Account' && activeTab !== 'Preferences' && activeTab !== 'Settings' && activeTab !== 'Plans' && activeTab !== 'Usage' && (
+          {activeTab !== 'Profile' && activeTab !== 'Account' && activeTab !== 'Preferences' && activeTab !== 'Settings' && activeTab !== 'Usage' && (
 
             <div className="pm-placeholder-body">
               <p>Content for {activeTab} goes here.</p>

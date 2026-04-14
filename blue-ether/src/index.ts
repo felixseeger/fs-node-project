@@ -27,6 +27,20 @@ export { Timeline } from "./components/Timeline";
 export type { TimelineProps } from "./components/Timeline";
 export { LayerStack } from "./components/LayerStack";
 export type { LayerStackProps, Layer } from "./components/LayerStack";
+export { RangeSlider } from "./components/RangeSlider";
+export type { RangeSliderProps } from "./components/RangeSlider";
+export { IconButton } from "./components/IconButton";
+export type { IconButtonProps } from "./components/IconButton";
+export { ProgressBar } from "./components/ProgressBar";
+export type { ProgressBarProps } from "./components/ProgressBar";
+export { ColorPicker } from "./components/ColorPicker";
+export type { ColorPickerProps } from "./components/ColorPicker";
+export { BlendModeSelect } from "./components/BlendModeSelect";
+export type { BlendModeSelectProps, BlendMode } from "./components/BlendModeSelect";
+export { PlaybackControls } from "./components/PlaybackControls";
+export type { PlaybackControlsProps } from "./components/PlaybackControls";
+export { ExportPanel } from "./components/ExportPanel";
+export type { ExportPanelProps } from "./components/ExportPanel";
 
 // ── Chat UI Components ──
 export * from "./components/chat";

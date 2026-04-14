@@ -13,6 +13,7 @@ export const NODE_MENU: NodeMenuSection[] = [
       { type: 'imageElement', label: 'Image Element', defaults: { label: 'Image Element', imageUrl: null } },
       { type: 'assetNode', label: 'Asset', defaults: { label: 'Asset', images: [] } },
       { type: 'sourceMediaNode', label: 'Source Media Upload', defaults: { label: 'Source Media', mediaFiles: [] } },
+      { type: 'voiceInputNode', label: 'Voice Input', defaults: { label: 'Voice Input', outputText: '' } },
     ],
   },
   {

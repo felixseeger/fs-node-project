@@ -204,7 +204,7 @@ All possible field types and their output handle configurations:
 |----------|-------|
 | **React type** | `'imageAnalyzer'` |
 | **API endpoint** | `POST /api/analyze-image` |
-| **Model** | `claude-sonnet-4-20250514` |
+| **Model** | `claude-3-5-sonnet-20241022` |
 | **Default data** | `{ label: 'Claude Sonnet Vision', systemDirections: '', localPrompt: '', analysisResult: '' }` |
 | **Cost** | `~$0.02 · 200 cr` |
 

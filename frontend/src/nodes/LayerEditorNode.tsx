@@ -24,7 +24,7 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
   
   const { 
-    tracks, addTrack, addClipToTrack, removeClipFromTrack, updateClipInTrack,
+    tracks, addTrack, addClipToTrack, removeClipFromTrack, updateClipInTrack, setTracks,
     currentTime, setCurrentTime 
   } = useTimeline();
   const layers = tracks.flatMap(t => t.clips);
@@ -33,6 +33,7 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
   const movieRef = useRef<any>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const layerRegistryRef = useRef<Map<string, any>>(new Map());
+  const isSyncingRef = useRef(false);
 
   const rawIncomingImages = resolve.image('image-in') || [];
   const rawIncomingVideos = resolve.video('video-in') || [];
@@ -43,6 +44,45 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
   const incomingAudio = Array.isArray(rawIncomingAudio) ? rawIncomingAudio : [rawIncomingAudio].filter(Boolean);
 
   const processedUrlsRef = useRef<Set<string>>(new Set());
+
+  // --- Bidirectional Sync: Node Data <-> TimelineContext ---
+  
+  // Sync OUT: TimelineContext changes -> React Flow node.data
+  useEffect(() => {
+    if (isSyncingRef.current) return;
+    
+    // Only update if tracks actually changed in structure or properties, avoid infinite loops
+    const currentDataTracks = JSON.stringify(data.tracks || []);
+    const newTracks = JSON.stringify(tracks);
+    
+    if (currentDataTracks !== newTracks) {
+      isSyncingRef.current = true;
+      update({ tracks });
+      // Reset sync flag on next tick
+      setTimeout(() => { isSyncingRef.current = false; }, 0);
+    }
+  }, [tracks, update, data.tracks]);
+
+  // Sync IN: React Flow node.data changes (e.g. from Chat) -> TimelineContext
+  useEffect(() => {
+    if (isSyncingRef.current || !data.tracks || !Array.isArray(data.tracks)) return;
+    
+    const currentContextTracks = JSON.stringify(tracks);
+    const newDataTracks = JSON.stringify(data.tracks);
+    
+    if (currentContextTracks !== newDataTracks) {
+      isSyncingRef.current = true;
+      setTracks(data.tracks);
+      
+      // Update processed URLs to prevent re-adding them
+      const dataLayers = data.tracks.flatMap((t: any) => t.clips || []);
+      dataLayers.forEach((l: any) => {
+        if (l.src) processedUrlsRef.current.add(l.src);
+      });
+      
+      setTimeout(() => { isSyncingRef.current = false; }, 0);
+    }
+  }, [data.tracks, setTracks, tracks]);
 
   // Helper for adding layer
   const addLayer = (layerData: Omit<RemotionLayer, 'id'>) => {
@@ -198,10 +238,27 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
     });
   }, [layers, dimensions]);
 
+  // Process incoming media in batches to avoid race conditions
+  // When multiple files arrive simultaneously, we batch them by type
+  // and add them to a single track instead of creating redundant tracks
   useEffect(() => {
-    incomingImages.forEach((url: string) => {
-      if (!processedUrlsRef.current.has(url)) {
-        addLayer({
+    // Batch process images
+    const newImages = incomingImages.filter((url: string) => !processedUrlsRef.current.has(url));
+    if (newImages.length > 0) {
+      // Find or create the image track ONCE
+      let track = tracks.find(t => t.type === 'image');
+      let targetTrackId = track?.id;
+      if (!track) {
+        targetTrackId = addTrack({
+          type: 'image',
+          name: 'Image Track',
+          clips: []
+        });
+      }
+      // Add all new images to the same track
+      newImages.forEach((url: string) => {
+        const newId = crypto.randomUUID();
+        addClipToTrack(targetTrackId!, {
           src: url,
           type: 'image',
           from: 0,
@@ -213,15 +270,28 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
           x: 0,
           y: 0,
           scale: 1,
-          opacity: 1
-        });
+          opacity: 1,
+          id: newId
+        } as RemotionLayer);
         processedUrlsRef.current.add(url);
-      }
-    });
+      });
+    }
 
-    incomingVideos.forEach((url: string) => {
-      if (!processedUrlsRef.current.has(url)) {
-        addLayer({
+    // Batch process videos
+    const newVideos = incomingVideos.filter((url: string) => !processedUrlsRef.current.has(url));
+    if (newVideos.length > 0) {
+      let track = tracks.find(t => t.type === 'video');
+      let targetTrackId = track?.id;
+      if (!track) {
+        targetTrackId = addTrack({
+          type: 'video',
+          name: 'Video Track',
+          clips: []
+        });
+      }
+      newVideos.forEach((url: string) => {
+        const newId = crypto.randomUUID();
+        addClipToTrack(targetTrackId!, {
           src: url,
           type: 'video',
           from: 0,
@@ -233,15 +303,28 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
           x: 0,
           y: 0,
           scale: 1,
-          opacity: 1
-        });
+          opacity: 1,
+          id: newId
+        } as RemotionLayer);
         processedUrlsRef.current.add(url);
+      });
+    }
+
+    // Batch process audio
+    const newAudio = incomingAudio.filter((url: string) => !processedUrlsRef.current.has(url));
+    if (newAudio.length > 0) {
+      let track = tracks.find(t => t.type === 'audio');
+      let targetTrackId = track?.id;
+      if (!track) {
+        targetTrackId = addTrack({
+          type: 'audio',
+          name: 'Audio Track',
+          clips: []
+        });
       }
-    });
-    
-    incomingAudio.forEach((url: string) => {
-      if (!processedUrlsRef.current.has(url)) {
-        addLayer({
+      newAudio.forEach((url: string) => {
+        const newId = crypto.randomUUID();
+        addClipToTrack(targetTrackId!, {
           src: url,
           type: 'audio',
           from: 0,
@@ -253,12 +336,13 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
           x: 0,
           y: 0,
           scale: 1,
-          opacity: 1
-        });
+          opacity: 1,
+          id: newId
+        } as RemotionLayer);
         processedUrlsRef.current.add(url);
-      }
-    });
-  }, [incomingImages, incomingVideos, incomingAudio, tracks.length, layers.length]);
+      });
+    }
+  }, [incomingImages, incomingVideos, incomingAudio]);
 
   useEffect(() => {
     if (!playerRef.current) return;
@@ -560,14 +644,14 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <Button 
                     variant="secondary"
-                    onClick={() => handleAddLayer({ type: 'video' } as any)}
+                    onClick={() => handleAddLayer('video')}
                     style={{ color: '#14b8a6', borderColor: '#14b8a6', padding: '4px 6px', fontSize: '10px' }}
                   >
                     + Video
                   </Button>
                   <Button 
                     variant="secondary"
-                    onClick={() => handleAddLayer({ type: 'image' } as any)}
+                    onClick={() => handleAddLayer('image')}
                     style={{ color: '#ec4899', borderColor: '#ec4899', padding: '4px 6px', fontSize: '10px' }}
                   >
                     + Image

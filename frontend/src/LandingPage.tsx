@@ -1927,26 +1927,10 @@ export const LandingPage: FC<LandingPageProps> = ({
           </div>
 
           {/* CTA Button */}
-          <div style={{ textAlign: 'center' }}>
+            <div style={{ textAlign: 'center' }}>
             <button
               onClick={() => setShowNewModal(true)}
-              style={{
-                background: 'var(--color-accent)',
-                color: '#fff',
-                border: 'none',
-                padding: '14px 28px',
-                fontSize: 15,
-                fontWeight: 600,
-                borderRadius: 9999,
-                cursor: 'pointer',
-                boxShadow: '0 0 24px var(--color-accent-soft)',
-                transition: 'all 0.2s',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 32px var(--color-accent-soft)'; (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 24px var(--color-accent-soft)'; (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'; }}
+              className="landing-cta-primary"
             >
               Start building <span style={{ fontSize: 14 }}>&rarr;</span>
             </button>

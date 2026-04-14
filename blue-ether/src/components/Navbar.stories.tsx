@@ -3,7 +3,6 @@ import { Navbar, NavLink } from './Navbar';
 import Avatar from './Avatar';
 import Icon from './Icon';
 import Breadcrumb from './Breadcrumb';
-import React from 'react';
 
 const meta: Meta<typeof Navbar> = {
   title: 'Components/Navigation/Navbar',

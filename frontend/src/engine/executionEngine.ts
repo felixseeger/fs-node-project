@@ -21,8 +21,6 @@ import {
   getReadyNodes,
 } from './dependencyGraph';
 import { getExecutor, hasExecutor } from './executors';
-import { deductCredits } from '../services/billingService';
-import { getCostForOperation } from '../config/pricing';
 
 /** Default execution options */
 const DEFAULT_OPTIONS: Required<ExecutionOptions> = {
@@ -326,17 +324,32 @@ export class ExecutionEngine {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
 
+      // Preserve credit requirement details if available
+      const errorObject = {
+        error: errorMessage,
+        message: `Error: ${errorMessage}`,
+      } as any;
+      if (error instanceof Error && (error as any).status === 402) {
+        errorObject.status = 402;
+        errorObject.required = (error as any).required;
+        errorObject.current = (error as any).current;
+      }
+
       this.updateNodeState(nodeId, {
         status: ExecutionStatus.FAILED,
         endTime: Date.now(),
         error: errorMessage,
         message: `Error: ${errorMessage}`,
+        // @ts-ignore
+        details: errorObject
       });
 
       this.emitProgress('node-error', {
         nodeId,
         error: errorMessage,
         message: `${node.type} failed: ${errorMessage}`,
+        // @ts-ignore
+        details: errorObject
       });
 
       // Update node data with error
