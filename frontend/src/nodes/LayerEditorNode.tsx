@@ -459,15 +459,36 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
     if (playerRef.current) playerRef.current.pause();
   };
 
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    let intervalId: any;
+    
+    if (selected) {
+      const checkTarget = () => {
+        const target = document.getElementById('layer-editor-portal-target');
+        // Update state if target changes (e.g. inspector closed then reopened)
+        setPortalTarget(prev => target !== prev ? target : prev);
+      };
+      
+      checkTarget();
+      // Check periodically in case inspector is toggled open/closed while node remains selected
+      intervalId = setInterval(checkTarget, 500);
+    } else {
+      setPortalTarget(null);
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [selected]);
+
   const nodeStyles = {
     panelContainer: {
-      position: 'absolute' as const,
-      top: '64px',
-      right: '20px',
+      position: 'relative' as const,
       fontFamily: 'DM Sans, system-ui, sans-serif',
       color: text.primary,
-      width: '320px',
-      zIndex: 1000,
+      width: '100%',
     },
     wrapper: {
       display: 'flex',
@@ -580,7 +601,7 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
         />
       </div>
 
-      {selected && createPortal(
+      {selected && portalTarget && createPortal(
         <div style={nodeStyles.panelContainer} onPointerDown={(e) => e.stopPropagation()}>
           <div style={nodeStyles.wrapper}>
             <div style={nodeStyles.sectionHeader}>
@@ -734,7 +755,7 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
             </div>
           </div>
         </div>,
-        document.body
+        portalTarget
       )}
     </NodeShell>
   );
