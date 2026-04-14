@@ -87,6 +87,7 @@
     "postcss": "^8.5.9",
     "postcss-import": "^16.1.1",
     "postcss-preset-env": "^11.2.0",
+    "react-rewrite-cli": "^0.1.1",
     "rollup-plugin-visualizer": "^7.0.1",
     "sharp": "^0.34.5",
     "storybook-dark-mode": "^5.0.0",

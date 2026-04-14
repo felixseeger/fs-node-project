@@ -128,7 +128,7 @@ const ImageSegmentationNode: FC<NodeProps<Node<SegmentNodeData>>> = ({ id, data,
         try {
           const auth = getFirebaseAuth();
           username = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'anonymous';
-        } catch (err) {}
+        } catch { /* auth unavailable — use default 'anonymous' */ }
         
         const safeUser = username.toLowerCase().replace(/[^a-z0-9]/g, '-');
         const safeModel = 'sam-v3'.toLowerCase().replace(/[^a-z0-9]/g, '-');

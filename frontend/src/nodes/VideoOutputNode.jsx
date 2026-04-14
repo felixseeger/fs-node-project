@@ -68,7 +68,7 @@ export default function VideoOutputNode({ id, data, selected }) {
               try {
                 const auth = getFirebaseAuth();
                 username = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'anonymous';
-              } catch (err) {}
+              } catch { /* auth unavailable — use default 'anonymous' */ }
               const safeUser = username.toLowerCase().replace(/[^a-z0-9]/g, '-');
               const label = (data.label || 'Video Output').toLowerCase().replace(/[^a-z0-9]/g, '-');
               const safeModel = (data.model || 'auto').toLowerCase().replace(/[^a-z0-9]/g, '-');

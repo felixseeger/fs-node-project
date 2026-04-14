@@ -241,7 +241,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
-      } catch (e) {}
+      } catch { /* may already be stopped */ }
       recognitionRef.current = null;
     }
     setIsListening(false);

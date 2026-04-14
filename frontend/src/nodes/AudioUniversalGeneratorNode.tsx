@@ -196,7 +196,7 @@ const AudioUniversalGeneratorNode: FC<NodeProps> = ({ id, data, selected }) => {
         try {
           const auth = getFirebaseAuth();
           username = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'anonymous';
-        } catch (err) {}
+        } catch { /* auth unavailable — use default 'anonymous' */ }
         
         const safeUser = username.toLowerCase().replace(/[^a-z0-9]/g, '-');
         const safeModel = (data.model || 'audio-auto').toLowerCase().replace(/[^a-z0-9]/g, '-');
