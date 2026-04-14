@@ -253,12 +253,31 @@ export default function App() {
   useEffect(() => {
     try {
       const auth = getFirebaseAuth();
-      const unsubscribeAuth = () => {};
-      setAuthLoading(false);
-      setIsAuthenticated(true);
-      setCurrentUserId("testuser@nodeproject.dev");
-      setCurrentUserEmail("testuser@nodeproject.dev");
-      initializeProfile("testuser@nodeproject.dev", "testuser@nodeproject.dev", "Test User");
+      if (!auth) {
+        setAuthLoading(false);
+        setIsAuthenticated(false);
+        return;
+      }
+      
+      const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          setCurrentUserId(user.uid);
+          setCurrentUserEmail(user.email || 'anonymous@nodeproject.dev');
+          setIsAuthenticated(true);
+          await initializeProfile(user.uid, user.email || 'anonymous@nodeproject.dev', user.displayName || 'Anonymous User');
+          setAuthLoading(false);
+        } else {
+          // If using Firebase, we must sign in anonymously to read/write data
+          import('firebase/auth').then(({ signInAnonymously }) => {
+            signInAnonymously(auth).catch((err) => {
+              console.error("Anonymous auth failed:", err);
+              setAuthError(err.message);
+              setAuthLoading(false);
+            });
+          });
+        }
+      });
+
       // Temporarily disabled for automated testing and accessibility tools
       // if (!sessionStorage.getItem(SLP_KEY)) {
       //   setShowSystemLoading(true);
