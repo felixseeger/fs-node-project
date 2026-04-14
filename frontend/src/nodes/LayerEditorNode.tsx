@@ -9,6 +9,7 @@ import { InfoIcon } from './NodeIcons';
 import { NodeCapabilities } from './nodeCapabilities';
 import NodeShell from './NodeShell';
 import { TimelineProvider, useTimeline } from '../contexts/TimelineContext';
+import { LayerStack, Timeline, Button } from 'blue-ether';
 import { LayerItem } from '../components/LayerItem';
 import { LayerTimeline } from '../components/LayerTimeline';
 import { VideoComposition } from '../remotion/VideoComposition';
@@ -20,6 +21,7 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
   const capabilities = [NodeCapabilities.VIDEO_EDIT, NodeCapabilities.OUTPUT_VIDEO];
   const [dimensions, setDimensions] = useState({ width: 512, height: 512 });
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
   
   const { 
     tracks, addTrack, addClipToTrack, removeClipFromTrack, updateClipInTrack,
@@ -79,7 +81,7 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
     if (canvasRef.current && !movieRef.current) {
       movieRef.current = new etro.Movie({
         canvas: canvasRef.current,
-        background: etro.Color.BLACK
+        background: new etro.Color(0, 0, 0, 1)
       });
       console.log('etro.Movie initialized');
     }
@@ -161,14 +163,14 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
         const applyProperty = (propName: string, value: any, keyframes?: Keyframe[]) => {
           if (keyframes && keyframes.length > 0) {
             // Apply etro KeyFrame
-            const sortedKf = [...keyframes].sort((a, b) => a.frame - b.frame);
+            const sortedKf = [...keyframes].sort((a, b) => a.time - b.time);
             
             // Adjust for scale
             let multiplier = 1;
             if (propName === 'width') multiplier = dimensions.width;
             if (propName === 'height') multiplier = dimensions.height;
             
-            const etroKfs = sortedKf.map(kf => [kf.frame / 30, kf.value * multiplier]);
+            const etroKfs = sortedKf.map(kf => [kf.time / 30, kf.value * multiplier]);
             (etroLayer as any)[propName] = new etro.KeyFrame(...etroKfs);
           } else if (value !== undefined) {
             // Apply static value
@@ -506,20 +508,36 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={nodeStyles.titleText}>Timeline</span>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  <button 
+                  <Button 
+                    variant="secondary"
                     onClick={handlePlay}
-                    style={{ background: surface.raised, border: `1px solid ${border.default}`, borderRadius: radius.sm, padding: '2px 8px', fontSize: '10px', color: text.primary, cursor: 'pointer' }}
+                    style={{ padding: '2px 8px', fontSize: '10px' }}
                   >
                     Play
-                  </button>
-                  <button 
+                  </Button>
+                  <Button 
+                    variant="secondary"
                     onClick={handlePause}
-                    style={{ background: surface.raised, border: `1px solid ${border.default}`, borderRadius: radius.sm, padding: '2px 8px', fontSize: '10px', color: text.primary, cursor: 'pointer' }}
+                    style={{ padding: '2px 8px', fontSize: '10px' }}
                   >
                     Pause
-                  </button>
+                  </Button>
                 </div>
               </div>
+              <Timeline 
+                value={currentTime} 
+                max={120} 
+                onChange={(f) => {
+                  setCurrentTime(f);
+                  if (playerRef.current) {
+                    playerRef.current.seekTo(f);
+                  }
+                  if (movieRef.current) {
+                    movieRef.current.seek(f / 30);
+                  }
+                }} 
+                style={{ marginBottom: '8px' }}
+              />
               <LayerTimeline 
                 tracks={tracks} 
                 durationInFrames={120} 
@@ -540,43 +558,71 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={nodeStyles.titleText}>Layers ({layers.length})</span>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  <button 
+                  <Button 
+                    variant="secondary"
                     onClick={() => handleAddLayer({ type: 'video' } as any)}
-                    style={{ background: 'transparent', color: '#14b8a6', border: '1px solid #14b8a6', borderRadius: `${radius.sm}px`, padding: '4px 6px', fontSize: '10px', cursor: 'pointer' }}
+                    style={{ color: '#14b8a6', borderColor: '#14b8a6', padding: '4px 6px', fontSize: '10px' }}
                   >
                     + Video
-                  </button>
-                  <button 
+                  </Button>
+                  <Button 
+                    variant="secondary"
                     onClick={() => handleAddLayer({ type: 'image' } as any)}
-                    style={{ background: 'transparent', color: '#ec4899', border: '1px solid #ec4899', borderRadius: `${radius.sm}px`, padding: '4px 6px', fontSize: '10px', cursor: 'pointer' }}
+                    style={{ color: '#ec4899', borderColor: '#ec4899', padding: '4px 6px', fontSize: '10px' }}
                   >
                     + Image
-                  </button>
-                  <button 
-                    onClick={() => handleAddLayer({ type: 'audio' } as any)}
-                    style={{ background: 'transparent', color: '#a855f7', border: '1px solid #a855f7', borderRadius: `${radius.sm}px`, padding: '4px 6px', fontSize: '10px', cursor: 'pointer' }}
+                  </Button>
+                  <Button 
+                    variant="secondary"
+                    onClick={() => handleAddLayer('audio')}
+                    style={{ color: '#a855f7', borderColor: '#a855f7', padding: '4px 6px', fontSize: '10px' }}
                   >
                     + Audio
-                  </button>
-                  <button 
-                    onClick={() => handleAddLayer({ type: 'text' } as any)}
-                    style={{ background: 'transparent', color: '#f97316', border: '1px solid #f97316', borderRadius: `${radius.sm}px`, padding: '4px 6px', fontSize: '10px', cursor: 'pointer' }}
+                  </Button>
+                  <Button 
+                    variant="secondary"
+                    onClick={() => handleAddLayer('text')}
+                    style={{ color: '#f97316', borderColor: '#f97316', padding: '4px 6px', fontSize: '10px' }}
                   >
                     + Text
-                  </button>
+                  </Button>
                 </div>
               </div>
               
               <div style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {layers.map(l => (
-                  <LayerItem 
-                    key={l.id} 
-                    layer={l} 
-                    onUpdate={updateLayer} 
-                    onDelete={removeLayer} 
-                  />
-                ))}
-                {layers.length === 0 && (
+                {layers.length > 0 ? (
+                  <>
+                    <LayerStack
+                      layers={layers.map(l => ({
+                        id: l.id,
+                        name: `${l.type} Layer`,
+                        opacity: Math.round((l.opacity ?? 1) * 100),
+                        visible: true,
+                        locked: false,
+                      }))}
+                      selectedId={selectedLayerId}
+                      onSelect={setSelectedLayerId}
+                      onLayerChange={(id, updates) => {
+                        const nodeUpdates: Partial<RemotionLayer> = {};
+                        if (updates.opacity !== undefined) {
+                          nodeUpdates.opacity = updates.opacity / 100;
+                        }
+                        updateLayer(id, nodeUpdates);
+                      }}
+                      onReorder={() => {}}
+                    />
+                    {selectedLayerId && layers.find(l => l.id === selectedLayerId) && (
+                      <LayerItem 
+                        layer={layers.find(l => l.id === selectedLayerId)!} 
+                        onUpdate={updateLayer} 
+                        onDelete={(id) => {
+                          removeLayer(id);
+                          if (id === selectedLayerId) setSelectedLayerId(null);
+                        }} 
+                      />
+                    )}
+                  </>
+                ) : (
                   <div style={{ textAlign: 'center', color: text.muted, fontSize: '12px', padding: '16px' }}>
                     No layers added yet.
                   </div>
@@ -585,20 +631,22 @@ function LayerEditorNodeInner({ id, data, selected }: any) {
             </div>
 
             <div style={nodeStyles.sectionBody}>
-              <button 
-                style={{ ...nodeStyles.btn, backgroundColor: isExporting ? surface.base : ui.link, cursor: isExporting ? 'not-allowed' : 'pointer' }} 
+              <Button 
+                variant="primary"
+                style={{ width: '100%', cursor: isExporting ? 'not-allowed' : 'pointer' }} 
                 onClick={handleEtroExport} 
                 disabled={isExporting}
               >
                 {isExporting ? 'Exporting...' : 'Export Video (Client)'}
-              </button>
-              <button 
-                style={{ ...nodeStyles.btn, marginTop: '8px', backgroundColor: isExporting ? surface.base : surface.raised, color: text.primary, cursor: isExporting ? 'not-allowed' : 'pointer' }} 
+              </Button>
+              <Button 
+                variant="secondary"
+                style={{ width: '100%', marginTop: '8px', cursor: isExporting ? 'not-allowed' : 'pointer' }} 
                 onClick={handleExport} 
                 disabled={isExporting}
               >
                 {isExporting ? 'Processing...' : 'Render on Server'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>,

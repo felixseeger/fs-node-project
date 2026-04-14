@@ -1,5 +1,11 @@
 import { CSSProperties } from 'react';
 
+export interface Keyframe {
+  time: number; // Time in frames relative to the clip start
+  value: number;
+  easing?: 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'bezier';
+}
+
 export interface RemotionLayer {
   id: string;
   src: string;
@@ -17,6 +23,7 @@ export interface RemotionLayer {
   jobId?: string;
   error?: string;
   jobType: 'none' | 'corridorkey' | 'ltx';
+  keyframes?: Record<string, Keyframe[]>; // e.g., 'opacity': [{time: 0, value: 1}, {time: 30, value: 0}]
 }
 
 export interface RemotionCompositionState {
