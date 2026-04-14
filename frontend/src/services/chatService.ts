@@ -54,13 +54,17 @@ export async function createChatSession(userId: string, title: string = 'New Con
   if (!isFirebaseConfigured()) throw new Error('Firebase not configured');
   const db = getDb();
   
-  const chatRef = await addDoc(collection(db, AI_CHATS_COLLECTION), {
+  const data: any = {
     userId,
     title,
-    workflowId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  });
+  };
+  if (workflowId !== undefined) {
+    data.workflowId = workflowId;
+  }
+  
+  const chatRef = await addDoc(collection(db, AI_CHATS_COLLECTION), data);
   
   return chatRef.id;
 }
@@ -117,13 +121,18 @@ export async function addChatMessage(chatId: string, role: 'user' | 'assistant' 
   if (!isFirebaseConfigured()) throw new Error('Firebase not configured');
   const db = getDb();
   
-  // Add the message
-  const msgRef = await addDoc(collection(db, AI_CHATS_COLLECTION, chatId, 'messages'), {
+  const data: any = {
     role,
     content,
-    metadata,
     createdAt: serverTimestamp(),
-  });
+  };
+  
+  if (metadata !== undefined) {
+    data.metadata = metadata;
+  }
+  
+  // Add the message
+  const msgRef = await addDoc(collection(db, AI_CHATS_COLLECTION, chatId, 'messages'), data);
   
   // Update the parent chat's updatedAt timestamp
   await updateDoc(doc(db, AI_CHATS_COLLECTION, chatId), {
