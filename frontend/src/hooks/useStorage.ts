@@ -20,7 +20,7 @@ export function useStorage() {
     try {
       setLoading(true);
       const token = await user.getIdToken();
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const API_URL = import.meta.env.VITE_API_URL || '';
       const res = await fetch(`${API_URL}/api/storage/usage`, {
         headers: {
           'Authorization': `Bearer ${token}`

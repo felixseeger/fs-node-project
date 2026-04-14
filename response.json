@@ -1,0 +1,9 @@
+{
+  error:
+  {
+    code: int,
+    message: string[78]
+  }
+  id: null,
+  jsonrpc: string
+}

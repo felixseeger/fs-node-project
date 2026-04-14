@@ -1,5 +1,5 @@
 import { getFirebaseAuth } from '../config/firebase';
-const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 async function safeJson(res) {
   const text = await res.text();

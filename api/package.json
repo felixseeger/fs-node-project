@@ -14,7 +14,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
     "@google/generative-ai": "^0.24.1",
-    "@remotion/lambda": "^4.0.448",
     "axios": "^1.15.0",
     "bullmq": "^5.73.5",
     "cloudinary": "^2.9.0",
