@@ -4,6 +4,7 @@ import { Handle, Position } from '@xyflow/react';
 import {
   NodeShell, SectionHeader, ConnectedOrLocal, PromptInput, OutputHandle, OutputPreview, useNodeConnections, CATEGORY_COLORS, getHandleColor, sp, font, text, surface, border, radius,
 } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 import { generateRecraftImage } from '../utils/api';
 import NodeGenerateButton from './NodeGenerateButton';
 
@@ -41,7 +42,7 @@ export default function RecraftGenerateNode({ id, data, selected }) {
 
   return (
     <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-      <NodeShell data={data} label="Recraft Gen" dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isGenerating} downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}>
+      <NodeShell data={data} label="Recraft Gen" dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isGenerating} downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode} capabilities={[NodeCapabilities.IMAGE_GENERATE, NodeCapabilities.OUTPUT_IMAGE]}>
         <OutputHandle label="image" id="output" color={getHandleColor('output')} />
         <SectionHeader label="Prompt" handleId="prompt-in" handleType="target" color={getHandleColor('prompt-in')} isConnected={conn('prompt-in').connected} onUnlink={() => data.onUnlink?.(id, 'prompt-in')} />
         

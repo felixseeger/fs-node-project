@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import { useNodeConnections, Toggle } from './shared';
 import { getHandleColor } from '../utils/handleTypes';
+import { NodeCapabilities } from './nodeCapabilities';
 import { CATEGORY_COLORS } from './nodeTokens';
 import { relightImage, pollRelightStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
@@ -185,7 +186,7 @@ export default function RelightNode({ id, data, selected }) {
   const ACCENT = '#f59e0b';
 
   return (
-    <NodeShell data={data} label={data.label || 'Relight'} dotColor={ACCENT} selected={selected} onGenerate={handleRelight} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={onDisconnectNode}>
+    <NodeShell data={data} label={data.label || 'Relight'} dotColor={ACCENT} selected={selected} onGenerate={handleRelight} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={onDisconnectNode} capabilities={[NodeCapabilities.IMAGE_RELIGHT, NodeCapabilities.OUTPUT_IMAGE]}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
       <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />
 

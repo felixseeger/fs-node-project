@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { NodeResizer, Handle, Position } from '@xyflow/react';
 import { Player } from '@remotion/player';
+import etro from 'etro';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
 import { InfoIcon } from './NodeIcons';
@@ -21,6 +22,9 @@ export default function LayerEditorNode({ id, data, selected }: any) {
   
   const { layers, addLayer, removeLayer, updateLayer } = useLayerManager([]);
   const playerRef = useRef<any>(null);
+  const movieRef = useRef<any>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const layerRegistryRef = useRef<Map<string, any>>(new Map());
   const [currentFrame, setCurrentFrame] = useState(0);
 
   const rawIncomingImages = resolve.image('image-in') || [];
@@ -32,6 +36,108 @@ export default function LayerEditorNode({ id, data, selected }: any) {
   const incomingAudio = Array.isArray(rawIncomingAudio) ? rawIncomingAudio : [rawIncomingAudio].filter(Boolean);
 
   const processedUrlsRef = useRef<Set<string>>(new Set());
+
+  // Initialize etro.Movie
+  useEffect(() => {
+    if (canvasRef.current && !movieRef.current) {
+      movieRef.current = new etro.Movie({
+        canvas: canvasRef.current,
+        background: etro.Color.BLACK
+      });
+      console.log('etro.Movie initialized');
+    }
+  }, []);
+
+  // Update canvas dimensions when they change
+  useEffect(() => {
+    if (canvasRef.current) {
+      canvasRef.current.width = dimensions.width;
+      canvasRef.current.height = dimensions.height;
+    }
+  }, [dimensions]);
+
+  // Synchronize state layers with etro.Movie layers
+  useEffect(() => {
+    if (!movieRef.current) return;
+
+    // Remove etro layers that are no longer in state
+    const stateLayerIds = new Set(layers.map(l => l.id));
+    for (const [id, etroLayer] of layerRegistryRef.current.entries()) {
+      if (!stateLayerIds.has(id)) {
+        movieRef.current.removeLayer(etroLayer);
+        layerRegistryRef.current.delete(id);
+      }
+    }
+
+    // Add or update etro layers
+    layers.forEach(layerData => {
+      let etroLayer = layerRegistryRef.current.get(layerData.id);
+
+      if (!etroLayer && layerData.src) {
+        // Create new etro layer
+        if (layerData.type === 'image') {
+          const img = new Image();
+          img.src = layerData.src;
+          etroLayer = new etro.layer.Image({
+            startTime: layerData.from / 30,
+            duration: layerData.durationInFrames / 30,
+            source: img,
+            x: 0,
+            y: 0,
+            width: dimensions.width,
+            height: dimensions.height
+          });
+        } else if (layerData.type === 'video') {
+          const video = document.createElement('video');
+          video.src = layerData.src;
+          video.crossOrigin = "anonymous";
+          etroLayer = new etro.layer.Video({
+            startTime: layerData.from / 30,
+            duration: layerData.durationInFrames / 30,
+            source: video,
+            x: 0,
+            y: 0,
+            width: dimensions.width,
+            height: dimensions.height
+          });
+        } else if (layerData.type === 'audio') {
+          const audio = document.createElement('audio');
+          audio.src = layerData.src;
+          audio.crossOrigin = "anonymous";
+          etroLayer = new etro.layer.Audio({
+            startTime: layerData.from / 30,
+            duration: layerData.durationInFrames / 30,
+            source: audio
+          });
+        }
+        
+        if (etroLayer) {
+          movieRef.current.addLayer(etroLayer);
+          layerRegistryRef.current.set(layerData.id, etroLayer);
+        }
+      } else if (etroLayer) {
+        // Update existing layer properties
+        etroLayer.startTime = layerData.from / 30;
+        etroLayer.duration = layerData.durationInFrames / 30;
+
+        // Property binding (TASK-022)
+        if (layerData.opacity !== undefined) {
+          etroLayer.opacity = layerData.opacity;
+        }
+        if (layerData.x !== undefined) {
+          etroLayer.x = layerData.x;
+        }
+        if (layerData.y !== undefined) {
+          etroLayer.y = layerData.y;
+        }
+        if (layerData.scale !== undefined) {
+          // Adjust width/height based on scale relative to base dimensions
+          etroLayer.width = dimensions.width * layerData.scale;
+          etroLayer.height = dimensions.height * layerData.scale;
+        }
+      }
+    });
+  }, [layers, dimensions]);
 
   useEffect(() => {
     incomingImages.forEach((url: string) => {
@@ -95,16 +201,16 @@ export default function LayerEditorNode({ id, data, selected }: any) {
     return () => clearInterval(interval);
   }, []);
 
-  const handleAddLayer = () => {
+  const handleAddLayer = (type: 'image' | 'video' | 'audio' | 'text') => {
     addLayer({
       src: '',
-      type: 'video',
+      type,
       from: 0,
-      durationInFrames: 120,
-      zIndex: layers.length,
+      durationInFrames: type === 'audio' ? 300 : 120,
+      zIndex: type === 'audio' ? 0 : layers.length,
       status: 'idle',
       progress: 0,
-      jobType: 'ltx'
+      jobType: type
     });
   };
 
@@ -158,6 +264,40 @@ export default function LayerEditorNode({ id, data, selected }: any) {
       console.error('Polling failed:', err);
       setIsExporting(false);
     }
+  };
+
+  const handleEtroExport = async () => {
+    if (!movieRef.current) return;
+    setIsExporting(true);
+    try {
+      // client-side record using etro-js
+      const blob = await movieRef.current.record({
+        frameRate: 30,
+        type: 'video/webm'
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `composition-${Date.now()}.webm`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      setIsExporting(false);
+    } catch (err) {
+      console.error('Etro export failed:', err);
+      setIsExporting(false);
+    }
+  };
+
+  const handlePlay = () => {
+    if (movieRef.current) movieRef.current.play();
+    if (playerRef.current) playerRef.current.play();
+  };
+
+  const handlePause = () => {
+    if (movieRef.current) movieRef.current.pause();
+    if (playerRef.current) playerRef.current.pause();
   };
 
   const timelineLayers = layers.map(l => ({
@@ -273,6 +413,22 @@ export default function LayerEditorNode({ id, data, selected }: any) {
           loop
           acknowledgeRemotionLicense={true}
         />
+
+        {/* etro-js Canvas Target */}
+        <canvas
+          ref={canvasRef}
+          width={dimensions.width}
+          height={dimensions.height}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            display: 'block'
+          }}
+        />
       </div>
 
       {selected && createPortal(
@@ -284,7 +440,23 @@ export default function LayerEditorNode({ id, data, selected }: any) {
             </div>
 
             <div style={nodeStyles.sectionBody}>
-              <span style={nodeStyles.titleText}>Timeline</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={nodeStyles.titleText}>Timeline</span>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button 
+                    onClick={handlePlay}
+                    style={{ background: surface.raised, border: `1px solid ${border.default}`, borderRadius: radius.sm, padding: '2px 8px', fontSize: '10px', color: text.primary, cursor: 'pointer' }}
+                  >
+                    Play
+                  </button>
+                  <button 
+                    onClick={handlePause}
+                    style={{ background: surface.raised, border: `1px solid ${border.default}`, borderRadius: radius.sm, padding: '2px 8px', fontSize: '10px', color: text.primary, cursor: 'pointer' }}
+                  >
+                    Pause
+                  </button>
+                </div>
+              </div>
               <LayerTimeline 
                 layers={timelineLayers} 
                 durationInFrames={120} 
@@ -294,6 +466,9 @@ export default function LayerEditorNode({ id, data, selected }: any) {
                   if (playerRef.current) {
                     playerRef.current.seekTo(f);
                   }
+                  if (movieRef.current) {
+                    movieRef.current.seek(f / 30);
+                  }
                 }}
               />
             </div>
@@ -301,20 +476,32 @@ export default function LayerEditorNode({ id, data, selected }: any) {
             <div style={nodeStyles.sectionBody}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={nodeStyles.titleText}>Layers ({layers.length})</span>
-                <button 
-                  onClick={handleAddLayer}
-                  style={{
-                    background: 'transparent',
-                    color: ui.link,
-                    border: `1px solid ${ui.link}`,
-                    borderRadius: `${radius.sm}px`,
-                    padding: '4px 8px',
-                    fontSize: '11px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  + Add Layer
-                </button>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button 
+                    onClick={() => handleAddLayer('video')}
+                    style={{ background: 'transparent', color: '#14b8a6', border: '1px solid #14b8a6', borderRadius: `${radius.sm}px`, padding: '4px 6px', fontSize: '10px', cursor: 'pointer' }}
+                  >
+                    + Video
+                  </button>
+                  <button 
+                    onClick={() => handleAddLayer('image')}
+                    style={{ background: 'transparent', color: '#ec4899', border: '1px solid #ec4899', borderRadius: `${radius.sm}px`, padding: '4px 6px', fontSize: '10px', cursor: 'pointer' }}
+                  >
+                    + Image
+                  </button>
+                  <button 
+                    onClick={() => handleAddLayer('audio')}
+                    style={{ background: 'transparent', color: '#a855f7', border: '1px solid #a855f7', borderRadius: `${radius.sm}px`, padding: '4px 6px', fontSize: '10px', cursor: 'pointer' }}
+                  >
+                    + Audio
+                  </button>
+                  <button 
+                    onClick={() => handleAddLayer('text')}
+                    style={{ background: 'transparent', color: '#f97316', border: '1px solid #f97316', borderRadius: `${radius.sm}px`, padding: '4px 6px', fontSize: '10px', cursor: 'pointer' }}
+                  >
+                    + Text
+                  </button>
+                </div>
               </div>
               
               <div style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -337,10 +524,17 @@ export default function LayerEditorNode({ id, data, selected }: any) {
             <div style={nodeStyles.sectionBody}>
               <button 
                 style={{ ...nodeStyles.btn, backgroundColor: isExporting ? surface.base : ui.link, cursor: isExporting ? 'not-allowed' : 'pointer' }} 
+                onClick={handleEtroExport} 
+                disabled={isExporting}
+              >
+                {isExporting ? 'Exporting...' : 'Export Video (Client)'}
+              </button>
+              <button 
+                style={{ ...nodeStyles.btn, marginTop: '8px', backgroundColor: isExporting ? surface.base : surface.raised, color: text.primary, cursor: isExporting ? 'not-allowed' : 'pointer' }} 
                 onClick={handleExport} 
                 disabled={isExporting}
               >
-                {isExporting ? 'Exporting...' : 'Export Video'}
+                {isExporting ? 'Processing...' : 'Render on Server'}
               </button>
             </div>
           </div>

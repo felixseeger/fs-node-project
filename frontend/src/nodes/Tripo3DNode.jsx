@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import NodeShell from './NodeShell';
 import { SectionHeader, ConnectedOrLocal, PromptInput, TextInput, OutputHandle, OutputPreview } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 import useNodeConnections from './useNodeConnections';
 import { CATEGORY_COLORS } from './nodeTokens';
 import { tripoCreateTask, tripoGetTask } from '../utils/api';
@@ -116,6 +117,7 @@ export default function Tripo3DNode({ id, data, selected }) {
       isGenerating={data.isLoading}
       onDisconnect={(h) => data.onUnlink?.(id, h)}
       downloadUrl={data.outputPreviewImage || undefined}
+      capabilities={[NodeCapabilities.MODEL_3D_GENERATE]}
     >
       <OutputHandle id="model-out" label="3d out" color={CATEGORY_COLORS.utility} />
 

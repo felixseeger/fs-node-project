@@ -6,6 +6,7 @@ import { OutputHandle, OutputPreview } from './NodeOutput';
 import { PillGroup } from './NodeControls';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
+import { NodeCapabilities } from './nodeCapabilities';
 import { CATEGORY_COLORS, sp, font, radius } from './nodeTokens';
 import { recraftUpscale } from '../utils/api';
 
@@ -49,6 +50,7 @@ export default function RecraftUpscaleNode({ id, data, selected }) {
       dotColor={CATEGORY_COLORS.imageEditing}
       selected={selected}
       downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}
+      capabilities={[NodeCapabilities.IMAGE_UPSCALE, NodeCapabilities.OUTPUT_IMAGE]}
     >
       <SectionHeader title="Input Image" />
       <div style={{ position: 'relative', marginBottom: sp[4] }}>

@@ -12,6 +12,7 @@ import {
   border,
   radius,
 } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 // @ts-ignore
 import { sendChat } from '../utils/api';
 
@@ -103,6 +104,7 @@ const StrudelNode: FC<NodeProps> = ({ id, data, selected }) => {
       onDisconnect={disconnectNode}
       onGenerate={handleRun}
       isGenerating={isGenerating}
+      capabilities={[NodeCapabilities.AUDIO_MUSIC_GENERATE, NodeCapabilities.OUTPUT_AUDIO]}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         

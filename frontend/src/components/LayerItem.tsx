@@ -1,7 +1,16 @@
-import { useState, useEffect } from 'react';
+const isGeneratable = layer.type !== 'text' && (!layer.src || layer.src.length === 0);
+  const handleTextChange = (val: string) => {
+    setPrompt(val);
+    onUpdate(layer.id, { src: val, status: 'completed' });
+  };
+  
+  useEffect(() => {
+    if (layer.type === 'text' && layer.src && prompt !== layer.src) {
+      setPrompt(layer.src);
+    }
+  }, [layer.type, layer.src]);import { useState, useEffect } from 'react';
 import { RemotionLayer } from '../types/remotion';
-import { useAsyncPolling } from '../hooks/useAsyncPolling';
-import { TextInput } from '../nodes/shared';
+import { TextInput, Slider, SettingsPanel } from '../nodes/shared';
 import { surface, border, radius, sp, text } from '../nodes/nodeTokens';
 
 interface LayerItemProps {
@@ -13,26 +22,107 @@ interface LayerItemProps {
 export function LayerItem({ layer, onUpdate, onDelete }: LayerItemProps) {
   const [prompt, setPrompt] = useState('');
 
-  const { status, progress, resultUrl, error, execute } = useAsyncPolling(
-    '/api/vfx/ltx/generate',
-    '/api/vfx/ltx/poll/:id'
-  );
+  const [status, setStatus] = useState<string>(layer.status || 'idle');
+  const [progress, setProgress] = useState<number>(layer.progress || 0);
+  const [error, setError] = useState<string | undefined>(layer.error || undefined);
 
   useEffect(() => {
-    if (status !== 'idle') {
-      onUpdate(layer.id, {
-        status,
-        progress,
-        ...(resultUrl ? { src: resultUrl } : {}),
-        error: error || undefined,
-      });
-    }
-  }, [status, progress, resultUrl, error, layer.id, onUpdate]);
+    setStatus(layer.status || 'idle');
+    setProgress(layer.progress || 0);
+    setError(layer.error || undefined);
+  }, [layer.status, layer.progress, layer.error]);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!prompt.trim()) return;
-    execute({ prompt });
+    
+    setStatus('loading');
+    setProgress(0);
+    setError(undefined);
+    onUpdate(layer.id, { status: 'loading', progress: 0, error: undefined });
+
+    try {
+      const isImage = layer.jobType === 'image' || layer.type === 'image' || layer.jobType === 'freepik-image';
+      const isAudio = layer.jobType === 'audio' || layer.type === 'audio' || layer.jobType === 'music';
+      const isVideo = !isImage && !isAudio;
+
+      let submitUrl = '/api/vfx/ltx/generate';
+      if (isImage) submitUrl = '/api/generate-image';
+      else if (isAudio) submitUrl = '/api/music-generation';
+
+      const response = await fetch(submitUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(isImage ? { prompt, num_images: 1, aspect_ratio: '16:9' } : { prompt })
+      });
+
+      if (!response.ok) throw new Error(`Submit failed: ${response.statusText}`);
+
+      const data = await response.json();
+      
+      const jobId = data.jobId || data.id || data.task_id;
+      
+      if (!jobId) {
+        if (data.data && data.data[0] && data.data[0].url) {
+          setStatus('completed');
+          setProgress(100);
+          onUpdate(layer.id, { status: 'completed', progress: 100, src: data.data[0].url });
+          return;
+        }
+        throw new Error('No task ID returned');
+      }
+
+      let pollUrlTemplate = `/api/vfx/job/:id/status`;
+      if (isImage) pollUrlTemplate = `/api/status/:id`;
+      else if (isAudio) pollUrlTemplate = `/api/music-generation/:id`;
+
+      const pollUrl = pollUrlTemplate.replace(':id', jobId);
+
+      const pollInterval = window.setInterval(async () => {
+        try {
+          const pollRes = await fetch(pollUrl);
+          if (!pollRes.ok) throw new Error(`Poll failed: ${pollRes.statusText}`);
+          
+          const pollData = await pollRes.json();
+          
+          let pStatus = pollData.status;
+          let pProgress = pollData.progress;
+          let pUrl = pollData.resultUrl || pollData.url || pollData.audio?.url || (pollData.generated && pollData.generated[0]) || (pollData.assets && pollData.assets.image);
+          
+          if (pProgress !== undefined) {
+             setProgress(pProgress);
+             onUpdate(layer.id, { progress: pProgress });
+          } else {
+             setProgress(50);
+             onUpdate(layer.id, { progress: 50 });
+          }
+          
+          if (pStatus === 'completed' || pStatus === 'COMPLETED') {
+            window.clearInterval(pollInterval);
+            setStatus('completed');
+            setProgress(100);
+            onUpdate(layer.id, { status: 'completed', progress: 100, src: pUrl });
+          } else if (pStatus === 'failed' || pStatus === 'FAILED') {
+            window.clearInterval(pollInterval);
+            setStatus('failed');
+            setError(pollData.error || 'Job failed');
+            onUpdate(layer.id, { status: 'failed', error: pollData.error || 'Job failed' });
+          }
+        } catch (err: any) {
+          window.clearInterval(pollInterval);
+          setStatus('failed');
+          setError(err.message);
+          onUpdate(layer.id, { status: 'failed', error: err.message });
+        }
+      }, 3000);
+
+    } catch (err: any) {
+      setStatus('failed');
+      setError(err.message);
+      onUpdate(layer.id, { status: 'failed', error: err.message });
+    }
   };
+
+  
 
   return (
     <div style={{
@@ -74,18 +164,59 @@ export function LayerItem({ layer, onUpdate, onDelete }: LayerItemProps) {
         </button>
       </div>
 
-      {layer.jobType === 'ltx' && (
+      <SettingsPanel title="Transform" defaultExpanded={false}>
+        <Slider 
+          label="Opacity" 
+          value={Math.round((layer.opacity ?? 1) * 100)} 
+          onChange={(v) => onUpdate(layer.id, { opacity: v / 100 })} 
+          min={0} 
+          max={100} 
+          unit="%" 
+        />
+        <Slider 
+          label="Scale" 
+          value={Math.round((layer.scale ?? 1) * 100)} 
+          onChange={(v) => onUpdate(layer.id, { scale: v / 100 })} 
+          min={0} 
+          max={200} 
+          unit="%" 
+        />
+        <Slider 
+          label="X" 
+          value={layer.x ?? 0} 
+          onChange={(v) => onUpdate(layer.id, { x: v })} 
+          min={-512} 
+          max={512} 
+        />
+        <Slider 
+          label="Y" 
+          value={layer.y ?? 0} 
+          onChange={(v) => onUpdate(layer.id, { y: v })} 
+          min={-512} 
+          max={512} 
+        />
+      </SettingsPanel>
+
+      {layer.type === 'text' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: sp[2], marginTop: sp[1] }}>
+          <TextInput 
+            value={prompt} 
+            onChange={handleTextChange} 
+            placeholder="Enter text to display..." 
+          />
+        </div>
+      ) : isGeneratable && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: sp[2], marginTop: sp[1] }}>
           <TextInput 
             value={prompt} 
             onChange={setPrompt} 
-            placeholder="Enter prompt for LTX video..." 
+            placeholder="Enter prompt..." 
           />
           <button
             onClick={handleGenerate}
             disabled={status === 'loading'}
             style={{
-              background: status === 'loading' ? surface.raised : '#3b82f6',
+              background: status === 'loading' ? surface.raised : (layer.type === 'image' ? '#ec4899' : layer.type === 'audio' ? '#a855f7' : '#14b8a6'),
               color: status === 'loading' ? text.muted : '#fff',
               border: 'none',
               borderRadius: radius.md,
@@ -97,19 +228,19 @@ export function LayerItem({ layer, onUpdate, onDelete }: LayerItemProps) {
               transition: 'background 0.2s'
             }}
           >
-            {status === 'loading' ? 'Generating...' : 'Generate Video'}
+            {status === 'loading' ? 'Generating...' : layer.type === 'image' ? 'Generate Image' : layer.type === 'audio' ? 'Generate Audio' : 'Generate Video'}
           </button>
         </div>
       )}
 
-      {layer.status === 'loading' && (
+      {status === 'loading' && (
         <div style={{ marginTop: sp[1] }}>
           <div style={{ fontSize: 10, color: text.secondary, marginBottom: 4 }}>
-            Progress: {layer.progress}%
+            Progress: {progress}%
           </div>
           <div style={{ width: '100%', height: 4, background: surface.raised, borderRadius: 2, overflow: 'hidden' }}>
             <div style={{ 
-              width: `${layer.progress}%`, 
+              width: `${progress}%`, 
               height: '100%', 
               background: '#3b82f6', 
               transition: 'width 0.3s ease-out' 
@@ -118,15 +249,15 @@ export function LayerItem({ layer, onUpdate, onDelete }: LayerItemProps) {
         </div>
       )}
 
-      {layer.error && (
+      {error && (
         <div style={{ color: '#ef4444', fontSize: 11, marginTop: sp[1] }}>
-          Error: {layer.error}
+          Error: {error}
         </div>
       )}
       
-      {layer.src && layer.status === 'completed' && (
+      {layer.src && status === 'completed' && (
         <div style={{ color: '#10b981', fontSize: 11, marginTop: sp[1] }}>
-          Video ready
+          {layer.type === 'image' ? 'Image' : layer.type === 'audio' ? 'Audio' : 'Video'} ready
         </div>
       )}
     </div>

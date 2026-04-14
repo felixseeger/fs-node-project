@@ -51,7 +51,7 @@ const GeneratorNode: FC<NodeProps<Node<GeneratorNodeData>>> = ({ id, data, selec
 
   return (
     <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-      <NodeShell data={data} label={(data.label as string) || (isKora ? 'Kora Reality' : 'Nano Banana 2 Edit')} dotColor={ACCENT} selected={selected} onDisconnect={disconnectNode} onGenerate={handleGenerate} isGenerating={isActive} hasError={!!data.outputError && !isActive} downloadUrl={data.outputImage || undefined}>
+      <NodeShell data={data} label={(data.label as string) || (isKora ? 'Kora Reality' : 'Nano Banana 2 Edit')} dotColor={ACCENT} selected={selected} onDisconnect={disconnectNode} onGenerate={handleGenerate} isGenerating={isActive} hasError={!!data.outputError && !isActive} downloadUrl={data.outputImage || undefined} capabilities={[NodeCapabilities.IMAGE_GENERATE, NodeCapabilities.OUTPUT_IMAGE]}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Handles Area */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

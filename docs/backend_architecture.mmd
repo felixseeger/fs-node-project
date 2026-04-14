@@ -7,31 +7,31 @@ flowchart TD
     classDef service fill:#3b82f6,stroke:#000,color:#fff
     classDef external fill:#1e293b,stroke:#a8a29e,color:#fff
 
-    subgraph Client [Frontend App]
+    subgraph Client ["Frontend App"]
         User[User Action]:::client
     end
 
-    subgraph Express_Backend [Express Backend (api/server.js)]
+    subgraph Express_Backend ["Express Backend"]
         subgraph Middleware
             CORS[CORS / Helmet]:::middleware
             RateLimiter[Global Rate Limiter]:::middleware
             Auth[Auth Middleware]:::middleware
         end
         
-        subgraph Routes [api/routes/*]
+        subgraph Routes ["api/routes/*"]
             ImageRoute[Image Gen]:::route
             VideoRoute[Video Gen]:::route
             AudioRoute[Audio Gen]:::route
             VisionRoute[Vision Analysis]:::route
         end
         
-        subgraph PQueue [Task Queues]
-            GenQueue[generateQueue (Concurrency: 5)]:::queue
-            PollQueue[pollQueue (Concurrency: 10)]:::queue
+        subgraph PQueue ["Task Queues"]
+            GenQueue[generateQueue]:::queue
+            PollQueue[pollQueue]:::queue
         end
         
-        subgraph Services [api/services/*]
-            FreepikSvc[Freepik / Mystic API]:::service
+        subgraph Services ["api/services/*"]
+            FreepikSvc[Freepik API]:::service
             AnthropicSvc[Anthropic Vision]:::service
             GoogleSvc[Google Gemini API]:::service
             ElevenLabsSvc[ElevenLabs Audio]:::service
@@ -60,12 +60,12 @@ flowchart TD
         GenQueue --> ElevenLabsSvc
     end
 
-    subgraph External_APIs [Third-Party AI Models]
-        FreepikAPI(Freepik / Kora):::external
-        KlingAPI(Kling/Runway/Minimax):::external
-        GeminiAPI(Google Gemini 3):::external
-        ClaudeAPI(Anthropic Claude):::external
-        ElevenLabsAPI(ElevenLabs):::external
+    subgraph External_APIs ["Third-Party AI Models"]
+        FreepikAPI("Freepik / Kora"):::external
+        KlingAPI("Kling/Runway/Minimax"):::external
+        GeminiAPI("Google Gemini 3"):::external
+        ClaudeAPI("Anthropic Claude"):::external
+        ElevenLabsAPI("ElevenLabs"):::external
     end
     
     %% Services -> External APIs

@@ -55,10 +55,14 @@ export function sanitizeString(text: string, placeholder = '{{REDACTED}}'): stri
 
   // Regex for common API key formats
   const patterns = [
-    /sk-[a-zA-Z0-9]{20,}/g, // Generic sk- prefix
-    /AIza[0-9A-Za-z\\-_]{35}/g, // Google API Key
-    /[a-f0-9]{32}/g, // 32-char hex
-    /gh[pous]_[a-zA-Z0-9]{36}/g // GitHub tokens
+    /sk-[a-zA-Z0-9]{20,}/g, // Generic sk- prefix (OpenAI, etc)
+    /sk-ant-api03-[a-zA-Z0-9\-_]{80,}/g, // Anthropic API Key
+    /AIza[0-9A-Za-z\-_]{35}/g, // Google API Key
+    /[a-f0-9]{32}/g, // 32-char hex (often used for ElevenLabs, etc)
+    /gh[pous]_[a-zA-Z0-9]{36}/g, // GitHub tokens
+    /pk_[a-z0-9]{24,}/g, // Publishable keys (Stripe, etc)
+    /secret_[a-z0-9]{24,}/g, // Secret keys
+    /ey[a-zA-Z0-9-_]+\.ey[a-zA-Z0-9-_]+\.[a-zA-Z0-9-_]+/g, // JWT tokens
   ];
 
   patterns.forEach(pattern => {

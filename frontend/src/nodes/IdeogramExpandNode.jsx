@@ -13,6 +13,7 @@ import {
   useNodeConnections,
   getHandleColor,
 } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 import { ideogramExpand, pollIdeogramExpandStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
@@ -113,7 +114,7 @@ export default function IdeogramExpandNode({ id, data, selected }) {
   const ACCENT = '#14b8a6';
 
   return (
-    <NodeShell data={data} label={data.label || 'Ideogram Expand'} dotColor={ACCENT} selected={selected} onGenerate={handleExpand} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}>
+    <NodeShell data={data} label={data.label || 'Ideogram Expand'} dotColor={ACCENT} selected={selected} onGenerate={handleExpand} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode} capabilities={[NodeCapabilities.IMAGE_EXPAND, NodeCapabilities.OUTPUT_IMAGE]}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
       <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />
 

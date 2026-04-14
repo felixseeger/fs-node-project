@@ -11,6 +11,7 @@ import {
   useNodeConnections,
   getHandleColor,
 } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 import { reimagineFlux } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
@@ -105,7 +106,7 @@ export default function FluxReimagineNode({ id, data, selected }) {
   const ACCENT = '#10b981';
 
   return (
-    <NodeShell data={data} label={data.label || 'Flux Reimagine'} dotColor={ACCENT} selected={selected} onGenerate={handleReimagine} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}>
+    <NodeShell data={data} label={data.label || 'Flux Reimagine'} dotColor={ACCENT} selected={selected} onGenerate={handleReimagine} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode} capabilities={[NodeCapabilities.IMAGE_REIMAGINE, NodeCapabilities.OUTPUT_IMAGE]}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
       <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />
 

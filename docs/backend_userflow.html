@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backend Userflow & Architecture</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.2);
+      
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding: 2rem;
+    }
+    
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    
+    header {
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2rem;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #fff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.125rem;
+    }
+    
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    }
+    
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    h2::before {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 24px;
+      background: var(--accent);
+      border-radius: 4px;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+    
+    p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+    
+    ol {
+      margin-left: 1.5rem;
+      margin-bottom: 2rem;
+      color: var(--text-muted);
+    }
+    
+    li {
+      margin-bottom: 0.5rem;
+    }
+    
+    strong {
+      color: var(--text);
+    }
+    
+    .mermaid-container {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+      overflow-x: auto;
+    }
+    
+    .mermaid {
+      background: transparent;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ 
+      startOnLoad: true, 
+      theme: 'dark',
+      themeVariables: {
+        fontFamily: 'Inter',
+        primaryColor: '#1e293b',
+        primaryTextColor: '#f8fafc',
+        primaryBorderColor: '#334155',
+        lineColor: '#94a3b8',
+        secondaryColor: '#3b82f6',
+        tertiaryColor: '#14b8a6'
+      }
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Backend Userflow & Architecture</h1>
+      <p class="subtitle">A complete overview of how the FS Node Project processes user generation requests.</p>
+    </header>
+
+    <section>
+      <h2>1. High-Level Architecture Flow</h2>
+      <p>When a user interacts with the canvas (e.g., executing a node), the request follows a structured pipeline through the Express backend:</p>
+      
+      <ol>
+        <li><strong>Express Middleware:</strong> Requests pass through CORS, Helmet (Security Headers), and Global Rate Limiting.</li>
+        <li><strong>Routes:</strong> Directed to specific endpoints in <code>api/routes/</code> based on the capability requested.</li>
+        <li><strong>Queueing:</strong> To prevent rate limits from external APIs (like Freepik), long-running tasks are pushed to <code>generateQueue</code> (powered by <code>p-queue</code>).</li>
+        <li><strong>Services:</strong> The queue delegates execution to <code>api/services/</code> which handle authentication and payload formatting for external AI providers.</li>
+        <li><strong>External APIs:</strong> The 3rd-party models process the prompt and return either the generated asset or a task ID.</li>
+      </ol>
+
+      <div class="mermaid-container">
+        <div class="mermaid">
+flowchart TD
+    %% Define styles
+    classDef client fill:#ff6b6b,stroke:#000,color:#fff
+    classDef middleware fill:#f59e0b,stroke:#000,color:#fff
+    classDef route fill:#14b8a6,stroke:#000,color:#fff
+    classDef queue fill:#8b5cf6,stroke:#000,color:#fff
+    classDef service fill:#3b82f6,stroke:#000,color:#fff
+    classDef external fill:#1e293b,stroke:#a8a29e,color:#fff
+
+    subgraph Client ["Frontend App"]
+        User[User Action]:::client
+    end
+
+    subgraph Express_Backend ["Express Backend"]
+        subgraph Middleware
+            CORS[CORS / Helmet]:::middleware
+            RateLimiter[Global Rate Limiter]:::middleware
+            Auth[Auth Middleware]:::middleware
+        end
+        
+        subgraph Routes ["api/routes/*"]
+            ImageRoute[Image Gen]:::route
+            VideoRoute[Video Gen]:::route
+            AudioRoute[Audio Gen]:::route
+            VisionRoute[Vision Analysis]:::route
+        end
+        
+        subgraph PQueue ["Task Queues"]
+            GenQueue[generateQueue]:::queue
+            PollQueue[pollQueue]:::queue
+        end
+        
+        subgraph Services ["api/services/*"]
+            FreepikSvc[Freepik API]:::service
+            AnthropicSvc[Anthropic Vision]:::service
+            GoogleSvc[Google Gemini API]:::service
+            ElevenLabsSvc[ElevenLabs Audio]:::service
+        end
+        
+        %% Connect Client -> Server
+        User -->|API Request| CORS
+        
+        %% Middleware Chain
+        CORS --> RateLimiter
+        RateLimiter --> Auth
+        Auth --> ImageRoute
+        Auth --> VideoRoute
+        Auth --> AudioRoute
+        Auth --> VisionRoute
+        
+        %% Routes -> Queue
+        ImageRoute -->|Add Task| GenQueue
+        VideoRoute -->|Add Task| GenQueue
+        AudioRoute -->|Add Task| GenQueue
+        VisionRoute -->|Direct| AnthropicSvc
+        
+        %% Queue -> Services
+        GenQueue --> FreepikSvc
+        GenQueue --> GoogleSvc
+        GenQueue --> ElevenLabsSvc
+    end
+
+    subgraph External_APIs ["Third-Party AI Models"]
+        FreepikAPI("Freepik / Kora"):::external
+        KlingAPI("Kling/Runway/Minimax"):::external
+        GeminiAPI("Google Gemini 3"):::external
+        ClaudeAPI("Anthropic Claude"):::external
+        ElevenLabsAPI("ElevenLabs"):::external
+    end
+    
+    %% Services -> External APIs
+    FreepikSvc -->|Generate Request| FreepikAPI
+    FreepikSvc -->|Generate Request| KlingAPI
+    GoogleSvc -->|Multimodal Request| GeminiAPI
+    AnthropicSvc -->|Image Analysis| ClaudeAPI
+    ElevenLabsSvc -->|TTS/SFX| ElevenLabsAPI
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. Request Lifecycle & Asynchronous Polling</h2>
+      <p>Because generating AI assets (images, videos, audio) can take significant time, the backend employs an asynchronous Task ID and polling mechanism to prevent HTTP timeouts.</p>
+      
+      <ol>
+        <li><strong>Submit:</strong> The user submits a generation request.</li>
+        <li><strong>Queue & Relay:</strong> The backend queues the request and forwards it to the AI provider.</li>
+        <li><strong>Task ID:</strong> The provider returns a <code>task_id</code> rather than the finished asset.</li>
+        <li><strong>Poll:</strong> The frontend regularly polls <code>/api/status/:taskId</code>.</li>
+        <li><strong>Complete:</strong> Once the provider marks the task as completed, the backend fetches the asset URLs and forwards them to the frontend.</li>
+      </ol>
+
+      <div class="mermaid-container">
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Client as Frontend
+    participant Server as Express Server
+    participant Middleware as Auth/Rate Limiting
+    participant Queue as P-Queue (Task Queue)
+    participant Service as AI Service (Freepik/Google)
+    participant External as External API
+
+    %% Initial Request Phase
+    Client->>Server: POST /api/generate-* (e.g. image/video)
+    Server->>Middleware: Verify Token & Check Limits
+    alt Rate limit exceeded or Unauthorized
+        Middleware--xClient: 401/429 Error
+    else Request valid
+        Middleware->>Server: Proceed
+    end
+
+    %% Queueing Phase
+    Server->>Queue: generateQueue.add(task)
+    Note over Queue: Concurrency limit (e.g. 5)<br/>Prevents overloading external APIs
+    
+    %% Execution Phase
+    Queue->>Service: Execute task (e.g. generateImage)
+    Service->>External: POST Request with API Key
+    External-->>Service: 202 Accepted + Task ID
+    Service-->>Queue: Task ID
+    Queue-->>Server: Task ID
+    Server-->>Client: 200 OK (status: "in_progress", task_id)
+
+    %% Polling Phase
+    loop Every 2-5 seconds
+        Client->>Server: GET /api/status/:taskId
+        Server->>Service: getTaskStatus(taskId)
+        Service->>External: GET /status/:taskId
+        
+        alt Task still processing
+            External-->>Service: status: "in_progress"
+            Service-->>Server: status: "in_progress"
+            Server-->>Client: 200 OK (status: "in_progress")
+        else Task completed
+            External-->>Service: status: "completed" + Asset URLs
+            Service-->>Server: status: "completed" + Asset URLs
+            Server-->>Client: 200 OK (status: "completed", url: "...")
+        else Task failed
+            External-->>Service: status: "failed" + Error Reason
+            Service-->>Server: status: "failed" + Error Reason
+            Server-->>Client: 400/500 Error
+        end
+    end
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

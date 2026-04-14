@@ -154,6 +154,7 @@ export default function CreativeUpScaleNode({ id, data, selected }: NodeProps<No
       onGenerate={handleUpscale}
       isGenerating={isActive}
       downloadUrl={nodeData.outputImage || undefined}
+      capabilities={[NodeCapabilities.IMAGE_UPSCALE, NodeCapabilities.OUTPUT_IMAGE]}
     >
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
 

@@ -3,6 +3,7 @@ import { Position, Handle } from '@xyflow/react';
 import { useNodeConnections } from './shared';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
+import { NodeCapabilities } from './nodeCapabilities';
 import { removeBackground } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import NodeProgress from './NodeProgress';
@@ -148,6 +149,7 @@ export default function RemoveBackgroundNode({ id, data, selected }) {
       onGenerate={handleRemove}
       isGenerating={isActive}
       downloadUrl={data.outputHighRes || undefined} onDisconnect={onDisconnectNode}
+      capabilities={[NodeCapabilities.IMAGE_REMOVE_BACKGROUND, NodeCapabilities.OUTPUT_IMAGE]}
     >
 
       {/* ── Image Output Handle (top, aligned with image-in) ── */}

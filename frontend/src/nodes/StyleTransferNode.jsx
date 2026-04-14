@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import { useNodeConnections, CATEGORY_COLORS } from './shared';
 import { getHandleColor } from '../utils/handleTypes';
+import { NodeCapabilities } from './nodeCapabilities';
 import { styleTransfer, pollStyleTransferStatus } from '../utils/api';
 import ImageUploadBox from './ImageUploadBox';
 import AutoPromptButton from './AutoPromptButton';
@@ -92,7 +93,7 @@ export default function StyleTransferNode({ id, data, selected }) {
   const ACCENT = CATEGORY_COLORS.imageEditing;
 
   return (
-    <NodeShell data={data} label={data.label || 'Style Transfer'} dotColor={ACCENT} selected={selected} onGenerate={handleTransfer} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={onDisconnectNode}>
+    <NodeShell data={data} label={data.label || 'Style Transfer'} dotColor={ACCENT} selected={selected} onGenerate={handleTransfer} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={onDisconnectNode} capabilities={[NodeCapabilities.IMAGE_STYLE_TRANSFER, NodeCapabilities.OUTPUT_IMAGE]}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
 
       {/* ── 1. Image ── */}

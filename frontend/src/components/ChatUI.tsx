@@ -17,6 +17,7 @@ import {
   testRoundTrip,
   getWorkflowSummary,
 } from '../utils/workflowJSON';
+import { sanitizeString, sanitizeData } from '../utils/sanitization';
 // @ts-ignore
 import { chatToMarkdown } from '../../../lib/api/utils/chatMapper.js';
 
@@ -417,7 +418,8 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
         createdAt: m.timestamp
       })));
       
-      const blob = new Blob([markdown], { type: 'text/markdown' });
+      const sanitizedMarkdown = sanitizeString(markdown);
+      const blob = new Blob([sanitizedMarkdown], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -453,7 +455,8 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
         }))
       };
 
-      const json = JSON.stringify(exportData, null, 2);
+      const sanitizedData = sanitizeData(exportData);
+      const json = JSON.stringify(sanitizedData, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

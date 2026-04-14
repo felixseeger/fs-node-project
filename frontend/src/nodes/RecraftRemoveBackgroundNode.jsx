@@ -5,6 +5,7 @@ import { SectionHeader, ConnectedOrLocal } from './NodeSection';
 import { OutputHandle, OutputPreview } from './NodeOutput';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
+import { NodeCapabilities } from './nodeCapabilities';
 import { CATEGORY_COLORS, sp, font, radius } from './nodeTokens';
 import { recraftRemoveBackground } from '../utils/api';
 
@@ -46,6 +47,7 @@ export default function RecraftRemoveBackgroundNode({ id, data, selected }) {
       dotColor={CATEGORY_COLORS.imageEditing}
       selected={selected}
       downloadUrl={data.outputImage || undefined} onDisconnect={disconnectNode}
+      capabilities={[NodeCapabilities.IMAGE_REMOVE_BACKGROUND, NodeCapabilities.OUTPUT_IMAGE]}
     >
       <SectionHeader title="Input Image" />
       <div style={{ position: 'relative', marginBottom: sp[4] }}>

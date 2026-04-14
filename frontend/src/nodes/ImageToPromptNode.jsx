@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
 import { useNodeConnections } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 import NodeShell from './NodeShell';
 import NodeProgress from './NodeProgress';
 import { getHandleColor } from '../utils/handleTypes';
@@ -139,6 +140,7 @@ export default function ImageToPromptNode({ id, data, selected }) {
       selected={selected}
       onGenerate={handleGenerate}
       isGenerating={progress.isActive} onDisconnect={onDisconnectNode}
+      capabilities={[NodeCapabilities.IMAGE_TO_PROMPT]}
     >
 
       {/* ── Prompt Output Handle (top) ── */}

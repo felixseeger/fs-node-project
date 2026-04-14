@@ -7,6 +7,10 @@ export interface RemotionLayer {
   from: number;
   durationInFrames: number;
   zIndex: number;
+  x?: number;
+  y?: number;
+  scale?: number;
+  opacity?: number;
   style?: CSSProperties;
   status: 'idle' | 'loading' | 'completed' | 'failed';
   progress: number;

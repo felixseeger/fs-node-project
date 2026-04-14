@@ -1,4 +1,4 @@
-# Hardening Tasks - COMPLETED ✅
+# AI Pipeline Editor - Completed Tasks - COMPLETED ✅
 
 ## API Security
 - [x] TASK-001: Install dependencies (helmet, express-validator, connect-timeout, file-type)
@@ -25,22 +25,22 @@
 - [x] TASK-018: Update frontend API client (`frontend/src/utils/api.js`) to fetch and send `Authorization: Bearer <token>`.
 
 ## Video Editing Integration (etro-js)
-- [ ] TASK-019: Research and document etro-js API in `knowledgebase/etro-js.md`.
-- [ ] TASK-020: Scaffold `Movie` instance and `<canvas>` target in `LayerEditorNode.jsx`.
-- [ ] TASK-021: Build a `LayerRegistry` to map incoming node media (images/videos) to `etro.layer` objects.
-- [ ] TASK-022: Implement property binding (opacity, x/y, scale) between UI and etro layers.
-- [ ] TASK-023: Add video export logic using `movie.record()` and blob handling.
-- [ ] TASK-024: Design and implement playback controls (Play/Pause/Seek) in the Layer Editor side panel.
+- [x] TASK-019: Research and document etro-js API in `knowledgebase/etro-js.md`.
+- [x] TASK-020: Scaffold `Movie` instance and `<canvas>` target in `LayerEditorNode.jsx`.
+- [x] TASK-021: Build a `LayerRegistry` to map incoming node media (images/videos) to `etro.layer` objects.
+- [x] TASK-022: Implement property binding (opacity, x/y, scale) between UI and etro layers.
+- [x] TASK-023: Add video export logic using `movie.record()` and blob handling.
+- [x] TASK-024: Design and implement playback controls (Play/Pause/Seek) in the Layer Editor side panel.
 
 ## Node Capabilities & Exports
-- [ ] TASK-025: Implement `capabilities` array in `BaseNode.types.ts` and populate for all nodes.
-- [ ] TASK-026: Create a sanitization utility to strip API keys from JSON and code exports.
-- [ ] TASK-027: Update `ApiExportModal.tsx` to generate dynamic code snippets based on graph topology.
-- [ ] TASK-028: Add "Export Chat" functionality to `ChatUI.tsx` with Markdown and JSON support.
+- [x] TASK-025: Implement `capabilities` array in `BaseNode.types.ts` and populate for all nodes.
+- [x] TASK-026: Create a sanitization utility to strip API keys from JSON and code exports.
+- [x] TASK-027: Update `ApiExportModal.tsx` to generate dynamic code snippets based on graph topology.
+- [x] TASK-028: Add "Export Chat" functionality to `ChatUI.tsx` with Markdown and JSON support.
 
 ## Advanced VFX Engine Integration
-- [ ] TASK-029: Set up an async worker queue for heavy VFX tasks (e.g., Upstash Redis or AWS SQS).
-- [ ] TASK-030: Implement `CorridorKeyNode` for AI matte extraction via async worker.
-- [ ] TASK-031: Implement `LtxVideoNode` for generative video backgrounds via async worker.
-- [ ] TASK-032: Integrate `sharp` library in the backend for scalable image compositing and filtering.
+- [x] TASK-029: Set up an async worker queue for heavy VFX tasks (e.g., Upstash Redis or AWS SQS).
+- [x] TASK-030: Implement `CorridorKeyNode` for AI matte extraction via async worker.
+- [x] TASK-031: Implement `LtxVideoNode` for generative video backgrounds via async worker.
+- [x] TASK-032: Integrate `sharp` library in the backend for scalable image compositing and filtering.
 

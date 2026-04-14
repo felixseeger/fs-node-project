@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { sanitizeString } from './utils/sanitization';
 
 type TabKey = 'Javascript' | 'Python' | 'Claude Code';
 
@@ -105,7 +106,8 @@ print(f"Workflow result: {result}")`;
   }, [nodes, edges, workflowId]);
 
   const getCode = useCallback((): string => {
-    return getDynamicCode(activeTab);
+    const rawCode = getDynamicCode(activeTab);
+    return sanitizeString(rawCode);
   }, [activeTab, getDynamicCode]);
 
   const handleCopyCode = useCallback((): void => {

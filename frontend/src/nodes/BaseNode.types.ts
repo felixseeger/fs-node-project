@@ -9,6 +9,13 @@ export interface EditableTitleConfig {
   disabled?: boolean;
 }
 
+export interface BaseNodeData extends Record<string, any> {
+  label?: string;
+  capabilities?: string[];
+  onUpdate?: (id: string, updates: Record<string, any>) => void;
+  onUnlink?: (id: string, handleId: string) => void;
+}
+
 export interface BaseNodeProps {
   id: string;
   label: string;

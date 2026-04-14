@@ -12,6 +12,7 @@ import {
   useNodeConnections,
   getHandleColor,
 } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 import { voiceoverGenerate, pollVoiceoverStatus } from '../utils/api';
 import ImprovePromptButton from './ImprovePromptButton';
 import NodeProgress from './NodeProgress';
@@ -105,7 +106,7 @@ export default function VoiceoverNode({ id, data, selected }) {
   const ACCENT = '#a855f7';
 
   return (
-    <NodeShell data={data} label={data.label || 'Voiceover'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive} downloadUrl={data.outputAudio || undefined} downloadType="audio" onDisconnect={disconnectNode}>
+    <NodeShell data={data} label={data.label || 'Voiceover'} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive} downloadUrl={data.outputAudio || undefined} downloadType="audio" onDisconnect={disconnectNode} capabilities={[NodeCapabilities.AUDIO_VOICEOVER, NodeCapabilities.OUTPUT_AUDIO]}>
       <OutputHandle id="output" label="audio" color={getHandleColor('audio-out')} />
 
       {/* ── 1. Prompt ── */}

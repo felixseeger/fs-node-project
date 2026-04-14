@@ -5,6 +5,7 @@ import { SectionHeader, ConnectedOrLocal } from './NodeSection';
 import { OutputHandle, OutputPreview } from './NodeOutput';
 import useNodeConnections from './useNodeConnections';
 import { getHandleColor } from '../utils/handleTypes';
+import { NodeCapabilities } from './nodeCapabilities';
 import { CATEGORY_COLORS, sp, font, radius } from './nodeTokens';
 import { recraftVectorize } from '../utils/api';
 
@@ -47,6 +48,7 @@ export default function RecraftVectorizeNode({ id, data, selected }) {
       selected={selected}
       downloadUrl={data.outputImage || undefined}
       downloadType="svg" onDisconnect={disconnectNode}
+      capabilities={[NodeCapabilities.IMAGE_VECTORIZE, NodeCapabilities.OUTPUT_IMAGE]}
     >
       <SectionHeader title="Input Image" />
       <div style={{ position: 'relative', marginBottom: sp[4] }}>

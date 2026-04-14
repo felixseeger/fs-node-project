@@ -2,6 +2,7 @@ import React, { type FC } from 'react';
 import { Position, Handle, type NodeProps } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import { useNodeConnections } from './shared';
+import { NodeCapabilities } from './nodeCapabilities';
 import { getHandleColor } from '../utils/handleTypes';
 
 const CloudSyncNode: FC<NodeProps> = ({ id, data, selected }) => {
@@ -23,6 +24,7 @@ const CloudSyncNode: FC<NodeProps> = ({ id, data, selected }) => {
       onDisconnect={() => onDisconnectNode && onDisconnectNode(id)}
       isGenerating={data.isGenerating as boolean}
       hasError={data.hasError as boolean}
+      capabilities={[NodeCapabilities.CLOUD_SYNC]}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

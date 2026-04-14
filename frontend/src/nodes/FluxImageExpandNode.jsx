@@ -20,6 +20,7 @@ import {
   stripBase64Prefix,
 } from './shared';
 import { getHandleColor } from '../utils/handleTypes';
+import { NodeCapabilities } from './nodeCapabilities';
 
 const ACCENT = CATEGORY_COLORS.imageEditing; // #f97316
 
@@ -106,6 +107,7 @@ export default function FluxImageExpandNode({ id, data, selected }) {
       selected={selected}
       onGenerate={handleExpand}
       isGenerating={isActive} onDisconnect={disconnectNode}
+      capabilities={[NodeCapabilities.IMAGE_EXPAND, NodeCapabilities.OUTPUT_IMAGE]}
     >
 
       {/* ── Image Output Handle (top) ── */}

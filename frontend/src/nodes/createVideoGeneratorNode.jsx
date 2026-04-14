@@ -7,6 +7,7 @@ import AutoPromptButton from './AutoPromptButton';
 import ImprovePromptButton from './ImprovePromptButton';
 import NodeProgress from './NodeProgress';
 import useNodeProgress from '../hooks/useNodeProgress';
+import { NodeCapabilities } from './nodeCapabilities';
 import {
   SectionHeader,
   LinkedBadges,
@@ -83,7 +84,7 @@ export function createVideoGeneratorNode(config) {
 
     return (
       <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-        <NodeShell data={data} label={data.label || displayName} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive} downloadUrl={data.outputVideo} downloadType="video" onDisconnect={disconnectNode}>
+        <NodeShell data={data} label={data.label || displayName} dotColor={ACCENT} selected={selected} onGenerate={handleGenerate} isGenerating={isActive} downloadUrl={data.outputVideo} downloadType="video" onDisconnect={disconnectNode} capabilities={config.capabilities || [NodeCapabilities.VIDEO_GENERATE, NodeCapabilities.OUTPUT_VIDEO]}>
           <OutputHandle type="video" label="video" />
 
           {imageInputs.length > 0 && (
