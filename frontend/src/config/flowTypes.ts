@@ -28,6 +28,8 @@ export const initialNodeTypes: NodeTypes = {
   styleTransfer: createDynamicNodeWrapper(dynamicNodes.StyleTransferNode),
   removeBackground: createDynamicNodeWrapper(dynamicNodes.RemoveBackgroundNode),
   layerEditor: createDynamicNodeWrapper(dynamicNodes.LayerEditorNode),
+  layerNode: createDynamicNodeWrapper(dynamicNodes.LayerNode),
+  remotionLayer: createDynamicNodeWrapper(dynamicNodes.LayerNode),
   fluxReimagine: createDynamicNodeWrapper(dynamicNodes.FluxReimagineNode),
   fluxImageExpand: createDynamicNodeWrapper(dynamicNodes.FluxImageExpandNode),
   seedreamExpand: createDynamicNodeWrapper(dynamicNodes.SeedreamExpandNode),

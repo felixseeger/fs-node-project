@@ -1,0 +1,50 @@
+sequenceDiagram
+    autonumber
+    actor Client as Frontend
+    participant Server as Express Server
+    participant Middleware as Auth/Rate Limiting
+    participant Queue as P-Queue (Task Queue)
+    participant Service as AI Service (Freepik/Google)
+    participant External as External API
+
+    %% Initial Request Phase
+    Client->>Server: POST /api/generate-* (e.g. image/video)
+    Server->>Middleware: Verify Token & Check Limits
+    alt Rate limit exceeded or Unauthorized
+        Middleware--xClient: 401/429 Error
+    else Request valid
+        Middleware->>Server: Proceed
+    end
+
+    %% Queueing Phase
+    Server->>Queue: generateQueue.add(task)
+    Note over Queue: Concurrency limit (e.g. 5)<br/>Prevents overloading external APIs
+    
+    %% Execution Phase
+    Queue->>Service: Execute task (e.g. generateImage)
+    Service->>External: POST Request with API Key
+    External-->>Service: 202 Accepted + Task ID
+    Service-->>Queue: Task ID
+    Queue-->>Server: Task ID
+    Server-->>Client: 200 OK (status: "in_progress", task_id)
+
+    %% Polling Phase
+    loop Every 2-5 seconds
+        Client->>Server: GET /api/status/:taskId
+        Server->>Service: getTaskStatus(taskId)
+        Service->>External: GET /status/:taskId
+        
+        alt Task still processing
+            External-->>Service: status: "in_progress"
+            Service-->>Server: status: "in_progress"
+            Server-->>Client: 200 OK (status: "in_progress")
+        else Task completed
+            External-->>Service: status: "completed" + Asset URLs
+            Service-->>Server: status: "completed" + Asset URLs
+            Server-->>Client: 200 OK (status: "completed", url: "...")
+        else Task failed
+            External-->>Service: status: "failed" + Error Reason
+            Service-->>Server: status: "failed" + Error Reason
+            Server-->>Client: 400/500 Error
+        end
+    end

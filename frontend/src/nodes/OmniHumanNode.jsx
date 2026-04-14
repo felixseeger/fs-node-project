@@ -14,7 +14,7 @@ export default createVideoGeneratorNode({
   },
   supportsNegativePrompt: false,
   imageInputs: [{ id: 'image-in', label: 'Human Image (Required)', paramName: 'image' }],
-  audioInputs: [{ id: 'audio-text-in', label: 'Audio Track (Required)', paramName: 'audio' }],
+  audioInputs: [{ id: 'audio-in', label: 'Audio Track (Required)', paramName: 'audio' }],
   settingsControls: [
     { key: 'resolution', type: 'pills', label: 'Resolution', options: [{ value: '720p', label: '720p' }, { value: '1080p', label: '1080p' }], defaultValue: '720p', paramName: 'resolution' }
   ]

@@ -1,0 +1,76 @@
+flowchart TD
+    %% Define styles
+    classDef client fill:#ff6b6b,stroke:#000,color:#fff
+    classDef middleware fill:#f59e0b,stroke:#000,color:#fff
+    classDef route fill:#14b8a6,stroke:#000,color:#fff
+    classDef queue fill:#8b5cf6,stroke:#000,color:#fff
+    classDef service fill:#3b82f6,stroke:#000,color:#fff
+    classDef external fill:#1e293b,stroke:#a8a29e,color:#fff
+
+    subgraph Client [Frontend App]
+        User[User Action]:::client
+    end
+
+    subgraph Express_Backend [Express Backend (api/server.js)]
+        subgraph Middleware
+            CORS[CORS / Helmet]:::middleware
+            RateLimiter[Global Rate Limiter]:::middleware
+            Auth[Auth Middleware]:::middleware
+        end
+        
+        subgraph Routes [api/routes/*]
+            ImageRoute[Image Gen]:::route
+            VideoRoute[Video Gen]:::route
+            AudioRoute[Audio Gen]:::route
+            VisionRoute[Vision Analysis]:::route
+        end
+        
+        subgraph PQueue [Task Queues]
+            GenQueue[generateQueue (Concurrency: 5)]:::queue
+            PollQueue[pollQueue (Concurrency: 10)]:::queue
+        end
+        
+        subgraph Services [api/services/*]
+            FreepikSvc[Freepik / Mystic API]:::service
+            AnthropicSvc[Anthropic Vision]:::service
+            GoogleSvc[Google Gemini API]:::service
+            ElevenLabsSvc[ElevenLabs Audio]:::service
+        end
+        
+        %% Connect Client -> Server
+        User -->|API Request| CORS
+        
+        %% Middleware Chain
+        CORS --> RateLimiter
+        RateLimiter --> Auth
+        Auth --> ImageRoute
+        Auth --> VideoRoute
+        Auth --> AudioRoute
+        Auth --> VisionRoute
+        
+        %% Routes -> Queue
+        ImageRoute -->|Add Task| GenQueue
+        VideoRoute -->|Add Task| GenQueue
+        AudioRoute -->|Add Task| GenQueue
+        VisionRoute -->|Direct| AnthropicSvc
+        
+        %% Queue -> Services
+        GenQueue --> FreepikSvc
+        GenQueue --> GoogleSvc
+        GenQueue --> ElevenLabsSvc
+    end
+
+    subgraph External_APIs [Third-Party AI Models]
+        FreepikAPI(Freepik / Kora):::external
+        KlingAPI(Kling/Runway/Minimax):::external
+        GeminiAPI(Google Gemini 3):::external
+        ClaudeAPI(Anthropic Claude):::external
+        ElevenLabsAPI(ElevenLabs):::external
+    end
+    
+    %% Services -> External APIs
+    FreepikSvc -->|Generate Request| FreepikAPI
+    FreepikSvc -->|Generate Request| KlingAPI
+    GoogleSvc -->|Multimodal Request| GeminiAPI
+    AnthropicSvc -->|Image Analysis| ClaudeAPI
+    ElevenLabsSvc -->|TTS/SFX| ElevenLabsAPI

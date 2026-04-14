@@ -72,9 +72,11 @@ export function resolveInput(
              (data as Record<string, unknown>).images || 
              (data as Record<string, unknown>).localImages;
     case 'video-out':
+    case 'output-video':
       return (data as Record<string, unknown>).outputVideo || 
              (data as Record<string, unknown>).localVideo;
     case 'audio-out':
+    case 'output-audio':
       return (data as Record<string, unknown>).outputAudio || 
              (data as Record<string, unknown>).localAudio;
     case 'aspect_ratio':

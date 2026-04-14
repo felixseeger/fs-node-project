@@ -299,6 +299,11 @@ const LayerEditorNode = lazy(() => (import('../nodes/LayerEditorNode') as any).c
   throw error;
 }));
 
+const LayerNode = lazy(() => (import('../nodes/LayerNode') as any).catch((error: any) => {
+  console.error('Failed to load LayerNode:', error);
+  throw error;
+}));
+
 const CorridorKeyNode = lazy(() => (import('../nodes/CorridorKeyNode') as any).catch((error: any) => {
   console.error('Failed to load CorridorKeyNode:', error);
   throw error;
@@ -484,6 +489,7 @@ export const dynamicNodes = {
   // Utility Nodes
   AdaptedPromptNode,
   LayerEditorNode,
+  LayerNode,
   CorridorKeyNode,
   LtxVideoNode,
   CommentNode,
