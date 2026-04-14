@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { getDb, isFirebaseConfigured } from '../config/firebase';
 
 export interface StorageUsage {
   count: number;
@@ -19,16 +21,44 @@ export function useStorage() {
     if (!user) return;
     try {
       setLoading(true);
-      const token = await user.getIdToken();
-      const API_URL = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API_URL}/api/storage/usage`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!res.ok) throw new Error('Failed to fetch storage usage');
-      const data = await res.json();
-      setUsage(data.usage);
+      
+      if (isFirebaseConfigured()) {
+        const db = getDb();
+        const assetsQuery = query(
+          collection(db, 'assets'),
+          where('userId', '==', user.uid),
+          where('isDeleted', '==', false)
+        );
+        
+        const snapshot = await getDocs(assetsQuery);
+        
+        let totalBytes = 0;
+        const count = snapshot.size;
+        
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.mediaItems && Array.isArray(data.mediaItems)) {
+            data.mediaItems.forEach((item: any) => {
+              if (item.size) totalBytes += item.size;
+            });
+          }
+        });
+        
+        setUsage({
+          count,
+          totalBytes,
+          limitCount: 100,
+          limitBytes: 1000000000 // 1GB
+        });
+      } else {
+        // Fallback for local testing without Firebase
+        setUsage({
+          count: 0,
+          totalBytes: 0,
+          limitCount: 100,
+          limitBytes: 1000000000
+        });
+      }
     } catch (err: any) {
       console.error('[useStorage] Error:', err);
       setError(err.message);
