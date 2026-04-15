@@ -18,19 +18,19 @@ export const VideoComposition: React.FC<VideoCompositionProps> = ({ layers }) =>
           durationInFrames={layer.durationInFrames}
         >
           <AbsoluteFill style={{ zIndex: layer.zIndex, ...layer.style }}>
-            {layer.type === 'image' && (
+            {layer.type === 'image' && layer.src && (
               <Img 
                 src={layer.src} 
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
               />
             )}
-            {layer.type === 'video' && (
+            {layer.type === 'video' && layer.src && (
               <OffthreadVideo 
                 src={layer.src} 
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
               />
             )}
-            {layer.type === 'audio' && (
+            {layer.type === 'audio' && layer.src && (
               <Html5Audio src={layer.src} />
             )}
             {layer.type === 'text' && (
