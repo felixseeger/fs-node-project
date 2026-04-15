@@ -3033,8 +3033,10 @@ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisio
   };
 
   return (
-    <AnimatePresence mode="wait">
-      {renderCurrentPage()}
+    <>
+      <AnimatePresence mode="wait">
+        {renderCurrentPage()}
+      </AnimatePresence>
       
       <StorageLimitModal 
         isOpen={limitModalOpen} 
@@ -3043,6 +3045,6 @@ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisio
         message={limitModalContent.message}
         details={limitModalContent.details}
       />
-    </AnimatePresence>
+    </>
   );
 }
