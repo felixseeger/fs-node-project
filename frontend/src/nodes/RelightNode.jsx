@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
-import { useNodeConnections, Toggle } from './shared';
+import { useNodeConnections, Toggle, SectionHeader, ConnectedOrLocal, OutputHandle } from './shared';
+import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { NodeCapabilities } from './nodeCapabilities';
 import { CATEGORY_COLORS } from './nodeTokens';

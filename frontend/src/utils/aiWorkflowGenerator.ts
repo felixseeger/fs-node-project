@@ -282,7 +282,7 @@ function generateVideoWorkflow(analysis: PromptAnalysis, providers: string[], co
   if (nodes.length < maxNodes) {
     const outputNode: Node<NodeData> = {
       id: `node-output-${Date.now() + 3}`,
-      type: 'response',
+      type: 'videoOutput',
       position: { x: 100, y: 550 },
       data: { 
         id: `node-output-${Date.now() + 3}`,
@@ -428,7 +428,7 @@ function generateComplexWorkflow(analysis: PromptAnalysis, providers: string[], 
   if (nodes.length < maxNodes) {
     const outputNode: Node<NodeData> = {
       id: `node-output-${Date.now() + 4}`,
-      type: 'response',
+      type: 'imageOutput',
       position: { x: 150, y: 550 },
       data: { 
         id: `node-output-${Date.now() + 4}`,

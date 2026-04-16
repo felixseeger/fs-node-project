@@ -98,7 +98,7 @@ import WorkflowBuilderDrawer from './WorkflowBuilderDrawer';
 import { WorkflowLineageTracker } from './components/WorkflowLineageTracker';
 import { SmartConnectorUI } from './components/SmartConnectorUI';
 import { SmartConnectorEngine } from './engine/SmartConnectorEngine';
-import { CollaboratorPresence, CollaborationHub, CollaborationPresence, NodeLocks } from './components/CollaborationHub';
+import { CollaborationHub, NodeLocks } from './components/CollaborationHub';
 import { ShareWorkflowModal } from './projectsDashboard/components/ShareWorkflowModal';
 import type { ShareModalState } from './projectsDashboard/types';
 
@@ -2791,7 +2791,6 @@ const handleConnectEnd = useCallback(
               style={{ backgroundColor: theme === 'light' ? '#f0fdfa' : 'var(--bg-blueprint)' }}
             />
           </ReactFlow>
-          <CollaboratorPresence />
           <NodeLocks />
           <CollaborationHub
             isOpen={isCollaborationHubOpen}
@@ -2800,7 +2799,6 @@ const handleConnectEnd = useCallback(
             onShare={handleShareWorkflow}
           />
 
-          <CollaborationPresence />
           <ChatButton isOpen={isChatOpen} onClick={() => setIsChatOpen(!isChatOpen)} />
           <ChatUI
             ref={chatUIRef} 
@@ -2882,15 +2880,25 @@ If the user wants to generate a COMPLETELY NEW workflow from scratch (overwritin
 \`\`\`json
 {
   "nodes": [
-    { "id": "n1", "type": "input", "position": {"x": 100, "y": 100}, "data": { "label": "Input" } },
-    ...
+    { "id": "n1", "type": "inputNode", "position": {"x": 100, "y": 100}, "data": { "label": "Request - Inputs", "initialFields": ["prompt"] } },
+    { "id": "n2", "type": "universalGeneratorImage", "position": {"x": 450, "y": 100}, "data": { "label": "Universal Image" } },
+    { "id": "n3", "type": "response", "position": {"x": 800, "y": 100}, "data": { "label": "Response · Output" } }
   ],
   "edges": [
-    { "id": "e1", "source": "n1", "target": "n2", "sourceHandle": "output", "targetHandle": "input" }
+    { "id": "e-n1-n2", "source": "n1", "target": "n2", "sourceHandle": "prompt", "targetHandle": "prompt-in" },
+    { "id": "e-n2-n3", "source": "n2", "target": "n3", "sourceHandle": "output", "targetHandle": "image-in" }
   ]
 }
 \`\`\`
-Available node types: input, generator, imageAnalyzer, creativeUpscale, precisionUpscale, relight, styleTransfer, removeBackground, fluxReimagine, fluxImageExpand, seedreamExpand, ideogramExpand, skinEnhancer, ideogramInpaint, kling3, kling3Omni, kling3Motion, wan26, seedance, runwayGen45, runwayGen4Turbo, runwayActTwo, pixVerseV5Transition, omniHuman, vfx, creativeVideoUpscale, precisionVideoUpscale, textToIcon, imageToPrompt, improvePrompt, aiImageClassifier, musicGeneration, soundEffects, audioIsolation, voiceover, response, adaptedPrompt, layerEditor, comment, routerNode, groupEditing, facialEditing, universalGeneratorImage, universalGeneratorVideo, videoImprove, tripo3d, textElement, imageOutput, videoOutput, soundOutput.
+HANDLE ID RULES (use EXACT IDs):
+- inputNode source handles: "prompt", "image_urls", "aspect_ratio", "text", "resolution", "num_images"
+- Most image generators accept target: "prompt-in" (text) or "image-in" (image)
+- Most nodes output via source: "output"
+- Response node target: "image-in"
+- Audio nodes output via: "output-audio", accept: "prompt-in" or "audio-in"
+- Do NOT invent handle IDs like "aspectRatio-in". Always use kebab-case with "-in"/"-out" suffix.
+
+Available node types: inputNode, generator, simplifiedGenerator, imageAnalyzer, creativeUpscale, precisionUpscale, relight, styleTransfer, removeBackground, fluxReimagine, fluxImageExpand, seedreamExpand, ideogramExpand, skinEnhancer, ideogramInpaint, kling3, kling3Omni, kling3Motion, wan26, seedance, runwayGen45, runwayGen4Turbo, runwayActTwo, pixVerseV5, pixVerseV5Transition, omniHuman, vfx, creativeVideoUpscale, precisionVideoUpscale, textToIcon, imageToPrompt, improvePrompt, aiImageClassifier, musicGeneration, soundEffects, audioIsolation, voiceover, response, adaptedPrompt, layerEditor, comment, routerNode, groupEditing, facialEditing, universalGeneratorImage, universalGeneratorVideo, videoImprove, tripo3d, recraftGenerate, recraftVectorize, recraftUpscale, socialPublisher, cloudSync.
 `;
                 const res: any = await sendChat(_msg, history, systemContext, referenceImages);
 
@@ -2913,6 +2921,11 @@ Available node types: input, generator, imageAnalyzer, creativeUpscale, precisio
                       if (parsed.suggestions) suggestions = parsed.suggestions;
                       
                       if (parsed.nodes && parsed.edges) {
+                        // Normalize AI type aliases
+                        const TYPE_ALIASES: Record<string, string> = { input: 'inputNode', output: 'response' };
+                        for (const node of parsed.nodes) {
+                          if (TYPE_ALIASES[node.type]) node.type = TYPE_ALIASES[node.type];
+                        }
                         setNodes(parsed.nodes);
                         setEdges(parsed.edges);
                         showToast('Generated new workflow', 'success');

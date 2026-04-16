@@ -24,6 +24,8 @@ describe('AI Workflow Generator', () => {
       const nodeTypes = result.nodes.map(node => node.type);
       expect(nodeTypes).toContain('input');
       expect(nodeTypes).toContain('generator');
+      expect(nodeTypes).toContain('imageOutput');
+      expect(result.edges.some(edge => edge.targetHandle === 'image-in')).toBe(true);
     });
 
     test('generates video workflow for video-related prompts', async () => {
@@ -38,6 +40,8 @@ describe('AI Workflow Generator', () => {
       // Should contain video-specific nodes
       const nodeTypes = result.nodes.map(node => node.type);
       expect(nodeTypes).toContain('kling3');
+      expect(nodeTypes).toContain('videoOutput');
+      expect(result.edges.some(edge => edge.targetHandle === 'video-in')).toBe(true);
     });
 
     test('generates audio workflow for audio-related prompts', async () => {
@@ -52,6 +56,8 @@ describe('AI Workflow Generator', () => {
       // Should contain audio-specific nodes
       const nodeTypes = result.nodes.map(node => node.type);
       expect(nodeTypes).toContain('musicGeneration');
+      expect(nodeTypes).toContain('soundOutput');
+      expect(result.edges.some(edge => edge.targetHandle === 'audio-in')).toBe(true);
     });
 
     test('generates complex workflow for composition prompts', async () => {
@@ -66,6 +72,7 @@ describe('AI Workflow Generator', () => {
       // Should contain routing/merging nodes for complex workflows
       const nodeTypes = result.nodes.map(node => node.type);
       expect(nodeTypes).toContain('router');
+      expect(nodeTypes).toContain('imageOutput');
     });
 
     test('respects maxNodes constraint', async () => {
