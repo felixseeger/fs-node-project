@@ -152,7 +152,7 @@ export default function App() {
   const [activeWorkflowId, setActiveWorkflowId] = useState<string | undefined>(undefined);
   const [editorMode, setEditorMode] = useState<EditorMode>('node-editor');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | undefined>("testuser@nodeproject.dev");
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | undefined>(undefined);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | undefined>(undefined);
@@ -458,6 +458,7 @@ export default function App() {
   const [lastGeneratedWorkflow, setLastGeneratedWorkflow] = useState<any>(undefined);
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [menu, setMenu] = useState<any>(undefined);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [clipboardNodes, setClipboardNodes] = useState<any>(undefined);
   const clipboardRef = useRef<any>(undefined);
   const pastePositionRef = useRef<any>(undefined);
@@ -468,6 +469,20 @@ export default function App() {
   const [_connectionDrop, setConnectionDrop] = useState<any>(undefined);
   const [canvasSearch, setCanvasSearch] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
   const lastLockedNodeIdRef = useRef<string | null>(null);
+
+  // Close context menu on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (menu && menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenu(undefined);
+      }
+    };
+
+    if (menu) {
+      document.addEventListener('click', handleOutsideClick, true);
+      return () => document.removeEventListener('click', handleOutsideClick, true);
+    }
+  }, [menu]);
 
   const handleSelectionChange = useCallback(({ nodes: selectedNodes }: { nodes: any[] }) => {
     if (selectedNodes.length === 1) {
@@ -1186,6 +1201,7 @@ const handleConnectEnd = useCallback(
       } else if (sourceNode.type === 'precisionUpscale' && sh === 'output' && sd.outputImage) results.push(sd.outputImage);
       else if (sourceNode.type === 'relight') {
         if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
+        if (sh === 'image_urls' && sd.image_urls?.length) results.push(...sd.image_urls);
         if (sh === 'prompt-out' && sd.inputPrompt) results.push(sd.inputPrompt);
       } else if (sourceNode.type === 'styleTransfer') {
         if (sh === 'output' && sd.outputImage) results.push(sd.outputImage);
@@ -1781,6 +1797,7 @@ const handleConnectEnd = useCallback(
       } else if (cmdOrCtrl && e.key.toLowerCase() === 'a') {
         e.preventDefault(); setNodes(nds => nds.map(n => ({ ...n, selected: true })));
       } else if (e.key === 'Escape') {
+        setMenu(undefined);
         setNodes(nds => nds.map(n => ({ ...n, selected: false })));
         setEdges(eds => eds.map(e => ({ ...e, selected: false })));
       } else if (cmdOrCtrl && e.key === '1') {
@@ -2534,7 +2551,7 @@ const handleConnectEnd = useCallback(
         isPublic={workflows.find(w => w.id === activeWorkflowId)?.isPublic || false}
         onTogglePublic={async (pub) => { if (activeWorkflowId) { const name = (getFirebaseAuth().currentUser?.displayName || getFirebaseAuth().currentUser?.email?.split('@')[0]) || 'User'; await toggleWorkflowPublic(activeWorkflowId, pub, name); setWorkflows(p => p.map(w => w.id === activeWorkflowId ? { ...w, isPublic: pub } : w)); } }}
         onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
-        onOpenRecipes={() => setShowPromptRecipes(true)}
+        onOpenRecipes={() => setShowPromptRecipes(prev => !prev)}
         onToggleCollaboration={() => setIsCollaborationHubOpen(!isCollaborationHubOpen)}
         onShare={handleShareWorkflow}
         onExportJSON={() => { const b = new Blob([JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${activeWorkflowName}.json`; a.click(); }}
@@ -2678,7 +2695,7 @@ const handleConnectEnd = useCallback(
           <PromptRecipeGallery isOpen={showPromptRecipes} onClose={() => setShowPromptRecipes(false)} />
           <MegaMenuModelSearch open={browseModelsOpen} onClose={() => setBrowseModelsOpen(false)} onSelect={(k: string, m: string) => handleAddNodeFromMegaMenu(k, m)} />
           <div style={{ position: 'absolute', bottom: 96, right: 24, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-end' }}>
-            <RenderingManager />
+            <RenderingManager selectedNodes={nodes.filter(n => n.selected)} />
             <Queue nodes={nodes} />
           </div>
           
@@ -2775,7 +2792,7 @@ const handleConnectEnd = useCallback(
             )}
             {menu && (
 
-              <div style={{ position: 'absolute', top: menu.y, left: menu.x, backgroundColor: 'rgba(30, 30, 30, 0.75)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '10px', zIndex: 1000, minWidth: 220, padding: '6px 0' }}>
+              <div ref={menuRef} style={{ position: 'absolute', top: menu.y, left: menu.x, backgroundColor: 'rgba(30, 30, 30, 0.75)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '10px', zIndex: 1000, minWidth: 220, padding: '6px 0' }}>
                 {menu.items.map((item: any, idx: number) => item.type === 'divider' ? <div key={idx} style={{ height: 1, background: 'rgba(255, 255, 255, 0.15)', margin: '6px 0' }} /> : (
                   <div key={item.action} onClick={e => { e.stopPropagation(); handleMenuAction(item.action, menu); }} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 16px', margin: '0 6px', borderRadius: 6, color: '#fff', fontSize: 14, cursor: 'default' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{item.icon}<span>{item.label}</span></div>{item.shortcut && <span style={{ opacity: 0.6, fontSize: 12 }}>{item.shortcut}</span>}

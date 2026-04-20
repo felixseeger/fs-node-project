@@ -1,57 +1,26 @@
-import React, { type FC, useState, useEffect } from 'react';
-import ApiExportModal from './ApiExportModal';
-import ProjectSettingsModal from './ProjectSettingsModal';
+import sys
 
-interface EditorTopBarProps {
-  currentUserId?: string;
-  isPublic: boolean;
-  onTogglePublic: (isPublic: boolean) => void;
-  onSave: () => void;
-  onSaveWithEmbeddedWorkflow?: () => void;
-  onApiExport?: () => void;
-  onOpenKeyboardShortcuts?: () => void;
-  onShare?: () => void;
-  onToggleCollaboration?: () => void;
-  onOpenRecipes?: () => void;
-  onExportJSON?: () => void;
-  onImportJSON?: () => void;
-  projectName?: string;
-  onRenameProject?: (name: string) => void;
-  nodes?: any[];
-  edges?: any[];
-  workflowId?: string;
-}
+filepath = 'frontend/src/EditorTopBar.tsx'
+with open(filepath, 'r') as f:
+    content = f.read()
 
-export const EditorTopBar: FC<EditorTopBarProps> = ({
-  isPublic,
-  onTogglePublic,
-  onSave,
-  onSaveWithEmbeddedWorkflow,
-  onApiExport,
-  onOpenKeyboardShortcuts,
-  onShare,
-  onToggleCollaboration,
-  onOpenRecipes,
-  onExportJSON,
-  onImportJSON,
-  projectName = '',
-  onRenameProject,
-  nodes = [],
-  edges = [],
-  workflowId,
-  currentUserId,
-}) => {
-  const [showApiModal, setShowApiModal] = useState(false);
-  const [showProjectSettings, setShowProjectSettings] = useState(false);
-  const [showSaveDropdown, setShowSaveDropdown] = useState(false);
+# 1. Remove all inline onMouseEnter / onMouseLeave handlers and replace with a standard class
+import re
 
-  useEffect(() => {
-    const handleOpenSettings = () => setShowProjectSettings(true);
-    window.addEventListener('open-project-settings', handleOpenSettings);
-    return () => window.removeEventListener('open-project-settings', handleOpenSettings);
-  }, []);
+# Remove the inline hover functions
+content = re.sub(r'\s*onMouseEnter=\{\(e\) => \{[^}]+\}\}', '', content)
+content = re.sub(r'\s*onMouseLeave=\{\(e\) => \{[^}]+\}\}', '', content)
 
-  return (
+# 2. Re-arrange and restyle the components
+# We want to group things:
+# Left: Title/Settings
+# Middle: Status
+# Right: Public/Private, Share, Collab, API, Recipes, Menu (Import/Export/Shortcuts), Save
+
+# Let's replace the main return block
+old_return_block = content[content.find('  return ('):content.rfind('  );') + 4]
+
+new_return_block = """  return (
     <>
       <ProjectSettingsModal
         isOpen={showProjectSettings}
@@ -434,9 +403,12 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
                 justifyContent: 'center',
               }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="2" y="5" width="20" height="14" rx="2" ry="2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M10 13h.01M14 13h.01M18 13h.01M9 17h6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <rect x="2" y="6" width="12" height="4" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M4 10H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M13 10H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M5 12L4 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M11 12L12 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             </button>
           </div>
@@ -461,7 +433,13 @@ export const EditorTopBar: FC<EditorTopBarProps> = ({
         }
       `}</style>
     </>
-  );
-};
+  );"""
 
-export default EditorTopBar;
+if old_return_block in content:
+    content = content.replace(old_return_block, new_return_block)
+    with open(filepath, 'w') as f:
+        f.write(content)
+    print("Successfully replaced block")
+else:
+    print("Could not find the block to replace!")
+    sys.exit(1)

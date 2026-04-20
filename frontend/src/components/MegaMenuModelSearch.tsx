@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { IMAGE_UNIVERSAL_MODEL_DEFS } from '../nodes/imageUniversalGeneratorModels';
 import { VIDEO_UNIVERSAL_MODEL_DEFS } from '../nodes/videoUniversalGeneratorModels';
 import { getUniversalModelLogo } from '../utils/universalModelLogo';
+import { getGlobalPinnedModelsFromStorage, saveGlobalPinnedModelsToStorage } from '../nodes/pinnedModelsConfig';
 
 /** Shared shape for catalog entries from image/video universal defs */
 export interface UniversalCatalogDef {
@@ -141,8 +142,13 @@ export default function MegaMenuModelSearch({ open, onClose, onSelect }: MegaMen
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState<'all' | 'image' | 'video'>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilterId>('all');
+  const [globalPinned, setGlobalPinned] = useState<Record<string, string[]>>({});
 
   const catalog = useMemo(() => buildCatalog(), []);
+
+  useEffect(() => {
+    setGlobalPinned(getGlobalPinnedModelsFromStorage());
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -191,6 +197,21 @@ export default function MegaMenuModelSearch({ open, onClose, onSelect }: MegaMen
       onClose();
     },
     [onSelect, onClose]
+  );
+
+  const handlePinToggle = useCallback(
+    (kind: 'image' | 'video', modelKey: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      const kindKey = kind === 'image' ? 'image' : 'video';
+      const current = globalPinned[kindKey] || [];
+      const next = current.includes(modelKey)
+        ? current.filter((m) => m !== modelKey)
+        : [...current, modelKey];
+      const updated = { ...globalPinned, [kindKey]: next };
+      setGlobalPinned(updated);
+      saveGlobalPinnedModelsToStorage(updated);
+    },
+    [globalPinned]
   );
 
   if (!open) return null;
@@ -358,12 +379,15 @@ export default function MegaMenuModelSearch({ open, onClose, onSelect }: MegaMen
               const logo = getUniversalModelLogo(row.key);
               const provStyle = providerPillStyle(row.def.provider);
               const caps = capabilityBadges(row);
+              const kindKey = row.kind === 'image' ? 'image' : 'video';
+              const isPinned = (globalPinned[kindKey] || []).includes(row.key);
               return (
                 <button
                   key={`${row.kind}-${row.key}`}
                   type="button"
                   onClick={() => handlePick(row)}
                   style={{
+                    position: 'relative',
                     display: 'flex',
                     gap: 12,
                     alignItems: 'flex-start',
@@ -376,6 +400,38 @@ export default function MegaMenuModelSearch({ open, onClose, onSelect }: MegaMen
                     fontFamily: 'inherit',
                   }}
                 >
+                  <button
+                    type="button"
+                    aria-label={isPinned ? 'Unpin model' : 'Pin model'}
+                    onClick={(e) => handlePinToggle(row.kind, row.key, e)}
+                    style={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      width: 28,
+                      height: 28,
+                      borderRadius: 6,
+                      background: isPinned ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid ' + (isPinned ? 'rgba(59, 130, 246, 0.4)' : 'rgba(255, 255, 255, 0.1)'),
+                      color: isPinned ? '#60a5fa' : '#888',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 0,
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {isPinned ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 9.5h-2V6h2v6.5zm0 4h-2v-2h2v2z" />
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 9.5h-2V6h2v6.5zm0 4h-2v-2h2v2z" />
+                      </svg>
+                    )}
+                  </button>
                   <div
                     style={{
                       width: 44,

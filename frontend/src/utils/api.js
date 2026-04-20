@@ -1,8 +1,22 @@
 import { getFirebaseAuth } from '../config/firebase';
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-async function safeJson(res) {
+export async function safeJson(res) {
   const text = await res.text();
+  
+  // Handle empty responses
+  if (!text || text.trim() === '') {
+    if (!res.ok) {
+      return { 
+        error: { 
+          message: `HTTP ${res.status}: Empty response from server`,
+          status: res.status 
+        } 
+      };
+    }
+    return {};
+  }
+
   try {
     const data = JSON.parse(text);
     if (!res.ok) {
@@ -30,15 +44,32 @@ async function safeJson(res) {
         
         throw err;
       }
-      return { error: data.error || { message: `HTTP ${res.status}: ${text.substring(0, 100)}...` } };
+      
+      // Return structured error
+      return { 
+        error: {
+          message: data.error?.message || data.error || data.message || `HTTP ${res.status}`,
+          status: res.status,
+          code: data.code || data.status
+        }
+      };
     }
     return data;
   } catch (e) {
     if (e.status === 403 || e.status === 429) throw e; // Re-throw our custom errors
+    
     console.error("Invalid JSON response:", text.substring(0, 200));
+    
     if (!res.ok) {
-      return { error: { message: `HTTP ${res.status}: ${text.substring(0, 100)}...` } };
+      return { 
+        error: { 
+          message: `HTTP ${res.status}: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`,
+          status: res.status,
+          raw: text.substring(0, 500)
+        } 
+      };
     }
+    
     throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
   }
 }
@@ -572,7 +603,20 @@ export async function uploadImages(files) {
   const formData = new FormData();
   files.forEach((f) => formData.append('images', f));
   const res = await fetch(`${API_BASE}/api/upload-image`, { method: 'POST', headers: await getAuthHeaders(), body: formData });
-  return safeJson(res);
+  
+  const data = await safeJson(res);
+  
+  if (!res.ok || data?.error || data?.status === 'error') {
+    const errorMsg = data?.error?.message || data?.error || data?.message || `Upload failed (HTTP ${res.status})`;
+    const error = new Error(errorMsg);
+    // @ts-ignore
+    error.status = res.status;
+    // @ts-ignore
+    error.data = data;
+    throw error;
+  }
+  
+  return data;
 }
 
 

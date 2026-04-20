@@ -32,7 +32,7 @@ export const DEFAULT_PINNED_MODELS: Record<string, string[]> = {
 
 export const RECOMMENDED_AUTO_SELECT_MODELS: Record<string, string> = {
   // Image generation (text-to-image)
-  'google-imagegen-4': 'google',
+  'google-imagegen-4': 'replicate',
   'flux-1-1-pro': 'replicate',
   'flux-2-pro': 'replicate',
   'flux-kontext-pro': 'replicate',

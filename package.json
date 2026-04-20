@@ -37,6 +37,7 @@
     "p-queue": "^9.1.2",
     "react-redux": "^9.2.0",
     "remotion": "^4.0.448",
+    "replicate": "^1.4.0",
     "sharp": "^0.34.5",
     "stripe": "^22.0.1",
     "uuid": "^13.0.0"

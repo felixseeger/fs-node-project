@@ -32,7 +32,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.freepik.com", "https://api.anthropic.com"],
+      connectSrc: ["'self'", "http://localhost:3001", "https://api.freepik.com", "https://api.anthropic.com"],
     },
   },
   crossOriginEmbedderPolicy: false,
@@ -48,11 +48,11 @@ app.use((req, res, next) => {
 });
 
 // 3. Tightened CORS Configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
-  : process.env.NODE_ENV === 'production' 
-    ? [] 
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5175'];
+  : process.env.NODE_ENV === 'production'
+    ? []
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177'];
 
 app.use(cors({
   origin: (origin, callback) => {

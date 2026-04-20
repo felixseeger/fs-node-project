@@ -59,7 +59,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : process.env.NODE_ENV === 'production'
     ? []
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5175'];
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5175', 'http://localhost:5176'];
 
 app.use(cors({
   origin: (origin, callback) => {

@@ -14,31 +14,43 @@ import {
   postToApi, pollGenericStatus
 } from '../utils/api';
 import { IMAGE_UNIVERSAL_MODEL_DEFS } from './imageUniversalGeneratorModels';
+import ImageUploadBox from './ImageUploadBox';
 
 const MODEL_DEFS = IMAGE_UNIVERSAL_MODEL_DEFS;
 
 const ImageUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selected }) => {
   const { update, disconnectNode } = useNodeConnections(id, data);
-  const { start, complete, fail } = useNodeProgress({
-    onProgress: (state: any) => {
-      update({ executionProgress: state.progress, executionStatus: state.status, executionMessage: state.message });
-    },
-  });
+  const { start, complete, fail, progress, status, message } = useNodeProgress({});
+
+  useEffect(() => {
+    setTimeout(() => {
+      update({ executionProgress: progress, executionStatus: status, executionMessage: message });
+    }, 0);
+  }, [progress, status, message, update]);
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [localPrompt, setLocalPrompt] = useState(data.inputPrompt || '');
+  const [showRefDropdown, setShowRefDropdown] = useState(false);
+  const [refImageCounter, setRefImageCounter] = useState(1);
   const lastTrigger = useRef<number | null>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    setLocalPrompt(data.inputPrompt || '');
+  }, [data.inputPrompt]);
 
   const numOutputs = data.numOutputs || 1;
   const aspectRatio = data.aspectRatio || '1:1';
   const models = data.models || ['Nano Banana 2'];
 
-  const promptValue = data.resolveInput?.(id, 'prompt-in') || data.inputPrompt || '';
+  const promptValue = data.resolveInput?.(id, 'prompt-in') || localPrompt || '';
   const image1Input = data.resolveInput?.(id, 'image-1-in');
   const image1 = Array.isArray(image1Input) ? image1Input[0] : (image1Input || data.image1Url);
 
   const handleGenerate = useCallback(async () => {
-    if (isGenerating || !promptValue) return;
+    if (isGenerating || !localPrompt) return;
     setIsGenerating(true);
     start('Generating...');
     update({ outputImage: null, outputError: null });
@@ -78,7 +90,7 @@ const ImageUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
         statusUrl = `/api/luma/status/${result.task_id}`;
       } else {
         // Generic handling for other models
-        result = await generateImage({ prompt: promptValue, model: activeModel, n: numOutputs, aspect_ratio: aspectRatio });
+        result = await generateImage({ prompt: promptValue, model: activeModel, n: numOutputs, aspect_ratio: aspectRatio, image: image1 || undefined });
       }
 
       // Poll for status if needed
@@ -117,6 +129,22 @@ const ImageUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
     }
   }, [data.triggerGenerate, handleGenerate]);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const isDropdown = dropdownRef.current?.contains(e.target as Node);
+      const isButton = buttonRef.current?.contains(e.target as Node);
+      if (!isDropdown && !isButton) {
+        setShowRefDropdown(false);
+      }
+    };
+
+    if (showRefDropdown) {
+      document.addEventListener('click', handleOutsideClick, true);
+      return () => document.removeEventListener('click', handleOutsideClick, true);
+    }
+  }, [showRefDropdown]);
+
   return (
     <div>
       <NodeShell
@@ -145,37 +173,113 @@ const ImageUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
 
           {/* Image Input Selection/Preview */}
           <div style={{ background: surface.deep, border: `1px solid ${border.default}`, borderRadius: radius.md, padding: 12 }}>
-            {image1 ? (
-              <div style={{ position: 'relative', width: '100%', aspectRatio: '1', borderRadius: radius.sm, overflow: 'hidden' }}>
-                <img src={image1} alt="Input" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <button 
-                  onClick={() => update({ image1Url: null })} 
-                  style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.7)', border: 'none', color: '#fff', borderRadius: '50%', width: 20, height: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >×</button>
-              </div>
-            ) : (
-              <div style={{ height: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: text.muted, fontSize: 11, border: `1px dashed ${border.divider}`, borderRadius: radius.sm, gap: 4 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-                <span>Click or drop image</span>
-              </div>
-            )}
-          </div>
-
-          {/* Prompt Editor with Floating Menu Support */}
-          <div style={{ background: surface.deep, border: `1px solid ${border.default}`, borderRadius: radius.md, padding: 12, position: 'relative' }}>
-            <Handle type="target" position={Position.Left} id="prompt-in" style={{ position: 'absolute', left: -22, top: '50%', background: getHandleColor('prompt-in') }} />
-            <textarea
-              ref={promptRef}
-              value={data.inputPrompt || ''}
-              onChange={e => update({ inputPrompt: e.target.value })}
-              placeholder="Describe your image..."
-              rows={4}
-              style={{ width: '100%', background: 'transparent', border: 'none', color: text.primary, fontSize: 13, outline: 'none', resize: 'none', minHeight: 60 }}
-              className="nodrag nopan nowheel"
+            <ImageUploadBox
+              image={image1 || null}
+              onImageChange={(img) => update({ image1Url: img })}
+              placeholder="Click or drop image"
+              minHeight={80}
             />
           </div>
 
-          <OutputPreview output={data.outputImage} isLoading={isGenerating} error={data.outputError} accentColor={CATEGORY_COLORS.imageGeneration} label="Generation Output" />
+          {/* Prompt Editor with @ Button Support */}
+          <div style={{ background: surface.deep, border: `1px solid ${border.default}`, borderRadius: radius.md, padding: 12, position: 'relative' }}>
+            <Handle type="target" position={Position.Left} id="prompt-in" style={{ position: 'absolute', left: -22, top: '50%', background: getHandleColor('prompt-in') }} />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <textarea
+                ref={promptRef}
+                value={localPrompt}
+                onChange={e => setLocalPrompt(e.target.value)}
+                onBlur={e => update({ inputPrompt: e.target.value })}
+                placeholder="Describe your image... Use @ to reference the image"
+                rows={4}
+                style={{ flex: 1, background: 'transparent', border: 'none', color: text.primary, fontSize: 13, outline: 'none', resize: 'none', minHeight: 60 }}
+                className="nodrag nopan nowheel"
+              />
+              <div style={{ position: 'relative' }}>
+                <button
+                  ref={buttonRef}
+                  onClick={() => setShowRefDropdown(!showRefDropdown)}
+                  disabled={!image1}
+                  style={{
+                    padding: '8px 12px',
+                    background: image1 ? CATEGORY_COLORS.imageGeneration : '#444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: radius.sm,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: image1 ? 'pointer' : 'not-allowed',
+                    opacity: image1 ? 1 : 0.5,
+                    whiteSpace: 'nowrap',
+                    transition: 'all 160ms ease',
+                  }}
+                  title="Add image reference to prompt"
+                >
+                  @
+                </button>
+                {showRefDropdown && image1 && (
+                  <div
+                    ref={dropdownRef}
+                    style={{
+                      position: 'absolute',
+                      bottom: '100%',
+                      right: 0,
+                      marginBottom: 4,
+                      background: surface.deep,
+                      border: `1px solid ${border.default}`,
+                      borderRadius: radius.md,
+                      zIndex: 1000,
+                      minWidth: 140,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    }}
+                  >
+                    <div
+                      onClick={() => {
+                        const refLabel = `img_${refImageCounter}`;
+                        const newPrompt = localPrompt + (localPrompt.endsWith(' ') ? '' : ' ') + refLabel;
+                        setLocalPrompt(newPrompt);
+                        update({ inputPrompt: newPrompt });
+                        setRefImageCounter(refImageCounter + 1);
+                        setShowRefDropdown(false);
+                        promptRef.current?.focus();
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        transition: 'background 160ms ease',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <img
+                        src={image1}
+                        alt="ref"
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 4,
+                          objectFit: 'cover',
+                        }}
+                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: text.primary }}>
+                          img_{refImageCounter}
+                        </span>
+                        <span style={{ fontSize: 9, color: text.muted }}>
+                          Reference
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <OutputPreview output={data.outputImage} isLoading={isGenerating} error={data.outputError} accentColor={CATEGORY_COLORS.imageGeneration} label="Generation Output" aspectRatio={aspectRatio} />
         </div>
       </NodeShell>
     </div>

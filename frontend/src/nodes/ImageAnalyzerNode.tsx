@@ -17,18 +17,38 @@ const ImageAnalyzerNode: FC<NodeProps> = ({ id, data, selected }) => {
   const [expandSystem, setExpandSystem] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const localImages = (data.localImages as string[]) || [];
+
+  useEffect(() => {
+    if (uploadError) {
+      const timer = setTimeout(() => setUploadError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [uploadError]);
 
   const handleImageUpload = useCallback(
     async (files: FileList | null) => {
       if (!files) return;
+      setUploadError(null);
       try {
         const result = await uploadImages(Array.from(files));
-        const updated = [...localImages, ...result.images].slice(0, 4);
-        update({ localImages: updated });
-      } catch (error) {
+        const uploaded = Array.isArray(result?.images)
+          ? result.images
+          : Array.isArray(result?.urls)
+            ? result.urls
+            : [];
+
+        if (uploaded.length) {
+          const updated = [...localImages, ...uploaded].slice(0, 4);
+          update({ localImages: updated });
+        } else {
+          setUploadError("No images were returned from the server");
+        }
+      } catch (error: any) {
         console.error('Image upload failed:', error);
+        setUploadError(error.message || "Failed to upload images");
       }
     },
     [localImages, update]
@@ -247,6 +267,22 @@ const ImageAnalyzerNode: FC<NodeProps> = ({ id, data, selected }) => {
           </button>
         ))}
       </div>
+      
+      {uploadError && (
+        <div style={{
+          fontSize: '10px',
+          color: '#ef4444',
+          background: 'rgba(239, 68, 68, 0.1)',
+          padding: '4px 8px',
+          borderRadius: 4,
+          border: '1px solid rgba(239, 68, 68, 0.2)',
+          marginBottom: 8,
+          wordBreak: 'break-word'
+        }}>
+          {uploadError}
+        </div>
+      )}
+
       <input
         ref={fileRef}
         type="file"

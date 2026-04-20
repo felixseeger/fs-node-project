@@ -1,25 +1,13 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback, useMemo, type FC, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { Avatar } from 'blue-ether';
-import { NODE_TYPE_CAPABILITIES } from '../config/nodeCapabilities';
 import DecodedText from './DecodedText';
 import AssetPickerOverlay from './AssetPickerOverlay';
 import CameraModal from './CameraModal';
 import { type Asset, type CreateAssetPayload, type AssetOperationResult } from '../types/asset';
 import { type ChatConversation } from '../types/chat';
-import { AspectFrameMini } from '../nodes/NodeIcons';
-import {
-  exportWorkflowToFile,
-  openFilePicker,
-  importWorkflowFromFile,
-  prepareWorkflowForExport,
-  handleImportedWorkflow,
-  generateTestWorkflow,
-  testRoundTrip,
-  getWorkflowSummary,
-} from '../utils/workflowJSON';
+
 import { sanitizeString, sanitizeData } from '../utils/sanitization';
-// @ts-ignore
-import { chatToMarkdown } from '../../../lib/api/utils/chatMapper.js';
+
 
 // Extend window for SpeechRecognition
 declare global {
@@ -44,15 +32,7 @@ interface Tag {
   value?: string;
 }
 
-const DEFAULT_TAGS: Tag[] = [
-  { icon: 'portrait', label: '9:16', type: 'aspect', value: '9:16' },
-  { icon: 'landscape', label: '16:9', type: 'aspect', value: '16:9' },
-  { icon: 'square', label: '1:1', type: 'aspect', value: '1:1' },
-  { icon: 'clock', label: '3s', type: 'duration', value: '3s' },
-  { icon: 'clock', label: '5s', type: 'duration', value: '5s' },
-  { icon: 'clock', label: '8s', type: 'duration', value: '8s' },
-  { icon: 'clock', label: '10s', type: 'duration', value: '10s' },
-];
+const DEFAULT_TAGS: Tag[] = [];
 
 interface Message {
   id: number | string;
@@ -200,29 +180,19 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
 
   const [activeTags, setActiveTags] = useState<Set<string>>(() => new Set(tags.map(t => t.label)));
   const [thinkingIndex, setThinkingIndex] = useState(0);
-  const [showImportExport, setShowImportExport] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [isAspectDropdownOpen, setIsAspectDropdownOpen] = useState(false);
-  const [isDurationDropdownOpen, setIsDurationDropdownOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
-  const aspectDropdownRef = useRef<HTMLDivElement>(null);
-  const durationDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
-      if (aspectDropdownRef.current && !aspectDropdownRef.current.contains(event.target as Node)) {
-        setIsAspectDropdownOpen(false);
-      }
-      if (durationDropdownRef.current && !durationDropdownRef.current.contains(event.target as Node)) {
-        setIsDurationDropdownOpen(false);
-      }
+      // No dropdowns to handle outside clicks for now
     };
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
@@ -443,149 +413,10 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
     }
   };
 
-  const handleExportChatMarkdown = useCallback(() => {
-    if (messages.length === 0) {
-      notifyUser('No messages to export.', 'info');
-      return;
-    }
-    
-    try {
-      const chatMetadata = activeChat || {
-        id: `local-${Date.now()}`,
-        title: 'Chat Export',
-        createdAt: messages[0]?.timestamp || new Date(),
-        updatedAt: new Date(),
-      };
 
-      const markdown = chatToMarkdown(chatMetadata, messages.map(m => ({
-        role: m.role || m.type,
-        content: m.content,
-        createdAt: m.timestamp
-      })));
-      
-      const sanitizedMarkdown = sanitizeString(markdown);
-      const blob = new Blob([sanitizedMarkdown], { type: 'text/markdown' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `chat-export-${Date.now()}.md`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      notifyUser('Chat history exported as Markdown!', 'success');
-    } catch (err) {
-      console.error('[ChatUI] Export markdown error:', err);
-      notifyUser('Failed to export chat as Markdown.', 'error');
-    }
-  }, [messages, notifyUser, activeChat]);
 
-  const handleExportChatJSON = useCallback(() => {
-    if (messages.length === 0) {
-      notifyUser('No messages to export.', 'info');
-      return;
-    }
-    
-    try {
-      const exportData = {
-        metadata: activeChat || {
-          title: 'Chat Export',
-          exportedAt: new Date(),
-        },
-        messages: messages.map(m => ({
-          id: m.id,
-          role: m.role || m.type,
-          content: m.content,
-          timestamp: m.timestamp
-        }))
-      };
 
-      const sanitizedData = sanitizeData(exportData);
-      const json = JSON.stringify(sanitizedData, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `chat-export-${Date.now()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      notifyUser('Chat history exported as JSON!', 'success');
-    } catch (err) {
-      console.error('[ChatUI] Export JSON error:', err);
-      notifyUser('Failed to export chat as JSON.', 'error');
-    }
-  }, [messages, notifyUser, activeChat]);
 
-  const handleExportWorkflow = () => {
-    if (!lastGeneratedWorkflow) {
-      notifyUser('No workflow to export. Generate a workflow first!', 'info');
-      return;
-    }
-    try {
-      const workflow = prepareWorkflowForExport(lastGeneratedWorkflow);
-      if (!workflow) { 
-        notifyUser('Failed to prepare workflow for export: Invalid structure', 'error'); 
-        return; 
-      }
-      exportWorkflowToFile(workflow);
-      notifyUser(`Exported: ${getWorkflowSummary(workflow)}`, 'success');
-    } catch (err) {
-      console.error('[ChatUI] Export error:', err);
-      notifyUser('Failed to export workflow due to an internal error', 'error');
-    }
-  };
-
-  const handleImportWorkflow = async () => {
-    try {
-      const file = await openFilePicker();
-      if (!file) return;
-      
-      // Basic file validation
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit for JSON
-        notifyUser('File is too large. Max size is 2MB.', 'warning');
-        return;
-      }
-
-      const workflow = await importWorkflowFromFile(file);
-      if (!workflow) {
-        notifyUser('Failed to import workflow: Invalid file format', 'error');
-        return;
-      }
-
-      handleImportedWorkflow(workflow, {
-        onSetNodes, onSetEdges,
-        onNotify: (msg, type) => {
-          notifyUser(msg, type as any);
-          setLocalMessages(prev => [...prev, {
-            id: Date.now(),
-            type: 'assistant',
-            content: `${type === 'success' ? 'Success: ' : 'Error: '} ${msg}`,
-            timestamp: new Date(),
-          }]);
-        },
-      });
-    } catch (err) {
-      console.error('[ChatUI] Import error:', err);
-      notifyUser('Failed to import workflow', 'error');
-    }
-  };
-
-  const handleTestRoundTrip = () => {
-    try {
-      const workflow = generateTestWorkflow();
-      const result = testRoundTrip(workflow);
-      if (result.success) {
-        notifyUser('Round-trip test passed successfully.', 'success');
-      } else {
-        notifyUser(`Round-trip test failed: ${result.errors.join(', ')}`, 'error');
-      }
-    } catch (err) {
-      console.error('[ChatUI] Test error:', err);
-      notifyUser('Round-trip test failed due to an error', 'error');
-    }
-  };
 
   const handleImageClick = () => imageInputRef.current?.click();
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -625,9 +456,9 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
       onPointerDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
       style={{
-      position: 'absolute', top: 24, right: 24, bottom: 112, width: 340, zIndex: 2100,
+      position: 'absolute', top: 24, right: 24, bottom: 112, width: 380, zIndex: 2100,
       display: 'flex', flexDirection: 'column',
-      background: '#121212', borderRadius: 14, border: '1px solid #2a2a2a',
+      background: '#121212', borderRadius: 14, border: 'none',
       overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
     }}>
       <div style={{ padding: '14px 16px', borderBottom: '1px solid #2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -636,34 +467,6 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
           <span style={{ fontSize: 13, fontWeight: 600, color: '#e0e0e0' }}>AI Assistant</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <button
-            onClick={onStartNewConversation}
-            className="nodrag nopan"
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            style={{ width: 28, height: 28, borderRadius: 8, background: 'transparent', border: 'none', color: '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}
-            title="New Conversation"
-            aria-label="Start new conversation"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </button>          <button 
-            onClick={() => setShowImportExport(!showImportExport)}
-            className="nodrag nopan"
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            style={{ width: 28, height: 28, borderRadius: 8, background: showImportExport ? '#2a2a2a' : 'transparent', border: 'none', color: showImportExport ? '#aaa' : '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}
-            title="Import/Export"
-            aria-label="Toggle Import/Export options"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-              <polyline points="17 21 17 13 7 13 7 21"></polyline>
-              <polyline points="7 3 7 8 15 8"></polyline>
-            </svg>
-          </button>
           <button 
             onClick={onClose}
             className="nodrag nopan"
@@ -681,67 +484,10 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
         </div>
       </div>
 
-      {showImportExport && (
-        <div style={{ padding: '8px 16px', borderBottom: '1px solid #2a2a2a', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <button onClick={handleExportWorkflow} disabled={!lastGeneratedWorkflow}
-            className="nodrag nopan flex items-center gap-1.5"
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            style={{ padding: '5px 10px', borderRadius: 6, background: lastGeneratedWorkflow ? '#22c55e' : '#2a2a2a', border: 'none', color: lastGeneratedWorkflow ? '#fff' : '#555', fontSize: 11, fontWeight: 500, cursor: lastGeneratedWorkflow ? 'pointer' : 'default' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            Workflow
-          </button>
-          <div style={{ display: 'flex', gap: 2, background: '#2a2a2a', borderRadius: 6, padding: 2 }}>
-            <button onClick={handleExportChatMarkdown} disabled={messages.length === 0}
-              className="nodrag nopan"
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              style={{ padding: '3px 8px', borderRadius: 4, background: messages.length > 0 ? '#10b981' : 'transparent', border: 'none', color: messages.length > 0 ? '#fff' : '#555', fontSize: 10, fontWeight: 500, cursor: messages.length > 0 ? 'pointer' : 'default' }}>
-              MD
-            </button>
-            <button onClick={handleExportChatJSON} disabled={messages.length === 0}
-              className="nodrag nopan"
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              style={{ padding: '3px 8px', borderRadius: 4, background: messages.length > 0 ? '#059669' : 'transparent', border: 'none', color: messages.length > 0 ? '#fff' : '#555', fontSize: 10, fontWeight: 500, cursor: messages.length > 0 ? 'pointer' : 'default' }}>
-              JSON
-            </button>
-          </div>
-          <button onClick={handleImportWorkflow}
-            className="nodrag nopan flex items-center gap-1.5"
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            style={{ padding: '5px 10px', borderRadius: 6, background: '#3b82f6', border: 'none', color: '#fff', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Import
-          </button>
-          <button onClick={handleTestRoundTrip}
-            className="nodrag nopan flex items-center gap-1.5"
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            style={{ padding: '5px 10px', borderRadius: 6, background: '#8b5cf6', border: 'none', color: '#fff', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 22h6"></path>
-              <path d="M4.83 4.83a10 10 0 0 0 14.34 0"></path>
-              <path d="M12 2v20"></path>
-            </svg>
-            Test
-          </button>
-        </div>
-      )}
-
       <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {selectedNodes.some(n => n.type === 'assetNode') && (
           <div style={{ padding: '8px 12px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff' }}>i</div>
+            <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff' }}>i</div>
             <span style={{ fontSize: 11, color: '#93c5fd' }}>
               Asset selected: <strong>{selectedNodes.find(n => n.type === 'assetNode')?.data?.label || 'Asset'}</strong>
             </span>
@@ -750,7 +496,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
         {messages.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', justifyContent: 'center', height: '100%', padding: '20px', color: '#888', textAlign: 'center' }}>
             <div style={{ background: '#222', width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
               </svg>
             </div>
@@ -823,8 +569,8 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
                 crt 
               />
             </div>
-            <div style={{ padding: '10px 14px', borderRadius: '16px 16px 16px 4px', background: '#1a1a1a', border: '1px solid #2a2a2a', color: '#888', fontSize: 13, display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" style={{ animation: 'chatui-spin 2s linear infinite' }}>
+            <div style={{ padding: '10px 14px', borderRadius: '16px 16px 16px 4px', background: '#1a1a1a', border: 'none', color: '#888', fontSize: 13, display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" style={{ animation: 'chatui-spin 2s linear infinite' }}>
                 <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
                 <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
                 <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
@@ -845,7 +591,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
         )}
 
         {referenceImages.length > 0 && (
-          <div style={{ padding: '8px 12px', marginBottom: 8, display: 'flex', flexWrap: 'wrap', gap: 8, background: '#1a1a1a', borderRadius: 10, border: '1px solid #2a2a2a' }}>
+          <div style={{ padding: '8px 12px', marginBottom: 8, display: 'flex', flexWrap: 'wrap', gap: 8, background: '#1a1a1a', borderRadius: 10, border: 'none' }}>
             {referenceImages.map((img, idx) => (
               <div key={idx} style={{ position: 'relative', width: 36, height: 36, borderRadius: 6, overflow: 'hidden', border: '1px solid #333' }}>
                 <img src={img} alt={`Ref ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -875,17 +621,17 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
                 onMouseDown={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
                 style={{ 
-                  background: 'rgba(139, 92, 246, 0.1)', 
-                  border: '1px solid rgba(139, 92, 246, 0.25)', 
+                  background: 'rgba(255, 255, 255, 0.05)', 
+                  border: '1px solid rgba(255, 255, 255, 0.1)', 
                   borderRadius: 20, 
                   padding: '5px 12px', 
-                  color: '#a78bfa', 
+                  color: '#bbb', 
                   fontSize: 12, 
                   cursor: 'pointer',
                   transition: 'all 0.2s'
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)'; e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)'; e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.25)'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.25)'; }}
               >
                 {s}
               </button>
@@ -896,7 +642,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
         <div style={{
           background: '#1a1a1a',
           borderRadius: 12,
-          border: '1px solid #2a2a2a',
+          border: 'none',
           padding: '14px 14px 12px',
           display: 'flex',
           flexDirection: 'column',
@@ -915,8 +661,8 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
             onPointerDown={(e) => e.stopPropagation()}
             onFocus={(e) => {
               if (e.currentTarget.parentElement && !isGenerating && !isChatting && !disabled) {
-                e.currentTarget.parentElement.style.borderColor = '#8b5cf6';
-                e.currentTarget.parentElement.style.boxShadow = '0 0 0 2px rgba(139, 92, 246, 0.2)';
+                e.currentTarget.parentElement.style.borderColor = '#4a4a4a';
+                e.currentTarget.parentElement.style.boxShadow = '0 0 0 2px rgba(255, 255, 255, 0.05)';
               }
             }}
             onBlur={(e) => {
@@ -952,7 +698,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
              onMouseDown={(e) => e.stopPropagation()}
              onPointerDown={(e) => e.stopPropagation()}
              aria-label="Attach context image"
-             style={{ width: 28, height: 28, borderRadius: 8, background: referenceImages.length > 0 ? 'rgba(34,197,94,0.15)' : 'transparent', border: referenceImages.length > 0 ? '1px solid #22c55e44' : '1px solid #2a2a2a', color: referenceImages.length > 0 ? '#22c55e' : '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+             style={{ width: 28, height: 28, borderRadius: 8, background: referenceImages.length > 0 ? 'rgba(34,197,94,0.15)' : 'transparent', border: 'none', color: referenceImages.length > 0 ? '#22c55e' : '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
              title="Attach context image">
              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -964,7 +710,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
              onMouseDown={(e) => e.stopPropagation()}
              onPointerDown={(e) => e.stopPropagation()}
              aria-label="Take picture"
-             style={{ width: 28, height: 28, borderRadius: 8, background: 'transparent', border: '1px solid #2a2a2a', color: '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+             style={{ width: 28, height: 28, borderRadius: 8, background: 'transparent', border: 'none', color: '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
              title="Take picture">
              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
@@ -978,7 +724,7 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
                onMouseDown={(e) => e.stopPropagation()}
                onPointerDown={(e) => e.stopPropagation()}
                aria-label="Pick from assets"
-               style={{ width: 28, height: 28, borderRadius: 8, background: isAssetPickerOpen ? 'rgba(59,130,246,0.15)' : 'transparent', border: isAssetPickerOpen ? '1px solid #3b82f644' : '1px solid #2a2a2a', color: isAssetPickerOpen ? '#3b82f6' : '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+               style={{ width: 28, height: 28, borderRadius: 8, background: isAssetPickerOpen ? 'rgba(59,130,246,0.15)' : 'transparent', border: 'none', color: isAssetPickerOpen ? '#3b82f6' : '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
                title="Pick from assets">
                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                  <line x1="4" y1="9" x2="20" y2="9"></line>
@@ -996,170 +742,44 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
              />
             </div>
 
-            {/* Grouped Dropdowns */}
-            {(() => {
-              const aspectTags = tags.filter(t => t.type === 'aspect');
-              const durationTags = tags.filter(t => t.type === 'duration');
-              const otherTags = tags.filter(t => t.type !== 'aspect' && t.type !== 'duration');
-              
-              const activeAspect = aspectTags.find(t => activeTags.has(t.label));
-              const activeDuration = durationTags.find(t => activeTags.has(t.label));
-
+            {/* Tags (if any) */}
+            {tags.map((tag) => {
+              const label = tag.label;
+              const isActive = activeTags.has(label);
+              const iconType = tag.icon || 'clock';
               return (
-                <>
-                  {/* Aspect Ratio Dropdown */}
-                  <div ref={aspectDropdownRef} style={{ position: 'relative' }}>
-                    <button 
-                      className="nodrag nopan"
-                      onClick={() => setIsAspectDropdownOpen(!isAspectDropdownOpen)}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 5,
-                        padding: '4px 10px', borderRadius: 8,
-                        background: activeAspect ? '#2a2a2a' : 'transparent',
-                        border: `1px solid ${activeAspect ? '#3a3a3a' : '#2a2a2a'}`,
-                        color: activeAspect ? '#ccc' : '#555',
-                        fontSize: 11, fontWeight: 500, cursor: 'pointer',
-                        transition: 'all 0.15s',
-                      }}>
-                      {activeAspect && activeAspect.value ? (
-                        <AspectFrameMini aspect={activeAspect.value} style={{ color: 'currentColor' }} />
-                      ) : (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-                        </svg>
-                      )}
-                      <span>{activeAspect?.label || 'Ratio'}</span>
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginLeft: 2, transform: isAspectDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </button>
-                    
-                    {isAspectDropdownOpen && (
-                      <div style={{
-                        position: 'absolute', bottom: '100%', left: 0, marginBottom: 8,
-                        background: '#1a1a1a', border: '1px solid #333', borderRadius: 10,
-                        padding: 4, display: 'flex', flexDirection: 'column', gap: 2,
-                        minWidth: 80, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                        animation: 'chatui-fade-in 0.2s ease-out'
-                      }}>
-                        {aspectTags.map(tag => (
-                          <button
-                            key={tag.label}
-                            onClick={() => { toggleTag(tag); setIsAspectDropdownOpen(false); }}
-                            style={{
-                              padding: '6px 10px', borderRadius: 6, border: 'none',
-                              background: activeTags.has(tag.label) ? '#2a2a2a' : 'transparent',
-                              color: activeTags.has(tag.label) ? '#fff' : '#888',
-                              fontSize: 11, textAlign: 'left', cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', gap: 6
-                            }}
-                            onMouseEnter={e => { if(!activeTags.has(tag.label)) e.currentTarget.style.background = '#222'; }}
-                            onMouseLeave={e => { if(!activeTags.has(tag.label)) e.currentTarget.style.background = 'transparent'; }}
-                          >
-                            {tag.value && <AspectFrameMini aspect={tag.value} size={10} />}
-                            {tag.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Duration Dropdown */}
-                  <div ref={durationDropdownRef} style={{ position: 'relative' }}>
-                    <button 
-                      className="nodrag nopan"
-                      onClick={() => setIsDurationDropdownOpen(!isDurationDropdownOpen)}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 5,
-                        padding: '4px 10px', borderRadius: 8,
-                        background: activeDuration ? '#2a2a2a' : 'transparent',
-                        border: `1px solid ${activeDuration ? '#3a3a3a' : '#2a2a2a'}`,
-                        color: activeDuration ? '#ccc' : '#555',
-                        fontSize: 11, fontWeight: 500, cursor: 'pointer',
-                        transition: 'all 0.15s',
-                      }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                      </svg>
-                      <span>{activeDuration?.label || 'Duration'}</span>
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginLeft: 2, transform: isDurationDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </button>
-                    
-                    {isDurationDropdownOpen && (
-                      <div style={{
-                        position: 'absolute', bottom: '100%', left: 0, marginBottom: 8,
-                        background: '#1a1a1a', border: '1px solid #333', borderRadius: 10,
-                        padding: 4, display: 'flex', flexDirection: 'column', gap: 2,
-                        minWidth: 80, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                        animation: 'chatui-fade-in 0.2s ease-out'
-                      }}>
-                        {durationTags.map(tag => (
-                          <button
-                            key={tag.label}
-                            onClick={() => { toggleTag(tag); setIsDurationDropdownOpen(false); }}
-                            style={{
-                              padding: '6px 10px', borderRadius: 6, border: 'none',
-                              background: activeTags.has(tag.label) ? '#2a2a2a' : 'transparent',
-                              color: activeTags.has(tag.label) ? '#fff' : '#888',
-                              fontSize: 11, textAlign: 'left', cursor: 'pointer'
-                            }}
-                            onMouseEnter={e => { if(!activeTags.has(tag.label)) e.currentTarget.style.background = '#222'; }}
-                            onMouseLeave={e => { if(!activeTags.has(tag.label)) e.currentTarget.style.background = 'transparent'; }}
-                          >
-                            {tag.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Other Tags (Standalone) */}
-                  {otherTags.map((tag) => {
-                    const label = tag.label;
-                    const isActive = activeTags.has(label);
-                    const iconType = tag.icon || 'clock';
-                    return (
-                      <button 
-                        key={label} 
-                        className="nodrag nopan"
-                        onClick={() => toggleTag(tag)}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        aria-pressed={isActive}
-                        aria-label={`Toggle tag ${label}`}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 5,
-                          padding: '4px 10px', borderRadius: 8,
-                          background: isActive ? '#2a2a2a' : 'transparent',
-                          border: `1px solid ${isActive ? '#3a3a3a' : '#2a2a2a'}`,
-                          color: isActive ? '#ccc' : '#555',
-                          fontSize: 11, fontWeight: 500, cursor: 'pointer',
-                          transition: 'all 0.15s',
-                        }}>
-                        {iconType === 'clock' && (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                          </svg>
-                        )}
-                        {iconType === 'loop' && (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-                          </svg>
-                        )}
-                        {label}
-                      </button>
-                    );
-                  })}
-                </>
+                <button 
+                  key={label} 
+                  className="nodrag nopan"
+                  onClick={() => toggleTag(tag)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  aria-pressed={isActive}
+                  aria-label={`Toggle tag ${label}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '4px 10px', borderRadius: 8,
+                    background: isActive ? '#2a2a2a' : 'transparent',
+                    border: `1px solid ${isActive ? '#3a3a3a' : '#2a2a2a'}`,
+                    color: isActive ? '#ccc' : '#555',
+                    fontSize: 11, fontWeight: 500, cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}>
+                  {iconType === 'clock' && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                  )}
+                  {iconType === 'loop' && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                  )}
+                  {label}
+                </button>
               );
-            })()}
+            })}
 
             <div style={{ flex: 1 }} />
 
@@ -1172,13 +792,12 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
               style={{
                 width: 36, height: 36, borderRadius: 10,
                 background: inputValue.trim() && !isGenerating && !disabled
-                  ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#2a2a2a',
+                  ? '#e0e0e0' : '#2a2a2a',
                 border: 'none',
-                color: inputValue.trim() && !isGenerating && !disabled ? '#fff' : '#444',
+                color: inputValue.trim() && !isGenerating && !disabled ? '#000' : '#555',
                 cursor: inputValue.trim() && !isGenerating && !disabled ? 'pointer' : 'default',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0, transition: 'all 0.2s',
-                marginRight: 6
               }}
               title="Send message"
               aria-label="Send message"
@@ -1187,35 +806,6 @@ const ChatUI = forwardRef<ChatUIRef, ChatUIProps>(({
                 <line x1="12" y1="19" x2="12" y2="5"></line>
                 <polyline points="5 12 12 5 19 12"></polyline>
               </svg>
-            </button>
-
-            <button
-              data-testid="chat-generate"
-              className="nodrag nopan"
-              onClick={handleGenerate}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              disabled={!inputValue.trim() || isGenerating || isChatting || disabled}
-              style={{
-                width: 36, height: 36, borderRadius: 10,
-                background: inputValue.trim() && !isGenerating && !disabled
-                  ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : '#2a2a2a',
-                border: 'none',
-                color: inputValue.trim() && !isGenerating && !disabled ? '#fff' : '#444',
-                cursor: inputValue.trim() && !isGenerating && !disabled ? 'pointer' : 'default',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0, transition: 'all 0.2s',
-              }}
-              title="Generate workflow">
-              {isGenerating ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'chatui-spin 1s linear infinite' }}>
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61z"/>
-                </svg>
-              )}
             </button>
           </div>
         </div>
@@ -1357,7 +947,7 @@ const MessageContent: FC<MessageContentProps> = React.memo(({
                       onNotify?.('Failed to import workflow from message', 'error');
                     }
                   }} 
-                  style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
+                  style={{ background: '#333', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   Create New Workflow
@@ -1384,7 +974,7 @@ const MessageContent: FC<MessageContentProps> = React.memo(({
                       onNotify?.('Failed to merge workflow from message', 'error');
                     }
                   }} 
-                  style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
+                  style={{ background: '#2a2a2a', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
                   Add to Current Canvas
@@ -1486,8 +1076,8 @@ const ChatMessageItem: FC<ChatMessageItemProps> = React.memo(({
       <div style={{
         padding: '10px 14px',
         borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-        background: isUser ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#1a1a1a',
-        border: isUser ? 'none' : '1px solid #2a2a2a',
+        background: isUser ? '#2a2a2a' : '#1a1a1a',
+        border: isUser ? '1px solid #3a3a3a' : '1px solid #2a2a2a',
         color: isUser ? '#fff' : '#d4d4d4', 
         fontSize: 13, 
         lineHeight: 1.55,

@@ -79,6 +79,8 @@ interface OutputPreviewProps {
   minHeight?: number;
   /** Omit the section label row (simplified universal nodes) */
   hideLabel?: boolean;
+  /** Aspect ratio for preview (e.g. "16:9", "1:1") */
+  aspectRatio?: string;
 }
 
 export function OutputPreview({
@@ -92,7 +94,15 @@ export function OutputPreview({
   loadingText,
   minHeight = type === 'video' ? 120 : 80,
   hideLabel = false,
+  aspectRatio,
 }: OutputPreviewProps) {
+  // Calculate aspect ratio value (e.g., "16:9" → 16/9)
+  const getRatioValue = (ratio?: string) => {
+    if (!ratio || ratio === '1:1') return 1;
+    const [w, h] = ratio.split(':').map(Number);
+    return w && h ? w / h : 1;
+  };
+  const ratioValue = getRatioValue(aspectRatio);
   const defaultEmpty =
     type === 'video'
       ? 'Generated video will appear here'
@@ -138,6 +148,8 @@ export function OutputPreview({
         position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
+        aspectRatio: aspectRatio || 'auto',
+        width: '100%',
       }}>
         {isLoading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: sp[4] }}>

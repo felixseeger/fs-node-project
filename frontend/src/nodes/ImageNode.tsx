@@ -27,6 +27,15 @@ const ImageNode: FC<NodeProps> = ({ id, data, selected }) => {
   const images = (data.images as any[]) || [];
   const [isDragging, setIsDragging] = useState(false);
   const [annotationIndex, setAnnotationIndex] = useState<number | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (uploadError) {
+      const timer = setTimeout(() => setUploadError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [uploadError]);
 
   useEffect(() => {
     if (annotationIndex !== null && (annotationIndex < 0 || annotationIndex >= images.length)) {
@@ -39,6 +48,9 @@ const ImageNode: FC<NodeProps> = ({ id, data, selected }) => {
       if (!files) return;
       const fileArray = Array.from(files);
       if (!fileArray.length) return;
+
+      setIsUploading(true);
+      setUploadError(null);
 
       try {
         const result = await uploadImages(fileArray);
@@ -54,11 +66,14 @@ const ImageNode: FC<NodeProps> = ({ id, data, selected }) => {
           if (typeof data.onUpdate === 'function') {
             data.onUpdate(id, { images: updated });
           }
-        } else if (result?.error) {
-          console.error("Upload error:", result.error);
+        } else {
+          setUploadError("No images were returned from the server");
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Upload failed:", err);
+        setUploadError(err.message || "Failed to upload images");
+      } finally {
+        setIsUploading(false);
       }
     },
     [id, data, images]
@@ -233,7 +248,7 @@ const ImageNode: FC<NodeProps> = ({ id, data, selected }) => {
             
             {images.length < 3 && (
               <div
-                onClick={() => fileRef.current?.click()}
+                onClick={() => !isUploading && fileRef.current?.click()}
                 className="nodrag nopan"
                 style={{
                   width: '100%',
@@ -245,19 +260,48 @@ const ImageNode: FC<NodeProps> = ({ id, data, selected }) => {
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: 'pointer',
+                  cursor: isUploading ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s ease',
                   color: '#666',
+                  opacity: isUploading ? 0.5 : 1
                 }}
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <span style={{ fontSize: 9, marginTop: 4, fontWeight: 600 }}>{images.length === 0 ? 'UPLOAD' : 'ADD'}</span>
+                {isUploading ? (
+                  <div className="upload-spinner" style={{
+                    width: 20,
+                    height: 20,
+                    border: '2px solid rgba(236, 72, 153, 0.3)',
+                    borderTopColor: '#ec4899',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                ) : (
+                  <>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span style={{ fontSize: 9, marginTop: 4, fontWeight: 600 }}>{images.length === 0 ? 'UPLOAD' : 'ADD'}</span>
+                  </>
+                )}
               </div>
             )}
           </div>
+          
+          {uploadError && (
+            <div style={{
+              fontSize: '10px',
+              color: '#ef4444',
+              background: 'rgba(239, 68, 68, 0.1)',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              marginTop: '4px',
+              wordBreak: 'break-word'
+            }}>
+              {uploadError}
+            </div>
+          )}
           
           {isDragging && (
             <div style={{

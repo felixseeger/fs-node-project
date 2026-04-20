@@ -1,0 +1,33 @@
+
+> backend@1.0.0 start
+> node server.js
+
+[dotenv@17.3.1] injecting env (7) from ../.env -- tip: 🛡️ auth for agents: https://vestauth.com
+[dotenv@17.3.1] injecting env (15) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+🚀 Rendering Worker started successfully
+
+╔════════════════════════════════════════════════════════════╗
+║                                                            ║
+║   AI Pipeline Editor API                                   ║
+║   Server running on port 3001                              ║
+║                                                            ║
+║   API Status:                                              ║
+║   ✅ Freepik API (images, video, audio)               ║
+║   ✅ Anthropic API (Fallback Vision)                 ║
+║   ✅ ElevenLabs API (Voiceover)                    ║
+║   ✅ LTX Video API (direct)                      ║
+║   ✅ Google Gemini API (Gemini 3 Pro + Imagen 4)                 ║
+║   ✅ Cloudinary API (workflow thumbnails)         ║
+║                                                            ║
+║   Available endpoints:                                     ║
+║   • Image Generation: /api/generate-image                  ║
+║   • Image Editing: /api/upscale-creative, /api/relight     ║
+║   • Video Generation: /api/kling3, /api/runway             ║
+║   • Audio Generation: /api/music, /api/voiceover           ║
+║   • Vision: /api/analyze-image                             ║
+║   • Workflow: /api/embed-workflow, /api/extract-workflow   ║
+║                                                            ║
+╚════════════════════════════════════════════════════════════╝
+  
+Connected to Redis successfully

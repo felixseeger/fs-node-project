@@ -31,6 +31,7 @@
     "@xyflow/react": "^12.10.2",
     "bad-words": "^4.0.0",
     "blue-ether": "file:../blue-ether",
+    "dom-to-image-more": "^3.7.2",
     "drawflow": "^0.0.60",
     "etro": "^0.13.0",
     "firebase": "^12.11.0",

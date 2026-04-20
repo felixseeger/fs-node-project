@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { Position, Handle } from '@xyflow/react';
-import { useNodeConnections, Toggle, SectionHeader, ConnectedOrLocal, OutputHandle } from './shared';
+import { useNodeConnections, Toggle, SectionHeader, ConnectedOrLocal, OutputHandle, Pill, PromptInput, Slider, OutputPreview } from './shared';
 import NodeShell from './NodeShell';
 import { getHandleColor } from '../utils/handleTypes';
 import { NodeCapabilities } from './nodeCapabilities';
@@ -63,23 +63,23 @@ export default function RelightNode({ id, data, selected }) {
   const { update, conn, resolve } = useNodeConnections(id, data);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const lightMode = data.localLightMode || 'prompt';
-  const localStrength = data.localStrength ?? 100;
-  const localInterpolate = data.localInterpolate ?? false;
-  const localChangeBg = data.localChangeBg ?? true;
-  const localStyle = data.localStyle || 'standard';
-  const localPreserveDetails = data.localPreserveDetails ?? true;
+  const lightMode = data?.localLightMode || 'prompt';
+  const localStrength = data?.localStrength ?? 100;
+  const localInterpolate = data?.localInterpolate ?? false;
+  const localChangeBg = data?.localChangeBg ?? true;
+  const localStyle = data?.localStyle || 'standard';
+  const localPreserveDetails = data?.localPreserveDetails ?? true;
 
   // Advanced defaults
-  const localWhites = data.localWhites ?? 50;
-  const localBlacks = data.localBlacks ?? 50;
-  const localBrightness = data.localBrightness ?? 50;
-  const localContrast = data.localContrast ?? 50;
-  const localSaturation = data.localSaturation ?? 50;
-  const localEngine = data.localEngine || 'automatic';
-  const localTransferA = data.localTransferA || 'automatic';
-  const localTransferB = data.localTransferB || 'automatic';
-  const localFixedGen = data.localFixedGen ?? false;
+  const localWhites = data?.localWhites ?? 50;
+  const localBlacks = data?.localBlacks ?? 50;
+  const localBrightness = data?.localBrightness ?? 50;
+  const localContrast = data?.localContrast ?? 50;
+  const localSaturation = data?.localSaturation ?? 50;
+  const localEngine = data?.localEngine || 'automatic';
+  const localTransferA = data?.localTransferA || 'automatic';
+  const localTransferB = data?.localTransferB || 'automatic';
+  const localFixedGen = data?.localFixedGen ?? false;
 
   const imageConn = conn('image-in');
   const promptConn = conn('prompt-in');
@@ -87,7 +87,7 @@ export default function RelightNode({ id, data, selected }) {
   const lightmapConn = conn('lightmap-in');
 
   const handleRelight = useCallback(async () => {
-    let images = resolve.image('image-in', data.localImage);
+    let images = resolve.image('image-in', data?.localImage);
     if (!images?.length) return;
 
     start();
@@ -102,17 +102,17 @@ export default function RelightNode({ id, data, selected }) {
       const params = { image: imageBase64 };
 
       // Light transfer method
-      const prompt = resolve.text('prompt-in', data.inputPrompt);
+      const prompt = resolve.text('prompt-in', data?.inputPrompt);
       if (prompt && lightMode === 'prompt') params.prompt = prompt;
 
-      let refImages = resolve.image('reference-image-in', data.localRefImage);
+      let refImages = resolve.image('reference-image-in', data?.localRefImage);
       if (refImages?.length && lightMode === 'reference') {
         let ref = refImages[0];
         if (ref.startsWith('data:')) ref = ref.split(',')[1];
         params.transfer_light_from_reference_image = ref;
       }
 
-      let lightmaps = resolve.image('lightmap-in', data.localLightmap);
+      let lightmaps = resolve.image('lightmap-in', data?.localLightmap);
       if (lightmaps?.length && lightMode === 'lightmap') {
         let lm = lightmaps[0];
         if (lm.startsWith('data:')) lm = lm.split(',')[1];
@@ -152,6 +152,7 @@ export default function RelightNode({ id, data, selected }) {
         update({
           outputImage: generated[0] || null,
           outputImages: generated,
+          image_urls: generated,
           isLoading: false,
           outputError: null,
         });
@@ -160,6 +161,7 @@ export default function RelightNode({ id, data, selected }) {
         update({
           outputImage: result.data.generated[0],
           outputImages: result.data.generated,
+          image_urls: result.data.generated,
           isLoading: false,
           outputError: null,
         });
@@ -173,22 +175,23 @@ export default function RelightNode({ id, data, selected }) {
       update({ isLoading: false, outputError: err.message });
       fail();
     }
-  }, [id, data, update, lightMode, localStrength, localInterpolate, localChangeBg, localStyle, localPreserveDetails,
+  }, [data, update, lightMode, localStrength, localInterpolate, localChangeBg, localStyle, localPreserveDetails,
     localWhites, localBlacks, localBrightness, localContrast, localSaturation, localEngine, localTransferA, localTransferB, localFixedGen, start, complete, fail, resolve]);
 
   const lastTrigger = useRef(null);
   useEffect(() => {
-    if (data.triggerGenerate && data.triggerGenerate !== lastTrigger.current) {
+    if (data?.triggerGenerate && data.triggerGenerate !== lastTrigger.current) {
       lastTrigger.current = data.triggerGenerate;
       handleRelight();
     }
-  }, [data.triggerGenerate, handleRelight]);
+  }, [data?.triggerGenerate, handleRelight]);
 
   const ACCENT = '#f59e0b';
 
   return (
-    <NodeShell data={data} label={data.label || 'Relight'} dotColor={ACCENT} selected={selected} onGenerate={handleRelight} isGenerating={isActive} downloadUrl={data.outputImage || undefined} onDisconnect={onDisconnectNode} capabilities={[NodeCapabilities.IMAGE_RELIGHT, NodeCapabilities.OUTPUT_IMAGE]}>
+    <NodeShell data={data} label={data?.label || 'Relight'} dotColor={ACCENT} selected={selected} onGenerate={handleRelight} isGenerating={isActive} downloadUrl={data?.outputImage || undefined} onDisconnect={onDisconnectNode} capabilities={[NodeCapabilities.IMAGE_RELIGHT, NodeCapabilities.OUTPUT_IMAGE]}>
       <OutputHandle id="output" label="image" color={getHandleColor('output')} />
+      <OutputHandle id="image_urls" label="images" color={getHandleColor('image_urls')} />
       <OutputHandle id="prompt-out" label="prompt" color={getHandleColor('prompt-out')} />
 
       {/* ── 1. Image ── */}
@@ -198,11 +201,11 @@ export default function RelightNode({ id, data, selected }) {
         handleType="target" 
         color={getHandleColor('image-in')}
         isConnected={imageConn.connected}
-        onUnlink={() => data.onUnlink?.(id, 'image-in')}
+        onUnlink={() => data?.onUnlink?.(id, 'image-in')}
       />
       <ConnectedOrLocal connected={imageConn.connected} connInfo={imageConn.info}>
         <ImageUploadBox
-          image={data.localImage || data.inputImagePreview || null}
+          image={data?.localImage || data?.inputImagePreview || null}
           onImageChange={(img) => update({ localImage: img })}
           placeholder="Click or drag to upload image"
         />
@@ -227,7 +230,7 @@ export default function RelightNode({ id, data, selected }) {
             handleType="target" 
             color={getHandleColor('prompt-in')}
             isConnected={promptConn.connected}
-            onUnlink={() => data.onUnlink?.(id, 'prompt-in')}
+            onUnlink={() => data?.onUnlink?.(id, 'prompt-in')}
             extra={<div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               <AutoPromptButton id={id} data={data} update={update} imageKey="image-in" localImageKey="localImage" />
               <ImprovePromptButton id={id} data={data} update={update} type="image" />
@@ -235,7 +238,7 @@ export default function RelightNode({ id, data, selected }) {
           />
           <ConnectedOrLocal connected={promptConn.connected} connInfo={promptConn.info}>
             <PromptInput
-              value={data.inputPrompt || ''}
+              value={data?.inputPrompt || ''}
               onChange={(v) => update({ inputPrompt: v })}
               placeholder='e.g. "A sunlit forest at golden hour" or "(dark scene:1.3)"'
               rows={2}
@@ -252,11 +255,11 @@ export default function RelightNode({ id, data, selected }) {
             handleType="target" 
             color={getHandleColor('image-in')}
             isConnected={refConn.connected}
-            onUnlink={() => data.onUnlink?.(id, 'reference-image-in')}
+            onUnlink={() => data?.onUnlink?.(id, 'reference-image-in')}
           />
           <ConnectedOrLocal connected={refConn.connected} connInfo={refConn.info}>
             <ImageUploadBox
-              image={data.localRefImage || null}
+              image={data?.localRefImage || null}
               onImageChange={(img) => update({ localRefImage: img })}
               placeholder="Upload reference image for light transfer"
               minHeight={50}
@@ -273,11 +276,11 @@ export default function RelightNode({ id, data, selected }) {
             handleType="target" 
             color={getHandleColor('image-in')}
             isConnected={lightmapConn.connected}
-            onUnlink={() => data.onUnlink?.(id, 'lightmap-in')}
+            onUnlink={() => data?.onUnlink?.(id, 'lightmap-in')}
           />
           <ConnectedOrLocal connected={lightmapConn.connected} connInfo={lightmapConn.info}>
             <ImageUploadBox
-              image={data.localLightmap || null}
+              image={data?.localLightmap || null}
               onImageChange={(img) => update({ localLightmap: img })}
               placeholder="Upload lightmap (black=dark, white=light)"
               minHeight={50}
@@ -371,8 +374,8 @@ export default function RelightNode({ id, data, selected }) {
 
       <OutputPreview
         isLoading={isActive}
-        output={data.outputImage}
-        error={data.outputError}
+        output={data?.outputImage}
+        error={data?.outputError}
         accentColor={ACCENT}
         label="Relit Output"
       />

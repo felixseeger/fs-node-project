@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState, type FC, type ChangeEvent, type DragEvent } from 'react';
+import React, { useCallback, useRef, useState, useEffect, type FC, type ChangeEvent, type DragEvent } from 'react';
 import { Position, Handle, type NodeProps } from '@xyflow/react';
 import NodeShell from './NodeShell';
 import useNodeConnections from './useNodeConnections';
@@ -30,6 +30,31 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
   const { update, disconnectNode } = useNodeConnections(id, data);
   const fileRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [localValues, setLocalValues] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (uploadError) {
+      const timer = setTimeout(() => setUploadError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [uploadError]);
+
+  useEffect(() => {
+    const fields = (data.initialFields as string[]) || ['prompt'];
+    const newLocalValues: Record<string, string> = {};
+    fields.forEach((field, idx) => {
+      const counts: Record<string, number> = {};
+      fields.slice(0, idx + 1).forEach(f => {
+        counts[f] = (counts[f] || 0) + 1;
+      });
+      const handleId = counts[field] > 1 ? `${field}_${counts[field]}` : field;
+      if (field === 'prompt' || field === 'text') {
+        newLocalValues[handleId] = values[handleId] || '';
+      }
+    });
+    setLocalValues(newLocalValues);
+  }, [data.initialFields, values]);
   
   const fields = (data.initialFields as string[]) || ['prompt'];
   const values = (data.fieldValues as Record<string, any>) || {};
@@ -52,22 +77,34 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
   const handleImageUpload = useCallback(
     async (field: string, files: FileList | null) => {
       if (!files) return;
+      setUploadError(null);
       try {
         const result = await uploadImages(Array.from(files));
-        const current = images[field] || [];
-        const updated = [...current, ...result.images].slice(0, 15);
-        update({
-          imagesByField: { ...images, [field]: updated },
-          fieldValues: { ...values, [field]: updated },
-        });
-        if (typeof data.onUpdate === 'function') {
-          data.onUpdate(id, {
+        const uploaded = Array.isArray(result?.images)
+          ? result.images
+          : Array.isArray(result?.urls)
+            ? result.urls
+            : [];
+
+        if (uploaded.length) {
+          const current = images[field] || [];
+          const updated = [...current, ...uploaded].slice(0, 15);
+          update({
             imagesByField: { ...images, [field]: updated },
             fieldValues: { ...values, [field]: updated },
           });
+          if (typeof data.onUpdate === 'function') {
+            data.onUpdate(id, {
+              imagesByField: { ...images, [field]: updated },
+              fieldValues: { ...values, [field]: updated },
+            });
+          }
+        } else {
+          setUploadError("No images were returned from the server");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Image upload failed:', error);
+        setUploadError(error.message || "Failed to upload images");
       }
     },
     [id, data, images, values, update]
@@ -174,8 +211,13 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
             {type === 'prompt' || type === 'text' ? (
               <textarea
                 className="nodrag nopan"
-                value={values[handleId] || ''}
-                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateField(handleId, e.target.value)}
+                value={localValues[handleId] || ''}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setLocalValues(prev => ({ ...prev, [handleId]: e.target.value }))}
+                onBlur={(e) => {
+                  updateField(handleId, e.currentTarget.value);
+                  e.currentTarget.style.borderColor = '#3a3a3a';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
                 placeholder={`Enter ${cfg.label.toLowerCase()}...`}
                 rows={3}
                 style={{
@@ -194,10 +236,6 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
                 onFocus={(e) => {
                   e.currentTarget.style.borderColor = '#3b82f6';
                   e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = '#3a3a3a';
-                  e.currentTarget.style.boxShadow = 'none';
                 }}
               />
             ) : type === 'aspect_ratio' ? (
@@ -340,6 +378,20 @@ const InputNode: FC<NodeProps> = ({ id, data, selected }) => {
                 >
                   {isDragging ? 'Drop images here' : '+ Upload Images'}
                 </button>
+                {uploadError && (
+                  <div style={{
+                    fontSize: '9px',
+                    color: '#ef4444',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    marginTop: '4px',
+                    wordBreak: 'break-word'
+                  }}>
+                    {uploadError}
+                  </div>
+                )}
               </div>
             ) : null}
           </div>

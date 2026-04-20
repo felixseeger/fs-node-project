@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRenderingJobs, RenderingJob } from '../hooks/useRenderingJobs';
+import type { Node } from '@xyflow/react';
 
-export default function RenderingManager() {
+interface RenderingManagerProps {
+  selectedNodes?: Node[];
+}
+
+export default function RenderingManager({ selectedNodes = [] }: RenderingManagerProps) {
   const { jobs, isLoading, error } = useRenderingJobs();
   const [isExpanded, setIsExpanded] = useState(true);
   const [isGlobalPaused, setIsGlobalPaused] = useState(false);
 
   const activeJobs = jobs.filter(j => j.status === 'pending' || j.status === 'processing' || j.status === 'paused');
   const completedJobs = jobs.filter(j => j.status === 'completed' || j.status === 'failed');
+
+  // Check if a LayerNode is selected
+  const hasLayerNodeSelected = selectedNodes.some(node => node.type === 'LayerNode');
+
+  // Only show if LayerNode is selected AND there are active jobs
+  const shouldShow = hasLayerNodeSelected && activeJobs.length > 0;
 
   const handleGlobalPause = async () => {
     try {
@@ -44,7 +55,7 @@ export default function RenderingManager() {
     }
   };
 
-  if (isLoading && jobs.length === 0) return null;
+  if (!shouldShow) return null;
 
   return (
     <div style={{

@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, type FC } from 'react';
 import { Avatar } from 'blue-ether';
-import { useStorage } from './hooks/useStorage';
 
 interface MenuItem {
   id: string;
@@ -59,7 +58,6 @@ export const TopBar: FC<TopBarProps> = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const { usage } = useStorage();
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -357,36 +355,7 @@ export const TopBar: FC<TopBarProps> = ({
             </button>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginRight: 16 }}>
-            {usage && (
-              <div 
-                title={`Storage: ${usage.count} / ${usage.limitCount} Assets`}
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: 4, 
-                  width: 120, 
-                  padding: '6px 12px', 
-                  background: 'var(--color-surface)', 
-                  border: '1px solid var(--color-border)', 
-                  borderRadius: 16 
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--color-text-dim)', fontWeight: 600 }}>
-                  <span>Storage</span>
-                  <span>{Math.round((usage.count / usage.limitCount) * 100)}%</span>
-                </div>
-                <div style={{ width: '100%', height: 4, background: 'var(--color-bg)', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ 
-                    height: '100%', 
-                    background: usage.count >= usage.limitCount ? '#ef4444' : 'var(--color-brand-blue)', 
-                    width: `${Math.min(100, (usage.count / usage.limitCount) * 100)}%`,
-                    transition: 'width 0.3s ease-out, background-color 0.3s ease'
-                  }} />
-                </div>
-              </div>
-            )}
-          </div>
+
 
           <button
             type="button"
