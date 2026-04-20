@@ -74,5 +74,49 @@ export const PROMPT_RECIPES: PromptRecipe[] = [
       { sourceIndex: 1, sourceHandle: 'analysis-out', targetIndex: 2, targetHandle: 'prompt-in', color: '#f97316' },
       { sourceIndex: 2, sourceHandle: 'output', targetIndex: 3, targetHandle: 'image-in', color: '#ec4899' }
     ]
+  },
+  {
+    id: 'recipe-topaz-upscale',
+    title: 'Professional Image Upscaling',
+    description: 'Upscale any image to 2-6x resolution with Topaz Labs AI upscaler. Perfect for enhancing low-res photos and adding face enhancement.',
+    nodes: [
+      { type: 'sourceMediaNode', position: { x: 0, y: 0 }, data: { label: 'Source Image' } },
+      { type: 'universalGeneratorImage', position: { x: 350, y: 0 }, data: { label: 'Topaz Upscale', models: ['topaz-upscale'] } },
+      { type: 'imageOutput', position: { x: 750, y: 0 }, data: { label: 'Enhanced Image' } }
+    ],
+    edges: [
+      { sourceIndex: 0, sourceHandle: 'image-out', targetIndex: 1, targetHandle: 'image-1-in', color: '#ec4899' },
+      { sourceIndex: 1, sourceHandle: 'output', targetIndex: 2, targetHandle: 'image-in', color: '#ec4899' }
+    ]
+  },
+  {
+    id: 'recipe-flux-kontext-pro',
+    title: 'Text-Based Image Editing',
+    description: 'Transform images with text prompts using Flux Kontext Pro. Supports style transfer, creative edits, and text-guided image manipulation.',
+    nodes: [
+      { type: 'sourceMediaNode', position: { x: 0, y: 0 }, data: { label: 'Source Image' } },
+      { type: 'textNode', position: { x: 0, y: 120 }, data: { label: 'Edit Prompt', text: 'Make the style more cinematic and add dramatic lighting' } },
+      { type: 'universalGeneratorImage', position: { x: 350, y: 60 }, data: { label: 'Flux Kontext Pro', models: ['flux-kontext-pro'] } },
+      { type: 'imageOutput', position: { x: 750, y: 60 }, data: { label: 'Edited Image' } }
+    ],
+    edges: [
+      { sourceIndex: 0, sourceHandle: 'image-out', targetIndex: 2, targetHandle: 'image-1-in', color: '#ec4899' },
+      { sourceIndex: 1, sourceHandle: 'prompt-out', targetIndex: 2, targetHandle: 'prompt-in', color: '#f97316' },
+      { sourceIndex: 2, sourceHandle: 'output', targetIndex: 3, targetHandle: 'image-in', color: '#ec4899' }
+    ]
+  },
+  {
+    id: 'recipe-topaz-video-upscale',
+    title: 'Professional Video Upscaling',
+    description: 'Enhance video resolution and frame rate up to 4K/60fps using Topaz Labs professional video upscaler.',
+    nodes: [
+      { type: 'sourceMediaNode', position: { x: 0, y: 0 }, data: { label: 'Source Video' } },
+      { type: 'universalGeneratorVideo', position: { x: 350, y: 0 }, data: { label: 'Topaz Video Upscale', models: ['topaz-video-upscale'] } },
+      { type: 'videoOutput', position: { x: 750, y: 0 }, data: { label: 'Enhanced Video' } }
+    ],
+    edges: [
+      { sourceIndex: 0, sourceHandle: 'video-out', targetIndex: 1, targetHandle: 'video-in', color: '#14b8a6' },
+      { sourceIndex: 1, sourceHandle: 'output', targetIndex: 2, targetHandle: 'video-in', color: '#14b8a6' }
+    ]
   }
 ];
