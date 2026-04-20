@@ -38,6 +38,15 @@ export const VIDEO_UNIVERSAL_MODEL_DEFS = {
     supportsImageInput: true,
     supportsEndFrame: false,
   },
+  'minimax-video-01': {
+    name: 'Minimax Video-01',
+    provider: 'Minimax',
+    featured: true,
+    tags: ['720p', '6s', 'Cinematic'],
+    description: 'High-quality 720p video generation with cinematic camera movement (Hailuo)',
+    supportsImageInput: true,
+    supportsEndFrame: false,
+  },
   pixverse: {
     name: 'PixVerse V5',
     provider: 'PixVerse',
@@ -99,6 +108,26 @@ export const VIDEO_UNIVERSAL_MODEL_DEFS = {
     supportsVideoExtension: true,
     supportsVideoInterpolation: true,
     supportsModifyVideo: true,
+  },
+  'luma-reframe': {
+    name: 'Luma Reframe',
+    provider: 'Luma',
+    featured: true,
+    tags: ['Transform', 'Style', 'Motion'],
+    description: 'Transform video with motion, style, and cinematic effects',
+    supportsImageInput: false,
+    supportsEndFrame: false,
+    supportsVideoInput: true,
+  },
+  'topaz-video-upscale': {
+    name: 'Topaz Video Upscale',
+    provider: 'Topaz Labs',
+    featured: true,
+    tags: ['Professional', '720p-4k', '60fps'],
+    description: 'Professional-grade video upscaling up to 4K resolution and 60fps',
+    supportsImageInput: false,
+    supportsEndFrame: false,
+    supportsVideoInput: true,
   },
 } as const;
 
