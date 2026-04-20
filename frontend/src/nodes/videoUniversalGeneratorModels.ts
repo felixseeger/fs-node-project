@@ -85,6 +85,15 @@ export const VIDEO_UNIVERSAL_MODEL_DEFS = {
     supportsEndFrame: false,
     supportsSoundGeneration: true,
   },
+  heygen: {
+    name: 'HeyGen V3 Video-Agent',
+    provider: 'HeyGen',
+    featured: true,
+    tags: ['Avatar', 'Voice', 'Professional'],
+    description: 'Text-to-video with lifelike avatar and voice synthesis',
+    supportsImageInput: false,
+    supportsEndFrame: false,
+  },
   'luma-ray-2': {
     name: 'Luma Ray 2',
     provider: 'Luma',

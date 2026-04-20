@@ -68,6 +68,14 @@ const VideoUniversalGeneratorNode: FC<NodeProps<Node<any>>> = ({ id, data, selec
           aspectRatio: aspectRatio, 
           imagePath: startFrameUrl 
         });
+      } else if (activeModel === 'heygen') {
+        result = await postToApi('/api/generate-image', {
+          model: 'heygen',
+          prompt,
+          avatar: data.avatar || 'auto',
+          voice: data.voice || 'auto',
+          orientation: data.orientation
+        });
       } else if (activeModel === 'luma-ray-2' || activeModel === 'luma-ray-flash-2') {
         const modelDef = (MODEL_DEFS as any)[activeModel];
         

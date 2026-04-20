@@ -49,9 +49,9 @@ app.use((req, res, next) => {
 
 // 3. Tightened CORS Configuration
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : process.env.NODE_ENV === 'production'
-    ? []
+    ? ['https://nodes.felixseeger.de']
     : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177'];
 
 app.use(cors({
