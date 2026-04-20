@@ -18,6 +18,12 @@ import {
 } from './universalImageSizes';
 import { VIDEO_UNIVERSAL_MODEL_DEFS } from './videoUniversalGeneratorModels';
 import { Toggle, Slider } from './NodeControls';
+import {
+  getDefaultPinnedModels,
+  getPinnedModelsFromStorage,
+  savePinnedModelsToStorage,
+  DEFAULT_PINNED_MODELS,
+} from './pinnedModelsConfig';
 // @ts-ignore
 import { text as textStyles, surface, border, radius, sp, font } from './nodeTokens';
 import { getHandleColor, getHandleDataType } from '../utils/handleTypes';
@@ -29,7 +35,6 @@ const IMAGE_MODEL_OPTIONS = [
   'Nano Banana 2',
   'recraftv4',
   'recraftv3',
-  'kora',
   'flux',
   'quiver-text-to-vector',
   'remove-bg',
@@ -69,7 +74,6 @@ const FRIENDLY_MODEL_LABELS: Record<string, string> = {
   'Nano Banana 2': 'Nano Banana 2',
   'recraftv4': 'Recraft V4',
   'recraftv3': 'Recraft V3',
-  'kora': 'Kora Reality',
   'flux': 'Flux',
   'quiver-text-to-vector': 'Quiver Text to Vector',
   'remove-bg': 'Remove Background',
@@ -377,8 +381,9 @@ function getModelOptionsByType(nodeType?: string) {
 }
 
 function getDefaultModelByType(nodeType?: string) {
-  if (nodeType === 'universalGeneratorAudio') return 'strudelNode';
-  return nodeType === 'universalGeneratorVideo' ? 'kling3' : 'Nano Banana 2';
+  if (!nodeType) return 'Nano Banana 2';
+  const pinned = DEFAULT_PINNED_MODELS[nodeType];
+  return pinned && pinned.length > 0 ? pinned[0] : 'Nano Banana 2';
 }
 
 function isInspectorRunnableGeneratorType(nodeType?: string): boolean {
@@ -657,6 +662,7 @@ const EditorContent: FC<EditorContentProps> = ({
   readOnly = false,
   lockInfo = null,
 }) => {
+  const [showAllModels, setShowAllModels] = useState(false);
   const isUniversalGenerator =
     node.type === 'universalGeneratorImage' || node.type === 'universalGeneratorVideo' || node.type === 'universalGeneratorAudio';
   const isGeneratorNode = node.type === 'generator';
@@ -697,7 +703,7 @@ const EditorContent: FC<EditorContentProps> = ({
   const universalVideoDuration = (node.data.localDuration as string) || '5s';
   const modelOptions = getModelOptionsByType(node.type);
   const currentModels = (node.data.models as string[]) || [];
-  const pinnedModels = (node.data.pinnedModels as string[]) || [];
+  const pinnedModels = getPinnedModelsFromStorage(node.id, node.type);
   const autoSelect = Boolean(node.data.autoSelect) || currentModels.includes('Auto');
   const useMultiple = Boolean(node.data.useMultiple);
 
@@ -742,11 +748,12 @@ const EditorContent: FC<EditorContentProps> = ({
     const nextPinned = pinnedModels.includes(model)
       ? pinnedModels.filter((m) => m !== model)
       : [...pinnedModels, model];
-    applyModelPatch({ pinnedModels: nextPinned });
+    savePinnedModelsToStorage(node.id, nextPinned);
   };
 
   const orderedModelOptions = modelOptions
     .filter((m) => m !== 'Auto')
+    .filter((m) => showAllModels ? true : pinnedModels.includes(m))
     .sort((a, b) => {
       const aPinned = pinnedModels.includes(a) ? 1 : 0;
       const bPinned = pinnedModels.includes(b) ? 1 : 0;
@@ -1125,6 +1132,33 @@ const EditorContent: FC<EditorContentProps> = ({
                   </div>
                 )}
               </div>
+
+              {pinnedModels.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllModels(!showAllModels)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: `1px solid ${showAllModels ? 'rgba(59, 130, 246, 0.4)' : 'rgba(255, 255, 255, 0.1)'}`,
+                    background: showAllModels ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                    color: showAllModels ? '#93c5fd' : '#94a3b8',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = showAllModels ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = showAllModels ? 'rgba(59, 130, 246, 0.1)' : 'transparent';
+                  }}
+                >
+                  {showAllModels ? 'Show Pinned Only' : 'Show All Models'}
+                </button>
+              )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto', paddingRight: '4px' }} className="nodrag nopan scrollbar-hide" >
                 {orderedModelOptions.map((model) => {
